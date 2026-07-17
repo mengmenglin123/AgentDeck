@@ -52,3 +52,7 @@ data/
 *.apk
 *.ipa
 *.aab
+
+# Flutter/Android local
+**/local.properties
+**/android/.gradle/

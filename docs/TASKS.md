@@ -12,7 +12,7 @@
 | P0-4 | Bridge 客户端（Python 参考）+ 心跳/鉴权字段 | [x] |
 | P0-5 | Mgmt 客户端子集（Python） | [x] |
 | P0-6 | Mock Host（Bridge + Mgmt） | [x] |
-| P0-7 | App 连接配置页 + 安全存储 | [ ] Flutter |
+| P0-7 | App 连接配置页 + 安全存储 | [x] Flutter Android 工程 + Connect 页 |
 | P0-8 | 会话列表 + 新建 + 聊天页 | [ ] Flutter |
 | P0-9 | 流式 transcript reducer | [x] 协议层 event 模型；UI 待 Flutter |
 | P0-10 | 权限 allow/deny/allow_all | [x] Mock + 客户端处理；UI 待 Flutter |

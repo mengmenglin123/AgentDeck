@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.1] - 2026-07-17
+
+### Added
+- Flutter Android app scaffold under `apps/mobile` (`com.huanmeng.huanhermes`)
+- P0-7 Connect screen: host/ports/TLS/tokens
+- Secure token storage (`flutter_secure_storage`) + public prefs (`shared_preferences`)
+- Management client + typed errors; connection test via `GET /api/v1/status`
+- Unit tests for connection config / mgmt client / controller
+
+
 ## [0.1.0] - 2026-07-17
 
 ### Added
