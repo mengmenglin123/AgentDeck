@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.34
+
+- Activity: Copy CSV of filtered events
+- Memory: type FilterChips + filtered/total title
+- Settings: copy local prefs summary (no tokens)
+- Status: last connect test latency tile + summary field
+
 ## 0.1.33
 
 - Cron: filtered/total title counts

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../services/app_settings_controller.dart';
@@ -168,6 +169,39 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
           const Divider(height: 28),
+          Text('Device data', style: Theme.of(context).textTheme.titleSmall),
+          ListTile(
+            leading: const Icon(Icons.ios_share_outlined),
+            title: const Text('Copy local prefs'),
+            subtitle: const Text('Theme + console prefs only · no tokens / host secrets'),
+            trailing: const Icon(Icons.copy_all_outlined),
+            onTap: () async {
+              final text = [
+                'huanhermes.local_prefs.v1',
+                'theme: ${theme.mode.name}',
+                'text_scale: ${settings.textScale}',
+                'chat_font_scale: ${settings.chatFontScale}',
+                'compact_mode: ${settings.compactMode}',
+                'high_contrast: ${settings.highContrast}',
+                'session_sort: ${settings.sessionSort}',
+                'dashboard_refresh_sec: ${settings.dashboardRefreshSec}',
+                'show_tools_default: ${settings.showToolsDefault}',
+                'haptics: ${settings.hapticsEnabled}',
+                'keep_screen_on: ${settings.keepScreenOn}',
+                'mono_chat: ${settings.monoChat}',
+              ].join('\n');
+              await Clipboard.setData(ClipboardData(text: text));
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Local prefs copied (no tokens)'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+              }
+            },
+          ),
+          const Divider(height: 28),
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text('About'),
@@ -180,7 +214,7 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.tag),
             title: const Text('App version'),
-            subtitle: const Text('0.1.33+29 · console only · protocol Mock/self-host'),
+            subtitle: const Text('0.1.34+34 · console only · protocol Mock/self-host'),
           ),
           ListTile(
             leading: const Icon(Icons.policy_outlined),

@@ -149,6 +149,11 @@
 | P3-107 | Workspace 目录优先排序开关 | [x] |
 | P3-108 | Audit 新旧排序 + Copy all | [x] |
 
+| P3-109 | Activity 导出 CSV（筛选结果） | [x] |
+| P3-110 | Memory type FilterChips + 标题计数 | [x] |
+| P3-111 | Settings 复制本地 prefs（无 token） | [x] |
+| P3-112 | Status 展示 last connect test 延迟 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

@@ -21,6 +21,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
   bool _loading = true;
   String? _error;
   String _scope = 'all';
+  String _type = 'all';
   String _q = '';
   List<Map<String, dynamic>> _items = [];
   final _search = TextEditingController();
@@ -39,9 +40,22 @@ class _MemoryScreenState extends State<MemoryScreen> {
 
   List<Map<String, dynamic>> get _visible {
     final q = _search.text.trim().toLowerCase();
-    if (q.isEmpty) return _items;
-    // Client refine in case Host search is coarse / ignored.
     return _items.where((m) {
+      if (_type != 'all') {
+        final t = (m['type'] ?? '').toString().toLowerCase();
+        if (_type == 'other') {
+          final known = t.contains('note') ||
+              t.contains('fact') ||
+              t.contains('pref') ||
+              t.contains('rule') ||
+              t.contains('snippet') ||
+              t.contains('doc');
+          if (known) return false;
+        } else if (!t.contains(_type)) {
+          return false;
+        }
+      }
+      if (q.isEmpty) return true;
       final hay = '${m['title']} ${m['id']} ${m['content']} ${m['scope']} ${m['type']}'.toLowerCase();
       return hay.contains(q);
     }).toList();
@@ -80,7 +94,13 @@ class _MemoryScreenState extends State<MemoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_visible.isEmpty ? 'Host memory' : 'Host memory (${_visible.length})'),
+        title: Text(
+          _visible.isEmpty
+              ? 'Host memory'
+              : (_visible.length == _items.length
+                  ? 'Host memory (${_visible.length})'
+                  : 'Host memory (${_visible.length}/${_items.length})'),
+        ),
         actions: [
           IconButton(
             tooltip: 'Copy all',
@@ -129,6 +149,30 @@ class _MemoryScreenState extends State<MemoryScreen> {
                       setState(() => _scope = f.$1);
                       _load();
                     },
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                for (final f in const [
+                  ('all', 'All types'),
+                  ('note', 'Note'),
+                  ('fact', 'Fact'),
+                  ('pref', 'Pref'),
+                  ('rule', 'Rule'),
+                  ('snippet', 'Snippet'),
+                  ('doc', 'Doc'),
+                  ('other', 'Other'),
+                ])
+                  FilterChip(
+                    label: Text(f.$2, style: const TextStyle(fontSize: 12)),
+                    selected: _type == f.$1,
+                    onSelected: (_) => setState(() => _type = f.$1),
                     visualDensity: VisualDensity.compact,
                   ),
               ],

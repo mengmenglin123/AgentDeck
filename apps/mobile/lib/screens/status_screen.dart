@@ -75,6 +75,7 @@ class _StatusScreenState extends State<StatusScreen> {
       'projects: ${_status['projects_count'] ?? '—'}',
       'sessions: ${_status['sessions_count'] ?? '—'}',
       'active_runs: ${_status['active_runs'] ?? '—'}',
+      if (c.lastTestLatencyMs != null) 'last_test_latency_ms: ${c.lastTestLatencyMs}',
       if (caps.isNotEmpty) 'capabilities: $caps',
       if (_error != null) 'status_error: $_error',
       if (c.lastHealthOkAt != null) 'last_health_ok: ${c.lastHealthOkAt!.toIso8601String()}',
@@ -222,6 +223,19 @@ class _StatusScreenState extends State<StatusScreen> {
                       },
                     ),
             ),
+            ListTile(
+              leading: Icon(
+                Icons.speed,
+                color: c.lastTestLatencyMs == null ? cs.outline : cs.primary,
+              ),
+              title: const Text('Last connect test'),
+              subtitle: Text(
+                c.lastTestLatencyMs == null
+                    ? 'No Test & connect latency yet'
+                    : '${c.lastTestLatencyMs} ms (GET /status during connect)',
+              ),
+            ),
+
           ),
           const Divider(),
           Text('Snapshot', style: Theme.of(context).textTheme.titleMedium),

@@ -191,6 +191,34 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   },
             icon: const Icon(Icons.copy_all_outlined),
           ),
+          IconButton(
+            tooltip: 'Copy CSV',
+            onPressed: items.isEmpty
+                ? null
+                : () async {
+                    final buf = StringBuffer();
+                    buf.writeln('ts,kind,session,message');
+                    for (final e in items) {
+                      final ts = '${e['ts'] ?? e['time'] ?? ''}'.replaceAll(',', ';');
+                      final kind = '${e['type'] ?? e['kind'] ?? 'event'}'.replaceAll(',', ';');
+                      final sk = '${e['session_key'] ?? e['session_id'] ?? ''}'.replaceAll(',', ';');
+                      final msg = '${e['message'] ?? e['summary'] ?? e['content'] ?? ''}'
+                          .replaceAll(',', ';')
+                          .replaceAll('\n', ' ');
+                      buf.writeln('$ts,$kind,$sk,$msg');
+                    }
+                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Copied CSV (${items.length})'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    }
+                  },
+            icon: const Icon(Icons.table_chart_outlined),
+          ),
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
       ),
