@@ -30,6 +30,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   bool _sortAsc = true;
   /// all | dir | file
   String _typeFilter = 'all';
+  final _scroll = ScrollController();
 
   @override
   void initState() {
@@ -40,6 +41,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
   @override
   void dispose() {
+    _scroll.dispose();
     _filterCtrl.dispose();
     super.dispose();
   }
@@ -211,6 +213,27 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             icon: const Icon(Icons.playlist_add_check_outlined),
           ),
           IconButton(
+            tooltip: 'Jump to top',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+            },
+            icon: const Icon(Icons.vertical_align_top),
+          ),
+          IconButton(
+            tooltip: 'Jump to end',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(
+                _scroll.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
+            },
+            icon: const Icon(Icons.vertical_align_bottom),
+          ),
+
+          IconButton(
             tooltip: _sortAsc ? 'Sort Z→A (dirs first)' : 'Sort A→Z (dirs first)',
             onPressed: () => setState(() => _sortAsc = !_sortAsc),
             icon: Icon(_sortAsc ? Icons.arrow_downward : Icons.arrow_upward),
@@ -374,6 +397,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               onRefresh: () => _load(),
               child: isFile
                 ? ListView(
+                    controller: _scroll,
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.all(16),
                     children: [
@@ -384,6 +408,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                     ],
                   )
                 : ListView(
+                    controller: _scroll,
                     physics: const AlwaysScrollableScrollPhysics(),
                     children: [
                       if (_path.isNotEmpty)

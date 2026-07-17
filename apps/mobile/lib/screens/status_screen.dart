@@ -113,6 +113,40 @@ class _StatusScreenState extends State<StatusScreen> {
     );
   }
 
+
+  Future<void> _copyCsv(ConnectionController c) async {
+    final cfg = c.saved;
+    final buf = StringBuffer();
+    buf.writeln('key,value');
+    void row(String k, Object? v) {
+      final raw = v == null ? '' : '$v'.replaceAll('"', '""');
+      buf.writeln('$k,"$raw"');
+    }
+    if (cfg != null) {
+      row('host', cfg.host);
+      row('mgmt', cfg.mgmtBaseUrl);
+      row('bridge', cfg.bridgeWsUrlRedacted);
+    }
+    if (c.lastTestLatencyMs != null) row('last_test_latency_ms', c.lastTestLatencyMs);
+    if (c.lastHealthOkAt != null) row('last_health_ok', c.lastHealthOkAt!.toIso8601String());
+    for (final e in _status.entries) {
+      final v = e.value;
+      if (v is List) {
+        row(e.key, v.join('|'));
+      } else if (v is Map) {
+        row(e.key, v.toString());
+      } else {
+        row(e.key, v);
+      }
+    }
+    if (_error != null) row('error', _error);
+    await Clipboard.setData(ClipboardData(text: buf.toString()));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Copied status CSV'), duration: Duration(seconds: 1)),
+    );
+  }
+
   Future<void> _copyJson(ConnectionController c) async {
     final cfg = c.saved;
     final payload = <String, dynamic>{
@@ -169,6 +203,12 @@ class _StatusScreenState extends State<StatusScreen> {
             onPressed: () => _copyJson(c),
             icon: const Icon(Icons.data_object_outlined),
           ),
+          IconButton(
+            tooltip: 'Copy CSV',
+            onPressed: () => _copyCsv(c),
+            icon: const Icon(Icons.table_chart_outlined),
+          ),
+
           IconButton(
             tooltip: 'Refresh',
             onPressed: _loading ? null : _refresh,

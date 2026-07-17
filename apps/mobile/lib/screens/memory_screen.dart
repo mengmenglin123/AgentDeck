@@ -24,6 +24,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
   String _type = 'all';
   String _q = '';
   bool _newestFirst = true;
+  final _scroll = ScrollController();
   List<Map<String, dynamic>> _items = [];
   final _search = TextEditingController();
 
@@ -35,6 +36,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
 
   @override
   void dispose() {
+    _scroll.dispose();
     _search.dispose();
     super.dispose();
   }
@@ -177,6 +179,27 @@ class _MemoryScreenState extends State<MemoryScreen> {
             onPressed: () => setState(() => _newestFirst = !_newestFirst),
             icon: Icon(_newestFirst ? Icons.arrow_downward : Icons.arrow_upward),
           ),
+          IconButton(
+            tooltip: 'Jump to top',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+            },
+            icon: const Icon(Icons.vertical_align_top),
+          ),
+          IconButton(
+            tooltip: 'Jump to end',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(
+                _scroll.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
+            },
+            icon: const Icon(Icons.vertical_align_bottom),
+          ),
+
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
       ),
@@ -278,6 +301,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
                 : RefreshIndicator(
                     onRefresh: _load,
                     child: ListView.separated(
+                      controller: _scroll,
                       physics: const AlwaysScrollableScrollPhysics(),
                       itemCount: _visible.length,
                       separatorBuilder: (_, __) => const Divider(height: 1),

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.42
+
+- Activity: auto-refresh toggle (dashboard interval)
+- Workspace: jump to top / end
+- Status: copy CSV (redacted host meta)
+- Memory: jump to top / end
+
 ## 0.1.41
 
 - MCP: A→Z / Z→A name sort

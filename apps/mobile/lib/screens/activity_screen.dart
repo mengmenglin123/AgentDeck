@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import '../models/connection_config.dart';
+import '../services/app_settings_controller.dart';
 import '../models/session_info.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
@@ -31,18 +34,33 @@ class _ActivityScreenState extends State<ActivityScreen> {
   String _query = '';
   String _kind = '';
   bool _newestFirst = true;
+  Timer? _timer;
+  bool _autoRefresh = false;
   final _q = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _q.dispose();
     super.dispose();
+  }
+
+  void _armTimer() {
+    _timer?.cancel();
+    if (!_autoRefresh || !mounted) return;
+    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
+    if (sec <= 0) return;
+    _timer = Timer.periodic(Duration(seconds: sec), (_) {
+      if (!mounted || _loading) return;
+      _load();
+    });
   }
 
   Future<void> _load() async {
@@ -174,11 +192,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          items.isEmpty
-              ? 'Host activity'
-              : (_events.isEmpty || items.length == _events.length
-                  ? 'Host activity (${items.length})'
-                  : 'Host activity (${items.length}/${_events.length})'),
+          () {
+            final base = items.isEmpty
+                ? 'Host activity'
+                : (_events.isEmpty || items.length == _events.length
+                    ? 'Host activity (${items.length})'
+                    : 'Host activity (${items.length}/${_events.length})');
+            return _autoRefresh ? '$base · auto' : base;
+          }(),
         ),
         actions: [
           IconButton(
@@ -236,6 +257,15 @@ class _ActivityScreenState extends State<ActivityScreen> {
             onPressed: () => setState(() => _newestFirst = !_newestFirst),
             icon: Icon(_newestFirst ? Icons.arrow_downward : Icons.arrow_upward),
           ),
+          IconButton(
+            tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
+            onPressed: () {
+              setState(() => _autoRefresh = !_autoRefresh);
+              _armTimer();
+            },
+            icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
+          ),
+
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
       ),
