@@ -97,6 +97,24 @@ class TestMgmtDialects(unittest.TestCase):
         a = c.agents()
         self.assertIn("agents", a)
 
+    def test_skills_and_pairing(self) -> None:
+        c = MgmtClient(self.cfg)
+        skills = c.skills()
+        self.assertIn("skills", skills)
+        self.assertTrue(skills["skills"])
+        pair = c.pairing()
+        self.assertIn("pairing_code", pair)
+        self.assertTrue(str(pair["pairing_code"]).startswith("huanhermes://"))
+
+    def test_project_capabilities_include_hermes(self) -> None:
+        c = MgmtClient(self.cfg)
+        projects = c.projects().get("projects") or []
+        names = {p.get("name") for p in projects}
+        self.assertIn("hermes", names)
+        hermes = next(p for p in projects if p.get("name") == "hermes")
+        caps = hermes.get("capabilities") or []
+        self.assertIn("stream", caps)
+
 
 if __name__ == "__main__":
     unittest.main()

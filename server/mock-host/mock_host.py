@@ -381,12 +381,20 @@ def _handle_message(conn: socket.socket, msg: Dict[str, Any]) -> None:
     content = (msg.get("content") or "").strip()
     sk = msg.get("session_key") or "huan:unknown:unknown"
     ctx = msg.get("reply_ctx") or str(uuid.uuid4())
+    images = msg.get("images") or []
+    files = msg.get("files") or []
     project = _project_hint(content)
     with SESSIONS_LOCK:
         if sk in SESSIONS and SESSIONS[sk].get("project"):
             project = SESSIONS[sk]["project"]
+    # session_key platform:scope:user may include project-ish scopes
+    if ":hermes" in sk or sk.startswith("huanhermes-app:hermes"):
+        project = "hermes"
     _touch_session(sk, content=content, project=project)
-    _append_transcript(sk, "user", content)
+    attach_note = ""
+    if images or files:
+        attach_note = f" [attachments: {len(images)} image(s), {len(files)} file(s)]"
+    _append_transcript(sk, "user", (content or "(attachment)") + attach_note)
 
     if content.lower() in ("/stop", "/cancel"):
         _handle_cancel(conn, {"session_key": sk, "reply_ctx": ctx})
@@ -419,12 +427,30 @@ def _handle_message(conn: socket.socket, msg: Dict[str, Any]) -> None:
         return
 
     st = _session_state(sk)
-    reply = (
-        f"[mock:{st.get('project')}|{st.get('model')}|mode={st.get('mode')}] 收到：{content}\n\n"
-        "这是 HuanHermes Mock Host 的流式回复。\n"
-        "真连服务器时，此处将由 Claude Code / Codex / Hermes 产生。\n"
-        f"workdir={st.get('workdir')}"
-    )
+    st_project = st.get("project") or project
+    if st_project == "hermes":
+        st["model"] = st.get("model") if st.get("model") not in ("mock-sonnet",) else "mock-hermes"
+        reply = (
+            f"[hermes-mock|model={st.get('model')}|mode={st.get('mode')}]\n"
+            f"Hermes-shaped session (ADR-002). User said: {content or '(no text)'}\n"
+            f"{attach_note.strip()}\n\n"
+            "Capabilities: stream, tools, cancel, memory-stub.\n"
+            "This is NOT a live Hermes process — Host adapter maps Bridge → Hermes later.\n"
+            f"workdir={st.get('workdir')}"
+        )
+        # hermes-flavored tool name
+        tool_name = "memory.search"
+        tool_out = "0 memories (mock)"
+    else:
+        reply = (
+            f"[mock:{st_project}|{st.get('model')}|mode={st.get('mode')}] 收到：{content or '(attachment)'}\n"
+            f"{attach_note}\n\n"
+            "这是 HuanHermes Mock Host 的流式回复。\n"
+            "真连服务器时，此处将由 Claude Code / Codex / Hermes 产生。\n"
+            f"workdir={st.get('workdir')}"
+        )
+        tool_name = "echo"
+        tool_out = "ok"
     cancel_ev = threading.Event()
     run_key = f"{sk}|{ctx}"
     with ACTIVE_LOCK:
@@ -454,8 +480,8 @@ def _handle_message(conn: socket.socket, msg: Dict[str, Any]) -> None:
                 "type": "tool_call",
                 "session_key": sk,
                 "reply_ctx": ctx,
-                "name": "echo",
-                "input": content[:80],
+                "name": tool_name,
+                "input": (content or attach_note)[:80],
             },
             ensure_ascii=False,
         ),
@@ -779,6 +805,53 @@ class MgmtHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/v1/bridge/adapters":
             self._send(200, {"ok": True, "data": {"adapters": []}})
+            return
+        if path == "/api/v1/skills":
+            self._send(
+                200,
+                {
+                    "ok": True,
+                    "data": {
+                        "skills": [
+                            {
+                                "name": "hermes-agent",
+                                "description": "Configure Hermes Agent (readonly mock)",
+                                "source": "mock",
+                            },
+                            {
+                                "name": "github-pr-workflow",
+                                "description": "PR lifecycle helpers (readonly mock)",
+                                "source": "mock",
+                            },
+                            {
+                                "name": "systematic-debugging",
+                                "description": "4-phase debugging checklist (readonly mock)",
+                                "source": "mock",
+                            },
+                        ]
+                    },
+                },
+            )
+            return
+        if path == "/api/v1/pairing":
+            # Device pairing payload for QR/text share (no secrets in repo defaults)
+            token_hint = "use-app-stored-tokens"
+            self._send(
+                200,
+                {
+                    "ok": True,
+                    "data": {
+                        "scheme": "huanhermes",
+                        "version": 1,
+                        "host": BRIDGE_HOST if BRIDGE_HOST != "0.0.0.0" else "127.0.0.1",
+                        "bridge_port": BRIDGE_PORT,
+                        "mgmt_port": MGMT_PORT,
+                        "use_tls": False,
+                        "note": "Fill tokens on device; Host does not return live secrets here",
+                        "pairing_code": f"huanhermes://connect?host=127.0.0.1&bridge={BRIDGE_PORT}&mgmt={MGMT_PORT}&tls=0",
+                    },
+                },
+            )
             return
         if path == "/api/v1/sessions":
             q = parse_qs(urlparse(self.path).query)

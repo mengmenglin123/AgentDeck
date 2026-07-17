@@ -67,6 +67,26 @@ class MgmtClient:
         except ProtocolError:
             return {"agents": [], "platforms": []}
 
+    def skills(self) -> Dict[str, Any]:
+        try:
+            return self._request("GET", "/skills")
+        except ProtocolError:
+            return {"skills": []}
+
+    def pairing(self) -> Dict[str, Any]:
+        try:
+            return self._request("GET", "/pairing")
+        except ProtocolError:
+            return {
+                "scheme": "huanhermes",
+                "version": 1,
+                "host": self.config.host,
+                "bridge_port": self.config.bridge_port,
+                "mgmt_port": self.config.mgmt_port,
+                "use_tls": self.config.use_tls,
+                "note": "Host has no /pairing — local fallback",
+            }
+
     def sessions(self, project: Optional[str] = None) -> Dict[str, Any]:
         if self.dialect == "project" and project:
             return self._request("GET", f"/projects/{project}/sessions")

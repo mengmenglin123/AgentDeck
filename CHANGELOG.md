@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.6] - 2026-07-17
+
+### Added
+- Hermes Mock session flavor (memory.search tool, hermes project)
+- Capability-gated chat toolbar (mode/model/dir/stop/tools)
+- Attachments protocol path + in-app attach demo
+- Skills readonly screen + GET /skills on Mock
+- Pairing screen + GET /pairing (token-free URI)
+- Release checklist + self-host compatibility guide
+
+### Notes
+- Live Host / channels untouched; App remains console-only
+
+
 ## [0.1.5] - 2026-07-17
 
 ### Added

@@ -41,12 +41,23 @@ class ChatController extends ChangeNotifier {
   String mode = 'default';
   String model = 'mock-sonnet';
   String workdir = '/workspace';
+  List<String> capabilities = const [
+    'stream',
+    'buttons',
+    'cancel',
+    'workdir',
+    'mode',
+    'model',
+    'tools_visible',
+  ];
   int reconnectAttempts = 0;
   Timer? _reconnectTimer;
   bool _disposed = false;
 
   List<TranscriptMessage> get messages => List.unmodifiable(reducer.messages);
   bool get isEmpty => messages.isEmpty;
+  bool hasCap(String c) =>
+      capabilities.isEmpty || capabilities.contains(c);
 
   Future<void> connect({bool silent = false}) async {
     if (connected || connecting) return;
@@ -117,6 +128,10 @@ class ChatController extends ChangeNotifier {
       mode = (data['mode'] ?? mode).toString();
       model = (data['model'] ?? model).toString();
       workdir = (data['workdir'] ?? workdir).toString();
+      final caps = data['capabilities'];
+      if (caps is List && caps.isNotEmpty) {
+        capabilities = caps.map((e) => e.toString()).toList();
+      }
       if (data['running'] == true) runActive = true;
       audit.add('session.reload', detail: session.id);
     } catch (e) {
@@ -128,26 +143,38 @@ class ChatController extends ChangeNotifier {
     }
   }
 
-  Future<void> send(String text) async {
+  Future<void> send(
+    String text, {
+    List<Map<String, dynamic>> images = const [],
+    List<Map<String, dynamic>> files = const [],
+  }) async {
     final content = text.trim();
-    if (content.isEmpty) return;
+    if (content.isEmpty && images.isEmpty && files.isEmpty) return;
     if (!connected || _bridge == null) {
       await connect();
       if (!connected || _bridge == null) return;
     }
     sending = true;
     error = null;
-    reducer.apply(TranscriptEvent(kind: EventKind.user, text: content));
+    final display = content.isEmpty
+        ? '[attachment: ${images.length} image(s), ${files.length} file(s)]'
+        : content;
+    reducer.apply(TranscriptEvent(kind: EventKind.user, text: display));
     notifyListeners();
     try {
       final meta = _bridge!.sendUserMessage(
         content: content,
         conversationId: session.id,
         sessionKeyOverride: session.sessionKey,
+        images: images,
+        files: files,
       );
       lastReplyCtx = meta['reply_ctx'];
       runActive = true;
-      audit.add('chat.send', detail: content.length > 80 ? '${content.substring(0, 80)}…' : content);
+      audit.add(
+        'chat.send',
+        detail: display.length > 80 ? '${display.substring(0, 80)}…' : display,
+      );
     } on DisconnectedError catch (e) {
       error = e.message;
       connected = false;
@@ -157,6 +184,13 @@ class ChatController extends ChangeNotifier {
       sending = false;
       notifyListeners();
     }
+  }
+
+  /// Apply project capabilities from Sessions list (P2-3).
+  void applyProjectCapabilities(List<String> caps) {
+    if (caps.isEmpty) return;
+    capabilities = List<String>.from(caps);
+    notifyListeners();
   }
 
   Future<void> sendSlash(String command) => send(command);

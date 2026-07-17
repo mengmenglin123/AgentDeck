@@ -57,3 +57,9 @@ Authorization: Bearer <token>
 ```
 
 App hides unsupported toolbar actions when missing (progressive). See ADR-002.
+
+
+## Skills & pairing (optional P3)
+
+- `GET /skills` → `{ skills: [{name, description, source}] }`
+- `GET /pairing` → `{ pairing_code, host, bridge_port, mgmt_port, use_tls, note }` — **no secrets**

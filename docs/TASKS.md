@@ -35,16 +35,16 @@
 | ID | 任务 | 状态 |
 |----|------|------|
 | P2-1 | Hermes adapter ADR | [x] ADR-002 |
-| P2-2 | Hermes 最小 session | [ ] |
-| P2-3 | AgentCapability 探测 | [~] Mock capabilities + ProjectInfo; toolbar gate later |
-| P2-4 | 附件（可选） | [ ] |
+| P2-2 | Hermes 最小 session | [x] Mock hermes project + flavor reply (ADR-002) |
+| P2-3 | AgentCapability 探测 | [x] Project capabilities → Chat toolbar gate |
+| P2-4 | 附件（可选） | [x] Bridge images/files + attach demo UI |
 | P2-5 | 多服务器 profile | [x] Secure multi-profile store + Connect UI |
 | P2-6 | 安全加固 | [x] TLS warn + redaction helpers + secure multi-token keys |
-| P2-7 | 内测包 | [ ] |
-| P2-8 | 自研 Host 兼容层（可选） | [ ] |
+| P2-7 | 内测包 | [x] docs/guides/release.md checklist |
+| P2-8 | 自研 Host 兼容层（可选） | [x] docs/guides/self-host-compat.md + Mock subset |
 
 ## P3 — 增强
 
-- [ ] 终端独立通道  
-- [ ] Skills/MCP 只读浏览  
-- [ ] 设备配对二维码  
+- [ ] 终端独立通道（远期）  
+- [x] Skills/MCP 只读浏览（Mock GET /skills + App Skills 页）  
+- [x] 设备配对二维码（配对文本/URI；真 QR 渲染可后置）  

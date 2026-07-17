@@ -242,6 +242,8 @@ class BridgeClient:
         user_id: str = "user",
         user_name: str = "User",
         session_key_override: Optional[str] = None,
+        images: Optional[list] = None,
+        files: Optional[list] = None,
     ) -> Dict[str, str]:
         from .models import session_key
 
@@ -257,8 +259,8 @@ class BridgeClient:
                 "user_name": user_name,
                 "content": content,
                 "reply_ctx": reply_ctx,
-                "images": [],
-                "files": [],
+                "images": images or [],
+                "files": files or [],
                 "audio": None,
             }
         )

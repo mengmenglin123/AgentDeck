@@ -5,6 +5,8 @@ import '../models/session_info.dart';
 import '../services/connection_controller.dart';
 import '../services/session_controller.dart';
 import 'chat_screen.dart';
+import 'skills_screen.dart';
+import 'pairing_screen.dart';
 
 class SessionsScreen extends StatefulWidget {
   const SessionsScreen({super.key});
@@ -56,9 +58,18 @@ class _SessionsScreenState extends State<SessionsScreen> {
     final conn = context.read<ConnectionController>();
     final cfg = conn.saved;
     if (cfg == null) return;
+    final caps = _sessions?.projects
+            .where((p) => p.name == session.project)
+            .map((p) => p.capabilities)
+            .firstWhere((_) => true, orElse: () => const <String>[]) ??
+        const <String>[];
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ChatScreen(config: cfg, session: session),
+        builder: (_) => ChatScreen(
+          config: cfg,
+          session: session,
+          projectCapabilities: caps,
+        ),
       ),
     );
     // refresh after returning (mock may have updated last_user)
@@ -84,6 +95,28 @@ class _SessionsScreenState extends State<SessionsScreen> {
                 tooltip: 'Refresh',
                 onPressed: sessions.loading ? null : sessions.refresh,
                 icon: const Icon(Icons.refresh),
+              ),
+              IconButton(
+                tooltip: 'Skills (readonly)',
+                onPressed: () {
+                  final cfg = conn.saved;
+                  if (cfg == null) return;
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => SkillsScreen(config: cfg)),
+                  );
+                },
+                icon: const Icon(Icons.extension_outlined),
+              ),
+              IconButton(
+                tooltip: 'Pairing / QR text',
+                onPressed: () {
+                  final cfg = conn.saved;
+                  if (cfg == null) return;
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => PairingScreen(config: cfg)),
+                  );
+                },
+                icon: const Icon(Icons.qr_code_2),
               ),
               IconButton(
                 tooltip: 'Edit connection',

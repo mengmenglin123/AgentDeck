@@ -71,3 +71,15 @@ App 点选后发 `card_action`。
 ## 非目标（本子集）
 
 卡片完整 Schema、音频、文件大对象、预览 handle 全链路、独立终端字节流 —— 后续版本再加。
+
+
+## Attachments (optional)
+
+`message` may include:
+
+```json
+"images": [{"name":"a.png","mime":"image/png","data_base64":"..."}],
+"files": [{"name":"a.txt","mime":"text/plain","data_base64":"..."}]
+```
+
+Hosts may ignore; Mock echoes attachment counts. App ships a **protocol demo** attach UI (no mandatory camera plugin).

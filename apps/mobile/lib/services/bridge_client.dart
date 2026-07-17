@@ -98,6 +98,8 @@ class BridgeClient {
     String userId = 'user',
     String userName = 'User',
     String? sessionKeyOverride,
+    List<Map<String, dynamic>> images = const [],
+    List<Map<String, dynamic>> files = const [],
   }) {
     final sk = sessionKeyOverride ??
         'huan:${config.deviceId}:$conversationId';
@@ -111,8 +113,8 @@ class BridgeClient {
       'user_name': userName,
       'content': content,
       'reply_ctx': replyCtx,
-      'images': [],
-      'files': [],
+      'images': images,
+      'files': files,
       'audio': null,
     });
     return {

@@ -72,6 +72,40 @@ class MgmtClient {
     }
   }
 
+  /// Readonly skills list when Host exposes GET /skills (Mock + optional Host).
+  Future<List<Map<String, dynamic>>> listSkills() async {
+    try {
+      final data = await _request('GET', '/skills');
+      final list = data['skills'];
+      if (list is! List) return const [];
+      return list
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    } on ProtocolError {
+      return const [];
+    }
+  }
+
+  /// Pairing payload for QR / text share (no live secrets returned by Mock).
+  Future<Map<String, dynamic>> pairingInfo() async {
+    try {
+      return await _request('GET', '/pairing');
+    } on ProtocolError {
+      return {
+        'scheme': 'huanhermes',
+        'version': 1,
+        'host': config.host,
+        'bridge_port': config.bridgePort,
+        'mgmt_port': config.mgmtPort,
+        'use_tls': config.useTls,
+        'pairing_code':
+            'huanhermes://connect?host=${config.host}&bridge=${config.bridgePort}&mgmt=${config.mgmtPort}&tls=${config.useTls ? 1 : 0}',
+        'note': 'Host has no /pairing — local fallback from App config',
+      };
+    }
+  }
+
   Future<List<SessionInfo>> sessions({String? project}) async {
     final proj = project ?? '';
     // Prefer dialect if known
