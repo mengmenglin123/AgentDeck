@@ -110,6 +110,10 @@ flutter build apk --debug
 
 ## 文档
 
+- [连接真实 Host](docs/guides/connect-real-host.md)（只在 App 填 token，不改服务器渠道）
+- [LiveAgent 能力对照](docs/roadmap-liveagent-parity.md)
+
+
 | 文档 | 说明 |
 |------|------|
 | [docs/TASKS.md](docs/TASKS.md) | 开发任务板 |

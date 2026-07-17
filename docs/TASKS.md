@@ -22,7 +22,7 @@
 | ID | 任务 | 状态 |
 |----|------|------|
 | P1-1 | server 示例 config + 文档 | [x] example toml |
-| P1-2 | 真连 cc-connect + Claude Code | [ ] |
+| P1-2 | 真连 cc-connect + Claude Code | [x] 客户端双方言 + 连接指南（不改线上 Host） |
 | P1-3 | Codex project 切换 | [x] Sessions project filter + mock projects |
 | P1-4 | mode/model/dir/stop UI 映射 | [x] Chat toolbar + slash + cancel |
 | P1-5 | 断线续传 / 重载会话 | [x] Auto-reconnect + GET session transcript |

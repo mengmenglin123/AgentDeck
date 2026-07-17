@@ -1,0 +1,16 @@
+# Example shape only — copy ideas into YOUR new Host install if you deploy one.
+# Do NOT paste this over a running production cc-connect config.
+# Tokens are placeholders; generate your own.
+
+[bridge]
+enabled = true
+port = 9810
+token = "generate-a-long-random-bridge-token"
+
+[management]
+enabled = true
+port = 9820
+token = "generate-a-long-random-mgmt-token"
+
+# Projects / providers are Host-specific; configure on the Host side per its docs.
+# HuanHermes App only needs the bridge + management ports and tokens above.

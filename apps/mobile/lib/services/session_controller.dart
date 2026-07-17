@@ -74,7 +74,7 @@ class SessionController extends ChangeNotifier {
 
   Future<void> deleteSession(SessionInfo session) async {
     try {
-      await _mgmt.deleteSession(session.id);
+      await _mgmt.deleteSession(session.id, project: session.project.isEmpty ? selectedProject : session.project);
       await refresh();
     } on Exception catch (e) {
       error = e.toString();

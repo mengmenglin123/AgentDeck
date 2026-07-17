@@ -227,6 +227,38 @@ class TranscriptReducer {
       case 'typing_stop':
         // UI uses dedicated typing flag; skip transcript noise
         return messages;
+      case 'preview_start':
+        return apply(
+          TranscriptEvent(
+            kind: EventKind.system,
+            text: (payload['content'] ?? 'preview…').toString(),
+            meta: payload,
+          ),
+        );
+      case 'update_message':
+        return apply(
+          TranscriptEvent(
+            kind: EventKind.assistantDelta,
+            text: (payload['content'] ?? '').toString(),
+            meta: {
+              'full_text': payload['content'],
+              'done': false,
+              'preview_handle': payload['preview_handle'],
+            },
+          ),
+        );
+      case 'card':
+        return apply(
+          TranscriptEvent(
+            kind: EventKind.permission,
+            text: (payload['content'] ?? payload['title'] ?? 'card').toString(),
+            meta: {
+              'buttons': payload['buttons'] ?? [],
+              'session_key': payload['session_key'],
+              'reply_ctx': payload['reply_ctx'],
+            },
+          ),
+        );
       case 'register_ack':
         final ok = payload['ok'] == true;
         return apply(

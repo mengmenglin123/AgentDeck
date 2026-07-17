@@ -9,7 +9,7 @@
 | Chat 流式 TOKEN/THINKING/TOOL | Bridge `reply_stream` / `thinking` / `tool_*` + reducer | Mock + App 完成 |
 | 权限审批 | `buttons` + `card_action` | P0 完成 |
 | 会话侧栏 / 新建 / 删除 | Mgmt `/sessions` | P0 完成 |
-| Project / Agent 切换 | Mgmt `/projects` + 会话 project | Mock 完成；真 cc-connect 待 P1-2 |
+| Project / Agent 切换 | Mgmt `/projects` + 双方言 sessions | Mock + App 完成；真 Host 由用户在 App 填 token |
 | mode / model / dir | Chat 工具栏 → slash message | Mock + App 完成 |
 | 取消 run | Bridge `cancel` + `/stop` | Mock + App 完成 |
 | 断线恢复 / seq | 自动重连 + GET transcript 重载 | Mock + App 完成 |

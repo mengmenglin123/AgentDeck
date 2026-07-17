@@ -604,6 +604,42 @@ def bridge_server() -> None:
         t.start()
 
 
+
+def _create_session_rec(project: str, body: Dict[str, Any]) -> Dict[str, Any]:
+    """Create session record (shared by flat + project-scoped POST)."""
+    sid = (body.get("session_key") or body.get("id") or "").strip()
+    if not sid:
+        sid = f"huanhermes-app:mock:{uuid.uuid4().hex[:10]}"
+    st = _session_state(sid)
+    st["project"] = project
+    if body.get("title"):
+        title = body["title"]
+    else:
+        title = "New session"
+    rec = {
+        "id": body.get("id") or sid,
+        "session_key": sid,
+        "project": project,
+        "title": title,
+        "name": title,
+        "updated_at": time.time(),
+        "created_at": time.time(),
+        "mode": st["mode"],
+        "model": st["model"],
+        "workdir": st["workdir"],
+        "running": False,
+        "live": False,
+        "active": False,
+        "platform": "bridge",
+        "agent_type": next((p.get("agent_type") for p in PROJECTS if p["name"] == project), "claudecode"),
+    }
+    with SESSIONS_LOCK:
+        SESSIONS[sid] = rec
+        for p in PROJECTS:
+            p["sessions_count"] = sum(1 for s in SESSIONS.values() if s.get("project") == p["name"])
+    return rec
+
+
 # ---------- Management HTTP ----------
 
 class MgmtHandler(BaseHTTPRequestHandler):
@@ -671,9 +707,51 @@ class MgmtHandler(BaseHTTPRequestHandler):
             name = m.group(1)
             for p in PROJECTS:
                 if p["name"] == name:
-                    self._send(200, {"ok": True, "data": p})
+                    with SESSIONS_LOCK:
+                        keys = [s["session_key"] for s in SESSIONS.values() if s.get("project") == name]
+                    data = dict(p)
+                    data["active_session_keys"] = keys
+                    data["platforms"] = [{"type": "bridge", "connected": True}]
+                    data["mode"] = "default"
+                    self._send(200, {"ok": True, "data": data})
                     return
             self._send(404, {"ok": False, "error": "project not found"})
+            return
+        # cc-connect shape: /projects/{name}/sessions
+        m = re.match(r"^/api/v1/projects/([^/]+)/sessions$", path)
+        if m:
+            name = m.group(1)
+            with SESSIONS_LOCK:
+                items = [s for s in SESSIONS.values() if s.get("project") == name]
+            self._send(200, {"ok": True, "data": {"sessions": items, "active_keys": {}}})
+            return
+        m = re.match(r"^/api/v1/projects/([^/]+)/sessions/(.+)$", path)
+        if m:
+            name, sid = m.group(1), m.group(2)
+            with SESSIONS_LOCK:
+                rec = SESSIONS.get(sid)
+            if not rec or rec.get("project") != name:
+                self._send(404, {"ok": False, "error": "session not found"})
+                return
+            st = SESSION_STATE.get(sid) or {}
+            data = dict(rec)
+            data["transcript"] = list(st.get("transcript") or [])
+            self._send(200, {"ok": True, "data": data})
+            return
+        if path == "/api/v1/agents":
+            self._send(
+                200,
+                {
+                    "ok": True,
+                    "data": {
+                        "agents": ["claudecode", "codex", "hermes", "cursor", "opencode"],
+                        "platforms": ["bridge", "telegram"],
+                    },
+                },
+            )
+            return
+        if path == "/api/v1/bridge/adapters":
+            self._send(200, {"ok": True, "data": {"adapters": []}})
             return
         if path == "/api/v1/sessions":
             q = parse_qs(urlparse(self.path).query)
@@ -714,26 +792,17 @@ class MgmtHandler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             self._send(400, {"ok": False, "error": "invalid json"})
             return
+        # Flat MVP: POST /sessions
         if path == "/api/v1/sessions":
             project = body.get("project") or "claude-code"
-            sid = f"huan:mock:{uuid.uuid4().hex[:10]}"
-            st = _session_state(sid)
-            st["project"] = project
-            rec = {
-                "id": sid,
-                "session_key": sid,
-                "project": project,
-                "title": body.get("title") or "New session",
-                "updated_at": time.time(),
-                "mode": st["mode"],
-                "model": st["model"],
-                "workdir": st["workdir"],
-                "running": False,
-            }
-            with SESSIONS_LOCK:
-                SESSIONS[sid] = rec
-                for p in PROJECTS:
-                    p["sessions_count"] = sum(1 for s in SESSIONS.values() if s.get("project") == p["name"])
+            rec = _create_session_rec(project, body)
+            self._send(200, {"ok": True, "data": rec})
+            return
+        # cc-connect shape: POST /projects/{name}/sessions  (session_key optional; generated if missing)
+        m = re.match(r"^/api/v1/projects/([^/]+)/sessions$", path)
+        if m:
+            project = m.group(1)
+            rec = _create_session_rec(project, body)
             self._send(200, {"ok": True, "data": rec})
             return
         self._send(404, {"ok": False, "error": "not found"})
@@ -746,6 +815,14 @@ class MgmtHandler(BaseHTTPRequestHandler):
         m = re.match(r"^/api/v1/sessions/(.+)$", path)
         if m:
             sid = m.group(1)
+            with SESSIONS_LOCK:
+                SESSIONS.pop(sid, None)
+            SESSION_STATE.pop(sid, None)
+            self._send(200, {"ok": True, "data": {"deleted": sid}})
+            return
+        m = re.match(r"^/api/v1/projects/([^/]+)/sessions/(.+)$", path)
+        if m:
+            _name, sid = m.group(1), m.group(2)
             with SESSIONS_LOCK:
                 SESSIONS.pop(sid, None)
             SESSION_STATE.pop(sid, None)

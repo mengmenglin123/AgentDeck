@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.4] - 2026-07-17
+
+### Added
+- Management dual-dialect client: flat `/sessions` (Mock) + project-scoped `/projects/{}/sessions` (cc-connect shape)
+- Mock Host mirrors both path shapes + `/agents`, project session detail
+- `docs/guides/connect-real-host.md` — user connects App to their Host without editing Host channels
+- Bridge handling for `preview_start` / `card` / `update_message` (protocol reference)
+
+### Notes
+- LiveAgent & cc-connect remain **references only**; no production Host config is modified by this repo
+- App still does not run coding agent loops locally
+
+
 ## [0.1.3] - 2026-07-17
 
 ### Added

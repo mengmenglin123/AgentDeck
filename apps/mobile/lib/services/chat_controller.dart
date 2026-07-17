@@ -105,7 +105,7 @@ class ChatController extends ChangeNotifier {
     reloading = true;
     notifyListeners();
     try {
-      final data = await _mgmtFactory(config).sessionDetail(session.id);
+      final data = await _mgmtFactory(config).sessionDetail(session.id, project: session.project);
       final rows = data['transcript'];
       if (rows is List) {
         final list = rows
@@ -210,6 +210,16 @@ class ChatController extends ChangeNotifier {
 
   void _onBridgeMessage(Map<String, dynamic> payload) {
     final type = payload['type']?.toString();
+    if (type == 'preview_start') {
+      final ref = payload['ref_id']?.toString() ?? '';
+      try {
+        _bridge?.send({
+          'type': 'preview_ack',
+          'ref_id': ref,
+          'preview_handle': 'app-${DateTime.now().millisecondsSinceEpoch}',
+        });
+      } catch (_) {}
+    }
     if (type == 'typing_start') {
       typing = true;
       runActive = true;

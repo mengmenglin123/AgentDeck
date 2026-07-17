@@ -1,3 +1,4 @@
+
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -13,14 +14,19 @@ typedef HttpSender = Future<http.Response> Function(
   Object? body,
 });
 
-/// Management REST client (MVP subset).
+/// Management REST client.
+///
+/// Supports **both**:
+/// - HuanHermes Mock flat paths: `/sessions`, `/sessions/{id}`
+/// - cc-connect-shaped paths: `/projects/{name}/sessions`
+///
+/// Never prints tokens. Does not modify any host config.
 class MgmtClient {
   MgmtClient({
     required this.config,
     HttpSender? sender,
-    // Backward-compatible test hook for GET-only tests.
     Future<http.Response> Function(Uri url, {Map<String, String>? headers})? get,
-  }) : _send = sender ??
+  })  : _send = sender ??
             ((method, url, {headers, body}) async {
               switch (method) {
                 case 'GET':
@@ -39,6 +45,9 @@ class MgmtClient {
   final HttpSender _send;
   final Future<http.Response> Function(Uri url, {Map<String, String>? headers})? _legacyGet;
 
+  /// Detected host dialect after first successful call: `flat` | `project` | null.
+  String? dialect;
+
   Future<Map<String, dynamic>> status() => _request('GET', '/status');
 
   Future<List<ProjectInfo>> projects() async {
@@ -51,33 +60,187 @@ class MgmtClient {
         .toList();
   }
 
+  Future<Map<String, dynamic>> projectDetail(String name) async {
+    return _request('GET', '/projects/${Uri.encodeComponent(name)}');
+  }
+
+  Future<Map<String, dynamic>> agents() async {
+    try {
+      return await _request('GET', '/agents');
+    } on ProtocolError {
+      return {'agents': <String>[], 'platforms': <String>[]};
+    }
+  }
+
   Future<List<SessionInfo>> sessions({String? project}) async {
-    final q = (project == null || project.isEmpty) ? '' : '?project=$project';
+    final proj = project ?? '';
+    // Prefer dialect if known
+    if (dialect == 'project' && proj.isNotEmpty) {
+      return _sessionsProjectScoped(proj);
+    }
+    if (dialect == 'flat') {
+      return _sessionsFlat(project: project);
+    }
+
+    // Auto-detect: try project-scoped first when project known (cc-connect shape),
+    // then flat Mock MVP.
+    if (proj.isNotEmpty) {
+      try {
+        final list = await _sessionsProjectScoped(proj);
+        dialect = 'project';
+        return list;
+      } on ProtocolError catch (e) {
+        // 404 / not found → try flat
+        if (!_looksMissing(e.message)) rethrow;
+      }
+    }
+    final list = await _sessionsFlat(project: project);
+    dialect = 'flat';
+    return list;
+  }
+
+  Future<List<SessionInfo>> _sessionsFlat({String? project}) async {
+    final q = (project == null || project.isEmpty) ? '' : '?project=${Uri.encodeComponent(project)}';
     final data = await _request('GET', '/sessions$q');
+    return _parseSessions(data, project: project);
+  }
+
+  Future<List<SessionInfo>> _sessionsProjectScoped(String project) async {
+    final data = await _request('GET', '/projects/${Uri.encodeComponent(project)}/sessions');
+    return _parseSessions(data, project: project);
+  }
+
+  List<SessionInfo> _parseSessions(Map<String, dynamic> data, {String? project}) {
     final list = data['sessions'];
     if (list is! List) return const [];
-    return list
-        .whereType<Map>()
-        .map((e) => SessionInfo.fromJson(Map<String, dynamic>.from(e)))
-        .toList();
+    return list.whereType<Map>().map((e) {
+      final m = Map<String, dynamic>.from(e);
+      m.putIfAbsent('project', () => project ?? '');
+      return SessionInfo.fromJson(m);
+    }).toList();
   }
 
   Future<SessionInfo> createSession({
     required String project,
     String? title,
+    String? sessionKey,
   }) async {
     final body = <String, dynamic>{'project': project};
-    if (title != null && title.isNotEmpty) body['title'] = title;
+    if (title != null && title.isNotEmpty) {
+      body['title'] = title;
+      body['name'] = title;
+    }
+    if (sessionKey != null && sessionKey.isNotEmpty) {
+      body['session_key'] = sessionKey;
+    }
+
+    if (dialect == 'project') {
+      return _createProjectScoped(project, body);
+    }
+    if (dialect == 'flat') {
+      final data = await _request('POST', '/sessions', body: body);
+      return SessionInfo.fromJson(data);
+    }
+
+    // Auto: try project-scoped (cc-connect) then flat
+    try {
+      final s = await _createProjectScoped(project, body);
+      dialect = 'project';
+      return s;
+    } on ProtocolError catch (e) {
+      if (!_looksMissing(e.message) && !e.message.contains('session_key')) {
+        // If host requires session_key, generate one and retry project path
+        if (e.message.contains('session_key')) {
+          body['session_key'] = sessionKey ?? _genSessionKey(project);
+          try {
+            final s = await _createProjectScoped(project, body);
+            dialect = 'project';
+            return s;
+          } on ProtocolError {
+            // fall through to flat
+          }
+        } else {
+          rethrow;
+        }
+      } else if (e.message.contains('session_key')) {
+        body['session_key'] = sessionKey ?? _genSessionKey(project);
+        try {
+          final s = await _createProjectScoped(project, body);
+          dialect = 'project';
+          return s;
+        } on ProtocolError {
+          // fall through
+        }
+      }
+    }
     final data = await _request('POST', '/sessions', body: body);
+    dialect = 'flat';
     return SessionInfo.fromJson(data);
   }
 
-  Future<void> deleteSession(String sessionId) async {
-    await _request('DELETE', '/sessions/${Uri.encodeComponent(sessionId)}');
+  Future<SessionInfo> _createProjectScoped(String project, Map<String, dynamic> body) async {
+    // Ensure session_key present for strict hosts
+    body = Map<String, dynamic>.from(body);
+    body.putIfAbsent('session_key', () => _genSessionKey(project));
+    final data = await _request(
+      'POST',
+      '/projects/${Uri.encodeComponent(project)}/sessions',
+      body: body,
+    );
+    data.putIfAbsent('project', () => project);
+    return SessionInfo.fromJson(data);
   }
 
-  Future<Map<String, dynamic>> sessionDetail(String sessionId) async {
-    return _request('GET', '/sessions/${Uri.encodeComponent(sessionId)}');
+  String _genSessionKey(String project) {
+    final id = DateTime.now().microsecondsSinceEpoch.toRadixString(16);
+    // platform:scope:user  — App is bridge platform adapter
+    return 'huanhermes-app:$project:$id';
+  }
+
+  Future<void> deleteSession(String sessionId, {String? project}) async {
+    if (dialect == 'project' && project != null && project.isNotEmpty) {
+      await _request(
+        'DELETE',
+        '/projects/${Uri.encodeComponent(project)}/sessions/${Uri.encodeComponent(sessionId)}',
+      );
+      return;
+    }
+    try {
+      await _request('DELETE', '/sessions/${Uri.encodeComponent(sessionId)}');
+      return;
+    } on ProtocolError catch (e) {
+      if (project != null && project.isNotEmpty && _looksMissing(e.message)) {
+        await _request(
+          'DELETE',
+          '/projects/${Uri.encodeComponent(project)}/sessions/${Uri.encodeComponent(sessionId)}',
+        );
+        dialect = 'project';
+        return;
+      }
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> sessionDetail(String sessionId, {String? project}) async {
+    try {
+      return await _request('GET', '/sessions/${Uri.encodeComponent(sessionId)}');
+    } on ProtocolError catch (e) {
+      if (project != null && project.isNotEmpty && _looksMissing(e.message)) {
+        return await _request(
+          'GET',
+          '/projects/${Uri.encodeComponent(project)}/sessions/${Uri.encodeComponent(sessionId)}',
+        );
+      }
+      rethrow;
+    }
+  }
+
+  bool _looksMissing(String msg) {
+    final m = msg.toLowerCase();
+    return m.contains('404') ||
+        m.contains('not found') ||
+        m.contains('unknown') ||
+        m.contains('page not found');
   }
 
   Future<Map<String, dynamic>> _request(
