@@ -20,9 +20,11 @@ class _AuditScreenState extends State<AuditScreen> {
   String _level = 'all';
   bool _newestFirst = true;
   bool _wrapLines = false;
+  final _scroll = ScrollController();
 
   @override
   void dispose() {
+    _scroll.dispose();
     _q.dispose();
     super.dispose();
   }
@@ -145,6 +147,27 @@ class _AuditScreenState extends State<AuditScreen> {
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
           ),
           IconButton(
+            tooltip: 'Jump to top',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+            },
+            icon: const Icon(Icons.vertical_align_top),
+          ),
+          IconButton(
+            tooltip: 'Jump to end',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(
+                _scroll.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
+            },
+            icon: const Icon(Icons.vertical_align_bottom),
+          ),
+
+          IconButton(
             tooltip: 'Clear',
             onPressed: audit.clear,
             icon: const Icon(Icons.delete_outline),
@@ -213,6 +236,7 @@ class _AuditScreenState extends State<AuditScreen> {
                   },
                   child: ListView.separated(
                   physics: const AlwaysScrollableScrollPhysics(),
+                      controller: _scroll,
                   itemCount: items.length,
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, i) {

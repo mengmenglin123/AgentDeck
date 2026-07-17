@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.44
+
+- Activity: jump to top / end
+- Audit: jump to top / end
+- Agents: auto-refresh toggle (dashboard interval)
+- MCP: auto-refresh toggle (dashboard interval)
+
 ## 0.1.43
 
 - Agents: jump to top / end
