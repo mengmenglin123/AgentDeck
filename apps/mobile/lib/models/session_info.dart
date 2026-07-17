@@ -6,6 +6,10 @@ class SessionInfo {
     this.title,
     this.lastUser,
     this.updatedAt,
+    this.running = false,
+    this.mode,
+    this.model,
+    this.workdir,
   });
 
   final String id;
@@ -14,6 +18,10 @@ class SessionInfo {
   final String? title;
   final String? lastUser;
   final double? updatedAt;
+  final bool running;
+  final String? mode;
+  final String? model;
+  final String? workdir;
 
   String get displayTitle {
     final t = title?.trim();
@@ -34,6 +42,10 @@ class SessionInfo {
       title: json['title']?.toString(),
       lastUser: json['last_user']?.toString(),
       updatedAt: _asDouble(json['updated_at']),
+      running: json['running'] == true,
+      mode: json['mode']?.toString(),
+      model: json['model']?.toString(),
+      workdir: json['workdir']?.toString(),
     );
   }
 

@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../models/connection_config.dart';
 import '../models/session_info.dart';
 import '../models/transcript.dart';
+import '../services/audit_log.dart';
 import '../services/chat_controller.dart';
+import 'audit_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({
@@ -29,13 +31,17 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _chat = ChatController(config: widget.config, session: widget.session);
     _chat.addListener(_onChat);
-    _chat.connect();
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    await _chat.connect();
+    await _chat.reloadTranscript();
   }
 
   void _onChat() {
     if (!mounted) return;
     setState(() {});
-    // auto-scroll after frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scroll.hasClients) return;
       _scroll.animateTo(
@@ -61,20 +67,124 @@ class _ChatScreenState extends State<ChatScreen> {
     await _chat.send(text);
   }
 
+  Future<void> _pickMode() async {
+    const options = ['default', 'plan', 'acceptEdits', 'bypassPermissions'];
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(title: Text('Permission mode')),
+            ...options.map(
+              (m) => ListTile(
+                title: Text(m),
+                trailing: m == _chat.mode ? const Icon(Icons.check) : null,
+                onTap: () => Navigator.pop(ctx, m),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (selected != null) {
+      await _chat.sendSlash('/mode $selected');
+      setState(() => _chat.mode = selected);
+    }
+  }
+
+  Future<void> _pickModel() async {
+    const options = ['mock-sonnet', 'mock-codex', 'mock-hermes'];
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(title: Text('Model')),
+            ...options.map(
+              (m) => ListTile(
+                title: Text(m),
+                trailing: m == _chat.model ? const Icon(Icons.check) : null,
+                onTap: () => Navigator.pop(ctx, m),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (selected != null) {
+      await _chat.sendSlash('/model $selected');
+      setState(() => _chat.model = selected);
+    }
+  }
+
+  Future<void> _pickDir() async {
+    final ctrl = TextEditingController(text: _chat.workdir);
+    final path = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Working directory'),
+        content: TextField(
+          controller: ctrl,
+          decoration: const InputDecoration(
+            hintText: '/absolute/path',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('Set'),
+          ),
+        ],
+      ),
+    );
+    if (path != null && path.isNotEmpty) {
+      await _chat.sendSlash('/dir $path');
+      setState(() => _chat.workdir = path);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.session.displayTitle),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.session.displayTitle, style: const TextStyle(fontSize: 16)),
+            Text(
+              '${widget.session.project} · ${_chat.model}',
+              style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+            ),
+          ],
+        ),
         actions: [
+          IconButton(
+            tooltip: 'Reload transcript',
+            onPressed: _chat.reloading ? null : _chat.reloadTranscript,
+            icon: const Icon(Icons.history),
+          ),
+          IconButton(
+            tooltip: 'Audit log',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => AuditScreen(audit: _chat.audit)),
+              );
+            },
+            icon: const Icon(Icons.receipt_long_outlined),
+          ),
           Padding(
-            padding: const EdgeInsets.only(right: 12),
+            padding: const EdgeInsets.only(right: 8),
             child: Center(
               child: _StatusChip(
                 connecting: _chat.connecting,
                 connected: _chat.connected,
                 typing: _chat.typing,
+                runActive: _chat.runActive,
               ),
             ),
           ),
@@ -84,12 +194,12 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           if (_chat.error != null)
             Material(
-              color: Theme.of(context).colorScheme.errorContainer,
+              color: cs.errorContainer,
               child: ListTile(
                 dense: true,
                 title: Text(
                   _chat.error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
+                  style: TextStyle(color: cs.onErrorContainer),
                 ),
                 trailing: TextButton(
                   onPressed: () => _chat.connect(),
@@ -97,19 +207,37 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               ),
             ),
+          _AgentToolbar(
+            mode: _chat.mode,
+            model: _chat.model,
+            workdir: _chat.workdir,
+            runActive: _chat.runActive,
+            connected: _chat.connected,
+            onMode: _pickMode,
+            onModel: _pickModel,
+            onDir: _pickDir,
+            onStop: _chat.cancelRun,
+            onStatus: () => _chat.sendSlash('/status'),
+          ),
           Expanded(
-            child: ListView.builder(
-              controller: _scroll,
-              padding: const EdgeInsets.all(12),
-              itemCount: _chat.messages.length,
-              itemBuilder: (context, i) {
-                final m = _chat.messages[i];
-                return _MessageBubble(
-                  message: m,
-                  onPermission: _chat.respondPermission,
-                );
-              },
-            ),
+            child: _chat.messages.isEmpty
+                ? _EmptyChat(
+                    project: widget.session.project,
+                    connected: _chat.connected,
+                    connecting: _chat.connecting,
+                  )
+                : ListView.builder(
+                    controller: _scroll,
+                    padding: const EdgeInsets.all(12),
+                    itemCount: _chat.messages.length,
+                    itemBuilder: (context, i) {
+                      final m = _chat.messages[i];
+                      return _MessageBubble(
+                        message: m,
+                        onPermission: _chat.respondPermission,
+                      );
+                    },
+                  ),
           ),
           SafeArea(
             top: false,
@@ -123,7 +251,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       minLines: 1,
                       maxLines: 5,
                       decoration: InputDecoration(
-                        hintText: 'Message…  (/perm for permission demo)',
+                        hintText: _chat.connected
+                            ? 'Message…  (/perm for permission demo)'
+                            : 'Connecting to agent…',
                         border: const OutlineInputBorder(),
                         filled: true,
                         fillColor: cs.surfaceContainerHighest.withOpacity(0.35),
@@ -134,10 +264,17 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  IconButton.filled(
-                    onPressed: (_chat.connected && !_chat.sending) ? _send : null,
-                    icon: const Icon(Icons.send),
-                  ),
+                  if (_chat.runActive)
+                    IconButton.filledTonal(
+                      tooltip: 'Stop run',
+                      onPressed: _chat.cancelRun,
+                      icon: const Icon(Icons.stop),
+                    )
+                  else
+                    IconButton.filled(
+                      onPressed: (_chat.connected && !_chat.sending) ? _send : null,
+                      icon: const Icon(Icons.send),
+                    ),
                 ],
               ),
             ),
@@ -148,16 +285,111 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
+class _AgentToolbar extends StatelessWidget {
+  const _AgentToolbar({
+    required this.mode,
+    required this.model,
+    required this.workdir,
+    required this.runActive,
+    required this.connected,
+    required this.onMode,
+    required this.onModel,
+    required this.onDir,
+    required this.onStop,
+    required this.onStatus,
+  });
+
+  final String mode;
+  final String model;
+  final String workdir;
+  final bool runActive;
+  final bool connected;
+  final VoidCallback onMode;
+  final VoidCallback onModel;
+  final VoidCallback onDir;
+  final VoidCallback onStop;
+  final VoidCallback onStatus;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          children: [
+            ActionChip(label: Text('mode:$mode'), onPressed: connected ? onMode : null),
+            const SizedBox(width: 6),
+            ActionChip(label: Text('model:$model'), onPressed: connected ? onModel : null),
+            const SizedBox(width: 6),
+            ActionChip(
+              label: Text(workdir.length > 24 ? '…${workdir.substring(workdir.length - 22)}' : workdir),
+              onPressed: connected ? onDir : null,
+            ),
+            const SizedBox(width: 6),
+            ActionChip(label: const Text('status'), onPressed: connected ? onStatus : null),
+            const SizedBox(width: 6),
+            ActionChip(
+              avatar: Icon(Icons.stop, size: 16, color: runActive ? Colors.red : null),
+              label: const Text('stop'),
+              onPressed: (connected && runActive) ? onStop : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyChat extends StatelessWidget {
+  const _EmptyChat({
+    required this.project,
+    required this.connected,
+    required this.connecting,
+  });
+
+  final String project;
+  final bool connected;
+  final bool connecting;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtitle = connecting
+        ? 'Connecting to host…'
+        : connected
+            ? 'Send a message to drive $project on your server.\nTry /help, /perm, or a normal task.'
+            : 'Offline — tap Retry when the host is reachable.';
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.smart_toy_outlined, size: 48, color: Theme.of(context).colorScheme.outline),
+            const SizedBox(height: 12),
+            Text('No messages yet', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text(subtitle, textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _StatusChip extends StatelessWidget {
   const _StatusChip({
     required this.connecting,
     required this.connected,
     required this.typing,
+    required this.runActive,
   });
 
   final bool connecting;
   final bool connected;
   final bool typing;
+  final bool runActive;
 
   @override
   Widget build(BuildContext context) {
@@ -165,14 +397,18 @@ class _StatusChip extends StatelessWidget {
         ? 'connecting'
         : typing
             ? 'typing…'
-            : connected
-                ? 'online'
-                : 'offline';
+            : runActive
+                ? 'running'
+                : connected
+                    ? 'online'
+                    : 'offline';
     final color = connecting
         ? Colors.orange
-        : connected
-            ? Colors.green
-            : Colors.red;
+        : !connected
+            ? Colors.red
+            : (typing || runActive)
+                ? Colors.blue
+                : Colors.green;
     return Chip(
       visualDensity: VisualDensity.compact,
       label: Text(label, style: const TextStyle(fontSize: 12)),

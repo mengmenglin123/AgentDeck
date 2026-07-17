@@ -76,6 +76,10 @@ class MgmtClient {
     await _request('DELETE', '/sessions/${Uri.encodeComponent(sessionId)}');
   }
 
+  Future<Map<String, dynamic>> sessionDetail(String sessionId) async {
+    return _request('GET', '/sessions/${Uri.encodeComponent(sessionId)}');
+  }
+
   Future<Map<String, dynamic>> _request(
     String method,
     String path, {

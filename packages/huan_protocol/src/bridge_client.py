@@ -241,10 +241,11 @@ class BridgeClient:
         conversation_id: str,
         user_id: str = "user",
         user_name: str = "User",
+        session_key_override: Optional[str] = None,
     ) -> Dict[str, str]:
         from .models import session_key
 
-        sk = session_key(self.config.device_id, conversation_id)
+        sk = session_key_override or session_key(self.config.device_id, conversation_id)
         reply_ctx = new_id("ctx")
         msg_id = new_id("msg")
         self.send(
@@ -270,6 +271,15 @@ class BridgeClient:
                 "session_key": session_key,
                 "action": action,
                 "reply_ctx": reply_ctx,
+            }
+        )
+
+    def cancel(self, session_key: str, reply_ctx: str = "") -> None:
+        self.send(
+            {
+                "type": "cancel",
+                "session_key": session_key,
+                "reply_ctx": reply_ctx or "",
             }
         )
 

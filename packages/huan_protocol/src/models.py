@@ -188,6 +188,30 @@ class TranscriptReducer:
                     },
                 )
             )
+        if t == "thinking":
+            return self.apply(
+                TranscriptEvent(
+                    EventKind.THINKING,
+                    text=payload.get("content") or payload.get("text") or "",
+                    meta=payload,
+                )
+            )
+        if t == "tool_call":
+            name = payload.get("name") or "tool"
+            inp = payload.get("input") or ""
+            return self.apply(TranscriptEvent(EventKind.TOOL_CALL, text=f"{name} {inp}", meta=payload))
+        if t == "tool_result":
+            name = payload.get("name") or "tool"
+            out = payload.get("output") or payload.get("content") or ""
+            return self.apply(TranscriptEvent(EventKind.TOOL_RESULT, text=f"{name} -> {out}", meta=payload))
+        if t == "run_done":
+            return self.apply(
+                TranscriptEvent(
+                    EventKind.RUN_DONE,
+                    text=payload.get("content") or "",
+                    meta={"status": payload.get("status") or "completed", **{k: payload.get(k) for k in ("session_key", "reply_ctx")}},
+                )
+            )
         if t == "typing_start":
             return self.apply(TranscriptEvent(EventKind.SYSTEM, "typing…", meta=payload))
         if t == "typing_stop":

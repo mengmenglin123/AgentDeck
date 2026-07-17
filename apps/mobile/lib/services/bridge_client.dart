@@ -139,6 +139,14 @@ class BridgeClient {
     send({'type': 'ping', 'ts': DateTime.now().millisecondsSinceEpoch});
   }
 
+  void cancel({required String sessionKey, String? replyCtx}) {
+    send({
+      'type': 'cancel',
+      'session_key': sessionKey,
+      'reply_ctx': replyCtx ?? '',
+    });
+  }
+
   void send(Map<String, dynamic> payload) {
     final ch = _channel;
     if (ch == null) throw DisconnectedError('not connected');

@@ -54,10 +54,21 @@ class TranscriptMessage {
 class TranscriptReducer {
   final List<TranscriptMessage> messages = <TranscriptMessage>[];
   int? _streamingIdx;
+  int lastSeq = 0;
 
   void reset() {
     messages.clear();
     _streamingIdx = null;
+    lastSeq = 0;
+  }
+
+  void hydrate(List<Map<String, dynamic>> rows) {
+    reset();
+    for (final row in rows) {
+      final role = (row['role'] ?? 'system').toString();
+      final content = (row['content'] ?? '').toString();
+      messages.add(TranscriptMessage(role: role, content: content));
+    }
   }
 
   List<TranscriptMessage> apply(TranscriptEvent event) {
@@ -94,7 +105,6 @@ class TranscriptReducer {
           messages[_streamingIdx!].streaming = false;
           _streamingIdx = null;
         } else {
-          // Avoid duplicating a completed stream with the same final text.
           if (messages.isNotEmpty &&
               messages.last.role == 'assistant' &&
               messages.last.content == event.text &&
@@ -118,10 +128,18 @@ class TranscriptReducer {
           messages[_streamingIdx!].streaming = false;
           _streamingIdx = null;
         }
-        messages.add(TranscriptMessage(role: 'system', content: event.text.isEmpty ? 'run done' : event.text, meta: event.meta));
+        final status = event.meta['status']?.toString() ?? 'done';
+        messages.add(
+          TranscriptMessage(
+            role: 'system',
+            content: event.text.isEmpty ? 'run $status' : event.text,
+            meta: event.meta,
+          ),
+        );
       case EventKind.system:
         messages.add(TranscriptMessage(role: 'system', content: event.text, meta: event.meta));
     }
+    lastSeq += 1;
     return messages;
   }
 
@@ -165,10 +183,50 @@ class TranscriptReducer {
             },
           ),
         );
+      case 'thinking':
+        return apply(
+          TranscriptEvent(
+            kind: EventKind.thinking,
+            text: (payload['content'] ?? payload['text'] ?? '').toString(),
+            meta: payload,
+          ),
+        );
+      case 'tool_call':
+        final name = payload['name'] ?? 'tool';
+        final input = payload['input'] ?? '';
+        return apply(
+          TranscriptEvent(
+            kind: EventKind.toolCall,
+            text: '$name $input',
+            meta: payload,
+          ),
+        );
+      case 'tool_result':
+        final name = payload['name'] ?? 'tool';
+        final output = payload['output'] ?? payload['content'] ?? '';
+        return apply(
+          TranscriptEvent(
+            kind: EventKind.toolResult,
+            text: '$name → $output',
+            meta: payload,
+          ),
+        );
+      case 'run_done':
+        return apply(
+          TranscriptEvent(
+            kind: EventKind.runDone,
+            text: (payload['content'] ?? '').toString(),
+            meta: {
+              'status': payload['status'] ?? 'completed',
+              'session_key': payload['session_key'],
+              'reply_ctx': payload['reply_ctx'],
+            },
+          ),
+        );
       case 'typing_start':
-        return apply(TranscriptEvent(kind: EventKind.system, text: 'typing…', meta: payload));
       case 'typing_stop':
-        return apply(TranscriptEvent(kind: EventKind.system, text: 'typing stopped', meta: payload));
+        // UI uses dedicated typing flag; skip transcript noise
+        return messages;
       case 'register_ack':
         final ok = payload['ok'] == true;
         return apply(

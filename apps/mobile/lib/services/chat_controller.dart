@@ -1,21 +1,31 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../errors/app_errors.dart';
 import '../models/connection_config.dart';
 import '../models/session_info.dart';
 import '../models/transcript.dart';
+import 'audit_log.dart';
 import 'bridge_client.dart';
+import 'mgmt_client.dart';
 
 class ChatController extends ChangeNotifier {
   ChatController({
     required this.config,
     required this.session,
     BridgeClient Function(ConnectionConfig config)? bridgeFactory,
-  }) : _bridgeFactory = bridgeFactory;
+    MgmtClient Function(ConnectionConfig config)? mgmtFactory,
+    AuditLog? audit,
+  })  : _bridgeFactory = bridgeFactory,
+        _mgmtFactory = mgmtFactory ?? ((c) => MgmtClient(config: c)),
+        audit = audit ?? AuditLog();
 
   final ConnectionConfig config;
-  final SessionInfo session;
+  SessionInfo session;
   final BridgeClient Function(ConnectionConfig config)? _bridgeFactory;
+  final MgmtClient Function(ConnectionConfig config) _mgmtFactory;
+  final AuditLog audit;
 
   final TranscriptReducer reducer = TranscriptReducer();
   BridgeClient? _bridge;
@@ -23,16 +33,25 @@ class ChatController extends ChangeNotifier {
   bool connecting = false;
   bool connected = false;
   bool sending = false;
+  bool runActive = false;
+  bool reloading = false;
   String? error;
   String? lastReplyCtx;
   bool typing = false;
+  String mode = 'default';
+  String model = 'mock-sonnet';
+  String workdir = '/workspace';
+  int reconnectAttempts = 0;
+  Timer? _reconnectTimer;
+  bool _disposed = false;
 
   List<TranscriptMessage> get messages => List.unmodifiable(reducer.messages);
+  bool get isEmpty => messages.isEmpty;
 
-  Future<void> connect() async {
+  Future<void> connect({bool silent = false}) async {
     if (connected || connecting) return;
     connecting = true;
-    error = null;
+    if (!silent) error = null;
     notifyListeners();
     try {
       final client = (_bridgeFactory ??
@@ -42,25 +61,30 @@ class ChatController extends ChangeNotifier {
                 onError: _onBridgeError,
                 onClose: _onBridgeClose,
               )))(config);
-      // ensure handlers if factory provided custom client without hooks
       client.onMessage ??= _onBridgeMessage;
       client.onError ??= _onBridgeError;
       client.onClose ??= _onBridgeClose;
       _bridge = client;
       await client.connect();
       connected = true;
+      reconnectAttempts = 0;
+      audit.add('bridge.connected', detail: config.bridgeWsUrlRedacted);
     } on AuthError catch (e) {
       error = e.message;
       connected = false;
+      audit.add('bridge.auth_error', detail: e.message, level: 'error');
     } on DisconnectedError catch (e) {
       error = 'Bridge disconnected: ${e.message}';
       connected = false;
+      audit.add('bridge.disconnected', detail: e.message, level: 'error');
     } on ProtocolError catch (e) {
       error = e.message;
       connected = false;
+      audit.add('bridge.protocol_error', detail: e.message, level: 'error');
     } catch (e) {
       error = e.toString();
       connected = false;
+      audit.add('bridge.error', detail: e.toString(), level: 'error');
     } finally {
       connecting = false;
       notifyListeners();
@@ -68,11 +92,40 @@ class ChatController extends ChangeNotifier {
   }
 
   Future<void> disconnect() async {
+    _reconnectTimer?.cancel();
     await _bridge?.close();
     _bridge = null;
     connected = false;
     typing = false;
+    runActive = false;
     notifyListeners();
+  }
+
+  Future<void> reloadTranscript() async {
+    reloading = true;
+    notifyListeners();
+    try {
+      final data = await _mgmtFactory(config).sessionDetail(session.id);
+      final rows = data['transcript'];
+      if (rows is List) {
+        final list = rows
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+        reducer.hydrate(list);
+      }
+      mode = (data['mode'] ?? mode).toString();
+      model = (data['model'] ?? model).toString();
+      workdir = (data['workdir'] ?? workdir).toString();
+      if (data['running'] == true) runActive = true;
+      audit.add('session.reload', detail: session.id);
+    } catch (e) {
+      // non-fatal if host has no history yet
+      audit.add('session.reload_failed', detail: e.toString(), level: 'warn');
+    } finally {
+      reloading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> send(String text) async {
@@ -84,9 +137,7 @@ class ChatController extends ChangeNotifier {
     }
     sending = true;
     error = null;
-    reducer.apply(
-      TranscriptEvent(kind: EventKind.user, text: content),
-    );
+    reducer.apply(TranscriptEvent(kind: EventKind.user, text: content));
     notifyListeners();
     try {
       final meta = _bridge!.sendUserMessage(
@@ -95,6 +146,8 @@ class ChatController extends ChangeNotifier {
         sessionKeyOverride: session.sessionKey,
       );
       lastReplyCtx = meta['reply_ctx'];
+      runActive = true;
+      audit.add('chat.send', detail: content.length > 80 ? '${content.substring(0, 80)}…' : content);
     } on DisconnectedError catch (e) {
       error = e.message;
       connected = false;
@@ -106,15 +159,26 @@ class ChatController extends ChangeNotifier {
     }
   }
 
+  Future<void> sendSlash(String command) => send(command);
+
+  Future<void> cancelRun() async {
+    if (_bridge == null || !connected) return;
+    try {
+      _bridge!.cancel(sessionKey: session.sessionKey, replyCtx: lastReplyCtx);
+      audit.add('chat.cancel', detail: lastReplyCtx ?? '');
+      // also slash fallback
+      // host accepts either
+    } catch (e) {
+      error = e.toString();
+      notifyListeners();
+    }
+  }
+
   Future<void> respondPermission(String action) async {
     if (_bridge == null || !connected) return;
     final replyCtx = lastReplyCtx ?? '';
-    // remove last pending permission bubble optional; keep history
     reducer.apply(
-      TranscriptEvent(
-        kind: EventKind.system,
-        text: 'permission: $action',
-      ),
+      TranscriptEvent(kind: EventKind.system, text: 'permission: $action'),
     );
     notifyListeners();
     try {
@@ -123,32 +187,50 @@ class ChatController extends ChangeNotifier {
         action: action,
         replyCtx: replyCtx,
       );
+      audit.add('permission.action', detail: action);
     } catch (e) {
       error = e.toString();
       notifyListeners();
     }
   }
 
+  void _scheduleReconnect() {
+    if (_disposed || connected || connecting) return;
+    if (reconnectAttempts >= 5) return;
+    reconnectAttempts += 1;
+    final delay = Duration(seconds: reconnectAttempts * 2);
+    audit.add('bridge.reconnect_scheduled', detail: 'attempt=$reconnectAttempts delay=${delay.inSeconds}s');
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(delay, () {
+      if (!_disposed && !connected) {
+        connect(silent: true);
+      }
+    });
+  }
+
   void _onBridgeMessage(Map<String, dynamic> payload) {
     final type = payload['type']?.toString();
     if (type == 'typing_start') {
       typing = true;
+      runActive = true;
       notifyListeners();
       return;
     }
     if (type == 'typing_stop') {
       typing = false;
       notifyListeners();
-      // still record lightly? skip noise
       return;
     }
     if (payload['reply_ctx'] != null) {
       lastReplyCtx = payload['reply_ctx'].toString();
     }
-    // Filter events for this session when session_key present
     final sk = payload['session_key']?.toString();
     if (sk != null && sk.isNotEmpty && sk != session.sessionKey) {
       return;
+    }
+    if (type == 'run_done') {
+      runActive = false;
+      typing = false;
     }
     reducer.applyBridgePayload(payload);
     notifyListeners();
@@ -156,18 +238,23 @@ class ChatController extends ChangeNotifier {
 
   void _onBridgeError(Object e) {
     error = e.toString();
+    audit.add('bridge.on_error', detail: e.toString(), level: 'error');
     notifyListeners();
   }
 
   void _onBridgeClose() {
     connected = false;
     typing = false;
+    runActive = false;
+    audit.add('bridge.closed', level: 'warn');
     notifyListeners();
+    _scheduleReconnect();
   }
 
   @override
   void dispose() {
-    // fire-and-forget close
+    _disposed = true;
+    _reconnectTimer?.cancel();
     _bridge?.close();
     super.dispose();
   }

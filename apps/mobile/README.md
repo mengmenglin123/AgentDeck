@@ -14,15 +14,15 @@
 
 1. **Connect** — host / ports / TLS / tokens（安全存储）
 2. **Sessions** — Management `/projects` + `/sessions` 列表 / 新建 / 删除
-3. **Chat** — Bridge WebSocket 流式 transcript + 权限按钮
+3. **Chat** — Bridge WebSocket 流式 transcript + 权限按钮 + mode/model/dir/stop 工具栏 + 审计日志
 
 ## 目录
 
 ```text
 lib/
   models/          connection_config, session_info, transcript
-  services/        secure store, mgmt, bridge, session/chat controllers
-  screens/         connect, sessions, chat
+  services/        secure store, mgmt, bridge, session/chat controllers, audit_log
+  screens/         connect, sessions, chat, audit
 android/           Android 工程
 test/              unit + widget tests
 ```
@@ -30,7 +30,8 @@ test/              unit + widget tests
 ## 运行
 
 ```bash
-# 仓库根
+# 仓库根（若本机 9810/9820 已被 cc-connect 占用，可换端口）
+# HUAN_BRIDGE_PORT=19810 HUAN_MGMT_PORT=19820 python3 server/mock-host/mock_host.py
 python3 server/mock-host/mock_host.py
 
 cd apps/mobile
@@ -47,13 +48,18 @@ flutter run
 | Android 模拟器 | `10.0.2.2` |
 | 真机同一局域网 | 电脑局域网 IP |
 
-Ports: Bridge `9810`, Mgmt `9820`  
+Ports: Bridge `9810`, Mgmt `9820`（或你启动 Mock 时覆盖的端口）  
 Tokens: 见仓库 `.env.example`（仅本地）
 
-### 权限演示
+### 聊天控制（对齐 LiveAgent 控制台）
 
-在 Chat 发送：`/perm`  
-点 Allow / Deny / Allow all → 发送 Bridge `card_action`。
+| 操作 | 方式 |
+|------|------|
+| mode / model / dir | Chat 顶部工具栏，或 `/mode` `/model` `/dir` |
+| stop | 工具栏 Stop，或 Bridge `cancel` |
+| 权限 | 发 `/perm` → Allow / Deny / Allow all |
+| 重载 transcript | AppBar 历史图标（`GET /sessions/{id}`） |
+| 审计 | AppBar 收据图标（脱敏 token） |
 
 ## 安全
 

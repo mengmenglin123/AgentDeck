@@ -23,12 +23,12 @@
 |----|------|------|
 | P1-1 | server 示例 config + 文档 | [x] example toml |
 | P1-2 | 真连 cc-connect + Claude Code | [ ] |
-| P1-3 | Codex project 切换 | [ ] |
-| P1-4 | mode/model/dir/stop UI 映射 | [ ] |
-| P1-5 | 断线续传 / 重载会话 | [ ] |
-| P1-6 | 取消 run | [ ] |
-| P1-7 | 本地审计日志 | [ ] |
-| P1-8 | 错误与空态 | [ ] |
+| P1-3 | Codex project 切换 | [x] Sessions project filter + mock projects |
+| P1-4 | mode/model/dir/stop UI 映射 | [x] Chat toolbar + slash + cancel |
+| P1-5 | 断线续传 / 重载会话 | [x] Auto-reconnect + GET session transcript |
+| P1-6 | 取消 run | [x] Bridge cancel + stop button |
+| P1-7 | 本地审计日志 | [x] Redacted in-app audit ring |
+| P1-8 | 错误与空态 | [x] Empty sessions/chat + typed errors |
 
 ## P2 — Hermes 与产品化
 

@@ -1,3 +1,4 @@
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:huanhermes_app/models/transcript.dart';
 
@@ -47,5 +48,25 @@ void main() {
     });
     expect(r.messages.first.role, 'permission');
     expect(r.messages.first.meta['buttons'], isNotEmpty);
+  });
+
+  test('thinking tool and run_done', () {
+    final r = TranscriptReducer();
+    r.applyBridgePayload({'type': 'thinking', 'content': 'plan'});
+    r.applyBridgePayload({'type': 'tool_call', 'name': 'echo', 'input': 'hi'});
+    r.applyBridgePayload({'type': 'tool_result', 'name': 'echo', 'output': 'ok'});
+    r.applyBridgePayload({'type': 'run_done', 'status': 'completed'});
+    expect(r.messages.any((m) => m.role == 'tool'), isTrue);
+    expect(r.messages.last.content.contains('completed'), isTrue);
+  });
+
+  test('hydrate reloads history', () {
+    final r = TranscriptReducer();
+    r.hydrate([
+      {'role': 'user', 'content': 'hi'},
+      {'role': 'assistant', 'content': 'yo'},
+    ]);
+    expect(r.messages.length, 2);
+    expect(r.messages.first.role, 'user');
   });
 }

@@ -97,7 +97,7 @@ flutter run
 flutter build apk --debug
 ```
 
-应用 ID：`com.huanmeng.huanhermes`。Connect 保存 token；Sessions/Chat 走 Mgmt + Bridge 流式与权限按钮。
+应用 ID：`com.huanmeng.huanhermes`。Connect 保存 token；Sessions/Chat 走 Mgmt + Bridge 流式与权限按钮；Chat 工具栏支持 mode/model/dir/stop、重连与审计日志（对齐 LiveAgent 控制台体验）。
 
 ## 安全原则
 

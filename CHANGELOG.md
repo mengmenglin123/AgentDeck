@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.3] - 2026-07-17
+
+### Added
+- LiveAgent-oriented console controls: mode / model / dir / stop toolbar
+- Bridge `cancel` + Mock cancellable streaming runs (`run_done`, thinking, tool_*)
+- Session transcript reload via `GET /api/v1/sessions/{id}`
+- Auto-reconnect with backoff; local redacted audit log screen
+- Empty states for sessions/chat; running indicator
+- `docs/roadmap-liveagent-parity.md` capability matrix
+
+### Notes
+- P1-2 true cc-connect wiring still open (deploy/docs next)
+- App remains a remote console — agent loop stays on server
+
+
 ## [0.1.2] - 2026-07-17
 
 ### Added

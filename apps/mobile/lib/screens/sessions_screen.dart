@@ -178,9 +178,26 @@ class _SessionsScreenState extends State<SessionsScreen> {
                         onRefresh: sessions.refresh,
                         child: sessions.sessions.isEmpty
                             ? ListView(
-                                children: const [
-                                  SizedBox(height: 80),
-                                  Center(child: Text('No sessions yet. Create one.')),
+                                children: [
+                                  const SizedBox(height: 48),
+                                  Icon(
+                                    Icons.forum_outlined,
+                                    size: 40,
+                                    color: Theme.of(context).colorScheme.outline,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  const Center(child: Text('No sessions yet')),
+                                  const SizedBox(height: 8),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                                    child: Text(
+                                      'Create a session for Claude Code / Codex / Hermes and open chat to control the server agent.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ),
                                 ],
                               )
                             : ListView.separated(
@@ -190,8 +207,14 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                   final s = sessions.sessions[i];
                                   return ListTile(
                                     title: Text(s.displayTitle),
-                                    subtitle: Text('${s.project} · ${s.sessionKey}'),
+                                    subtitle: Text(
+                                      '${s.project} · ${s.model ?? "model?"} · ${s.sessionKey}',
+                                    ),
                                     isThreeLine: true,
+                                    leading: Icon(
+                                      s.running ? Icons.play_circle_fill : Icons.chat_bubble_outline,
+                                      color: s.running ? Colors.blue : null,
+                                    ),
                                     onTap: () => _openChat(s),
                                     trailing: IconButton(
                                       icon: const Icon(Icons.delete_outline),

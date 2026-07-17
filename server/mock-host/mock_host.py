@@ -58,6 +58,9 @@ PROJECTS = [
 
 SESSIONS: Dict[str, Dict[str, Any]] = {}
 SESSIONS_LOCK = threading.Lock()
+SESSION_STATE: Dict[str, Dict[str, Any]] = {}
+ACTIVE_RUNS: Dict[str, threading.Event] = {}
+ACTIVE_LOCK = threading.Lock()
 
 
 def log(msg: str) -> None:
@@ -232,6 +235,10 @@ def handle_bridge_client(conn: socket.socket, addr: Tuple[str, int]) -> None:
                 _handle_card_action(conn, msg)
                 continue
 
+            if mtype == "cancel":
+                _handle_cancel(conn, msg)
+                continue
+
             if mtype == "message":
                 _handle_message(conn, msg)
                 continue
@@ -259,23 +266,105 @@ def handle_bridge_client(conn: socket.socket, addr: Tuple[str, int]) -> None:
             pass
 
 
+def _session_state(sk: str) -> Dict[str, Any]:
+    st = SESSION_STATE.get(sk)
+    if not st:
+        st = {
+            "mode": "default",
+            "model": "mock-sonnet",
+            "workdir": "/workspace",
+            "project": "claude-code",
+            "allow_all": False,
+            "transcript": [],
+        }
+        SESSION_STATE[sk] = st
+    return st
+
+
+def _append_transcript(sk: str, role: str, content: str) -> None:
+    st = _session_state(sk)
+    st["transcript"].append({"role": role, "content": content[:4000]})
+    if len(st["transcript"]) > 200:
+        st["transcript"] = st["transcript"][-200:]
+
+
+def _touch_session(sk: str, content: str = "", project: Optional[str] = None) -> None:
+    st = _session_state(sk)
+    if project:
+        st["project"] = project
+    with SESSIONS_LOCK:
+        prev = SESSIONS.get(sk) or {}
+        rec = {
+            "id": sk,
+            "session_key": sk,
+            "project": project or prev.get("project") or st.get("project") or "claude-code",
+            "title": prev.get("title") or "Session",
+            "updated_at": time.time(),
+            "last_user": (content[:200] if content else prev.get("last_user")),
+            "mode": st["mode"],
+            "model": st["model"],
+            "workdir": st["workdir"],
+            "running": False,
+        }
+        SESSIONS[sk] = rec
+        for p in PROJECTS:
+            p["sessions_count"] = sum(1 for s in SESSIONS.values() if s.get("project") == p["name"])
+
+
+def _set_running(sk: str, running: bool) -> None:
+    with SESSIONS_LOCK:
+        if sk in SESSIONS:
+            SESSIONS[sk]["running"] = running
+            SESSIONS[sk]["updated_at"] = time.time()
+
+
+def _handle_cancel(conn: socket.socket, msg: Dict[str, Any]) -> None:
+    sk = msg.get("session_key") or ""
+    ctx = msg.get("reply_ctx") or ""
+    cancelled = False
+    with ACTIVE_LOCK:
+        keys = list(ACTIVE_RUNS.keys())
+        for k in keys:
+            if k == ctx or (not ctx and k.startswith(sk + "|")) or (ctx and k.endswith("|" + ctx)):
+                ACTIVE_RUNS[k].set()
+                cancelled = True
+        if ctx in ACTIVE_RUNS:
+            ACTIVE_RUNS[ctx].set()
+            cancelled = True
+    text = "run cancelled (mock)." if cancelled else "no active run to cancel (mock)."
+    ws_send_text(
+        conn,
+        json.dumps(
+            {
+                "type": "run_done",
+                "session_key": sk,
+                "reply_ctx": ctx,
+                "status": "cancelled" if cancelled else "idle",
+                "content": text,
+            },
+            ensure_ascii=False,
+        ),
+    )
+    if cancelled:
+        _set_running(sk, False)
+        _stream_reply(conn, sk, ctx or "cancel", text, cancellable=False)
+
+
 def _handle_message(conn: socket.socket, msg: Dict[str, Any]) -> None:
     content = (msg.get("content") or "").strip()
     sk = msg.get("session_key") or "huan:unknown:unknown"
     ctx = msg.get("reply_ctx") or str(uuid.uuid4())
+    project = _project_hint(content)
     with SESSIONS_LOCK:
-        SESSIONS[sk] = {
-            "id": sk,
-            "session_key": sk,
-            "project": "claude-code",
-            "updated_at": time.time(),
-            "last_user": content[:200],
-        }
-        for p in PROJECTS:
-            if p["name"] == "claude-code":
-                p["sessions_count"] = sum(1 for s in SESSIONS.values() if s.get("project") == "claude-code")
+        if sk in SESSIONS and SESSIONS[sk].get("project"):
+            project = SESSIONS[sk]["project"]
+    _touch_session(sk, content=content, project=project)
+    _append_transcript(sk, "user", content)
 
-    # permission demo
+    if content.lower() in ("/stop", "/cancel"):
+        _handle_cancel(conn, {"session_key": sk, "reply_ctx": ctx})
+        return
+
     if content.startswith("/perm") or content.lower() == "need permission":
         ws_send_text(
             conn,
@@ -287,8 +376,8 @@ def _handle_message(conn: socket.socket, msg: Dict[str, Any]) -> None:
                     "content": "Mock agent wants to run: `echo hello` — allow?",
                     "buttons": [
                         [
-                            {"text": "✅ Allow", "data": "perm:demo:allow"},
-                            {"text": "❌ Deny", "data": "perm:demo:deny"},
+                            {"text": "Allow", "data": "perm:demo:allow"},
+                            {"text": "Deny", "data": "perm:demo:deny"},
                             {"text": "Allow all", "data": "perm:demo:allow_all"},
                         ]
                     ],
@@ -297,35 +386,80 @@ def _handle_message(conn: socket.socket, msg: Dict[str, Any]) -> None:
         )
         return
 
-    # slash helpers
     if content.startswith("/"):
-        reply = _mock_slash(content)
-        _stream_reply(conn, sk, ctx, reply)
+        reply = _mock_slash(sk, content)
+        _stream_reply(conn, sk, ctx, reply, cancellable=False)
         return
 
-    # default streaming reply
+    st = _session_state(sk)
     reply = (
-        f"[mock:{_project_hint(content)}] 收到：{content}\n\n"
+        f"[mock:{st.get('project')}|{st.get('model')}|mode={st.get('mode')}] 收到：{content}\n\n"
         "这是 HuanHermes Mock Host 的流式回复。\n"
-        "真连服务器时，此处将由 Claude Code / Codex / Hermes 产生。"
+        "真连服务器时，此处将由 Claude Code / Codex / Hermes 产生。\n"
+        f"workdir={st.get('workdir')}"
     )
-    # fake tool call
+    cancel_ev = threading.Event()
+    run_key = f"{sk}|{ctx}"
+    with ACTIVE_LOCK:
+        ACTIVE_RUNS[run_key] = cancel_ev
+        ACTIVE_RUNS[ctx] = cancel_ev
+    _set_running(sk, True)
+
+    ws_send_text(conn, json.dumps({"type": "typing_start", "session_key": sk, "reply_ctx": ctx}))
+    time.sleep(0.03)
     ws_send_text(
         conn,
         json.dumps(
             {
-                "type": "typing_start",
+                "type": "thinking",
                 "session_key": sk,
                 "reply_ctx": ctx,
-            }
+                "content": "planning mock response…",
+            },
+            ensure_ascii=False,
         ),
     )
-    time.sleep(0.05)
-    _stream_reply(conn, sk, ctx, reply)
+    time.sleep(0.03)
     ws_send_text(
         conn,
-        json.dumps({"type": "typing_stop", "session_key": sk, "reply_ctx": ctx}),
+        json.dumps(
+            {
+                "type": "tool_call",
+                "session_key": sk,
+                "reply_ctx": ctx,
+                "name": "echo",
+                "input": content[:80],
+            },
+            ensure_ascii=False,
+        ),
     )
+    time.sleep(0.03)
+    if not cancel_ev.is_set():
+        ws_send_text(
+            conn,
+            json.dumps(
+                {
+                    "type": "tool_result",
+                    "session_key": sk,
+                    "reply_ctx": ctx,
+                    "name": "echo",
+                    "output": "ok",
+                },
+                ensure_ascii=False,
+            ),
+        )
+
+    cancelled = _stream_reply(conn, sk, ctx, reply, cancellable=True, cancel_ev=cancel_ev)
+    ws_send_text(conn, json.dumps({"type": "typing_stop", "session_key": sk, "reply_ctx": ctx}))
+    status = "cancelled" if cancelled else "completed"
+    ws_send_text(
+        conn,
+        json.dumps({"type": "run_done", "session_key": sk, "reply_ctx": ctx, "status": status}),
+    )
+    _set_running(sk, False)
+    with ACTIVE_LOCK:
+        ACTIVE_RUNS.pop(run_key, None)
+        ACTIVE_RUNS.pop(ctx, None)
 
 
 def _project_hint(content: str) -> str:
@@ -337,30 +471,62 @@ def _project_hint(content: str) -> str:
     return "claude-code"
 
 
-def _mock_slash(content: str) -> str:
+def _mock_slash(sk: str, content: str) -> str:
     parts = content.split()
     cmd = parts[0].lower()
+    st = _session_state(sk)
     if cmd in ("/help", "/h"):
-        return "mock commands: /help /status /mode /model /dir /perm"
+        return "mock commands: /help /status /mode /model /dir /cd /stop /cancel /perm"
     if cmd == "/status":
-        return f"mock host uptime={int(time.time()-START_TS)}s projects={len(PROJECTS)}"
+        return (
+            f"mock host uptime={int(time.time()-START_TS)}s projects={len(PROJECTS)} "
+            f"mode={st['mode']} model={st['model']} dir={st['workdir']}"
+        )
     if cmd == "/mode":
-        return "current mode: default (mock)"
+        if len(parts) > 1:
+            st["mode"] = parts[1]
+            _touch_session(sk)
+            return f"mode set to: {st['mode']}"
+        return f"current mode: {st['mode']} (options: default, plan, acceptEdits, bypassPermissions)"
     if cmd == "/model":
-        return "models: mock-sonnet, mock-codex (switch not persisted)"
+        if len(parts) > 1:
+            st["model"] = parts[1]
+            _touch_session(sk)
+            return f"model set to: {st['model']}"
+        return f"current model: {st['model']} (options: mock-sonnet, mock-codex, mock-hermes)"
     if cmd in ("/dir", "/cd"):
-        return f"work_dir: /workspace (mock) args={parts[1:]}"
+        if len(parts) > 1:
+            path = parts[1]
+            if not path.startswith("/"):
+                return f"rejected path (must be absolute): {path}"
+            st["workdir"] = path
+            _touch_session(sk)
+            return f"work_dir set to: {st['workdir']}"
+        return f"work_dir: {st['workdir']}"
+    if cmd in ("/stop", "/cancel"):
+        return "use Bridge cancel or /stop while a run is active"
     return f"unknown command {cmd} (mock)"
 
 
-def _stream_reply(conn: socket.socket, sk: str, ctx: str, text: str) -> None:
-    # chunk by characters for demo
+def _stream_reply(
+    conn: socket.socket,
+    sk: str,
+    ctx: str,
+    text: str,
+    *,
+    cancellable: bool = True,
+    cancel_ev: Optional[threading.Event] = None,
+) -> bool:
     acc = ""
-    step = max(1, len(text) // 8)
+    step = max(1, len(text) // 12)
+    cancelled = False
     for i in range(0, len(text), step):
+        if cancellable and cancel_ev is not None and cancel_ev.is_set():
+            cancelled = True
+            break
         piece = text[i : i + step]
         acc += piece
-        done = i + step >= len(text)
+        done = (i + step >= len(text)) and not cancelled
         ws_send_text(
             conn,
             json.dumps(
@@ -369,15 +535,32 @@ def _stream_reply(conn: socket.socket, sk: str, ctx: str, text: str) -> None:
                     "session_key": sk,
                     "reply_ctx": ctx,
                     "delta": piece,
-                    "full_text": acc,
+                    "full_text": acc + ("…[cancelled]" if cancelled else ""),
                     "preview_handle": "",
-                    "done": done,
+                    "done": done or cancelled,
                 },
                 ensure_ascii=False,
             ),
         )
-        time.sleep(0.02)
-    # also send final reply for clients that only listen to reply
+        time.sleep(0.04 if cancellable else 0.015)
+    if cancelled:
+        final = acc + "…[cancelled]"
+        _append_transcript(sk, "assistant", final)
+        ws_send_text(
+            conn,
+            json.dumps(
+                {
+                    "type": "reply",
+                    "session_key": sk,
+                    "reply_ctx": ctx,
+                    "content": final,
+                    "format": "markdown",
+                },
+                ensure_ascii=False,
+            ),
+        )
+        return True
+    _append_transcript(sk, "assistant", text)
     ws_send_text(
         conn,
         json.dumps(
@@ -391,19 +574,22 @@ def _stream_reply(conn: socket.socket, sk: str, ctx: str, text: str) -> None:
             ensure_ascii=False,
         ),
     )
+    return False
 
 
 def _handle_card_action(conn: socket.socket, msg: Dict[str, Any]) -> None:
     action = msg.get("action") or ""
-    sk = msg.get("session_key")
-    ctx = msg.get("reply_ctx")
+    sk = msg.get("session_key") or "huan:unknown"
+    ctx = msg.get("reply_ctx") or str(uuid.uuid4())
+    st = _session_state(sk)
     if action.endswith(":deny"):
         text = "Permission denied (mock)."
     elif action.endswith(":allow_all"):
+        st["allow_all"] = True
         text = "allowed_all: mock will auto-approve subsequent tools in this session."
     else:
         text = "allowed: mock ran `echo hello` → hello"
-    _stream_reply(conn, sk, ctx, text)
+    _stream_reply(conn, sk, ctx, text, cancellable=False)
 
 
 def bridge_server() -> None:
@@ -498,6 +684,22 @@ class MgmtHandler(BaseHTTPRequestHandler):
                 items = [s for s in items if s.get("project") == project]
             self._send(200, {"ok": True, "data": {"sessions": items}})
             return
+        m = re.match(r"^/api/v1/sessions/(.+)$", path)
+        if m:
+            sid = m.group(1)
+            with SESSIONS_LOCK:
+                rec = SESSIONS.get(sid)
+            if not rec:
+                self._send(404, {"ok": False, "error": "session not found"})
+                return
+            st = SESSION_STATE.get(sid) or {}
+            data = dict(rec)
+            data["transcript"] = list(st.get("transcript") or [])
+            data["mode"] = st.get("mode", rec.get("mode"))
+            data["model"] = st.get("model", rec.get("model"))
+            data["workdir"] = st.get("workdir", rec.get("workdir"))
+            self._send(200, {"ok": True, "data": data})
+            return
         self._send(404, {"ok": False, "error": "not found"})
 
     def do_POST(self) -> None:  # noqa: N802
@@ -515,15 +717,23 @@ class MgmtHandler(BaseHTTPRequestHandler):
         if path == "/api/v1/sessions":
             project = body.get("project") or "claude-code"
             sid = f"huan:mock:{uuid.uuid4().hex[:10]}"
+            st = _session_state(sid)
+            st["project"] = project
             rec = {
                 "id": sid,
                 "session_key": sid,
                 "project": project,
                 "title": body.get("title") or "New session",
                 "updated_at": time.time(),
+                "mode": st["mode"],
+                "model": st["model"],
+                "workdir": st["workdir"],
+                "running": False,
             }
             with SESSIONS_LOCK:
                 SESSIONS[sid] = rec
+                for p in PROJECTS:
+                    p["sessions_count"] = sum(1 for s in SESSIONS.values() if s.get("project") == p["name"])
             self._send(200, {"ok": True, "data": rec})
             return
         self._send(404, {"ok": False, "error": "not found"})
@@ -538,6 +748,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
             sid = m.group(1)
             with SESSIONS_LOCK:
                 SESSIONS.pop(sid, None)
+            SESSION_STATE.pop(sid, None)
             self._send(200, {"ok": True, "data": {"deleted": sid}})
             return
         self._send(404, {"ok": False, "error": "not found"})
