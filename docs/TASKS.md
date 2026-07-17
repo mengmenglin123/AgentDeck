@@ -179,6 +179,11 @@
 | P3-131 | Settings 重置控制台 prefs（无 token） | [x] |
 | P3-132 | Host Dashboard 复制 capabilities | [x] |
 
+| P3-133 | Agents 名称 A→Z 排序 | [x] |
+| P3-134 | Skills 名称 A→Z 排序 | [x] |
+| P3-135 | Diff 跳到顶部/底部 | [x] |
+| P3-136 | Pairing 复制 public JSON（无 token） | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

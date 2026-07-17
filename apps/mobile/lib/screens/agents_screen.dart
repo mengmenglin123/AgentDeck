@@ -26,6 +26,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
   String _query = '';
   /// all | agents | platforms | projects
   String _section = 'all';
+  bool _sortAsc = true;
 
   @override
   void initState() {
@@ -104,13 +105,34 @@ class _AgentsScreenState extends State<AgentsScreen> {
     return '${p['name']} ${p['agent_type']} ${p['note']} $caps'.toLowerCase().contains(q);
   }
 
-  List<dynamic> get _filteredAgents => _agents.where(_matchAgent).toList();
-  List<Map<String, dynamic>> get _filteredProjects =>
-      _projects.where(_matchProject).toList();
+  List<dynamic> get _filteredAgents {
+    final list = _agents.where(_matchAgent).toList();
+    list.sort((a, b) {
+      final c = _agentTitle(a).toLowerCase().compareTo(_agentTitle(b).toLowerCase());
+      return _sortAsc ? c : -c;
+    });
+    return list;
+  }
+
+  List<Map<String, dynamic>> get _filteredProjects {
+    final list = _projects.where(_matchProject).toList();
+    list.sort((a, b) {
+      final na = (a['name'] ?? a['id'] ?? '').toString().toLowerCase();
+      final nb = (b['name'] ?? b['id'] ?? '').toString().toLowerCase();
+      final c = na.compareTo(nb);
+      return _sortAsc ? c : -c;
+    });
+    return list;
+  }
+
   List<dynamic> get _filteredPlatforms {
     final q = _query.trim().toLowerCase();
-    if (q.isEmpty) return _platforms;
-    return _platforms.where((p) => '$p'.toLowerCase().contains(q)).toList();
+    final list = _platforms.where((p) => q.isEmpty || '$p'.toLowerCase().contains(q)).toList();
+    list.sort((a, b) {
+      final c = '$a'.toLowerCase().compareTo('$b'.toLowerCase());
+      return _sortAsc ? c : -c;
+    });
+    return list;
   }
 
   Future<void> _copy(String text) async {
@@ -209,6 +231,11 @@ class _AgentsScreenState extends State<AgentsScreen> {
                     }
                   },
             icon: const Icon(Icons.table_chart_outlined),
+          ),
+          IconButton(
+            tooltip: _sortAsc ? 'Sort Z→A' : 'Sort A→Z',
+            onPressed: () => setState(() => _sortAsc = !_sortAsc),
+            icon: Icon(_sortAsc ? Icons.sort_by_alpha : Icons.sort),
           ),
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],

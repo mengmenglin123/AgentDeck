@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.40
+
+- Agents: A→Z / Z→A name sort
+- Skills: A→Z / Z→A name sort
+- Diff: jump to top / end
+- Pairing: copy public JSON (no tokens)
+
 ## 0.1.39
 
 - Terminal: jump to top / end

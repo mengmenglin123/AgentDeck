@@ -98,6 +98,28 @@ class _PairingScreenState extends State<PairingScreen> {
             onPressed: () => _copy(publicUri, 'Copied public pairing URI'),
             icon: const Icon(Icons.link),
           ),
+          IconButton(
+            tooltip: 'Copy public JSON',
+            onPressed: () {
+              final payload = <String, dynamic>{
+                'huanhermes.pairing_public.v1': true,
+                'public_uri': publicUri,
+                'public_summary': cfg.toPublicSummary(),
+                'fingerprint': _fpHex(publicUri),
+                if (data.isNotEmpty)
+                  'host_pairing_meta': {
+                    for (final e in data.entries)
+                      if (!'${e.key}'.toLowerCase().contains('token') &&
+                          !'${e.key}'.toLowerCase().contains('secret') &&
+                          !'${e.value}'.toString().toLowerCase().contains('token='))
+                        e.key: e.value,
+                  },
+              };
+              _copy(const JsonEncoder.withIndent('  ').convert(payload), 'Copied public JSON');
+            },
+            icon: const Icon(Icons.data_object_outlined),
+          ),
+
           IconButton(onPressed: loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
       ),

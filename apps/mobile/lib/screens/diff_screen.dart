@@ -25,6 +25,7 @@ class _DiffScreenState extends State<DiffScreen> {
   String _diff = '';
   bool _lineNums = true;
   bool _wrapLines = false;
+  final _scroll = ScrollController();
   final _diffFindCtrl = TextEditingController();
   String _diffQuery = '';
   final _fileFilterCtrl = TextEditingController();
@@ -39,6 +40,7 @@ class _DiffScreenState extends State<DiffScreen> {
 
   @override
   void dispose() {
+    _scroll.dispose();
     _fileFilterCtrl.dispose();
     _diffFindCtrl.dispose();
     super.dispose();
@@ -153,6 +155,26 @@ class _DiffScreenState extends State<DiffScreen> {
             tooltip: _wrapLines ? 'No wrap' : 'Wrap lines',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
+          ),
+          IconButton(
+            tooltip: 'Jump to top',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+            },
+            icon: const Icon(Icons.vertical_align_top),
+          ),
+          IconButton(
+            tooltip: 'Jump to end',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(
+                _scroll.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
+            },
+            icon: const Icon(Icons.vertical_align_bottom),
           ),
           IconButton(
             tooltip: 'Copy path',
@@ -273,6 +295,7 @@ class _DiffScreenState extends State<DiffScreen> {
                       width: double.infinity,
                       color: Colors.black,
                       child: ListView(
+                        controller: _scroll,
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.all(12),
                         children: [
