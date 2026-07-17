@@ -38,8 +38,36 @@ void main() {
   test('401 becomes AuthError', () async {
     final client = MgmtClient(
       config: cfg,
-      get: (url, {headers}) async => http.Response('{"ok":false,"error":"bad token"}', 401),
+      get: (url, {headers}) async =>
+          http.Response('{"ok":false,"error":"bad token"}', 401),
     );
     expect(() => client.status(), throwsA(isA<AuthError>()));
+  });
+
+  test('createSession posts body', () async {
+    final client = MgmtClient(
+      config: cfg,
+      sender: (method, url, {headers, body}) async {
+        expect(method, 'POST');
+        expect(url.path, endsWith('/sessions'));
+        final map = jsonDecode(body as String) as Map<String, dynamic>;
+        expect(map['project'], 'claude-code');
+        return http.Response(
+          jsonEncode({
+            'ok': true,
+            'data': {
+              'id': 'huan:mock:abc',
+              'session_key': 'huan:mock:abc',
+              'project': 'claude-code',
+              'title': 'T',
+            },
+          }),
+          200,
+        );
+      },
+    );
+    final s = await client.createSession(project: 'claude-code', title: 'T');
+    expect(s.id, 'huan:mock:abc');
+    expect(s.project, 'claude-code');
   });
 }

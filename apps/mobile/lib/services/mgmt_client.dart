@@ -4,35 +4,102 @@ import 'package:http/http.dart' as http;
 
 import '../errors/app_errors.dart';
 import '../models/connection_config.dart';
+import '../models/session_info.dart';
 
-typedef HttpGet = Future<http.Response> Function(
+typedef HttpSender = Future<http.Response> Function(
+  String method,
   Uri url, {
   Map<String, String>? headers,
+  Object? body,
 });
 
 /// Management REST client (MVP subset).
 class MgmtClient {
   MgmtClient({
     required this.config,
-    HttpGet? get,
-  }) : _get = get ?? ((url, {headers}) => http.get(url, headers: headers));
+    HttpSender? sender,
+    // Backward-compatible test hook for GET-only tests.
+    Future<http.Response> Function(Uri url, {Map<String, String>? headers})? get,
+  }) : _send = sender ??
+            ((method, url, {headers, body}) async {
+              switch (method) {
+                case 'GET':
+                  return http.get(url, headers: headers);
+                case 'POST':
+                  return http.post(url, headers: headers, body: body);
+                case 'DELETE':
+                  return http.delete(url, headers: headers);
+                default:
+                  throw ProtocolError('unsupported method $method');
+              }
+            }),
+        _legacyGet = get;
 
   final ConnectionConfig config;
-  final HttpGet _get;
+  final HttpSender _send;
+  final Future<http.Response> Function(Uri url, {Map<String, String>? headers})? _legacyGet;
 
-  Future<Map<String, dynamic>> status() => _request('/status');
+  Future<Map<String, dynamic>> status() => _request('GET', '/status');
 
-  Future<Map<String, dynamic>> projects() => _request('/projects');
+  Future<List<ProjectInfo>> projects() async {
+    final data = await _request('GET', '/projects');
+    final list = data['projects'];
+    if (list is! List) return const [];
+    return list
+        .whereType<Map>()
+        .map((e) => ProjectInfo.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+  }
 
-  Future<Map<String, dynamic>> _request(String path) async {
+  Future<List<SessionInfo>> sessions({String? project}) async {
+    final q = (project == null || project.isEmpty) ? '' : '?project=$project';
+    final data = await _request('GET', '/sessions$q');
+    final list = data['sessions'];
+    if (list is! List) return const [];
+    return list
+        .whereType<Map>()
+        .map((e) => SessionInfo.fromJson(Map<String, dynamic>.from(e)))
+        .toList();
+  }
+
+  Future<SessionInfo> createSession({
+    required String project,
+    String? title,
+  }) async {
+    final body = <String, dynamic>{'project': project};
+    if (title != null && title.isNotEmpty) body['title'] = title;
+    final data = await _request('POST', '/sessions', body: body);
+    return SessionInfo.fromJson(data);
+  }
+
+  Future<void> deleteSession(String sessionId) async {
+    await _request('DELETE', '/sessions/${Uri.encodeComponent(sessionId)}');
+  }
+
+  Future<Map<String, dynamic>> _request(
+    String method,
+    String path, {
+    Map<String, dynamic>? body,
+  }) async {
     final url = Uri.parse('${config.mgmtBaseUrl}$path');
     final headers = <String, String>{
       'Authorization': 'Bearer ${config.mgmtToken}',
       'Accept': 'application/json',
     };
+    Object? rawBody;
+    if (body != null) {
+      headers['Content-Type'] = 'application/json';
+      rawBody = jsonEncode(body);
+    }
+
     late http.Response resp;
     try {
-      resp = await _get(url, headers: headers).timeout(const Duration(seconds: 12));
+      if (method == 'GET' && _legacyGet != null) {
+        resp = await _legacyGet!(url, headers: headers).timeout(const Duration(seconds: 12));
+      } else {
+        resp = await _send(method, url, headers: headers, body: rawBody)
+            .timeout(const Duration(seconds: 12));
+      }
     } on Exception catch (e) {
       throw DisconnectedError(e.toString());
     }
@@ -41,9 +108,7 @@ class MgmtClient {
       throw AuthError(_extractError(resp.body) ?? 'unauthorized');
     }
     if (resp.statusCode < 200 || resp.statusCode >= 300) {
-      throw ProtocolError(
-        _extractError(resp.body) ?? 'HTTP ${resp.statusCode}',
-      );
+      throw ProtocolError(_extractError(resp.body) ?? 'HTTP ${resp.statusCode}');
     }
 
     final payload = _decode(resp.body);

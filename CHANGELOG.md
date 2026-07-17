@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.2] - 2026-07-17
+
+### Added
+- P0-8 Sessions screen: list / create / delete via Management API
+- P0-8 Chat screen: Bridge WS connect, streaming transcript, send message
+- P0-9 Flutter `TranscriptReducer` (stream collapse + permission events)
+- P0-10 Permission buttons UI (`allow` / `deny` / `allow_all` → `card_action`)
+- Dart `BridgeClient` + expanded `MgmtClient` (sessions CRUD)
+- Unit tests for transcript reducer and session create
+
+
 ## [0.1.1] - 2026-07-17
 
 ### Added

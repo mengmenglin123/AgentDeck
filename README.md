@@ -34,7 +34,7 @@ App  ──WSS Bridge + HTTPS Mgmt──►  Host (cc-connect or mock)
 
 ```text
 huanhermes-app/
-├── apps/mobile/              # Flutter Android 客户端（P0-7 Connect）
+├── apps/mobile/              # Flutter Android 客户端（Connect / Sessions / Chat）
 ├── packages/huan_protocol/   # Bridge/Mgmt 协议模型与参考客户端（Python）
 ├── server/
 │   ├── mock-host/            # 本地 Mock：Bridge + Management
@@ -97,7 +97,7 @@ flutter run
 flutter build apk --debug
 ```
 
-应用 ID：`com.huanmeng.huanhermes`。连接页保存 token 到系统安全存储。
+应用 ID：`com.huanmeng.huanhermes`。Connect 保存 token；Sessions/Chat 走 Mgmt + Bridge 流式与权限按钮。
 
 ## 安全原则
 

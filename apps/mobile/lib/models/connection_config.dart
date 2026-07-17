@@ -100,6 +100,8 @@ class ConnectionConfig {
 
   bool get hasTokens => bridgeToken.isNotEmpty && mgmtToken.isNotEmpty;
 
+  String sessionKeyFor(String conversationId) => 'huan:$deviceId:$conversationId';
+
   @override
   String toString() =>
       'ConnectionConfig(host=$host, bridge=$bridgePort, mgmt=$mgmtPort, tls=$useTls, device=$deviceId)';
