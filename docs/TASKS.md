@@ -34,12 +34,12 @@
 
 | ID | 任务 | 状态 |
 |----|------|------|
-| P2-1 | Hermes adapter ADR | [ ] |
+| P2-1 | Hermes adapter ADR | [x] ADR-002 |
 | P2-2 | Hermes 最小 session | [ ] |
-| P2-3 | AgentCapability 探测 | [ ] |
+| P2-3 | AgentCapability 探测 | [~] Mock capabilities + ProjectInfo; toolbar gate later |
 | P2-4 | 附件（可选） | [ ] |
-| P2-5 | 多服务器 profile | [ ] |
-| P2-6 | 安全加固 | [ ] |
+| P2-5 | 多服务器 profile | [x] Secure multi-profile store + Connect UI |
+| P2-6 | 安全加固 | [x] TLS warn + redaction helpers + secure multi-token keys |
 | P2-7 | 内测包 | [ ] |
 | P2-8 | 自研 Host 兼容层（可选） | [ ] |
 

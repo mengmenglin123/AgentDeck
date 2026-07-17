@@ -97,6 +97,7 @@ class ProjectInfo {
     this.sessionsCount = 0,
     this.note,
     this.platforms = const [],
+    this.capabilities = const [],
   });
 
   final String name;
@@ -104,6 +105,9 @@ class ProjectInfo {
   final int sessionsCount;
   final String? note;
   final List<String> platforms;
+  final List<String> capabilities;
+
+  bool hasCapability(String c) => capabilities.contains(c);
 
   factory ProjectInfo.fromJson(Map<String, dynamic> json) {
     final plats = <String>[];
@@ -117,6 +121,13 @@ class ProjectInfo {
         }
       }
     }
+    final caps = <String>[];
+    final cr = json['capabilities'];
+    if (cr is List) {
+      for (final c in cr) {
+        if (c != null) caps.add(c.toString());
+      }
+    }
     return ProjectInfo(
       name: (json['name'] ?? '').toString(),
       agentType: (json['agent_type'] ?? json['agentType'] ?? '').toString(),
@@ -125,6 +136,7 @@ class ProjectInfo {
           : int.tryParse('${json['sessions_count'] ?? 0}') ?? 0,
       note: json['note']?.toString(),
       platforms: plats,
+      capabilities: caps,
     );
   }
 }

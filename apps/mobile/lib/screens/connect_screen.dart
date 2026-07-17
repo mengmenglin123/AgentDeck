@@ -1,9 +1,11 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../models/connection_config.dart';
 import '../services/connection_controller.dart';
+import '../utils/security.dart';
 
 class ConnectScreen extends StatefulWidget {
   const ConnectScreen({super.key});
@@ -13,6 +15,7 @@ class ConnectScreen extends StatefulWidget {
 }
 
 class _ConnectScreenState extends State<ConnectScreen> {
+  late final TextEditingController _name;
   late final TextEditingController _host;
   late final TextEditingController _bridgePort;
   late final TextEditingController _mgmtPort;
@@ -25,23 +28,37 @@ class _ConnectScreenState extends State<ConnectScreen> {
   @override
   void initState() {
     super.initState();
-    final c = context.read<ConnectionController>().draft;
-    _host = TextEditingController(text: c.host);
-    _bridgePort = TextEditingController(text: '${c.bridgePort}');
-    _mgmtPort = TextEditingController(text: '${c.mgmtPort}');
-    _bridgeToken = TextEditingController(text: c.bridgeToken);
-    _mgmtToken = TextEditingController(text: c.mgmtToken);
-    _useTls = c.useTls;
+    final c = context.read<ConnectionController>();
+    final d = c.draft;
+    _name = TextEditingController(text: c.draftProfileName);
+    _host = TextEditingController(text: d.host);
+    _bridgePort = TextEditingController(text: '${d.bridgePort}');
+    _mgmtPort = TextEditingController(text: '${d.mgmtPort}');
+    _bridgeToken = TextEditingController(text: d.bridgeToken);
+    _mgmtToken = TextEditingController(text: d.mgmtToken);
+    _useTls = d.useTls;
   }
 
   @override
   void dispose() {
+    _name.dispose();
     _host.dispose();
     _bridgePort.dispose();
     _mgmtPort.dispose();
     _bridgeToken.dispose();
     _mgmtToken.dispose();
     super.dispose();
+  }
+
+  void _syncControllersFrom(ConnectionController c) {
+    final d = c.draft;
+    _name.text = c.draftProfileName;
+    _host.text = d.host;
+    _bridgePort.text = '${d.bridgePort}';
+    _mgmtPort.text = '${d.mgmtPort}';
+    _bridgeToken.text = d.bridgeToken;
+    _mgmtToken.text = d.mgmtToken;
+    _useTls = d.useTls;
   }
 
   ConnectionConfig _readForm(ConnectionConfig base) {
@@ -57,11 +74,12 @@ class _ConnectScreenState extends State<ConnectScreen> {
 
   Future<void> _onConnect() async {
     final controller = context.read<ConnectionController>();
+    controller.updateDraftProfileName(_name.text);
     controller.updateDraft(_readForm(controller.draft));
     final ok = await controller.testAndSave();
     if (!mounted) return;
     if (!ok) {
-      final err = controller.lastError ?? 'Connection failed';
+      final err = Security.redactText(controller.lastError ?? 'Connection failed');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(err), backgroundColor: Colors.red.shade700),
       );
@@ -70,23 +88,71 @@ class _ConnectScreenState extends State<ConnectScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final phase = context.watch<ConnectionController>().phase;
+    final controller = context.watch<ConnectionController>();
+    final phase = controller.phase;
     final busy = phase == ConnectionPhase.testing;
+    final warnTls = Security.shouldWarnPlaintext(_host.text.trim(), _useTls);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Connect to Host'),
+        actions: [
+          IconButton(
+            tooltip: 'New profile',
+            onPressed: busy
+                ? null
+                : () async {
+                    await controller.startNewProfile();
+                    _syncControllersFrom(controller);
+                    setState(() {});
+                  },
+            icon: const Icon(Icons.add),
+          ),
+        ],
       ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
             Text(
-              'HuanHermes talks to your server via Management REST + Bridge WebSocket. '
-              'Tokens stay in secure storage and are never logged.',
+              'HuanHermes is a console only — agents run on your server. '
+              'Tokens stay in secure storage. Do not paste secrets into git.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
-            const SizedBox(height: 20),
+            if (controller.profiles.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text('Saved hosts', style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: controller.profiles.map((p) {
+                  final selected = p.id == controller.activeProfileId;
+                  return FilterChip(
+                    label: Text(p.name),
+                    selected: selected,
+                    onSelected: busy
+                        ? null
+                        : (_) async {
+                            await controller.selectProfile(p.id);
+                            _syncControllersFrom(controller);
+                            setState(() {});
+                          },
+                  );
+                }).toList(),
+              ),
+            ],
+            const SizedBox(height: 16),
+            TextField(
+              controller: _name,
+              decoration: const InputDecoration(
+                labelText: 'Profile name',
+                hintText: 'Home / Work / Mock',
+              ),
+              enabled: !busy,
+              onChanged: controller.updateDraftProfileName,
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: _host,
               decoration: const InputDecoration(
@@ -95,6 +161,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
               ),
               textInputAction: TextInputAction.next,
               enabled: !busy,
+              onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 12),
             Row(
@@ -123,13 +190,27 @@ class _ConnectScreenState extends State<ConnectScreen> {
             const SizedBox(height: 8),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Use TLS (WSS / HTTPS)'),
-              subtitle: const Text('Required for production hosts'),
+              title: const Text('Use TLS (wss / https)'),
+              subtitle: const Text('Recommended for public networks'),
               value: _useTls,
               onChanged: busy
                   ? null
-                  : (v) => setState(() => _useTls = v),
+                  : (v) {
+                      setState(() => _useTls = v);
+                    },
             ),
+            if (warnTls)
+              Card(
+                color: Colors.orange.shade50,
+                child: const ListTile(
+                  leading: Icon(Icons.warning_amber, color: Colors.orange),
+                  title: Text('Plaintext to non-local host'),
+                  subtitle: Text(
+                    'Traffic is not encrypted. Prefer a TLS reverse proxy, '
+                    'or enable TLS on your Host. Tokens still stay on device.',
+                  ),
+                ),
+              ),
             const SizedBox(height: 8),
             TextField(
               controller: _bridgeToken,
@@ -156,7 +237,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
               ),
               enabled: !busy,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             FilledButton.icon(
               onPressed: busy ? null : _onConnect,
               icon: busy
@@ -166,11 +247,47 @@ class _ConnectScreenState extends State<ConnectScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.link),
-              label: Text(busy ? 'Testing…' : 'Test & Save'),
+              label: Text(busy ? 'Connecting…' : 'Test & connect'),
             ),
-            const SizedBox(height: 12),
+            if (controller.profiles.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: busy
+                    ? null
+                    : () async {
+                        final ok = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Delete this profile?'),
+                            content: const Text(
+                              'Tokens for this profile will be removed from the device.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('Cancel'),
+                              ),
+                              FilledButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text('Delete'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (ok == true && context.mounted) {
+                          await controller.deleteActiveProfile();
+                          _syncControllersFrom(controller);
+                          setState(() {});
+                        }
+                      },
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('Delete profile'),
+              ),
+            ],
+            const SizedBox(height: 16),
             Text(
-              'Dev defaults match Mock Host (.env.example). Do not use default tokens on a public network.',
+              'See docs/guides/connect-real-host.md — fill tokens in the App only; '
+              'do not change Host channel/provider config for this App.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],

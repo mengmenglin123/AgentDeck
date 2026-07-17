@@ -3,24 +3,70 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:huanhermes_app/models/connection_config.dart';
+import 'package:huanhermes_app/models/server_profile.dart';
 import 'package:huanhermes_app/services/connection_controller.dart';
 import 'package:huanhermes_app/services/connection_store.dart';
 import 'package:huanhermes_app/services/mgmt_client.dart';
 
 class MemoryConfigStore implements ConnectionStore {
   ConnectionConfig? _cfg;
+  final Map<String, ServerProfile> _profiles = {};
+  String? _active;
 
   @override
   Future<void> init() async {}
 
   @override
-  Future<void> save(ConnectionConfig config) async => _cfg = config;
+  Future<void> save(ConnectionConfig config) async {
+    _cfg = config;
+    final id = _active ?? 'mem-default';
+    _active = id;
+    _profiles[id] = ServerProfile(
+      id: id,
+      name: _profiles[id]?.name ?? 'Default',
+      config: config,
+    );
+  }
 
   @override
-  Future<ConnectionConfig?> load() async => _cfg;
+  Future<ConnectionConfig?> load() async {
+    if (_active != null && _profiles.containsKey(_active)) {
+      return _profiles[_active]!.config;
+    }
+    return _cfg;
+  }
 
   @override
-  Future<void> clear() async => _cfg = null;
+  Future<void> clear() async {
+    _cfg = null;
+    _profiles.clear();
+    _active = null;
+  }
+
+  @override
+  Future<List<ServerProfile>> listProfiles() async => _profiles.values.toList();
+
+  @override
+  Future<String?> activeProfileId() async => _active;
+
+  @override
+  Future<void> setActiveProfileId(String id) async => _active = id;
+
+  @override
+  Future<void> upsertProfile(ServerProfile profile, {bool setActive = true}) async {
+    _profiles[profile.id] = profile;
+    _cfg = profile.config;
+    if (setActive) _active = profile.id;
+  }
+
+  @override
+  Future<void> deleteProfile(String id) async {
+    _profiles.remove(id);
+    if (_active == id) {
+      _active = _profiles.keys.isEmpty ? null : _profiles.keys.first;
+      _cfg = _active == null ? null : _profiles[_active]?.config;
+    }
+  }
 }
 
 void main() {
@@ -51,6 +97,7 @@ void main() {
     expect(controller.lastStatus?['version'], 'mock');
     final loaded = await store.load();
     expect(loaded?.host, '127.0.0.1');
+    expect(controller.profiles, isNotEmpty);
   });
 
   test('missing tokens fails', () async {
@@ -60,5 +107,43 @@ void main() {
     final ok = await controller.testAndSave();
     expect(ok, isFalse);
     expect(controller.phase, ConnectionPhase.error);
+  });
+
+  test('multi profile switch does not auto-ready', () async {
+    final store = MemoryConfigStore();
+    final controller = ConnectionController(
+      store: store,
+      mgmtFactory: (c) => MgmtClient(
+        config: c,
+        get: (url, {headers}) async => http.Response(
+          jsonEncode({
+            'ok': true,
+            'data': {'version': 'mock'},
+          }),
+          200,
+        ),
+      ),
+    );
+    controller.draftProfileName = 'A';
+    controller.draft = ConnectionConfig(
+      host: '127.0.0.1',
+      bridgeToken: 'a',
+      mgmtToken: 'a',
+      deviceId: 'a',
+    );
+    await controller.testAndSave();
+    expect(controller.isReady, isTrue);
+
+    await controller.startNewProfile();
+    expect(controller.isReady, isFalse);
+    controller.draftProfileName = 'B';
+    controller.draft = ConnectionConfig(
+      host: '10.0.0.2',
+      bridgeToken: 'b',
+      mgmtToken: 'b',
+      deviceId: 'b',
+    );
+    await controller.testAndSave();
+    expect(controller.profiles.length, greaterThanOrEqualTo(2));
   });
 }

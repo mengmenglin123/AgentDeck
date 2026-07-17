@@ -26,7 +26,9 @@ App  ──WSS Bridge + HTTPS Mgmt──►  Host (cc-connect or mock)
                                       └─ hermes (later)
 ```
 
-详见 [docs/adr/001-architecture.md](docs/adr/001-architecture.md)。
+详见 [docs/adr/001-architecture.md)
+- [ADR-002 Hermes adapter](docs/adr/002-hermes-adapter.md](docs/adr/001-architecture.md)
+- [ADR-002 Hermes adapter](docs/adr/002-hermes-adapter.md)。
 
 ---
 

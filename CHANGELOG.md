@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.5] - 2026-07-17
+
+### Added
+- ADR-002 Hermes adapter (App stays console; Host-side hermes agent_type + capabilities)
+- Multi-server connection profiles (secure per-profile tokens, migrate v1 → v2)
+- Connect UI: profile chips, new/delete profile, TLS plaintext warning
+- `Security.redactText` helpers; Mock project `capabilities` fields
+
+### Notes
+- Does not modify any live Host / cc-connect / channel config
+- Real Hermes process still Host-side (P2-2+)
+
+
 ## [0.1.4] - 2026-07-17
 
 ### Added

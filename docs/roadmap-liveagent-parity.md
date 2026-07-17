@@ -18,7 +18,11 @@
 | Skills / MCP Hub | 只读浏览（P3） | 未做 |
 | 独立终端通道 | P3 | 未做 |
 | Memory / Cron | Hermes 二期 / Host 能力探测 | 未做 |
-| 多服务器 profile | P2 | 未做 |
+| 多服务器 profile | P2-5 | 完成 |
+
+## Hermes
+
+见 [ADR-002](adr/002-hermes-adapter.md)：Host 侧 adapter，App 只消费 Bridge/Mgmt。
 
 ## 原则
 

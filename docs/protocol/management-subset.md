@@ -46,3 +46,14 @@ Authorization: Bearer <token>
 - Token 只存在于用户设备安全存储 / 本机 env，**禁止**提交仓库。
 - 不在文档或日志中打印真实 token。
 - **不要**为了联调去改线上 Host 的 provider / 渠道配置。
+
+
+## Project capabilities (optional, P2)
+
+`GET /projects` / `GET /projects/{name}` may include:
+
+```json
+"capabilities": ["stream", "buttons", "cancel", "workdir", "mode", "model", "tools_visible"]
+```
+
+App hides unsupported toolbar actions when missing (progressive). See ADR-002.
