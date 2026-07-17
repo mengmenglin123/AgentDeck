@@ -146,7 +146,10 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
       ),
       body: cfg == null
           ? const Center(child: Text('Not connected'))
-          : ListView(
+          : RefreshIndicator(
+              onRefresh: _refresh,
+              child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               children: [
                 ListTile(
@@ -335,6 +338,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                 ),
               ],
             ),
+          ),
     );
   }
 

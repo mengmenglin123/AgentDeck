@@ -11,6 +11,8 @@ class AppSettingsController extends ChangeNotifier {
   static const _kSort = 'huanhermes.session_sort.v1';
   static const _kContrast = 'huanhermes.high_contrast.v1';
   static const _kHaptics = 'huanhermes.haptics.v1';
+  static const _kKeepScreen = 'huanhermes.keep_screen_on.v1';
+  static const _kMonoChat = 'huanhermes.mono_chat.v1';
 
   /// 0.85 | 1.0 | 1.15 | 1.3
   double textScale = 1.0;
@@ -33,6 +35,12 @@ class AppSettingsController extends ChangeNotifier {
   /// Light haptic feedback on key actions (pin/send/copy).
   bool hapticsEnabled = true;
 
+  /// Prefer keeping screen awake while using the console (device-local).
+  bool keepScreenOn = false;
+
+  /// Prefer monospace for chat message bodies.
+  bool monoChat = false;
+
   Future<void> load() async {
     final p = await SharedPreferences.getInstance();
     textScale = p.getDouble(_kScale) ?? 1.0;
@@ -48,6 +56,8 @@ class AppSettingsController extends ChangeNotifier {
     if (!allowed.contains(sessionSort)) sessionSort = 'updated';
     highContrast = p.getBool(_kContrast) ?? false;
     hapticsEnabled = p.getBool(_kHaptics) ?? true;
+    keepScreenOn = p.getBool(_kKeepScreen) ?? false;
+    monoChat = p.getBool(_kMonoChat) ?? false;
     notifyListeners();
   }
 
@@ -98,6 +108,20 @@ class AppSettingsController extends ChangeNotifier {
     notifyListeners();
     final p = await SharedPreferences.getInstance();
     await p.setBool(_kHaptics, v);
+  }
+
+  Future<void> setKeepScreenOn(bool v) async {
+    keepScreenOn = v;
+    notifyListeners();
+    final p = await SharedPreferences.getInstance();
+    await p.setBool(_kKeepScreen, v);
+  }
+
+  Future<void> setMonoChat(bool v) async {
+    monoChat = v;
+    notifyListeners();
+    final p = await SharedPreferences.getInstance();
+    await p.setBool(_kMonoChat, v);
   }
 
   /// Fire a light impact when haptics are enabled.

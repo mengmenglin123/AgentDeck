@@ -102,6 +102,20 @@ class _DiffScreenState extends State<DiffScreen> {
         title: Text(_path == null ? 'Git diff' : 'Diff · $_path'),
         actions: [
           IconButton(
+            tooltip: 'Copy path',
+            onPressed: _path == null || _path!.isEmpty
+                ? null
+                : () async {
+                    await Clipboard.setData(ClipboardData(text: _path!));
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Path copied'), duration: Duration(seconds: 1)),
+                      );
+                    }
+                  },
+            icon: const Icon(Icons.link),
+          ),
+          IconButton(
             tooltip: 'Copy diff',
             onPressed: _diff.isEmpty
                 ? null

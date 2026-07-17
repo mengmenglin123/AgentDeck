@@ -126,8 +126,47 @@ class _AgentsScreenState extends State<AgentsScreen> {
     final platforms = _filteredPlatforms;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Agents'),
+        title: Text(
+          agents.isEmpty && projects.isEmpty
+              ? 'Agents'
+              : 'Agents (${agents.length}a · ${projects.length}p)',
+        ),
         actions: [
+          IconButton(
+            tooltip: 'Copy all',
+            onPressed: (agents.isEmpty && projects.isEmpty && platforms.isEmpty)
+                ? null
+                : () async {
+                    final buf = StringBuffer();
+                    for (final a in agents) {
+                      if (a is Map) {
+                        final m = Map<String, dynamic>.from(a as Map);
+                        buf.writeln('agent: ${m['name'] ?? m['id'] ?? m}');
+                        buf.writeln('  $m');
+                      } else {
+                        buf.writeln('agent: $a');
+                      }
+                    }
+                    for (final p in projects) {
+                      buf.writeln('project: ${p['name'] ?? p['id'] ?? p}');
+                    }
+                    for (final p in platforms) {
+                      buf.writeln('platform: $p');
+                    }
+                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Copied ${agents.length} agents / ${projects.length} projects',
+                          ),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    }
+                  },
+            icon: const Icon(Icons.copy_all_outlined),
+          ),
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
       ),

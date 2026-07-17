@@ -66,8 +66,34 @@ class _SkillsScreenState extends State<SkillsScreen> {
     final items = _filtered;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Skills (readonly)'),
+        title: Text(items.isEmpty ? 'Skills (readonly)' : 'Skills (${items.length})'),
         actions: [
+          IconButton(
+            tooltip: 'Copy all',
+            onPressed: items.isEmpty
+                ? null
+                : () async {
+                    final buf = StringBuffer();
+                    for (final s in items) {
+                      if (s is Map) {
+                        final name = (s['name'] ?? s['id'] ?? 'skill').toString();
+                        final desc = (s['description'] ?? s['summary'] ?? '').toString();
+                        buf.writeln('## $name');
+                        if (desc.isNotEmpty) buf.writeln(desc);
+                        buf.writeln();
+                      } else {
+                        buf.writeln('$s');
+                      }
+                    }
+                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Copied ${items.length} skills'), duration: const Duration(seconds: 1)),
+                      );
+                    }
+                  },
+            icon: const Icon(Icons.copy_all_outlined),
+          ),
           IconButton(onPressed: loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
       ),

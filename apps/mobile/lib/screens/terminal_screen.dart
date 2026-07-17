@@ -305,6 +305,16 @@ class _TerminalScreenState extends State<TerminalScreen> {
         ),
         actions: [
           IconButton(
+            tooltip: 'Clear local',
+            onPressed: () {
+              setState(() {
+                _buf.clear();
+                _busy = false;
+              });
+            },
+            icon: const Icon(Icons.delete_sweep_outlined),
+          ),
+          IconButton(
             tooltip: _wrapLines ? 'No wrap' : 'Wrap lines',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),

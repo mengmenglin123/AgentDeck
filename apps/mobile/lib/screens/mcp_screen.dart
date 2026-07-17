@@ -75,8 +75,35 @@ class _McpScreenState extends State<McpScreen> {
     final items = _filtered;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('MCP (readonly)'),
+        title: Text(items.isEmpty ? 'MCP (readonly)' : 'MCP (${items.length})'),
         actions: [
+          IconButton(
+            tooltip: 'Copy all',
+            onPressed: items.isEmpty
+                ? null
+                : () async {
+                    final buf = StringBuffer();
+                    for (final s in items) {
+                      if (s is Map) {
+                        final name = (s['name'] ?? s['id'] ?? 'mcp').toString();
+                        final desc = (s['description'] ?? s['url'] ?? s['command'] ?? '').toString();
+                        buf.writeln('## $name');
+                        if (desc.isNotEmpty) buf.writeln(desc);
+                        buf.writeln('$s');
+                        buf.writeln();
+                      } else {
+                        buf.writeln('$s');
+                      }
+                    }
+                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Copied ${items.length} MCP entries'), duration: const Duration(seconds: 1)),
+                      );
+                    }
+                  },
+            icon: const Icon(Icons.copy_all_outlined),
+          ),
           IconButton(
             onPressed: loading ? null : _load,
             icon: const Icon(Icons.refresh),

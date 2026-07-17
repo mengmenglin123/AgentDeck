@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.28
+
+- Status + Host Dashboard pull-to-refresh
+- Agents / Skills / MCP: Copy all + title counts
+- Diff: copy path; Terminal: clear local buffer
+- Connect: copy public summary (no tokens)
+- Settings: keep-screen-on preference + monospace chat bodies
+
 ## 0.1.27
 
 - Memory: live client-side refine filter + title count; Copy all follows filter

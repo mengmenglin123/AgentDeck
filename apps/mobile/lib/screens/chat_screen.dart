@@ -994,6 +994,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               isSearchHit: hits.contains(i),
                               isActiveSearchHit: i == activeHit,
                               compact: settings.compactMode,
+                              mono: settings.monoChat,
                               onQuote: () {
                                 final clip = m.content.trim();
                                 if (clip.isEmpty) return;
@@ -1282,6 +1283,7 @@ class _MessageBubble extends StatelessWidget {
     this.isActiveSearchHit = false,
     this.onQuote,
     this.compact = false,
+    this.mono = false,
   });
 
   final TranscriptMessage message;
@@ -1292,6 +1294,7 @@ class _MessageBubble extends StatelessWidget {
   final bool isActiveSearchHit;
   final VoidCallback? onQuote;
   final bool compact;
+  final bool mono;
 
   List<Map<String, dynamic>> get _buttons {
     final raw = message.meta['buttons'];
@@ -1405,7 +1408,12 @@ class _MessageBubble extends StatelessWidget {
               ),
               SizedBox(height: compact ? 2 : 4),
               if (useMd)
-                MarkdownLite(message.content)
+                 mono
+                     ? DefaultTextStyle.merge(
+                         style: const TextStyle(fontFamily: 'monospace'),
+                         child: MarkdownLite(message.content),
+                       )
+                     : MarkdownLite(message.content)
               else
                 SelectableText(message.content),
               if (buttons.isNotEmpty) ...[

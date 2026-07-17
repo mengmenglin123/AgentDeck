@@ -134,6 +134,20 @@ class SettingsScreen extends StatelessWidget {
             value: settings.hapticsEnabled,
             onChanged: settings.setHapticsEnabled,
           ),
+          SwitchListTile(
+            secondary: const Icon(Icons.smartphone),
+            title: const Text('Keep screen on'),
+            subtitle: const Text('Device-local preference while using the console'),
+            value: settings.keepScreenOn,
+            onChanged: settings.setKeepScreenOn,
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.font_download_outlined),
+            title: const Text('Monospace chat'),
+            subtitle: const Text('Use mono font for message bodies'),
+            value: settings.monoChat,
+            onChanged: settings.setMonoChat,
+          ),
           const Divider(height: 28),
           ListTile(
             leading: const Icon(Icons.info_outline),
@@ -147,7 +161,7 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.tag),
             title: const Text('App version'),
-            subtitle: const Text('0.1.27+26 · console only · protocol Mock/self-host'),
+            subtitle: const Text('0.1.28+28 · console only · protocol Mock/self-host'),
           ),
           ListTile(
             leading: const Icon(Icons.policy_outlined),

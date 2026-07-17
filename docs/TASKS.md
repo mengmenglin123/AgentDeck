@@ -119,6 +119,11 @@
 | P3-81 | Cron / Activity 复制全部 + 标题计数 | [x] |
 | P3-82 | Chat 副标题消息数 + tools hidden 提示 | [x] |
 | P3-83 | Pairing 更大指纹 / hex / 校验清单；Workspace 路径面包屑 | [x] |
+| P3-84 | Status / Host Dashboard 下拉刷新 | [x] |
+| P3-85 | Agents / Skills / MCP 复制全部 + 标题计数 | [x] |
+| P3-86 | Diff 复制路径；Terminal 清除本地缓冲 | [x] |
+| P3-87 | Connect 复制 public summary（无 token） | [x] |
+| P3-88 | Settings：Keep screen on + Monospace chat（设备本地） | [x] |
 
 ## P4 — 远期
 

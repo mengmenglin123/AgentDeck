@@ -147,6 +147,34 @@ class _ConnectScreenState extends State<ConnectScreen> {
         title: const Text('Connect to Host'),
         actions: [
           IconButton(
+            tooltip: 'Copy public',
+            onPressed: () async {
+              final host = _host.text.trim();
+              if (host.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Enter host first'), duration: Duration(seconds: 1)),
+                );
+                return;
+              }
+              final bridge = int.tryParse(_bridgePort.text.trim()) ?? 19810;
+              final mgmt = int.tryParse(_mgmtPort.text.trim()) ?? 19820;
+              final cfg = ConnectionConfig(
+                host: host,
+                bridgePort: bridge,
+                mgmtPort: mgmt,
+                bridgeToken: '',
+                mgmtToken: '',
+                useTls: _useTls,
+              );
+              await Clipboard.setData(ClipboardData(text: cfg.toPublicSummary()));
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Public summary copied (no tokens)'), duration: Duration(seconds: 1)),
+              );
+            },
+            icon: const Icon(Icons.ios_share_outlined),
+          ),
+          IconButton(
             tooltip: 'Import pairing URI',
             onPressed: busy ? null : _importPairing,
             icon: const Icon(Icons.qr_code_scanner),

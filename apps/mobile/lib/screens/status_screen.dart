@@ -158,7 +158,10 @@ class _StatusScreenState extends State<StatusScreen> {
           ),
         ],
       ),
-      body: ListView(
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20),
         children: [
           Card(
@@ -287,6 +290,7 @@ class _StatusScreenState extends State<StatusScreen> {
             label: const Text('Edit connection'),
           ),
         ],
+      ),
       ),
     );
   }
