@@ -39,6 +39,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
   int _histIndex = -1; // -1 = drafting new
   String _draftBeforeHist = '';
   double _termScale = 1.0; // local terminal font multiplier
+  bool _wrapLines = true;
 
   @override
   void initState() {
@@ -304,6 +305,11 @@ class _TerminalScreenState extends State<TerminalScreen> {
         ),
         actions: [
           IconButton(
+            tooltip: _wrapLines ? 'No wrap' : 'Wrap lines',
+            onPressed: () => setState(() => _wrapLines = !_wrapLines),
+            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
+          ),
+          IconButton(
             tooltip: 'Smaller text',
             onPressed: _termScale <= 0.85
                 ? null
@@ -410,13 +416,26 @@ class _TerminalScreenState extends State<TerminalScreen> {
               padding: const EdgeInsets.all(12),
               child: SingleChildScrollView(
                 controller: _scroll,
-                child: SelectableText(
-                  _buf.toString(),
-                  style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 13 * _termScale,
-                    color: Color(0xFFB2FF59),
-                    height: 1.35,
+                scrollDirection: Axis.vertical,
+                child: SingleChildScrollView(
+                  scrollDirection: _wrapLines ? Axis.vertical : Axis.horizontal,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minWidth: MediaQuery.sizeOf(context).width - 24,
+                      maxWidth: _wrapLines
+                          ? MediaQuery.sizeOf(context).width - 24
+                          : double.infinity,
+                    ),
+                    child: SelectableText(
+                      _buf.toString(),
+                      softWrap: _wrapLines,
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 13 * _termScale,
+                        color: const Color(0xFFB2FF59),
+                        height: 1.35,
+                      ),
+                    ),
                   ),
                 ),
               ),

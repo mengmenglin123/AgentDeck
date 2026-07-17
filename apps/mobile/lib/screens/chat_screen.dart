@@ -173,6 +173,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _quoteRole = null;
     });
     await _drafts.clear(widget.session.sessionKey);
+    context.read<AppSettingsController>().buzzLight();
     await _chat.send(text, images: images, files: files);
   }
 

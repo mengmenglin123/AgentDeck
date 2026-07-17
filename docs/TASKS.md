@@ -111,6 +111,10 @@
 | P3-73 | Sessions 搜索防抖（220ms） | [x] |
 | P3-74 | Connect 连接态状态条（ready/degraded/error/idle） | [x] |
 | P3-75 | Status 最近健康探测详情 / 复制错误 | [x] |
+| P3-76 | Host logs 本地消息筛选 | [x] |
+| P3-77 | Terminal 自动换行开关 + 横向滚动 | [x] |
+| P3-78 | Sessions 复制 id/session_key | [x] |
+| P3-79 | Settings 触感反馈（发送/固定） | [x] |
 
 ## P4 — 远期
 

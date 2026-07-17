@@ -21,6 +21,7 @@ class _LogsScreenState extends State<LogsScreen> {
   String? _error;
   List<Map<String, dynamic>> _logs = [];
   String _level = '';
+  String _query = '';
 
   @override
   void initState() {
@@ -54,6 +55,17 @@ class _LogsScreenState extends State<LogsScreen> {
     }
   }
 
+  List<Map<String, dynamic>> get _visible {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _logs;
+    return _logs.where((e) {
+      final msg = '${e['message'] ?? ''}'.toLowerCase();
+      final level = '${e['level'] ?? ''}'.toLowerCase();
+      final ts = '${e['ts'] ?? ''}'.toLowerCase();
+      return msg.contains(q) || level.contains(q) || ts.contains(q);
+    }).toList();
+  }
+
   Color _levelColor(String level, ColorScheme cs) {
     switch (level.toLowerCase()) {
       case 'error':
@@ -82,11 +94,11 @@ class _LogsScreenState extends State<LogsScreen> {
         actions: [
           IconButton(
             tooltip: 'Copy all',
-            onPressed: _logs.isEmpty
+            onPressed: _visible.isEmpty
                 ? null
                 : () async {
                     final buf = StringBuffer();
-                    for (final e in _logs) {
+                    for (final e in _visible) {
                       final level = '${e['level'] ?? 'info'}';
                       final msg = '${e['message'] ?? ''}';
                       final ts = e['ts'];
@@ -95,7 +107,7 @@ class _LogsScreenState extends State<LogsScreen> {
                     await Clipboard.setData(ClipboardData(text: buf.toString()));
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Copied ${_logs.length} lines'), duration: const Duration(seconds: 1)),
+                        SnackBar(content: Text('Copied ${_visible.length} lines'), duration: const Duration(seconds: 1)),
                       );
                     }
                   },
@@ -130,6 +142,24 @@ class _LogsScreenState extends State<LogsScreen> {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Filter message / level',
+                isDense: true,
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.search, size: 20),
+                suffixIcon: _query.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () => setState(() => _query = ''),
+                      ),
+              ),
+              onChanged: (v) => setState(() => _query = v),
+            ),
+          ),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.all(12),
@@ -139,15 +169,17 @@ class _LogsScreenState extends State<LogsScreen> {
           Expanded(
             child: _logs.isEmpty && !_loading
                 ? const Center(child: Text('No log lines (Host may omit /logs)'))
+                : _visible.isEmpty && !_loading
+                    ? const Center(child: Text('No lines match filter'))
                 : RefreshIndicator(
                     onRefresh: _load,
                     child: ListView.separated(
                       physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(8, 4, 8, 24),
-                    itemCount: _logs.length,
+                    itemCount: _visible.length,
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (context, i) {
-                      final e = _logs[i];
+                      final e = _visible[i];
                       final level = '${e['level'] ?? 'info'}';
                       final msg = '${e['message'] ?? ''}';
                       final ts = e['ts'];

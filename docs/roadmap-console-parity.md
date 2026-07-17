@@ -142,3 +142,10 @@
 - Sessions search debounce
 - Connect status banner
 - Status last health probe
+
+## 0.1.26+
+
+- Logs local filter
+- Terminal wrap
+- Session copy ids
+- Haptics

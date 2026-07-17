@@ -127,6 +127,13 @@ class SettingsScreen extends StatelessWidget {
             value: settings.showToolsDefault,
             onChanged: settings.setShowToolsDefault,
           ),
+          SwitchListTile(
+            secondary: const Icon(Icons.vibration),
+            title: const Text('Haptic feedback'),
+            subtitle: const Text('Light buzz on pin / send / copy'),
+            value: settings.hapticsEnabled,
+            onChanged: settings.setHapticsEnabled,
+          ),
           const Divider(height: 28),
           ListTile(
             leading: const Icon(Icons.info_outline),
@@ -140,7 +147,7 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.tag),
             title: const Text('App version'),
-            subtitle: const Text('0.1.25+25 · console only · protocol Mock/self-host'),
+            subtitle: const Text('0.1.26+26 · console only · protocol Mock/self-host'),
           ),
           ListTile(
             leading: const Icon(Icons.policy_outlined),

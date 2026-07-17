@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.26] - 2026-07-17
+
+### Added
+- Host logs local message/level filter (client-side)
+- Terminal wrap toggle with horizontal scroll when unwrap
+- Sessions menu: Copy ids (title/id/session_key/project)
+- Settings haptic feedback toggle; light buzz on send/pin
+
 ## [0.1.25] - 2026-07-17
 
 ### Added

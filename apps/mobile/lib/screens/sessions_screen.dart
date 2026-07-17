@@ -277,6 +277,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
   }
 
   Future<void> _togglePin(SessionInfo s) async {
+    context.read<AppSettingsController>().buzzLight();
     await _pins.toggle(s.sessionKey);
     await _loadPins();
   }
@@ -1088,6 +1089,19 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                           await _editNote(s);
                                                         case 'pin':
                                                           await _togglePin(s);
+                                                        case 'copy_key':
+                                                          final text = [
+                                                            s.displayTitle,
+                                                            'id: ${s.id}',
+                                                            'session_key: ${s.sessionKey}',
+                                                            'project: ${s.project}',
+                                                          ].join('\n');
+                                                          await Clipboard.setData(ClipboardData(text: text));
+                                                          if (mounted) {
+                                                            ScaffoldMessenger.of(context).showSnackBar(
+                                                              const SnackBar(content: Text('Session ids copied'), duration: Duration(seconds: 1)),
+                                                            );
+                                                          }
                                                         case 'term':
                                                           await _openTerminal(s);
                                                         case 'delete':
@@ -1096,6 +1110,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                     },
                                                     itemBuilder: (ctx) => [
                                                       PopupMenuItem(value: 'pin', child: Text(pinned ? 'Unpin' : 'Pin')),
+                                                      const PopupMenuItem(value: 'copy_key', child: Text('Copy ids')),
                                                       PopupMenuItem(
                                                         value: 'archive',
                                                         child: Text(_archived.contains(s.sessionKey) ? 'Unarchive' : 'Archive'),
