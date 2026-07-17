@@ -104,3 +104,10 @@
 - Session swipe pin/archive
 - Capability badges
 - Quote reply
+
+## 0.1.20+
+
+- Chat draft autosave
+- Session project grouping
+- Terminal command history
+- Logs level color strips

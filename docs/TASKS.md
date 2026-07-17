@@ -86,6 +86,10 @@
 | P3-48 | Sessions 滑动快捷 pin/archive + overflow 菜单 | [x] |
 | P3-49 | Host/会话能力徽章 | [x] |
 | P3-50 | 聊天引用回复（长按 Quote） | [x] |
+| P3-51 | 聊天草稿自动保存（按 session_key，本机） | [x] |
+| P3-52 | Sessions 按 project 分组（Group chip） | [x] |
+| P3-53 | Terminal 本地命令历史（↑↓ / 面板） | [x] |
+| P3-54 | Host logs 级别色条 / 徽章 / 复制全部 | [x] |
 
 ## P4 — 远期
 

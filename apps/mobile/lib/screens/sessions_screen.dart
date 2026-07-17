@@ -48,6 +48,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
   Map<String, int> _recentRank = {};
   /// all | pinned | running | archived
   String _filter = 'all';
+  bool _groupByProject = false;
   bool _selectMode = false;
   final Set<String> _selected = {};
 
@@ -352,6 +353,23 @@ class _SessionsScreenState extends State<SessionsScreen> {
       }
     });
     return list;
+  }
+
+  /// When grouping: returns alternating header String / SessionInfo.
+  List<Object> _visibleRows(List<SessionInfo> visible) {
+    if (!_groupByProject) return List<Object>.from(visible);
+    final map = <String, List<SessionInfo>>{};
+    for (final s in visible) {
+      final p = s.project.isEmpty ? '(no project)' : s.project;
+      map.putIfAbsent(p, () => []).add(s);
+    }
+    final keys = map.keys.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    final out = <Object>[];
+    for (final k in keys) {
+      out.add(k);
+      out.addAll(map[k]!);
+    }
+    return out;
   }
 
   Future<void> _openTerminal(SessionInfo session) async {
@@ -763,6 +781,16 @@ class _SessionsScreenState extends State<SessionsScreen> {
                         onSelected: (_) => setState(() => _filter = f.$1),
                         visualDensity: VisualDensity.compact,
                       ),
+                    FilterChip(
+                      label: const Text('Group', style: TextStyle(fontSize: 12)),
+                      selected: _groupByProject,
+                      avatar: Icon(
+                        _groupByProject ? Icons.folder : Icons.folder_outlined,
+                        size: 16,
+                      ),
+                      onSelected: (v) => setState(() => _groupByProject = v),
+                      visualDensity: VisualDensity.compact,
+                    ),
                     Builder(
                       builder: (context) {
                         final settings = context.watch<AppSettingsController>();
@@ -926,10 +954,29 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                         ],
                                       )
                                     : ListView.separated(
-                                        itemCount: visible.length,
+                                        itemCount: _visibleRows(visible).length,
                                         separatorBuilder: (_, __) => const Divider(height: 1),
                                         itemBuilder: (context, i) {
-                                          final s = visible[i];
+                                          final row = _visibleRows(visible)[i];
+                                          if (row is String) {
+                                            return Material(
+                                              color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.55),
+                                              child: ListTile(
+                                                dense: true,
+                                                visualDensity: VisualDensity.compact,
+                                                leading: const Icon(Icons.folder_outlined, size: 18),
+                                                title: Text(
+                                                  row,
+                                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                                ),
+                                                subtitle: Text(
+                                                  '${visible.where((s) => (s.project.isEmpty ? '(no project)' : s.project) == row).length} sessions',
+                                                  style: const TextStyle(fontSize: 11),
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                          final s = row as SessionInfo;
                                           final pinned = _pinned.contains(s.sessionKey);
                                           final note = _noteMap[s.sessionKey];
                                           final compact = context.watch<AppSettingsController>().compactMode;

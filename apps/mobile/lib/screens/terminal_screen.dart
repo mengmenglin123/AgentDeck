@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../models/connection_config.dart';
 import '../models/session_info.dart';
 import '../services/bridge_client.dart';
+import '../services/terminal_history_store.dart';
 import '../utils/security.dart';
 
 /// Lightweight terminal console over Bridge `terminal_input` / `terminal_out`.
@@ -33,14 +34,26 @@ class _TerminalScreenState extends State<TerminalScreen> {
   bool _connecting = true;
   String? _error;
   bool _busy = false;
+  final _history = TerminalHistoryStore();
+  List<String> _hist = [];
+  int _histIndex = -1; // -1 = drafting new
+  String _draftBeforeHist = '';
 
   @override
   void initState() {
     super.initState();
     _buf.writeln('HuanHermes terminal channel (session ${widget.session.sessionKey})');
     _buf.writeln('Type help · protocol demo only');
+    _buf.writeln('↑/↓ local history · device only');
     _buf.writeln('');
+    _loadHistory();
     _connect();
+  }
+
+  Future<void> _loadHistory() async {
+    final h = await _history.load();
+    if (!mounted) return;
+    setState(() => _hist = h);
   }
 
   Future<void> _connect() async {
@@ -139,6 +152,14 @@ class _TerminalScreenState extends State<TerminalScreen> {
   void _send() {
     final text = _input.text;
     if (text.trim().isEmpty || _bridge == null || _busy) return;
+    _history.push(text);
+    _hist.removeWhere((e) => e == text.trimRight());
+    _hist.insert(0, text.trimRight());
+    while (_hist.length > 50) {
+      _hist.removeLast();
+    }
+    _histIndex = -1;
+    _draftBeforeHist = '';
     _input.clear();
     _sendRaw(text);
   }
@@ -146,6 +167,84 @@ class _TerminalScreenState extends State<TerminalScreen> {
   void _quick(String cmd) {
     if (_bridge == null || _busy || _connecting) return;
     _sendRaw(cmd);
+  }
+
+  void _histUp() {
+    if (_hist.isEmpty) return;
+    if (_histIndex < 0) {
+      _draftBeforeHist = _input.text;
+      _histIndex = 0;
+    } else if (_histIndex < _hist.length - 1) {
+      _histIndex += 1;
+    } else {
+      return;
+    }
+    setState(() => _input.text = _hist[_histIndex]);
+    _input.selection = TextSelection.collapsed(offset: _input.text.length);
+  }
+
+  void _histDown() {
+    if (_histIndex < 0) return;
+    if (_histIndex == 0) {
+      _histIndex = -1;
+      setState(() => _input.text = _draftBeforeHist);
+    } else {
+      _histIndex -= 1;
+      setState(() => _input.text = _hist[_histIndex]);
+    }
+    _input.selection = TextSelection.collapsed(offset: _input.text.length);
+  }
+
+  Future<void> _pickHistory() async {
+    final items = List<String>.from(_hist);
+    if (items.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No local terminal history yet'), duration: Duration(seconds: 1)),
+      );
+      return;
+    }
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            ListTile(
+              title: const Text('Command history'),
+              subtitle: const Text('Device local only'),
+              trailing: IconButton(
+                tooltip: 'Clear',
+                icon: const Icon(Icons.delete_sweep_outlined),
+                onPressed: () async {
+                  await _history.clear();
+                  setState(() {
+                    _hist = [];
+                    _histIndex = -1;
+                  });
+                  if (ctx.mounted) Navigator.pop(ctx);
+                },
+              ),
+            ),
+            for (final c in items)
+              ListTile(
+                dense: true,
+                leading: const Icon(Icons.history, size: 18),
+                title: Text(c, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontFamily: 'monospace', fontSize: 13)),
+                onTap: () => Navigator.pop(ctx, c),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (picked != null && mounted) {
+      setState(() {
+        _input.text = picked;
+        _histIndex = -1;
+      });
+      _input.selection = TextSelection.collapsed(offset: _input.text.length);
+    }
   }
 
   void _interrupt() {
@@ -203,6 +302,11 @@ class _TerminalScreenState extends State<TerminalScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'History',
+            onPressed: _pickHistory,
+            icon: const Icon(Icons.history),
+          ),
           IconButton(
             tooltip: 'Copy all',
             onPressed: () async {
@@ -309,6 +413,16 @@ class _TerminalScreenState extends State<TerminalScreen> {
               padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
               child: Row(
                 children: [
+                  IconButton(
+                    tooltip: 'Older',
+                    onPressed: _hist.isEmpty ? null : _histUp,
+                    icon: const Icon(Icons.keyboard_arrow_up),
+                  ),
+                  IconButton(
+                    tooltip: 'Newer',
+                    onPressed: _histIndex < 0 ? null : _histDown,
+                    icon: const Icon(Icons.keyboard_arrow_down),
+                  ),
                   Expanded(
                     child: TextField(
                       controller: _input,

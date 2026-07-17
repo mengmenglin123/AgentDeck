@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.20] - 2026-07-17
+
+### Added
+- Chat composer draft autosave per session_key (device local; cleared on send)
+- Sessions Group-by-project headers + Group filter chip
+- Terminal local command history (↑/↓, history sheet; device only)
+- Host logs: stronger level color strips/badges, fatal/critical colors, Copy all
+
 ## [0.1.19] - 2026-07-17
 
 ### Added

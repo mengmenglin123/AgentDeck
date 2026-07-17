@@ -57,14 +57,19 @@ class _LogsScreenState extends State<LogsScreen> {
   Color _levelColor(String level, ColorScheme cs) {
     switch (level.toLowerCase()) {
       case 'error':
+      case 'fatal':
+      case 'critical':
         return cs.error;
       case 'warn':
       case 'warning':
-        return Colors.orange;
+        return Colors.orange.shade800;
       case 'debug':
+      case 'trace':
         return cs.outline;
-      default:
+      case 'info':
         return cs.primary;
+      default:
+        return cs.secondary;
     }
   }
 
@@ -75,6 +80,27 @@ class _LogsScreenState extends State<LogsScreen> {
       appBar: AppBar(
         title: const Text('Host logs'),
         actions: [
+          IconButton(
+            tooltip: 'Copy all',
+            onPressed: _logs.isEmpty
+                ? null
+                : () async {
+                    final buf = StringBuffer();
+                    for (final e in _logs) {
+                      final level = '${e['level'] ?? 'info'}';
+                      final msg = '${e['message'] ?? ''}';
+                      final ts = e['ts'];
+                      buf.writeln('[$level] $ts $msg');
+                    }
+                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Copied ${_logs.length} lines'), duration: const Duration(seconds: 1)),
+                      );
+                    }
+                  },
+            icon: const Icon(Icons.copy_all_outlined),
+          ),
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
       ),
@@ -125,27 +151,46 @@ class _LogsScreenState extends State<LogsScreen> {
                       final when = ts is int
                           ? DateTime.fromMillisecondsSinceEpoch(ts * 1000).toLocal().toIso8601String()
                           : '$ts';
-                      return ListTile(
-                        dense: true,
-                        leading: Text(
-                          level.toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: _levelColor(level, cs),
-                            fontFamily: 'monospace',
-                          ),
+                      final color = _levelColor(level, cs);
+                      return Container(
+                        decoration: BoxDecoration(
+                          border: Border(left: BorderSide(color: color, width: 3)),
+                          color: level.toLowerCase() == 'error'
+                              ? cs.errorContainer.withOpacity(0.25)
+                              : (level.toLowerCase() == 'warn' || level.toLowerCase() == 'warning')
+                                  ? Colors.orange.withOpacity(0.08)
+                                  : null,
                         ),
-                        title: Text(msg, style: const TextStyle(fontSize: 13, fontFamily: 'monospace')),
-                        subtitle: Text(when, style: const TextStyle(fontSize: 10)),
-                        onLongPress: () async {
-                          await Clipboard.setData(ClipboardData(text: '[$level] $when $msg'));
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Log line copied'), duration: Duration(seconds: 1)),
-                            );
-                          }
-                        },
+                        child: ListTile(
+                          dense: true,
+                          leading: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: color.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: color.withOpacity(0.5)),
+                            ),
+                            child: Text(
+                              level.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: color,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ),
+                          title: Text(msg, style: const TextStyle(fontSize: 13, fontFamily: 'monospace')),
+                          subtitle: Text(when, style: const TextStyle(fontSize: 10)),
+                          onLongPress: () async {
+                            await Clipboard.setData(ClipboardData(text: '[$level] $when $msg'));
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Log line copied'), duration: Duration(seconds: 1)),
+                              );
+                            }
+                          },
+                        ),
                       );
                     },
                   ),

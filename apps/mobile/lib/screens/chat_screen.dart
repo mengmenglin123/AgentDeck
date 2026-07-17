@@ -1,3 +1,4 @@
+import 'dart:async';
 
 import 'dart:convert';
 
@@ -10,6 +11,7 @@ import '../models/session_info.dart';
 import '../models/transcript.dart';
 import '../services/app_settings_controller.dart';
 import '../services/chat_controller.dart';
+import '../services/chat_draft_store.dart';
 import '../widgets/markdown_lite.dart';
 import 'audit_screen.dart';
 
@@ -45,6 +47,8 @@ class _ChatScreenState extends State<ChatScreen> {
   final Map<int, GlobalKey> _msgKeys = {};
   String? _quoteText;
   String? _quoteRole;
+  final _drafts = ChatDraftStore();
+  Timer? _draftTimer;
 
   @override
   void initState() {
@@ -71,7 +75,15 @@ class _ChatScreenState extends State<ChatScreen> {
     }
     _chat.addListener(_onChat);
     _scroll.addListener(_onScroll);
+    _input.addListener(_onDraftChanged);
     _bootstrap();
+  }
+
+  void _onDraftChanged() {
+    _draftTimer?.cancel();
+    _draftTimer = Timer(const Duration(milliseconds: 450), () {
+      _drafts.save(widget.session.sessionKey, _input.text);
+    });
   }
 
   void _onScroll() {
@@ -101,6 +113,10 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _bootstrap() async {
+    final draft = await _drafts.load(widget.session.sessionKey);
+    if (mounted && draft != null && draft.isNotEmpty && _input.text.isEmpty) {
+      _input.text = draft;
+    }
     await _chat.connect();
     await _chat.reloadTranscript();
   }
@@ -121,6 +137,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    _draftTimer?.cancel();
+    _input.removeListener(_onDraftChanged);
+    // flush latest draft
+    _drafts.save(widget.session.sessionKey, _input.text);
     _scroll.removeListener(_onScroll);
     _chat.removeListener(_onChat);
     _chat.dispose();
@@ -147,6 +167,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _quoteText = null;
       _quoteRole = null;
     });
+    await _drafts.clear(widget.session.sessionKey);
     await _chat.send(text, images: images, files: files);
   }
 
