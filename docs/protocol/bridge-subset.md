@@ -33,9 +33,29 @@ App 注册 platform + capabilities（`text`, `buttons`, `typing`, `preview`…�
 
 见 Mock 与客户端实现。
 
+### terminal_input / terminal_resize（轻量终端通道）
+
+App → Host：
+
+```json
+{ "type": "terminal_input", "session_key": "...", "stream_id": "term-1", "data": "ls" }
+{ "type": "terminal_resize", "session_key": "...", "cols": 80, "rows": 24 }
+```
+
+Host → App：
+
+```json
+{ "type": "terminal_out", "session_key": "...", "stream_id": "term-1", "data": "$ ls\n", "done": false }
+{ "type": "terminal_out", "session_key": "...", "stream_id": "term-1", "data": "README.md\n", "done": true, "exit_code": 0 }
+{ "type": "terminal_clear", "session_key": "...", "stream_id": "term-1" }
+{ "type": "terminal_exit", "session_key": "...", "stream_id": "term-1", "exit_code": 0 }
+```
+
+这是 **协议演示级** 通道；真 Host 可映射到 PTY。Mock 仅回显内置命令（`help`/`pwd`/`ls`/`echo`…）。
+
 ### Host → App 事件
 
-`reply_stream`, `reply`, `thinking`, `tool_call`, `tool_result`, `buttons`, `card`, `run_done`, `typing_start`, `typing_stop`, `preview_start`, `update_message`。
+`reply_stream`, `reply`, `thinking`, `tool_call`, `tool_result`, `buttons`, `card`, `run_done`, `typing_start`, `typing_stop`, `preview_start`, `update_message`, `terminal_out`, `terminal_clear`, `terminal_exit`, `terminal_ack`。
 
 ## Slash 快捷（可选）
 

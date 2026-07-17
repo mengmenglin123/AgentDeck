@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.8] - 2026-07-17
+
+### Added
+- Lightweight Bridge terminal channel (`terminal_input` / `terminal_out`) + App Terminal screen
+- MCP readonly catalog (`GET /mcp`) + MCP screen
+- Connect: import `huanhermes://connect?...` pairing URI (tokens optional; never wipe existing)
+- Sessions local search filter
+- Protocol docs for terminal + MCP endpoints
+
+### Notes
+- Terminal is protocol demo / Mock echo — not a full remote PTY
+- Product remains HuanHermes-owned Host protocol only
+
+
 ## [0.1.7] - 2026-07-17
 
 ### Changed

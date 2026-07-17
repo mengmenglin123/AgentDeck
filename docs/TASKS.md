@@ -45,11 +45,12 @@
 
 ## P3 — 增强
 
-- [ ] 终端独立通道（远期）  
-- [x] Skills/MCP 只读浏览（Mock GET /skills + App Skills 页）  
-- [x] 设备配对（配对文本/URI；真 QR 渲染可后置）  
+- [x] 轻量终端通道（Bridge `terminal_input`/`terminal_out` + App Terminal 页；非完整 PTY）
+- [x] Skills/MCP 只读浏览（GET `/skills`、`/mcp`）
+- [x] 设备配对 URI（复制 + Connect 导入；真相机扫码可后置）
+- [x] 会话本地搜索
 
 ## 措辞约束（给贡献者）
 
-- 产品路径只写 **HuanHermes Host / Mock / 自研兼容**  
-- 禁止把外部宿主项目写成安装依赖或默认运行时  
+- 产品路径只写 **HuanHermes Host / Mock / 自研兼容**
+- 禁止把外部宿主项目写成安装依赖或默认运行时

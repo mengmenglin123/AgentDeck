@@ -149,6 +149,33 @@ class BridgeClient {
     });
   }
 
+  /// Lightweight terminal channel (Host may map to PTY; Mock echoes).
+  void terminalInput({
+    required String sessionKey,
+    required String data,
+    String? streamId,
+  }) {
+    send({
+      'type': 'terminal_input',
+      'session_key': sessionKey,
+      'data': data,
+      if (streamId != null) 'stream_id': streamId,
+    });
+  }
+
+  void terminalResize({
+    required String sessionKey,
+    int cols = 80,
+    int rows = 24,
+  }) {
+    send({
+      'type': 'terminal_resize',
+      'session_key': sessionKey,
+      'cols': cols,
+      'rows': rows,
+    });
+  }
+
   void send(Map<String, dynamic> payload) {
     final ch = _channel;
     if (ch == null) throw DisconnectedError('not connected');

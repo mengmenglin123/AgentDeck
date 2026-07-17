@@ -18,9 +18,12 @@
 | 多服务器 profile | 安全存储多 profile | 完成 |
 | 附件 | images/files 协议 + demo UI | 完成 |
 | Skills 只读 | GET /skills | 完成 |
-| 配对文本 | GET /pairing | 完成 |
+| MCP 只读 | GET /mcp | 完成 |
+| 配对 URI | GET /pairing + Connect 导入 | 完成 |
+| 会话搜索 | 本地过滤 title/project/key | 完成 |
 | Hermes 形态会话 | Mock + ADR-002 | Mock 完成 |
-| 终端独立通道 | 远期 | 未做 |
+| 轻量终端通道 | Bridge terminal_* + Terminal 页 | 完成（Mock 回显，非真 PTY） |
+| 真远程 PTY / 相机扫码 | 可选后续 | 未做 |
 
 ## 原则
 

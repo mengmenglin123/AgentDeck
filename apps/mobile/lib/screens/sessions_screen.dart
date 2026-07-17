@@ -5,8 +5,10 @@ import '../models/session_info.dart';
 import '../services/connection_controller.dart';
 import '../services/session_controller.dart';
 import 'chat_screen.dart';
-import 'skills_screen.dart';
+import 'mcp_screen.dart';
 import 'pairing_screen.dart';
+import 'skills_screen.dart';
+import 'terminal_screen.dart';
 
 class SessionsScreen extends StatefulWidget {
   const SessionsScreen({super.key});
@@ -18,6 +20,8 @@ class SessionsScreen extends StatefulWidget {
 class _SessionsScreenState extends State<SessionsScreen> {
   SessionController? _sessions;
   final _titleCtrl = TextEditingController();
+  final _searchCtrl = TextEditingController();
+  String _query = '';
 
   @override
   void didChangeDependencies() {
@@ -35,8 +39,30 @@ class _SessionsScreenState extends State<SessionsScreen> {
   @override
   void dispose() {
     _titleCtrl.dispose();
+    _searchCtrl.dispose();
     _sessions?.dispose();
     super.dispose();
+  }
+
+  List<SessionInfo> _filtered(List<SessionInfo> all) {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return all;
+    return all.where((s) {
+      final hay = '${s.displayTitle} ${s.project} ${s.sessionKey} ${s.model ?? ''}'
+          .toLowerCase();
+      return hay.contains(q);
+    }).toList();
+  }
+
+  Future<void> _openTerminal(SessionInfo session) async {
+    final conn = context.read<ConnectionController>();
+    final cfg = conn.saved;
+    if (cfg == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TerminalScreen(config: cfg, session: session),
+      ),
+    );
   }
 
   Future<void> _create() async {
@@ -96,27 +122,32 @@ class _SessionsScreenState extends State<SessionsScreen> {
                 onPressed: sessions.loading ? null : sessions.refresh,
                 icon: const Icon(Icons.refresh),
               ),
-              IconButton(
-                tooltip: 'Skills (readonly)',
-                onPressed: () {
+              PopupMenuButton<String>(
+                tooltip: 'More',
+                onSelected: (v) {
                   final cfg = conn.saved;
                   if (cfg == null) return;
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => SkillsScreen(config: cfg)),
-                  );
+                  Widget page;
+                  switch (v) {
+                    case 'skills':
+                      page = SkillsScreen(config: cfg);
+                      break;
+                    case 'mcp':
+                      page = McpScreen(config: cfg);
+                      break;
+                    case 'pairing':
+                      page = PairingScreen(config: cfg);
+                      break;
+                    default:
+                      return;
+                  }
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
                 },
-                icon: const Icon(Icons.extension_outlined),
-              ),
-              IconButton(
-                tooltip: 'Pairing / QR text',
-                onPressed: () {
-                  final cfg = conn.saved;
-                  if (cfg == null) return;
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => PairingScreen(config: cfg)),
-                  );
-                },
-                icon: const Icon(Icons.qr_code_2),
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'skills', child: Text('Skills (readonly)')),
+                  PopupMenuItem(value: 'mcp', child: Text('MCP (readonly)')),
+                  PopupMenuItem(value: 'pairing', child: Text('Pairing URI')),
+                ],
               ),
               IconButton(
                 tooltip: 'Edit connection',
@@ -176,7 +207,29 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   ),
                 ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                child: TextField(
+                  controller: _searchCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'Search sessions',
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                    prefixIcon: const Icon(Icons.search, size: 20),
+                    suffixIcon: _query.isEmpty
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () {
+                              _searchCtrl.clear();
+                              setState(() => _query = '');
+                            },
+                          ),
+                  ),
+                  onChanged: (v) => setState(() => _query = v),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                 child: Row(
                   children: [
                     Expanded(
@@ -205,58 +258,83 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   child: Text(sessions.error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
                 ),
               Expanded(
-                child: sessions.loading && sessions.sessions.isEmpty
-                    ? const Center(child: CircularProgressIndicator())
-                    : RefreshIndicator(
-                        onRefresh: sessions.refresh,
-                        child: sessions.sessions.isEmpty
-                            ? ListView(
-                                children: [
-                                  const SizedBox(height: 48),
-                                  Icon(
-                                    Icons.forum_outlined,
-                                    size: 40,
-                                    color: Theme.of(context).colorScheme.outline,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  const Center(child: Text('No sessions yet')),
-                                  const SizedBox(height: 8),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                                    child: Text(
-                                      'Create a session for Claude Code / Codex / Hermes and open chat to control the server agent.',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                child: Builder(
+                  builder: (context) {
+                    final visible = _filtered(sessions.sessions);
+                    return sessions.loading && sessions.sessions.isEmpty
+                        ? const Center(child: CircularProgressIndicator())
+                        : RefreshIndicator(
+                            onRefresh: sessions.refresh,
+                            child: sessions.sessions.isEmpty
+                                ? ListView(
+                                    children: [
+                                      const SizedBox(height: 48),
+                                      Icon(
+                                        Icons.forum_outlined,
+                                        size: 40,
+                                        color: Theme.of(context).colorScheme.outline,
                                       ),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : ListView.separated(
-                                itemCount: sessions.sessions.length,
-                                separatorBuilder: (_, __) => const Divider(height: 1),
-                                itemBuilder: (context, i) {
-                                  final s = sessions.sessions[i];
-                                  return ListTile(
-                                    title: Text(s.displayTitle),
-                                    subtitle: Text(
-                                      '${s.project} · ${s.model ?? "model?"} · ${s.sessionKey}',
-                                    ),
-                                    isThreeLine: true,
-                                    leading: Icon(
-                                      s.running ? Icons.play_circle_fill : Icons.chat_bubble_outline,
-                                      color: s.running ? Colors.blue : null,
-                                    ),
-                                    onTap: () => _openChat(s),
-                                    trailing: IconButton(
-                                      icon: const Icon(Icons.delete_outline),
-                                      onPressed: () => sessions.deleteSession(s),
-                                    ),
-                                  );
-                                },
-                              ),
-                      ),
+                                      const SizedBox(height: 12),
+                                      const Center(child: Text('No sessions yet')),
+                                      const SizedBox(height: 8),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                                        child: Text(
+                                          'Create a session for Claude Code / Codex / Hermes and open chat to control the server agent.',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : visible.isEmpty
+                                    ? ListView(
+                                        children: const [
+                                          SizedBox(height: 48),
+                                          Center(child: Text('No sessions match search')),
+                                        ],
+                                      )
+                                    : ListView.separated(
+                                        itemCount: visible.length,
+                                        separatorBuilder: (_, __) => const Divider(height: 1),
+                                        itemBuilder: (context, i) {
+                                          final s = visible[i];
+                                          return ListTile(
+                                            title: Text(s.displayTitle),
+                                            subtitle: Text(
+                                              '${s.project} · ${s.model ?? "model?"} · ${s.sessionKey}',
+                                            ),
+                                            isThreeLine: true,
+                                            leading: Icon(
+                                              s.running
+                                                  ? Icons.play_circle_fill
+                                                  : Icons.chat_bubble_outline,
+                                              color: s.running ? Colors.blue : null,
+                                            ),
+                                            onTap: () => _openChat(s),
+                                            trailing: Wrap(
+                                              spacing: 0,
+                                              children: [
+                                                IconButton(
+                                                  tooltip: 'Terminal',
+                                                  icon: const Icon(Icons.terminal),
+                                                  onPressed: () => _openTerminal(s),
+                                                ),
+                                                IconButton(
+                                                  tooltip: 'Delete',
+                                                  icon: const Icon(Icons.delete_outline),
+                                                  onPressed: () => sessions.deleteSession(s),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      ),
+                          );
+                  },
+                ),
               ),
             ],
           ),

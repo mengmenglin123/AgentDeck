@@ -86,6 +86,55 @@ class _ConnectScreenState extends State<ConnectScreen> {
     }
   }
 
+  Future<void> _importPairing() async {
+    final ctrl = TextEditingController();
+    final pasted = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Import pairing URI'),
+        content: TextField(
+          controller: ctrl,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            hintText: 'huanhermes://connect?host=…&bridge=…&mgmt=…&tls=0',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('Apply'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    if (pasted == null || pasted.isEmpty || !mounted) return;
+    final overlay = ConnectionConfig.tryParsePairingUri(pasted);
+    if (overlay == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not parse pairing URI')),
+      );
+      return;
+    }
+    final controller = context.read<ConnectionController>();
+    final merged = _readForm(controller.draft).mergePairing(overlay);
+    controller.updateDraft(merged);
+    _syncControllersFrom(controller);
+    setState(() {});
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          overlay.hasTokens
+              ? 'Host fields + tokens imported (review before connect)'
+              : 'Host fields filled — still enter tokens, then Test & connect',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<ConnectionController>();
@@ -97,6 +146,11 @@ class _ConnectScreenState extends State<ConnectScreen> {
       appBar: AppBar(
         title: const Text('Connect to Host'),
         actions: [
+          IconButton(
+            tooltip: 'Import pairing URI',
+            onPressed: busy ? null : _importPairing,
+            icon: const Icon(Icons.qr_code_scanner),
+          ),
           IconButton(
             tooltip: 'New profile',
             onPressed: busy

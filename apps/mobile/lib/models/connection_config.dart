@@ -102,6 +102,57 @@ class ConnectionConfig {
 
   String sessionKeyFor(String conversationId) => 'huan:$deviceId:$conversationId';
 
+  /// Parse `huanhermes://connect?host=&bridge=&mgmt=&tls=` (no secrets expected).
+  static ConnectionConfig? tryParsePairingUri(String raw) {
+    final s = raw.trim();
+    if (s.isEmpty) return null;
+    Uri uri;
+    try {
+      uri = Uri.parse(s);
+    } catch (_) {
+      return null;
+    }
+    final isScheme = uri.scheme == 'huanhermes';
+    final looksQuery =
+        s.contains('host=') && (s.contains('bridge=') || s.contains('mgmt='));
+    if (!isScheme && !looksQuery) return null;
+    if (uri.queryParameters.isEmpty && uri.fragment.isNotEmpty) {
+      try {
+        uri = Uri.parse('huanhermes://connect?${uri.fragment}');
+      } catch (_) {}
+    }
+    final params = uri.queryParameters;
+    final host = (params['host'] ?? params['h'] ?? '').trim();
+    if (host.isEmpty) return null;
+    final bridge =
+        int.tryParse(params['bridge'] ?? params['bridge_port'] ?? '') ?? 9810;
+    final mgmt =
+        int.tryParse(params['mgmt'] ?? params['mgmt_port'] ?? '') ?? 9820;
+    final tlsRaw = (params['tls'] ?? params['use_tls'] ?? '0').toLowerCase();
+    final useTls = tlsRaw == '1' || tlsRaw == 'true' || tlsRaw == 'yes';
+    return ConnectionConfig(
+      host: host,
+      bridgePort: bridge,
+      mgmtPort: mgmt,
+      useTls: useTls,
+      bridgeToken: (params['bridge_token'] ?? '').trim(),
+      mgmtToken: (params['mgmt_token'] ?? '').trim(),
+    );
+  }
+
+  /// Merge pairing overlay; keep existing tokens unless overlay supplies them.
+  ConnectionConfig mergePairing(ConnectionConfig overlay) {
+    return copyWith(
+      host: overlay.host,
+      bridgePort: overlay.bridgePort,
+      mgmtPort: overlay.mgmtPort,
+      useTls: overlay.useTls,
+      bridgeToken:
+          overlay.bridgeToken.isNotEmpty ? overlay.bridgeToken : bridgeToken,
+      mgmtToken: overlay.mgmtToken.isNotEmpty ? overlay.mgmtToken : mgmtToken,
+    );
+  }
+
   @override
   String toString() =>
       'ConnectionConfig(host=$host, bridge=$bridgePort, mgmt=$mgmtPort, tls=$useTls, device=$deviceId)';

@@ -10,10 +10,11 @@
 
 | 方向 | type |
 |------|------|
-| App→Host | `register`, `message`, `cancel`, `card_action`, `ping`, `preview_ack` |
-| Host→App | `register_ack`, `reply_stream`/`reply`, `thinking`, `tool_*`, `buttons`/`card`, `run_done`, `typing_*` |
+| App→Host | `register`, `message`, `cancel`, `card_action`, `ping`, `preview_ack`, `terminal_input`, `terminal_resize` |
+| Host→App | `register_ack`, `reply_stream`/`reply`, `thinking`, `tool_*`, `buttons`/`card`, `run_done`, `typing_*`, `terminal_out`, `terminal_clear`, `terminal_exit` |
 
-`message` 可带 `images[]` / `files[]`（可选）。
+`message` 可带 `images[]` / `files[]`（可选）。  
+`terminal_*` 为轻量终端通道（可选；非完整 PTY 亦可）。
 
 ## Management REST
 
@@ -26,6 +27,7 @@
 | GET/POST/DELETE | `/sessions` **或** `/projects/{name}/sessions` |
 | GET | `/sessions/{id}` 或 project 作用域 detail |
 | GET | `/skills`（可选） |
+| GET | `/mcp`（可选只读目录） |
 | GET | `/pairing`（可选，**禁止返回 token**） |
 
 ## Hermes

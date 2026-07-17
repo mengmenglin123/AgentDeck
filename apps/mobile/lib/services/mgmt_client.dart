@@ -87,7 +87,17 @@ class MgmtClient {
     }
   }
 
-  /// Pairing payload for QR / text share (no live secrets returned by Mock).
+  /// Readonly MCP catalog when Host exposes GET /mcp.
+  Future<Map<String, dynamic>> listMcp() async {
+    try {
+      final data = await _request('GET', '/mcp');
+      return Map<String, dynamic>.from(data);
+    } on ProtocolError {
+      return {'servers': <dynamic>[]};
+    }
+  }
+
+  /// Pairing payload for text share (no live secrets returned by Mock).
   Future<Map<String, dynamic>> pairingInfo() async {
     try {
       return await _request('GET', '/pairing');

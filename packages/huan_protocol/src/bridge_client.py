@@ -285,6 +285,33 @@ class BridgeClient:
             }
         )
 
+
+    def terminal_input(
+        self,
+        *,
+        session_key: str,
+        data: str,
+        stream_id: Optional[str] = None,
+    ) -> None:
+        payload = {
+            "type": "terminal_input",
+            "session_key": session_key,
+            "data": data,
+        }
+        if stream_id:
+            payload["stream_id"] = stream_id
+        self.send(payload)
+
+    def terminal_resize(self, *, session_key: str, cols: int = 80, rows: int = 24) -> None:
+        self.send(
+            {
+                "type": "terminal_resize",
+                "session_key": session_key,
+                "cols": cols,
+                "rows": rows,
+            }
+        )
+
     def ping(self) -> None:
         self.send({"type": "ping", "ts": int(time.time() * 1000)})
 

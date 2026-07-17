@@ -33,6 +33,7 @@ App 客户端自动探测，无需用户选择。
 | GET | `/sessions/{id}` | transcript / mode / model / workdir |
 | GET | `/agents` | 可选 |
 | GET | `/skills` | 可选只读 |
+| GET | `/mcp` | 可选 MCP 目录只读 |
 | GET | `/pairing` | 可选，**无 secrets** |
 
 ## Project capabilities（可选）

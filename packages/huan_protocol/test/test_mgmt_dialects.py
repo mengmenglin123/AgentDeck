@@ -115,6 +115,13 @@ class TestMgmtDialects(unittest.TestCase):
         caps = hermes.get("capabilities") or []
         self.assertIn("stream", caps)
 
+    def test_mcp_catalog(self) -> None:
+        c = MgmtClient(self.cfg)
+        data = c.mcp()
+        servers = data.get("servers") or []
+        self.assertTrue(servers)
+        self.assertTrue(any(s.get("name") for s in servers))
+
 
 if __name__ == "__main__":
     unittest.main()

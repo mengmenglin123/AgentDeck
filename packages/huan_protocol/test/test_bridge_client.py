@@ -151,6 +151,27 @@ class TestWithMockHost(unittest.TestCase):
         self.assertTrue(got_after.wait(8), "no follow-up after allow")
         client.close()
 
+    def test_terminal_channel(self) -> None:
+        cfg = ConnectionConfig(bridge_port=19810, mgmt_port=19820)
+        events: list[dict] = []
+        done = threading.Event()
+
+        def on_msg(p: dict) -> None:
+            events.append(p)
+            if p.get("type") == "terminal_out" and p.get("done"):
+                done.set()
+
+        client = BridgeClient(cfg, on_message=on_msg)
+        client.connect()
+        sk = f"huanhermes-app:claude-code:term-test"
+        client.terminal_input(session_key=sk, data="help")
+        self.assertTrue(done.wait(8), f"no terminal_out done events={events}")
+        types = [e.get("type") for e in events]
+        self.assertIn("terminal_out", types)
+        blobs = "".join((e.get("data") or "") for e in events if e.get("type") == "terminal_out")
+        self.assertIn("Mock terminal", blobs)
+        client.close()
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -33,4 +33,31 @@ void main() {
     expect(restored.mgmtToken, 'm');
     expect(restored.mgmtBaseUrl, 'https://example.com:9820/api/v1');
   });
+
+  test('parses pairing uri without wiping merge tokens', () {
+    final parsed = ConnectionConfig.tryParsePairingUri(
+      'huanhermes://connect?host=10.0.2.2&bridge=19810&mgmt=19820&tls=0',
+    );
+    expect(parsed, isNotNull);
+    expect(parsed!.host, '10.0.2.2');
+    expect(parsed.bridgePort, 19810);
+    expect(parsed.mgmtPort, 19820);
+    expect(parsed.useTls, isFalse);
+    expect(parsed.bridgeToken, isEmpty);
+
+    final base = ConnectionConfig(
+      host: 'old',
+      bridgeToken: 'keep-b',
+      mgmtToken: 'keep-m',
+    );
+    final merged = base.mergePairing(parsed);
+    expect(merged.host, '10.0.2.2');
+    expect(merged.bridgeToken, 'keep-b');
+    expect(merged.mgmtToken, 'keep-m');
+  });
+
+  test('rejects non-pairing text', () {
+    expect(ConnectionConfig.tryParsePairingUri('https://example.com'), isNull);
+    expect(ConnectionConfig.tryParsePairingUri(''), isNull);
+  });
 }

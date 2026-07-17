@@ -270,6 +270,25 @@ def handle_bridge_client(conn: socket.socket, addr: Tuple[str, int]) -> None:
                 _handle_message(conn, msg)
                 continue
 
+            if mtype == "terminal_input":
+                _handle_terminal_input(conn, msg)
+                continue
+
+            if mtype == "terminal_resize":
+                # acknowledged; no-op mock
+                ws_send_text(
+                    conn,
+                    json.dumps(
+                        {
+                            "type": "terminal_ack",
+                            "session_key": msg.get("session_key"),
+                            "cols": msg.get("cols"),
+                            "rows": msg.get("rows"),
+                        }
+                    ),
+                )
+                continue
+
             ws_send_text(
                 conn,
                 json.dumps(
@@ -291,6 +310,76 @@ def handle_bridge_client(conn: socket.socket, addr: Tuple[str, int]) -> None:
             conn.close()
         except OSError:
             pass
+
+
+
+def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
+    """Lightweight terminal channel over Bridge (not a full PTY).
+
+    Host-side real shells would spawn PTY; Mock echoes + fake command results.
+    """
+    sk = msg.get("session_key") or ""
+    data = (msg.get("data") or msg.get("content") or "").rstrip("\r\n")
+    stream_id = msg.get("stream_id") or f"term-{uuid.uuid4().hex[:8]}"
+
+    def out(chunk: str, *, done: bool = False, exit_code: Optional[int] = None) -> None:
+        payload: Dict[str, Any] = {
+            "type": "terminal_out",
+            "session_key": sk,
+            "stream_id": stream_id,
+            "data": chunk,
+        }
+        if done:
+            payload["done"] = True
+        if exit_code is not None:
+            payload["exit_code"] = exit_code
+        ws_send_text(conn, json.dumps(payload))
+
+    if not data:
+        out("", done=True, exit_code=0)
+        return
+
+    # local echo
+    out(f"$ {data}\n")
+    lower = data.strip().lower()
+    if lower in {"help", "?"}:
+        out(
+            "HuanHermes Mock terminal (Bridge terminal_input).\n"
+            "Commands: help, pwd, ls, whoami, echo <text>, clear, exit\n"
+            "This is protocol demo only — not a real remote shell.\n",
+            done=True,
+            exit_code=0,
+        )
+    elif lower == "pwd":
+        st = _session_state(sk)
+        out((st.get("workdir") or "/workspace") + "\n", done=True, exit_code=0)
+    elif lower in {"ls", "ls -la"}:
+        out("AGENTS.md\nREADME.md\nsrc/\n", done=True, exit_code=0)
+    elif lower == "whoami":
+        out("huanhermes-mock\n", done=True, exit_code=0)
+    elif lower.startswith("echo "):
+        out(data.strip()[5:] + "\n", done=True, exit_code=0)
+    elif lower in {"clear", "cls"}:
+        ws_send_text(
+            conn,
+            json.dumps({"type": "terminal_clear", "session_key": sk, "stream_id": stream_id}),
+        )
+        out("", done=True, exit_code=0)
+    elif lower in {"exit", "quit"}:
+        out("logout\n", done=True, exit_code=0)
+        ws_send_text(
+            conn,
+            json.dumps(
+                {
+                    "type": "terminal_exit",
+                    "session_key": sk,
+                    "stream_id": stream_id,
+                    "exit_code": 0,
+                }
+            ),
+        )
+    else:
+        out(f"mock-sh: command not found: {data.strip()}\n", done=True, exit_code=127)
 
 
 def _session_state(sk: str) -> Dict[str, Any]:
@@ -805,6 +894,30 @@ class MgmtHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/v1/bridge/adapters":
             self._send(200, {"ok": True, "data": {"adapters": []}})
+            return
+        if path == "/api/v1/mcp":
+            self._send(
+                200,
+                {
+                    "ok": True,
+                    "data": {
+                        "servers": [
+                            {
+                                "name": "filesystem",
+                                "status": "mock",
+                                "tools": ["read_file", "list_dir"],
+                                "description": "Readonly MCP catalog demo",
+                            },
+                            {
+                                "name": "git",
+                                "status": "mock",
+                                "tools": ["status", "log"],
+                                "description": "Readonly MCP catalog demo",
+                            },
+                        ]
+                    },
+                },
+            )
             return
         if path == "/api/v1/skills":
             self._send(

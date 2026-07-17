@@ -67,6 +67,12 @@ class MgmtClient:
         except ProtocolError:
             return {"agents": [], "platforms": []}
 
+    def mcp(self) -> Dict[str, Any]:
+        try:
+            return self._request("GET", "/mcp")
+        except ProtocolError:
+            return {"servers": []}
+
     def skills(self) -> Dict[str, Any]:
         try:
             return self._request("GET", "/skills")
