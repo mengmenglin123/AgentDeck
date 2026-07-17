@@ -154,6 +154,11 @@
 | P3-111 | Settings 复制本地 prefs（无 token） | [x] |
 | P3-112 | Status 展示 last connect test 延迟 | [x] |
 
+| P3-113 | Agents 导出 CSV | [x] |
+| P3-114 | MCP 导出 CSV（筛选结果） | [x] |
+| P3-115 | Skills 导出 CSV（筛选结果） | [x] |
+| P3-116 | Cron 导出 CSV（筛选结果） | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

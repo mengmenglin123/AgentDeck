@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.35
+
+- Agents: Copy CSV of agents/projects/platforms catalog
+- MCP: Copy CSV of filtered servers
+- Skills: Copy CSV of filtered skills
+- Cron: Copy CSV of filtered schedules
+
 ## 0.1.34
 
 - Activity: Copy CSV of filtered events

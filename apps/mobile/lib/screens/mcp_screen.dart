@@ -120,6 +120,38 @@ class _McpScreenState extends State<McpScreen> {
             icon: const Icon(Icons.copy_all_outlined),
           ),
           IconButton(
+            tooltip: 'Copy CSV',
+            onPressed: items.isEmpty
+                ? null
+                : () async {
+                    final buf = StringBuffer();
+                    buf.writeln('name,status,description');
+                    for (final s in items) {
+                      if (s is Map) {
+                        final name = (s['name'] ?? s['id'] ?? 'mcp').toString().replaceAll(',', ';');
+                        final status = (s['status'] ?? s['state'] ?? '').toString().replaceAll(',', ';');
+                        final desc = (s['description'] ?? s['url'] ?? s['command'] ?? '')
+                            .toString()
+                            .replaceAll(',', ';')
+                            .replaceAll('\n', ' ');
+                        buf.writeln('$name,$status,$desc');
+                      } else {
+                        buf.writeln('${'$s'.replaceAll(',', ';')},,');
+                      }
+                    }
+                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Copied CSV (${items.length})'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    }
+                  },
+            icon: const Icon(Icons.table_chart_outlined),
+          ),
+          IconButton(
             onPressed: loading ? null : _load,
             icon: const Icon(Icons.refresh),
           ),

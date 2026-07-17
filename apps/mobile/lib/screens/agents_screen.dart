@@ -169,6 +169,47 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   },
             icon: const Icon(Icons.copy_all_outlined),
           ),
+          IconButton(
+            tooltip: 'Copy CSV',
+            onPressed: (agents.isEmpty && projects.isEmpty && platforms.isEmpty)
+                ? null
+                : () async {
+                    final buf = StringBuffer();
+                    buf.writeln('kind,name,id,extra');
+                    for (final a in agents) {
+                      if (a is Map) {
+                        final m = Map<String, dynamic>.from(a as Map);
+                        final name = '${m['name'] ?? ''}'.replaceAll(',', ';');
+                        final id = '${m['id'] ?? ''}'.replaceAll(',', ';');
+                        final extra = '${m['model'] ?? m['provider'] ?? m['status'] ?? ''}'.replaceAll(',', ';');
+                        buf.writeln('agent,$name,$id,$extra');
+                      } else {
+                        buf.writeln('agent,${'$a'.replaceAll(',', ';')},,');
+                      }
+                    }
+                    for (final p in projects) {
+                      final name = '${p['name'] ?? ''}'.replaceAll(',', ';');
+                      final id = '${p['id'] ?? ''}'.replaceAll(',', ';');
+                      buf.writeln('project,$name,$id,');
+                    }
+                    for (final p in platforms) {
+                      final name = '$p'.replaceAll(',', ';');
+                      buf.writeln('platform,$name,,');
+                    }
+                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Copied CSV (${agents.length}a · ${projects.length}p · ${platforms.length}pl)',
+                          ),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    }
+                  },
+            icon: const Icon(Icons.table_chart_outlined),
+          ),
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
       ),

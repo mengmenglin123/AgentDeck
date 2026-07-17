@@ -130,6 +130,35 @@ class _CronScreenState extends State<CronScreen> {
                   },
             icon: const Icon(Icons.copy_all_outlined),
           ),
+          IconButton(
+            tooltip: 'Copy CSV',
+            onPressed: items.isEmpty
+                ? null
+                : () async {
+                    final buf = StringBuffer();
+                    buf.writeln('id,name,enabled,schedule,kind,last_status,last_run');
+                    for (final j in items) {
+                      final id = '${j['id'] ?? ''}'.replaceAll(',', ';');
+                      final name = '${j['name'] ?? ''}'.replaceAll(',', ';');
+                      final en = '${j['enabled'] ?? ''}';
+                      final schedule = '${j['schedule'] ?? ''}'.replaceAll(',', ';');
+                      final kind = '${j['kind'] ?? ''}'.replaceAll(',', ';');
+                      final status = '${j['last_status'] ?? ''}'.replaceAll(',', ';');
+                      final last = _fmtTs(j['last_run']).replaceAll(',', ';');
+                      buf.writeln('$id,$name,$en,$schedule,$kind,$status,$last');
+                    }
+                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Copied CSV (${items.length})'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    }
+                  },
+            icon: const Icon(Icons.table_chart_outlined),
+          ),
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
       ),
