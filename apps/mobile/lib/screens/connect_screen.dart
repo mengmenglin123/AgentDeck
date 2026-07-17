@@ -1,3 +1,4 @@
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -174,6 +175,30 @@ class _ConnectScreenState extends State<ConnectScreen> {
             },
             icon: const Icon(Icons.ios_share_outlined),
           ),
+          IconButton(
+            tooltip: 'Copy profiles (no tokens)',
+            onPressed: controller.profiles.isEmpty
+                ? null
+                : () async {
+                    final list = controller.profiles.map((p) => p.toPublicJson()).toList();
+                    final text = const JsonEncoder.withIndent('  ').convert({
+                      'huanhermes.profiles_public.v1': true,
+                      'count': list.length,
+                      'profiles': list,
+                    });
+                    await Clipboard.setData(ClipboardData(text: text));
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Copied ${list.length} public profile(s)'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    }
+                  },
+            icon: const Icon(Icons.ios_share_outlined),
+          ),
+
           IconButton(
             tooltip: 'Import pairing URI',
             onPressed: busy ? null : _importPairing,

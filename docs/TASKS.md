@@ -164,6 +164,11 @@
 | P3-119 | Workspace 复制 git 摘要 | [x] |
 | P3-120 | Host Dashboard capability FilterChips | [x] |
 
+| P3-121 | Terminal 本地时间戳显示开关 | [x] |
+| P3-122 | Status 复制 JSON（脱敏） | [x] |
+| P3-123 | Connect 导出 public profiles（无 token） | [x] |
+| P3-124 | Diff 标题 +adds/-dels 统计 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

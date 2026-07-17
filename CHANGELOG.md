@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.37
+
+- Terminal: local display timestamps toggle
+- Status: Copy JSON (tokens redacted)
+- Connect: copy public profiles list (no tokens)
+- Diff: +adds/-dels stats in title
+
 ## 0.1.36
 
 - Memory: Copy CSV of filtered entries

@@ -110,16 +110,38 @@ class _DiffScreenState extends State<DiffScreen> {
     return hit.join('\n');
   }
 
+
+  ({int adds, int dels, int hunks}) get _diffStats {
+    var adds = 0;
+    var dels = 0;
+    var hunks = 0;
+    for (final line in _diff.replaceAll('\r\n', '\n').split('\n')) {
+      if (line.startsWith('@@')) {
+        hunks += 1;
+      } else if (line.startsWith('+') && !line.startsWith('+++')) {
+        adds += 1;
+      } else if (line.startsWith('-') && !line.startsWith('---')) {
+        dels += 1;
+      }
+    }
+    return (adds: adds, dels: dels, hunks: hunks);
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _path == null
-              ? 'Git diff'
-              : (_diffQuery.trim().isEmpty
-                  ? 'Diff · $_path'
-                  : 'Diff · $_path (find)'),
+          () {
+            final s = _diffStats;
+            final stats = (s.adds == 0 && s.dels == 0)
+                ? ''
+                : ' · +${s.adds}/-${s.dels}';
+            if (_path == null) return 'Git diff$stats';
+            if (_diffQuery.trim().isEmpty) return 'Diff · $_path$stats';
+            return 'Diff · $_path (find)$stats';
+          }(),
         ),
         actions: [
           IconButton(

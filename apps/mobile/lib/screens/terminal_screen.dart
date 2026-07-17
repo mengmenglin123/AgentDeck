@@ -41,6 +41,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
   double _termScale = 1.0; // local terminal font multiplier
   bool _wrapLines = true;
   bool _showFind = false;
+  bool _showTs = false;
   final _findCtrl = TextEditingController();
   String _findQuery = '';
 
@@ -284,11 +285,29 @@ class _TerminalScreenState extends State<TerminalScreen> {
   String get _displayBuffer {
     final full = _buf.toString();
     final q = _findQuery.trim().toLowerCase();
-    if (q.isEmpty) return full;
-    final lines = full.split('\n');
-    final hit = lines.where((l) => l.toLowerCase().contains(q)).toList();
-    if (hit.isEmpty) return '(no lines match find: $_findQuery)\n';
-    return hit.join('\n') + (hit.isNotEmpty ? '\n' : '');
+    var lines = full.split('\n');
+    // Drop trailing empty from final newline for consistent processing.
+    if (lines.isNotEmpty && lines.last.isEmpty) {
+      lines = lines.sublist(0, lines.length - 1);
+    }
+    if (q.isNotEmpty) {
+      lines = lines.where((l) => l.toLowerCase().contains(q)).toList();
+      if (lines.isEmpty) return '(no lines match find: $_findQuery)\n';
+    }
+    if (_showTs) {
+      // Display-only synthetic stamps (not from Host) — local console aid.
+      final now = DateTime.now();
+      final stamped = <String>[];
+      for (var i = 0; i < lines.length; i++) {
+        final t = now.subtract(Duration(seconds: lines.length - 1 - i));
+        final hh = t.hour.toString().padLeft(2, '0');
+        final mm = t.minute.toString().padLeft(2, '0');
+        final ss = t.second.toString().padLeft(2, '0');
+        stamped.add('[$hh:$mm:$ss] ${lines[i]}');
+      }
+      lines = stamped;
+    }
+    return lines.isEmpty ? '' : (lines.join('\n') + '\n');
   }
 
   @override
@@ -334,6 +353,11 @@ class _TerminalScreenState extends State<TerminalScreen> {
             tooltip: _wrapLines ? 'No wrap' : 'Wrap lines',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
+          ),
+          IconButton(
+            tooltip: _showTs ? 'Hide timestamps' : 'Show timestamps',
+            onPressed: () => setState(() => _showTs = !_showTs),
+            icon: Icon(_showTs ? Icons.timer_off_outlined : Icons.timer_outlined),
           ),
           IconButton(
             tooltip: _showFind ? 'Hide find' : 'Find in buffer',

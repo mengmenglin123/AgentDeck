@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -88,6 +89,26 @@ class _StatusScreenState extends State<StatusScreen> {
     );
   }
 
+  Future<void> _copyJson(ConnectionController c) async {
+    final cfg = c.saved;
+    final payload = <String, dynamic>{
+      if (cfg != null) 'host': cfg.host,
+      if (cfg != null) 'mgmt': cfg.mgmtBaseUrl,
+      if (cfg != null) 'bridge': cfg.bridgeWsUrlRedacted,
+      if (c.lastTestLatencyMs != null) 'last_test_latency_ms': c.lastTestLatencyMs,
+      if (c.lastHealthOkAt != null) 'last_health_ok': c.lastHealthOkAt!.toIso8601String(),
+      'status': _status,
+      if (_error != null) 'error': _error,
+    };
+    final text = const JsonEncoder.withIndent('  ').convert(payload);
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Status JSON copied (tokens redacted)'), duration: Duration(seconds: 1)),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final c = context.watch<ConnectionController>();
@@ -118,6 +139,11 @@ class _StatusScreenState extends State<StatusScreen> {
             tooltip: 'Copy summary',
             onPressed: () => _copySummary(c),
             icon: const Icon(Icons.copy_all_outlined),
+          ),
+          IconButton(
+            tooltip: 'Copy JSON',
+            onPressed: () => _copyJson(c),
+            icon: const Icon(Icons.data_object_outlined),
           ),
           IconButton(
             tooltip: 'Refresh',
