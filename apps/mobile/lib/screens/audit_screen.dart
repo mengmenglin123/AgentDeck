@@ -153,7 +153,13 @@ class _AuditScreenState extends State<AuditScreen> {
                 if (items.isEmpty) {
                   return const Center(child: Text('No events match filter'));
                 }
-                return ListView.separated(
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    setState(() {});
+                    await Future<void>.delayed(const Duration(milliseconds: 200));
+                  },
+                  child: ListView.separated(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   itemCount: items.length,
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, i) {
@@ -184,6 +190,7 @@ class _AuditScreenState extends State<AuditScreen> {
                       },
                     );
                   },
+                ),
                 );
               },
             ),

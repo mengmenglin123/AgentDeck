@@ -169,16 +169,28 @@ class _DiffScreenState extends State<DiffScreen> {
               ),
             ),
           Expanded(
-            child: _diff.isEmpty
-                ? const Center(child: Text('No diff'))
-                : Container(
-                    width: double.infinity,
-                    color: Colors.black,
-                    padding: const EdgeInsets.all(12),
-                    child: SingleChildScrollView(
-                      child: _DiffText(diff: _diff),
+            child: RefreshIndicator(
+              onRefresh: _loadIndex,
+              child: _diff.isEmpty
+                  ? ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: const [
+                        SizedBox(height: 120),
+                        Center(child: Text('No diff')),
+                      ],
+                    )
+                  : Container(
+                      width: double.infinity,
+                      color: Colors.black,
+                      child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.all(12),
+                        children: [
+                          _DiffText(diff: _diff),
+                        ],
+                      ),
                     ),
-                  ),
+            ),
           ),
         ],
       ),

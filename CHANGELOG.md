@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.24] - 2026-07-17
+
+### Added
+- Pull-to-refresh on Agents, Audit, Workspace, Diff
+- Host Dashboard copy status summary (no token)
+- Chat jump-to-top FAB alongside jump-to-latest
+- Terminal local font scale (A− / A+)
+
 ## [0.1.23] - 2026-07-17
 
 ### Added

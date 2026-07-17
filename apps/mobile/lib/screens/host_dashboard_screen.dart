@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../services/app_settings_controller.dart';
@@ -87,6 +88,30 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
     }
   }
 
+  Future<void> _copyStatus() async {
+    final conn = context.read<ConnectionController>();
+    final cfg = conn.saved;
+    final caps = (_status['capabilities'] as List?)?.join(', ') ?? '';
+    final text = [
+      if (cfg != null) 'host: ${cfg.host}',
+      if (cfg != null) 'mgmt: ${cfg.mgmtBaseUrl}',
+      if (cfg != null) 'bridge: ${cfg.bridgeWsUrlRedacted}',
+      'version: ${_status['version'] ?? '—'}',
+      'uptime_seconds: ${_status['uptime_seconds'] ?? '—'}',
+      'projects: ${_status['projects_count'] ?? '—'}',
+      'sessions: ${_status['sessions_count'] ?? '—'}',
+      'active_runs: ${_status['active_runs'] ?? '—'}',
+      if (caps.isNotEmpty) 'capabilities: $caps',
+      if (_error != null) 'error: $_error',
+      if (_lastOk != null) 'last_ok: ${_lastOk!.toIso8601String()}',
+    ].join('\n');
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Status copied (no token)'), duration: Duration(seconds: 1)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final conn = context.watch<ConnectionController>();
@@ -107,6 +132,11 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
       appBar: AppBar(
         title: const Text('Host status'),
         actions: [
+          IconButton(
+            tooltip: 'Copy status',
+            onPressed: _status.isEmpty && _error == null ? null : _copyStatus,
+            icon: const Icon(Icons.copy_all_outlined),
+          ),
           IconButton(
             tooltip: 'Refresh',
             onPressed: _loading ? null : _refresh,
@@ -324,6 +354,30 @@ class _StatChip extends StatelessWidget {
   const _StatChip({required this.label, required this.value});
   final String label;
   final String value;
+
+  Future<void> _copyStatus() async {
+    final conn = context.read<ConnectionController>();
+    final cfg = conn.saved;
+    final caps = (_status['capabilities'] as List?)?.join(', ') ?? '';
+    final text = [
+      if (cfg != null) 'host: ${cfg.host}',
+      if (cfg != null) 'mgmt: ${cfg.mgmtBaseUrl}',
+      if (cfg != null) 'bridge: ${cfg.bridgeWsUrlRedacted}',
+      'version: ${_status['version'] ?? '—'}',
+      'uptime_seconds: ${_status['uptime_seconds'] ?? '—'}',
+      'projects: ${_status['projects_count'] ?? '—'}',
+      'sessions: ${_status['sessions_count'] ?? '—'}',
+      'active_runs: ${_status['active_runs'] ?? '—'}',
+      if (caps.isNotEmpty) 'capabilities: $caps',
+      if (_error != null) 'error: $_error',
+      if (_lastOk != null) 'last_ok: ${_lastOk!.toIso8601String()}',
+    ].join('\n');
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Status copied (no token)'), duration: Duration(seconds: 1)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

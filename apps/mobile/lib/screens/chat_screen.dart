@@ -43,6 +43,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _showTools = true;
   bool _stickToBottom = true;
   bool _showJumpBottom = false;
+  bool _showJumpTop = false;
   int _hitIndex = 0;
   final Map<int, GlobalKey> _msgKeys = {};
   String? _quoteText;
@@ -90,11 +91,15 @@ class _ChatScreenState extends State<ChatScreen> {
     if (!_scroll.hasClients) return;
     final pos = _scroll.position;
     final atBottom = pos.pixels >= pos.maxScrollExtent - 80;
-    final showJump = !atBottom && pos.maxScrollExtent > 120;
-    if (atBottom != _stickToBottom || showJump != _showJumpBottom) {
+    final showJumpBottom = !atBottom && pos.maxScrollExtent > 120;
+    final showJumpTop = pos.pixels > 160 && pos.maxScrollExtent > 120;
+    if (atBottom != _stickToBottom ||
+        showJumpBottom != _showJumpBottom ||
+        showJumpTop != _showJumpTop) {
       setState(() {
         _stickToBottom = atBottom;
-        _showJumpBottom = showJump;
+        _showJumpBottom = showJumpBottom;
+        _showJumpTop = showJumpTop;
       });
     }
   }
@@ -644,11 +649,26 @@ class _ChatScreenState extends State<ChatScreen> {
     final settings = context.watch<AppSettingsController>();
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      floatingActionButton: _showJumpBottom
-          ? FloatingActionButton.small(
-              tooltip: 'Jump to latest',
-              onPressed: _jumpToBottom,
-              child: const Icon(Icons.arrow_downward),
+      floatingActionButton: (_showJumpBottom || _showJumpTop)
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_showJumpTop)
+                  FloatingActionButton.small(
+                    heroTag: 'chat_jump_top',
+                    tooltip: 'Jump to top',
+                    onPressed: _jumpToTop,
+                    child: const Icon(Icons.arrow_upward),
+                  ),
+                if (_showJumpTop && _showJumpBottom) const SizedBox(height: 8),
+                if (_showJumpBottom)
+                  FloatingActionButton.small(
+                    heroTag: 'chat_jump_bottom',
+                    tooltip: 'Jump to latest',
+                    onPressed: _jumpToBottom,
+                    child: const Icon(Icons.arrow_downward),
+                  ),
+              ],
             )
           : null,
       appBar: AppBar(

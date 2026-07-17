@@ -38,6 +38,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
   List<String> _hist = [];
   int _histIndex = -1; // -1 = drafting new
   String _draftBeforeHist = '';
+  double _termScale = 1.0; // local terminal font multiplier
 
   @override
   void initState() {
@@ -303,6 +304,20 @@ class _TerminalScreenState extends State<TerminalScreen> {
         ),
         actions: [
           IconButton(
+            tooltip: 'Smaller text',
+            onPressed: _termScale <= 0.85
+                ? null
+                : () => setState(() => _termScale = (_termScale - 0.1).clamp(0.85, 1.4)),
+            icon: const Icon(Icons.text_decrease),
+          ),
+          IconButton(
+            tooltip: 'Larger text',
+            onPressed: _termScale >= 1.4
+                ? null
+                : () => setState(() => _termScale = (_termScale + 0.1).clamp(0.85, 1.4)),
+            icon: const Icon(Icons.text_increase),
+          ),
+          IconButton(
             tooltip: 'History',
             onPressed: _pickHistory,
             icon: const Icon(Icons.history),
@@ -397,9 +412,9 @@ class _TerminalScreenState extends State<TerminalScreen> {
                 controller: _scroll,
                 child: SelectableText(
                   _buf.toString(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'monospace',
-                    fontSize: 13,
+                    fontSize: 13 * _termScale,
                     color: Color(0xFFB2FF59),
                     height: 1.35,
                   ),

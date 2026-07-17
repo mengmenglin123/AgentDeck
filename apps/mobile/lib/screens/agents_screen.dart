@@ -162,9 +162,12 @@ class _AgentsScreenState extends State<AgentsScreen> {
           ),
           if (_loading) const LinearProgressIndicator(minHeight: 2),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
-              children: [
+            child: RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+                children: [
                 Text('Host agent types', style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 6),
                 if (_agents.isEmpty)
@@ -233,6 +236,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                     ),
                   ),
               ],
+            ),
             ),
           ),
         ],

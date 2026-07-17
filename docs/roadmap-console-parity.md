@@ -128,3 +128,10 @@
 - Memory/Workspace copy exports
 - Catalog pull-to-refresh
 - Chat timestamps + Settings version
+
+## 0.1.24+
+
+- More pull-to-refresh surfaces
+- Dashboard status copy
+- Chat jump top
+- Terminal font scale

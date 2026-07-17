@@ -208,15 +208,21 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               ),
             ),
           Expanded(
-            child: isFile
-                ? SingleChildScrollView(
+            child: RefreshIndicator(
+              onRefresh: () => _load(),
+              child: isFile
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.all(16),
-                    child: SelectableText(
-                      node?['content']?.toString() ?? '',
-                      style: const TextStyle(fontFamily: 'monospace', fontSize: 13, height: 1.35),
-                    ),
+                    children: [
+                      SelectableText(
+                        node?['content']?.toString() ?? '',
+                        style: const TextStyle(fontFamily: 'monospace', fontSize: 13, height: 1.35),
+                      ),
+                    ],
                   )
                 : ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     children: [
                       if (_path.isNotEmpty)
                         ListTile(
@@ -275,6 +281,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                         ),
                     ],
                   ),
+            ),
           ),
         ],
       ),
