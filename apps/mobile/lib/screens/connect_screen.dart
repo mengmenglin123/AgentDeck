@@ -426,6 +426,10 @@ class _ConnectionStatusBanner extends StatelessWidget {
         title = 'Not connected';
         subtitle = 'Fill profile and Test & Save';
     }
+    final lat = controller.lastTestLatencyMs;
+    if (lat != null && phase != ConnectionPhase.testing) {
+      subtitle = subtitle + ' · last test ' + lat.toString() + ' ms';
+    }
     return Card(
       color: color.withOpacity(0.12),
       child: ListTile(

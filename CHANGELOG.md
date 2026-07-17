@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.29
+
+- Audit: title counts + CSV export of filtered rows
+- Pairing: pull-to-refresh
+- Diff: optional line numbers
+- Connect: last Test & connect latency (ms) on phase banner
+
 ## 0.1.28
 
 - Status + Host Dashboard pull-to-refresh

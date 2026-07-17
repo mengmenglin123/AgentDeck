@@ -124,6 +124,10 @@
 | P3-86 | Diff 复制路径；Terminal 清除本地缓冲 | [x] |
 | P3-87 | Connect 复制 public summary（无 token） | [x] |
 | P3-88 | Settings：Keep screen on + Monospace chat（设备本地） | [x] |
+| P3-89 | Audit 标题计数 + 导出 CSV（筛选结果） | [x] |
+| P3-90 | Pairing 下拉刷新 | [x] |
+| P3-91 | Diff 行号开关 | [x] |
+| P3-92 | Connect Test 延迟展示（last test N ms） | [x] |
 
 ## P4 — 远期
 

@@ -29,6 +29,9 @@ class ConnectionController extends ChangeNotifier {
   ConnectionConfig? saved;
   ConnectionPhase phase = ConnectionPhase.idle;
   String? lastError;
+
+  /// Last Test & connect latency for GET /status (ms).
+  int? lastTestLatencyMs;
   Map<String, dynamic>? lastStatus;
   bool loaded = false;
 
@@ -108,6 +111,7 @@ class ConnectionController extends ChangeNotifier {
     phase = ConnectionPhase.idle;
     lastStatus = null;
     lastError = null;
+    lastTestLatencyMs = null;
     saved = null;
     notifyListeners();
   }
@@ -138,7 +142,10 @@ class ConnectionController extends ChangeNotifier {
 
     try {
       final client = _mgmtFactory(cfg);
+      final sw = Stopwatch()..start();
       final status = await client.status();
+      sw.stop();
+      lastTestLatencyMs = sw.elapsedMilliseconds;
 
       ServerProfile profile;
       if (activeProfileId != null && profiles.any((p) => p.id == activeProfileId)) {

@@ -93,7 +93,10 @@ class _PairingScreenState extends State<PairingScreen> {
       ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(20),
               children: [
                 if (error != null) Text(error!, style: TextStyle(color: cs.error)),
@@ -189,6 +192,7 @@ class _PairingScreenState extends State<PairingScreen> {
                 ),
               ],
             ),
+          ),
     );
   }
 }

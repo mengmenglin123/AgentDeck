@@ -161,7 +161,7 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.tag),
             title: const Text('App version'),
-            subtitle: const Text('0.1.28+28 · console only · protocol Mock/self-host'),
+            subtitle: const Text('0.1.29+29 · console only · protocol Mock/self-host'),
           ),
           ListTile(
             leading: const Icon(Icons.policy_outlined),

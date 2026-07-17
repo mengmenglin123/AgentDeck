@@ -23,6 +23,7 @@ class _DiffScreenState extends State<DiffScreen> {
   List<Map<String, dynamic>> _files = [];
   String? _path;
   String _diff = '';
+  bool _lineNums = true;
   final _fileFilterCtrl = TextEditingController();
   String _fileFilter = '';
 
@@ -101,6 +102,11 @@ class _DiffScreenState extends State<DiffScreen> {
       appBar: AppBar(
         title: Text(_path == null ? 'Git diff' : 'Diff · $_path'),
         actions: [
+          IconButton(
+            tooltip: _lineNums ? 'Hide line numbers' : 'Show line numbers',
+            onPressed: () => setState(() => _lineNums = !_lineNums),
+            icon: Icon(_lineNums ? Icons.format_list_numbered : Icons.format_list_bulleted),
+          ),
           IconButton(
             tooltip: 'Copy path',
             onPressed: _path == null || _path!.isEmpty
@@ -200,7 +206,7 @@ class _DiffScreenState extends State<DiffScreen> {
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.all(12),
                         children: [
-                          _DiffText(diff: _diff),
+                          _DiffText(diff: _diff, showLineNumbers: _lineNums),
                         ],
                       ),
                     ),
@@ -213,8 +219,9 @@ class _DiffScreenState extends State<DiffScreen> {
 }
 
 class _DiffText extends StatelessWidget {
-  const _DiffText({required this.diff});
+  const _DiffText({required this.diff, this.showLineNumbers = true});
   final String diff;
+  final bool showLineNumbers;
 
   @override
   Widget build(BuildContext context) {
@@ -222,18 +229,20 @@ class _DiffText extends StatelessWidget {
     return SelectableText.rich(
       TextSpan(
         children: [
-          for (final line in lines)
+          for (var i = 0; i < lines.length; i++)
             TextSpan(
-              text: '$line\n',
+              text: showLineNumbers
+                  ? ((i + 1).toString().padLeft(4) + '  ' + lines[i] + '\n')
+                  : (lines[i] + '\n'),
               style: TextStyle(
                 fontFamily: 'monospace',
                 fontSize: 12.5,
                 height: 1.35,
-                color: line.startsWith('+') && !line.startsWith('+++')
+                color: lines[i].startsWith('+') && !lines[i].startsWith('+++')
                     ? const Color(0xFF81C784)
-                    : line.startsWith('-') && !line.startsWith('---')
+                    : lines[i].startsWith('-') && !lines[i].startsWith('---')
                         ? const Color(0xFFE57373)
-                        : line.startsWith('@@')
+                        : lines[i].startsWith('@@')
                             ? const Color(0xFF64B5F6)
                             : const Color(0xFFB0BEC5),
               ),

@@ -153,3 +153,5 @@
 - 0.1.27: memory client filter, cron/activity copy-all, chat msg count, pairing hex + workspace breadcrumbs
 
 - 0.1.28: status/dash PTR, catalog copy-all counts, term clear, connect public copy, keep-screen/mono chat
+
+- 0.1.29: audit CSV/counts, pairing PTR, diff line numbers, connect test latency

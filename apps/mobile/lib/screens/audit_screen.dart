@@ -43,9 +43,16 @@ class _AuditScreenState extends State<AuditScreen> {
   @override
   Widget build(BuildContext context) {
     final audit = widget.audit;
+    final visible = _filter(audit.entries.reversed.toList());
+    final total = audit.entries.length;
+    final title = total == 0
+        ? 'Audit log'
+        : (visible.length == total
+            ? 'Audit ($total)'
+            : 'Audit (${visible.length}/$total)');
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Audit log'),
+        title: Text(title),
         actions: [
           IconButton(
             tooltip: 'Copy visible',
@@ -90,6 +97,37 @@ class _AuditScreenState extends State<AuditScreen> {
               }
             },
             icon: const Icon(Icons.data_object),
+          ),
+          IconButton(
+            tooltip: 'Copy CSV',
+            onPressed: () async {
+              final items = _filter(audit.entries.reversed.toList());
+              final buf = StringBuffer();
+              buf.writeln('ts,level,action,detail');
+              for (final e in items) {
+                final action = e.action.replaceAll(',', ';');
+                final detail = e.detail.replaceAll(',', ';').replaceAll('\n', ' ');
+                buf.writeln(
+                  e.ts.toIso8601String() +
+                      ',' +
+                      e.level +
+                      ',' +
+                      action +
+                      ',' +
+                      detail,
+                );
+              }
+              await Clipboard.setData(ClipboardData(text: buf.toString()));
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Copied CSV (' + items.length.toString() + ')'),
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+              }
+            },
+            icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
             tooltip: 'Clear',
