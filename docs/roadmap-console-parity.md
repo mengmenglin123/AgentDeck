@@ -97,3 +97,10 @@
 - Session recents sort
 - Activity → session jump
 - Audit JSON export
+
+## 0.1.19+
+
+- Prompt panel filter/append
+- Session swipe pin/archive
+- Capability badges
+- Quote reply

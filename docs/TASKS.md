@@ -82,6 +82,10 @@
 | P3-44 | 会话最近访问排序（本机 recents） | [x] |
 | P3-45 | Host activity 跳转会话 / 筛选 | [x] |
 | P3-46 | 审计日志导出 JSON | [x] |
+| P3-47 | Prompt 历史面板增强（筛选 / 追加 / 复制） | [x] |
+| P3-48 | Sessions 滑动快捷 pin/archive + overflow 菜单 | [x] |
+| P3-49 | Host/会话能力徽章 | [x] |
+| P3-50 | 聊天引用回复（长按 Quote） | [x] |
 
 ## P4 — 远期
 

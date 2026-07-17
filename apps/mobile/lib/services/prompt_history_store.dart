@@ -64,9 +64,21 @@ class PromptHistoryStore {
     await p.setString(_kFav, jsonEncode(list));
   }
 
+  Future<void> removeRecent(String text) async {
+    final p = await SharedPreferences.getInstance();
+    final list = _decode(p.getString(_kRecent));
+    list.remove(text.trim());
+    await p.setString(_kRecent, jsonEncode(list));
+  }
+
   Future<void> clearRecent() async {
     final p = await SharedPreferences.getInstance();
     await p.remove(_kRecent);
+  }
+
+  Future<void> clearFavorites() async {
+    final p = await SharedPreferences.getInstance();
+    await p.remove(_kFav);
   }
 
   List<String> _decode(String? raw) {

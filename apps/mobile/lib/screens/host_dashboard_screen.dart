@@ -166,6 +166,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                     for (final c in (_status['capabilities'] as List? ?? const []))
                       Chip(
                         visualDensity: VisualDensity.compact,
+                        avatar: Icon(_capIcon('$c'), size: 14),
                         label: Text('$c', style: const TextStyle(fontSize: 11)),
                       ),
                     if ((_status['capabilities'] as List? ?? const []).isEmpty)
@@ -294,4 +295,21 @@ class _StatChip extends StatelessWidget {
       visualDensity: VisualDensity.compact,
     );
   }
+}
+
+IconData _capIcon(String c) {
+  final k = c.toLowerCase();
+  if (k.contains('terminal') || k.contains('pty')) return Icons.terminal;
+  if (k.contains('memory')) return Icons.psychology_outlined;
+  if (k.contains('cron')) return Icons.schedule;
+  if (k.contains('skill')) return Icons.auto_awesome;
+  if (k.contains('mcp')) return Icons.extension;
+  if (k.contains('diff') || k.contains('git') || k.contains('workspace')) return Icons.folder_open;
+  if (k.contains('activity')) return Icons.bolt_outlined;
+  if (k.contains('log')) return Icons.article_outlined;
+  if (k.contains('pair')) return Icons.qr_code_2;
+  if (k.contains('agent')) return Icons.smart_toy_outlined;
+  if (k.contains('stream')) return Icons.waterfall_chart;
+  if (k.contains('hermes')) return Icons.hub_outlined;
+  return Icons.check_circle_outline;
 }

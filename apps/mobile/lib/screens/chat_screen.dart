@@ -43,6 +43,8 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _showJumpBottom = false;
   int _hitIndex = 0;
   final Map<int, GlobalKey> _msgKeys = {};
+  String? _quoteText;
+  String? _quoteRole;
 
   @override
   void initState() {
@@ -129,13 +131,22 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _send() async {
-    final text = _input.text;
+    var text = _input.text;
+    final quote = _quoteText?.trim();
+    if (quote != null && quote.isNotEmpty) {
+      final role = _quoteRole ?? 'msg';
+      final block = '> ($role) ${quote.replaceAll('\n', '\n> ')}';
+      text = text.trim().isEmpty ? block : '$block\n\n${text.trim()}';
+    }
     final images = List<Map<String, dynamic>>.from(_pendingImages);
     final files = List<Map<String, dynamic>>.from(_pendingFiles);
     _input.clear();
     _pendingImages.clear();
     _pendingFiles.clear();
-    setState(() {});
+    setState(() {
+      _quoteText = null;
+      _quoteRole = null;
+    });
     await _chat.send(text, images: images, files: files);
   }
 
@@ -275,96 +286,198 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _openPromptHistory() async {
     final store = _chat.promptHistory;
-    final recent = await store.recent();
-    final favs = await store.favorites();
+    var recent = await store.recent();
+    var favs = await store.favorites();
     if (!mounted) return;
-    final picked = await showModalBottomSheet<String>(
+    final result = await showModalBottomSheet<Map<String, String>>(
       context: context,
       isScrollControlled: true,
       builder: (ctx) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.55,
-          minChildSize: 0.35,
-          maxChildSize: 0.9,
-          builder: (_, scroll) {
-            return ListView(
-              controller: scroll,
-              padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
-              children: [
-                ListTile(
-                  title: Text('Prompts', style: Theme.of(ctx).textTheme.titleMedium),
-                  subtitle: const Text('Local favorites + recent (device only)'),
-                  trailing: IconButton(
-                    tooltip: 'Clear recent',
-                    onPressed: () async {
-                      await store.clearRecent();
-                      if (ctx.mounted) Navigator.pop(ctx);
-                    },
-                    icon: const Icon(Icons.delete_sweep_outlined),
-                  ),
-                ),
-                if (favs.isNotEmpty) ...[
-                  const ListTile(dense: true, title: Text('Favorites')),
-                  for (final t in favs)
-                    ListTile(
-                      leading: const Icon(Icons.star, color: Colors.amber),
-                      title: Text(t, maxLines: 3, overflow: TextOverflow.ellipsis),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.star_border),
-                        tooltip: 'Unfavorite',
-                        onPressed: () async {
-                          await store.removeFavorite(t);
-                          if (ctx.mounted) Navigator.pop(ctx, '__refresh__');
-                        },
+        final qCtrl = TextEditingController();
+        var query = '';
+        return StatefulBuilder(
+          builder: (ctx, setModal) {
+            bool match(String t) {
+              final q = query.trim().toLowerCase();
+              if (q.isEmpty) return true;
+              return t.toLowerCase().contains(q);
+            }
+            final fFavs = favs.where(match).toList();
+            final fRecent = recent.where(match).toList();
+            return DraggableScrollableSheet(
+              expand: false,
+              initialChildSize: 0.62,
+              minChildSize: 0.4,
+              maxChildSize: 0.95,
+              builder: (_, scroll) {
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text('Prompts', style: Theme.of(ctx).textTheme.titleMedium),
+                          ),
+                          IconButton(
+                            tooltip: 'Clear recent',
+                            onPressed: () async {
+                              await store.clearRecent();
+                              recent = await store.recent();
+                              setModal(() {});
+                            },
+                            icon: const Icon(Icons.delete_sweep_outlined),
+                          ),
+                        ],
                       ),
-                      onTap: () => Navigator.pop(ctx, t),
-                      onLongPress: () async {
-                        await store.toggleFavorite(t);
-                        if (ctx.mounted) Navigator.pop(ctx, '__refresh__');
-                      },
                     ),
-                ],
-                const ListTile(dense: true, title: Text('Recent')),
-                if (recent.isEmpty)
-                  const ListTile(title: Text('No recent prompts yet')),
-                for (final t in recent)
-                  ListTile(
-                    leading: const Icon(Icons.history),
-                    title: Text(t, maxLines: 3, overflow: TextOverflow.ellipsis),
-                    trailing: IconButton(
-                      icon: Icon(favs.contains(t) ? Icons.star : Icons.star_border),
-                      tooltip: 'Toggle favorite',
-                      onPressed: () async {
-                        await store.toggleFavorite(t);
-                        if (ctx.mounted) Navigator.pop(ctx, '__refresh__');
-                      },
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('Local favorites + recent (device only)', style: TextStyle(fontSize: 12)),
+                      ),
                     ),
-                    onTap: () => Navigator.pop(ctx, t),
-                  ),
-                if (_input.text.trim().isNotEmpty)
-                  ListTile(
-                    leading: const Icon(Icons.star_outline),
-                    title: const Text('Favorite current draft'),
-                    onTap: () async {
-                      await store.toggleFavorite(_input.text);
-                      if (ctx.mounted) Navigator.pop(ctx);
-                    },
-                  ),
-              ],
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                      child: TextField(
+                        controller: qCtrl,
+                        decoration: InputDecoration(
+                          hintText: 'Filter prompts',
+                          isDense: true,
+                          border: const OutlineInputBorder(),
+                          prefixIcon: const Icon(Icons.search, size: 18),
+                          suffixIcon: query.isEmpty
+                              ? null
+                              : IconButton(
+                                  icon: const Icon(Icons.clear, size: 18),
+                                  onPressed: () {
+                                    qCtrl.clear();
+                                    setModal(() => query = '');
+                                  },
+                                ),
+                        ),
+                        onChanged: (v) => setModal(() => query = v),
+                      ),
+                    ),
+                    Expanded(
+                      child: ListView(
+                        controller: scroll,
+                        padding: const EdgeInsets.fromLTRB(8, 0, 8, 24),
+                        children: [
+                          if (fFavs.isNotEmpty) ...[
+                            const ListTile(dense: true, title: Text('Favorites')),
+                            for (final t in fFavs)
+                              _promptTile(
+                                ctx: ctx,
+                                text: t,
+                                fav: true,
+                                onUse: (mode) => Navigator.pop(ctx, {'text': t, 'mode': mode}),
+                                onStar: () async {
+                                  await store.removeFavorite(t);
+                                  favs = await store.favorites();
+                                  setModal(() {});
+                                },
+                                onCopy: () async {
+                                  await Clipboard.setData(ClipboardData(text: t));
+                                  if (ctx.mounted) {
+                                    ScaffoldMessenger.of(ctx).showSnackBar(
+                                      const SnackBar(content: Text('Copied'), duration: Duration(seconds: 1)),
+                                    );
+                                  }
+                                },
+                              ),
+                          ],
+                          const ListTile(dense: true, title: Text('Recent')),
+                          if (fRecent.isEmpty)
+                            const ListTile(title: Text('No matching prompts')),
+                          for (final t in fRecent)
+                            _promptTile(
+                              ctx: ctx,
+                              text: t,
+                              fav: favs.contains(t),
+                              onUse: (mode) => Navigator.pop(ctx, {'text': t, 'mode': mode}),
+                              onStar: () async {
+                                await store.toggleFavorite(t);
+                                favs = await store.favorites();
+                                setModal(() {});
+                              },
+                              onCopy: () async {
+                                await Clipboard.setData(ClipboardData(text: t));
+                                if (ctx.mounted) {
+                                  ScaffoldMessenger.of(ctx).showSnackBar(
+                                    const SnackBar(content: Text('Copied'), duration: Duration(seconds: 1)),
+                                  );
+                                }
+                              },
+                            ),
+                          if (_input.text.trim().isNotEmpty)
+                            ListTile(
+                              leading: const Icon(Icons.star_outline),
+                              title: const Text('Favorite current draft'),
+                              onTap: () async {
+                                await store.toggleFavorite(_input.text);
+                                favs = await store.favorites();
+                                setModal(() {});
+                              },
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
             );
           },
         );
       },
     );
-    if (!mounted) return;
-    if (picked == '__refresh__') {
-      await _openPromptHistory();
-      return;
-    }
-    if (picked != null && picked.isNotEmpty) {
-      setState(() => _input.text = picked);
-    }
+    if (!mounted || result == null) return;
+    final text = result['text'] ?? '';
+    final mode = result['mode'] ?? 'replace';
+    if (text.isEmpty) return;
+    setState(() {
+      if (mode == 'append') {
+        final cur = _input.text;
+        _input.text = cur.trim().isEmpty ? text : '$cur\n\n$text';
+      } else {
+        _input.text = text;
+      }
+      _input.selection = TextSelection.collapsed(offset: _input.text.length);
+    });
+  }
+
+  Widget _promptTile({
+    required BuildContext ctx,
+    required String text,
+    required bool fav,
+    required void Function(String mode) onUse,
+    required VoidCallback onStar,
+    required VoidCallback onCopy,
+  }) {
+    return ListTile(
+      leading: Icon(fav ? Icons.star : Icons.history, color: fav ? Colors.amber : null),
+      title: Text(text, maxLines: 3, overflow: TextOverflow.ellipsis),
+      subtitle: const Text('Tap replace · long-press append', style: TextStyle(fontSize: 11)),
+      trailing: Wrap(
+        spacing: 0,
+        children: [
+          IconButton(tooltip: 'Copy', icon: const Icon(Icons.copy, size: 18), onPressed: onCopy),
+          IconButton(
+            tooltip: fav ? 'Unfavorite' : 'Favorite',
+            icon: Icon(fav ? Icons.star : Icons.star_border, size: 18),
+            onPressed: onStar,
+          ),
+          IconButton(
+            tooltip: 'Append',
+            icon: const Icon(Icons.playlist_add, size: 18),
+            onPressed: () => onUse('append'),
+          ),
+        ],
+      ),
+      onTap: () => onUse('replace'),
+      onLongPress: () => onUse('append'),
+    );
   }
 
   Future<void> _openSlashPalette() async {
@@ -805,6 +918,18 @@ class _ChatScreenState extends State<ChatScreen> {
                               highlight: _searchQ.trim(),
                               isSearchHit: hits.contains(i),
                               isActiveSearchHit: i == activeHit,
+                              onQuote: () {
+                                final clip = m.content.trim();
+                                if (clip.isEmpty) return;
+                                final short = clip.length > 400 ? '${clip.substring(0, 400)}…' : clip;
+                                setState(() {
+                                  _quoteText = short;
+                                  _quoteRole = m.role;
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Quoted — edit and send'), duration: Duration(seconds: 1)),
+                                );
+                              },
                             ),
                           );
                         },
@@ -814,7 +939,33 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           SafeArea(
             top: false,
-            child: Padding(
+            child:               if (_quoteText != null && _quoteText!.isNotEmpty)
+                Material(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.7),
+                  child: ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.format_quote, size: 18),
+                    title: Text(
+                      'Quote (${_quoteRole ?? 'msg'})',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      _quoteText!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    trailing: IconButton(
+                      tooltip: 'Clear quote',
+                      icon: const Icon(Icons.close, size: 18),
+                      onPressed: () => setState(() {
+                        _quoteText = null;
+                        _quoteRole = null;
+                      }),
+                    ),
+                  ),
+                ),
+Padding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
               child: Row(
                 children: [
@@ -1053,6 +1204,7 @@ class _MessageBubble extends StatelessWidget {
     this.highlight = '',
     this.isSearchHit = false,
     this.isActiveSearchHit = false,
+    this.onQuote,
   });
 
   final TranscriptMessage message;
@@ -1061,6 +1213,7 @@ class _MessageBubble extends StatelessWidget {
   final String highlight;
   final bool isSearchHit;
   final bool isActiveSearchHit;
+  final VoidCallback? onQuote;
 
   List<Map<String, dynamic>> get _buttons {
     final raw = message.meta['buttons'];
@@ -1114,11 +1267,36 @@ class _MessageBubble extends StatelessWidget {
         onLongPress: () async {
           final text = message.content.trim();
           if (text.isEmpty) return;
-          await Clipboard.setData(ClipboardData(text: text));
-          if (context.mounted) {
-            ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-              const SnackBar(content: Text('Message copied'), duration: Duration(seconds: 1)),
-            );
+          final action = await showModalBottomSheet<String>(
+            context: context,
+            builder: (ctx) => SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.copy),
+                    title: const Text('Copy message'),
+                    onTap: () => Navigator.pop(ctx, 'copy'),
+                  ),
+                  if (onQuote != null && (message.role == 'user' || message.role == 'assistant'))
+                    ListTile(
+                      leading: const Icon(Icons.format_quote),
+                      title: const Text('Quote in composer'),
+                      onTap: () => Navigator.pop(ctx, 'quote'),
+                    ),
+                ],
+              ),
+            ),
+          );
+          if (action == 'copy') {
+            await Clipboard.setData(ClipboardData(text: text));
+            if (context.mounted) {
+              ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                const SnackBar(content: Text('Message copied'), duration: Duration(seconds: 1)),
+              );
+            }
+          } else if (action == 'quote') {
+            onQuote?.call();
           }
         },
         child: Container(

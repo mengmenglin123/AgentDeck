@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.19] - 2026-07-17
+
+### Added
+- Prompt history panel: filter, copy, append/replace into composer
+- Sessions swipe shortcuts (pin / archive) + overflow actions menu
+- Project capability badges on session tiles; Host dashboard cap icons
+- Chat quote-reply: long-press message → Quote banner → send as blockquote
+
 ## [0.1.18] - 2026-07-17
 
 ### Added

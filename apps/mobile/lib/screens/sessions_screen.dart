@@ -934,16 +934,54 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                           final note = _noteMap[s.sessionKey];
                                           final compact = context.watch<AppSettingsController>().compactMode;
                                           final selected = _selected.contains(s.sessionKey);
-                                          return ListTile(
+                                          final projCaps = sessions.projects
+                                              .where((p) => p.name == s.project)
+                                              .map((p) => p.capabilities)
+                                              .firstWhere((_) => true, orElse: () => const <String>[]);
+                                          final tile = ListTile(
                                             selected: selected,
                                             visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
                                             title: Text(s.displayTitle),
-                                            subtitle: Text(
-                                              [
-                                                '${s.project} · ${s.model ?? "model?"}',
-                                                s.sessionKey,
-                                                if (note != null && note.isNotEmpty) '📝 $note',
-                                              ].join('\n'),
+                                            subtitle: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  [
+                                                    '${s.project} · ${s.model ?? "model?"}',
+                                                    s.sessionKey,
+                                                    if (note != null && note.isNotEmpty) '📝 $note',
+                                                  ].join('\n'),
+                                                ),
+                                                if (projCaps.isNotEmpty && !_selectMode) ...[
+                                                  const SizedBox(height: 4),
+                                                  Wrap(
+                                                    spacing: 4,
+                                                    runSpacing: 2,
+                                                    children: [
+                                                      for (final c in projCaps.take(4))
+                                                        Container(
+                                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                                          decoration: BoxDecoration(
+                                                            borderRadius: BorderRadius.circular(8),
+                                                            color: Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.7),
+                                                          ),
+                                                          child: Text(
+                                                            c.toString(),
+                                                            style: TextStyle(
+                                                              fontSize: 10,
+                                                              color: Theme.of(context).colorScheme.onSecondaryContainer,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      if (projCaps.length > 4)
+                                                        Text(
+                                                          '+${projCaps.length - 4}',
+                                                          style: const TextStyle(fontSize: 10),
+                                                        ),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ],
                                             ),
                                             isThreeLine: true,
                                             leading: _selectMode
@@ -979,59 +1017,69 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                             },
                                             trailing: _selectMode
                                                 ? null
-                                                : Wrap(
-                                              spacing: 0,
-                                              children: [
-                                                IconButton(
-                                                  tooltip: 'Export meta',
-                                                  icon: const Icon(Icons.copy_all_outlined, size: 20),
-                                                  onPressed: () => _exportSessionMeta(s),
-                                                ),
-                                                IconButton(
-                                                  tooltip: 'Rename',
-                                                  icon: const Icon(Icons.drive_file_rename_outline, size: 20),
-                                                  onPressed: () => _renameSession(sessions, s),
-                                                ),
-                                                IconButton(
-                                                  tooltip: _archived.contains(s.sessionKey) ? 'Unarchive' : 'Archive',
-                                                  icon: Icon(
-                                                    _archived.contains(s.sessionKey)
-                                                        ? Icons.unarchive_outlined
-                                                        : Icons.archive_outlined,
-                                                    size: 20,
+                                                : PopupMenuButton<String>(
+                                                    tooltip: 'Session actions',
+                                                    onSelected: (v) async {
+                                                      switch (v) {
+                                                        case 'export':
+                                                          _exportSessionMeta(s);
+                                                        case 'rename':
+                                                          await _renameSession(sessions, s);
+                                                        case 'archive':
+                                                          await _toggleArchive(s);
+                                                        case 'note':
+                                                          await _editNote(s);
+                                                        case 'pin':
+                                                          await _togglePin(s);
+                                                        case 'term':
+                                                          await _openTerminal(s);
+                                                        case 'delete':
+                                                          await sessions.deleteSession(s);
+                                                      }
+                                                    },
+                                                    itemBuilder: (ctx) => [
+                                                      PopupMenuItem(value: 'pin', child: Text(pinned ? 'Unpin' : 'Pin')),
+                                                      PopupMenuItem(
+                                                        value: 'archive',
+                                                        child: Text(_archived.contains(s.sessionKey) ? 'Unarchive' : 'Archive'),
+                                                      ),
+                                                      const PopupMenuItem(value: 'note', child: Text('Note')),
+                                                      const PopupMenuItem(value: 'rename', child: Text('Rename')),
+                                                      const PopupMenuItem(value: 'export', child: Text('Export meta')),
+                                                      const PopupMenuItem(value: 'term', child: Text('Terminal')),
+                                                      const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                                                    ],
                                                   ),
-                                                  onPressed: () => _toggleArchive(s),
-                                                ),
-                                                IconButton(
-                                                  tooltip: 'Note',
-                                                  icon: Icon(
-                                                    (note != null && note.isNotEmpty)
-                                                        ? Icons.sticky_note_2
-                                                        : Icons.sticky_note_2_outlined,
-                                                    size: 20,
-                                                  ),
-                                                  onPressed: () => _editNote(s),
-                                                ),
-                                                IconButton(
-                                                  tooltip: pinned ? 'Unpin' : 'Pin',
-                                                  icon: Icon(
-                                                    pinned ? Icons.push_pin : Icons.push_pin_outlined,
-                                                    size: 20,
-                                                  ),
-                                                  onPressed: () => _togglePin(s),
-                                                ),
-                                                IconButton(
-                                                  tooltip: 'Terminal',
-                                                  icon: const Icon(Icons.terminal),
-                                                  onPressed: () => _openTerminal(s),
-                                                ),
-                                                IconButton(
-                                                  tooltip: 'Delete',
-                                                  icon: const Icon(Icons.delete_outline),
-                                                  onPressed: () => sessions.deleteSession(s),
-                                                ),
-                                              ],
+                                          );
+                                          if (_selectMode) return tile;
+                                          return Dismissible(
+                                            key: ValueKey('sess-${s.sessionKey}'),
+                                            background: Container(
+                                              color: Colors.amber.shade700,
+                                              alignment: Alignment.centerLeft,
+                                              padding: const EdgeInsets.only(left: 20),
+                                              child: const Icon(Icons.push_pin, color: Colors.white),
                                             ),
+                                            secondaryBackground: Container(
+                                              color: Colors.blueGrey.shade600,
+                                              alignment: Alignment.centerRight,
+                                              padding: const EdgeInsets.only(right: 20),
+                                              child: Icon(
+                                                _archived.contains(s.sessionKey)
+                                                    ? Icons.unarchive
+                                                    : Icons.archive,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            confirmDismiss: (dir) async {
+                                              if (dir == DismissDirection.startToEnd) {
+                                                await _togglePin(s);
+                                              } else {
+                                                await _toggleArchive(s);
+                                              }
+                                              return false; // keep tile; state updates list
+                                            },
+                                            child: tile,
                                           );
                                         },
                                       ),
