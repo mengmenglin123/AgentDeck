@@ -18,6 +18,7 @@ class _AuditScreenState extends State<AuditScreen> {
   String _query = '';
   /// all | info | warn | error
   String _level = 'all';
+  bool _newestFirst = true;
 
   @override
   void dispose() {
@@ -43,7 +44,10 @@ class _AuditScreenState extends State<AuditScreen> {
   @override
   Widget build(BuildContext context) {
     final audit = widget.audit;
-    final visible = _filter(audit.entries.reversed.toList());
+    final ordered = _newestFirst
+        ? audit.entries.reversed.toList()
+        : audit.entries.toList();
+    final visible = _filter(ordered);
     final total = audit.entries.length;
     final title = total == 0
         ? 'Audit log'
@@ -55,9 +59,9 @@ class _AuditScreenState extends State<AuditScreen> {
         title: Text(title),
         actions: [
           IconButton(
-            tooltip: 'Copy visible',
+            tooltip: 'Copy all',
             onPressed: () async {
-              final items = _filter(audit.entries.reversed.toList());
+              final items = _filter(_newestFirst ? audit.entries.reversed.toList() : audit.entries.toList());
               final buf = StringBuffer();
               for (final e in items) {
                 buf.writeln('${e.ts.toIso8601String()} [${e.level}] ${e.action} ${e.detail}');
@@ -74,7 +78,7 @@ class _AuditScreenState extends State<AuditScreen> {
           IconButton(
             tooltip: 'Copy JSON',
             onPressed: () async {
-              final items = _filter(audit.entries.reversed.toList());
+              final items = _filter(_newestFirst ? audit.entries.reversed.toList() : audit.entries.toList());
               final payload = {
                 'exported_at': DateTime.now().toIso8601String(),
                 'count': items.length,
@@ -101,7 +105,7 @@ class _AuditScreenState extends State<AuditScreen> {
           IconButton(
             tooltip: 'Copy CSV',
             onPressed: () async {
-              final items = _filter(audit.entries.reversed.toList());
+              final items = _filter(_newestFirst ? audit.entries.reversed.toList() : audit.entries.toList());
               final buf = StringBuffer();
               buf.writeln('ts,level,action,detail');
               for (final e in items) {
@@ -128,6 +132,11 @@ class _AuditScreenState extends State<AuditScreen> {
               }
             },
             icon: const Icon(Icons.table_chart_outlined),
+          ),
+          IconButton(
+            tooltip: _newestFirst ? 'Oldest first' : 'Newest first',
+            onPressed: () => setState(() => _newestFirst = !_newestFirst),
+            icon: Icon(_newestFirst ? Icons.south : Icons.north),
           ),
           IconButton(
             tooltip: 'Clear',
@@ -184,7 +193,7 @@ class _AuditScreenState extends State<AuditScreen> {
             child: AnimatedBuilder(
               animation: audit,
               builder: (context, _) {
-                final items = _filter(audit.entries.reversed.toList());
+                final items = _filter(_newestFirst ? audit.entries.reversed.toList() : audit.entries.toList());
                 if (audit.entries.isEmpty) {
                   return const Center(child: Text('No audit events yet.'));
                 }

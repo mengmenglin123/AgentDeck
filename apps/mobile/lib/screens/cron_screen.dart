@@ -95,7 +95,13 @@ class _CronScreenState extends State<CronScreen> {
     final items = _filtered;
     return Scaffold(
       appBar: AppBar(
-        title: Text(items.isEmpty ? 'Host schedules' : 'Host schedules (${items.length})'),
+        title: Text(
+          items.isEmpty
+              ? 'Host schedules'
+              : (items.length == _jobs.length
+                  ? 'Host schedules (${items.length})'
+                  : 'Host schedules (${items.length}/${_jobs.length})'),
+        ),
         actions: [
           IconButton(
             tooltip: 'Copy all',

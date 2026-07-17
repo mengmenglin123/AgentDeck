@@ -26,6 +26,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   bool _loading = true;
   final _filterCtrl = TextEditingController();
   String _filter = '';
+  /// name ascending when true; dirs always first
+  bool _sortAsc = true;
 
   @override
   void initState() {
@@ -38,6 +40,32 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   void dispose() {
     _filterCtrl.dispose();
     super.dispose();
+  }
+
+
+  List<Map> get _visibleEntries {
+    final node = _node;
+    final raw = (node?['entries'] as List?) ?? const [];
+    final q = _filter.trim().toLowerCase();
+    final list = <Map>[];
+    for (final e in raw.whereType<Map>()) {
+      if (q.isNotEmpty) {
+        final name = (e['name'] ?? '').toString().toLowerCase();
+        final type = (e['type'] ?? '').toString().toLowerCase();
+        if (!name.contains(q) && !type.contains(q)) continue;
+      }
+      list.add(e);
+    }
+    int rank(Map e) => e['type'] == 'dir' ? 0 : 1;
+    list.sort((a, b) {
+      final rd = rank(a).compareTo(rank(b));
+      if (rd != 0) return rd;
+      final na = (a['name'] ?? '').toString().toLowerCase();
+      final nb = (b['name'] ?? '').toString().toLowerCase();
+      final c = na.compareTo(nb);
+      return _sortAsc ? c : -c;
+    });
+    return list;
   }
 
   List<Widget> _breadcrumbChips() {
@@ -125,7 +153,14 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         title: Text(
           isFile
               ? 'Workspace'
-              : (entries.isEmpty ? 'Workspace' : 'Workspace (${entries.length})'),
+              : (() {
+                  final vis = _visibleEntries;
+                  if (entries.isEmpty) return 'Workspace';
+                  if (vis.length == entries.length) {
+                    return 'Workspace (${vis.length})';
+                  }
+                  return 'Workspace (${vis.length}/${entries.length})';
+                })(),
         ),
         actions: [
           IconButton(
@@ -147,7 +182,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               final list = <String>[];
               final p = _path.isEmpty ? '/' : '/$_path';
               list.add(p);
-              for (final e in entries.whereType<Map>()) {
+              for (final e in _visibleEntries) {
                 final name = e['name']?.toString() ?? '';
                 final typ = e['type']?.toString() ?? '';
                 if (name.isEmpty) continue;
@@ -170,6 +205,11 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               }
             },
             icon: const Icon(Icons.playlist_add_check_outlined),
+          ),
+          IconButton(
+            tooltip: _sortAsc ? 'Sort Z→A (dirs first)' : 'Sort A→Z (dirs first)',
+            onPressed: () => setState(() => _sortAsc = !_sortAsc),
+            icon: Icon(_sortAsc ? Icons.arrow_downward : Icons.arrow_upward),
           ),
           IconButton(
             tooltip: 'Copy content',
@@ -303,20 +343,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                         const ListTile(title: Text('Empty directory')),
                       if (entries.isNotEmpty &&
                           _filter.trim().isNotEmpty &&
-                          entries.whereType<Map>().where((e) {
-                                final q = _filter.trim().toLowerCase();
-                                final name = (e['name'] ?? '').toString().toLowerCase();
-                                final type = (e['type'] ?? '').toString().toLowerCase();
-                                return name.contains(q) || type.contains(q);
-                              }).isEmpty)
+                          _visibleEntries.isEmpty)
                         const ListTile(title: Text('No entries match filter')),
-                      for (final e in entries.whereType<Map>().where((e) {
-                        final q = _filter.trim().toLowerCase();
-                        if (q.isEmpty) return true;
-                        final name = (e['name'] ?? '').toString().toLowerCase();
-                        final type = (e['type'] ?? '').toString().toLowerCase();
-                        return name.contains(q) || type.contains(q);
-                      }))
+                      for (final e in _visibleEntries)
                         ListTile(
                           leading: Icon(
                             e['type'] == 'dir' ? Icons.folder : Icons.insert_drive_file_outlined,

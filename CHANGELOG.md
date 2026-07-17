@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.33
+
+- Cron: filtered/total title counts
+- Host logs: Copy CSV of filtered lines
+- Workspace: dirs-first name sort toggle + filtered/total title
+- Audit: newest/oldest sort toggle; Copy all tooltip
+
 ## 0.1.32
 
 - Skills: source FilterChips + filtered/total title counts

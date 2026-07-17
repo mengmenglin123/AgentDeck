@@ -121,6 +121,31 @@ class _LogsScreenState extends State<LogsScreen> {
             icon: const Icon(Icons.copy_all_outlined),
           ),
           IconButton(
+            tooltip: 'Copy CSV',
+            onPressed: _visible.isEmpty
+                ? null
+                : () async {
+                    final buf = StringBuffer();
+                    buf.writeln('ts,level,message');
+                    for (final e in _visible) {
+                      final ts = '${e['ts'] ?? ''}'.replaceAll(',', ';');
+                      final level = '${e['level'] ?? 'info'}'.replaceAll(',', ';');
+                      final msg = '${e['message'] ?? ''}'.replaceAll(',', ';').replaceAll('\n', ' ');
+                      buf.writeln('$ts,$level,$msg');
+                    }
+                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Copied CSV (${_visible.length})'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    }
+                  },
+            icon: const Icon(Icons.table_chart_outlined),
+          ),
+          IconButton(
             tooltip: _wrapLines ? 'No wrap' : 'Wrap lines',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),

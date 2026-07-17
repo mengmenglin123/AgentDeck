@@ -144,6 +144,11 @@
 | P3-103 | Host Dashboard 自动刷新 / last-ok 徽标 | [x] |
 | P3-104 | Pairing AppBar 复制 public summary/URI | [x] |
 
+| P3-105 | Cron 标题 filtered/total | [x] |
+| P3-106 | Host logs 导出 CSV（筛选结果） | [x] |
+| P3-107 | Workspace 目录优先排序开关 | [x] |
+| P3-108 | Audit 新旧排序 + Copy all | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |
