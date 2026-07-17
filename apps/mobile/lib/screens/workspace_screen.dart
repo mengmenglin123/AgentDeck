@@ -23,6 +23,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   Map<String, dynamic>? _git;
   String? _error;
   bool _loading = true;
+  final _filterCtrl = TextEditingController();
+  String _filter = '';
 
   @override
   void initState() {
@@ -31,11 +33,21 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     _load();
   }
 
+  @override
+  void dispose() {
+    _filterCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> _load({String? path}) async {
     setState(() {
       _loading = true;
       _error = null;
-      if (path != null) _path = path;
+      if (path != null) {
+        _path = path;
+        _filter = '';
+        _filterCtrl.clear();
+      }
     });
     try {
       final node = await _client.workspace(path: _path);
@@ -143,6 +155,29 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               ),
             ),
           const Divider(height: 1),
+          if (!isFile)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+              child: TextField(
+                controller: _filterCtrl,
+                decoration: InputDecoration(
+                  hintText: 'Filter files in this folder',
+                  isDense: true,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.search, size: 18),
+                  suffixIcon: _filter.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _filterCtrl.clear();
+                            setState(() => _filter = '');
+                          },
+                        ),
+                ),
+                onChanged: (v) => setState(() => _filter = v),
+              ),
+            ),
           Expanded(
             child: isFile
                 ? SingleChildScrollView(
@@ -162,7 +197,22 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                         ),
                       if (entries.isEmpty && !_loading)
                         const ListTile(title: Text('Empty directory')),
-                      for (final e in entries.whereType<Map>())
+                      if (entries.isNotEmpty &&
+                          _filter.trim().isNotEmpty &&
+                          entries.whereType<Map>().where((e) {
+                                final q = _filter.trim().toLowerCase();
+                                final name = (e['name'] ?? '').toString().toLowerCase();
+                                final type = (e['type'] ?? '').toString().toLowerCase();
+                                return name.contains(q) || type.contains(q);
+                              }).isEmpty)
+                        const ListTile(title: Text('No entries match filter')),
+                      for (final e in entries.whereType<Map>().where((e) {
+                        final q = _filter.trim().toLowerCase();
+                        if (q.isEmpty) return true;
+                        final name = (e['name'] ?? '').toString().toLowerCase();
+                        final type = (e['type'] ?? '').toString().toLowerCase();
+                        return name.contains(q) || type.contains(q);
+                      }))
                         ListTile(
                           leading: Icon(
                             e['type'] == 'dir' ? Icons.folder : Icons.insert_drive_file_outlined,

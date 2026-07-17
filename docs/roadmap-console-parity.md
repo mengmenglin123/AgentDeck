@@ -111,3 +111,8 @@
 - Session project grouping
 - Terminal command history
 - Logs level color strips
+
+## 0.1.21+
+
+- Skills/MCP/Cron/Workspace local filters
+- Dashboard health strip

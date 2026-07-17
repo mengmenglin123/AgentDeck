@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.21] - 2026-07-17
+
+### Added
+- Skills / MCP local filter + copy entry
+- Cron text filter + enabled/disabled chips + long-press copy
+- Workspace directory entry filter (clears on navigate)
+- Host Dashboard health strip (healthy / degraded / error) with Check
+
 ## [0.1.20] - 2026-07-17
 
 ### Added

@@ -90,6 +90,11 @@
 | P3-52 | Sessions 按 project 分组（Group chip） | [x] |
 | P3-53 | Terminal 本地命令历史（↑↓ / 面板） | [x] |
 | P3-54 | Host logs 级别色条 / 徽章 / 复制全部 | [x] |
+| P3-55 | Skills 本地筛选 / 复制 | [x] |
+| P3-56 | MCP catalog 本地筛选 / 复制 | [x] |
+| P3-57 | Cron 筛选（文本 + enabled） / 长按复制 | [x] |
+| P3-58 | Workspace 目录内本地过滤 | [x] |
+| P3-59 | Host Dashboard 健康条（/status + heartbeat 降级） | [x] |
 
 ## P4 — 远期
 

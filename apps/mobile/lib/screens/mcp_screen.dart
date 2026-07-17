@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/connection_config.dart';
 import '../services/mgmt_client.dart';
@@ -17,11 +18,19 @@ class _McpScreenState extends State<McpScreen> {
   bool loading = true;
   String? error;
   List<Map<String, dynamic>> servers = [];
+  final _q = TextEditingController();
+  String _query = '';
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _q.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -50,9 +59,20 @@ class _McpScreenState extends State<McpScreen> {
     }
   }
 
+  List<Map<String, dynamic>> get _filtered {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return servers;
+    return servers.where((s) {
+      final tools = s['tools'] is List ? (s['tools'] as List).join(' ') : '';
+      final hay = '${s['name']} ${s['description']} ${s['status']} $tools'.toLowerCase();
+      return hay.contains(q);
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final items = _filtered;
     return Scaffold(
       appBar: AppBar(
         title: const Text('MCP (readonly)'),
@@ -65,37 +85,87 @@ class _McpScreenState extends State<McpScreen> {
       ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
+          : Column(
               children: [
-                Text(
-                  'Catalog only — App does not start MCP servers. Host owns tools.',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                  child: Text(
+                    'Catalog only — App does not start MCP servers. Host owns tools.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
                 ),
-                const SizedBox(height: 12),
-                if (error != null)
-                  Text(error!, style: TextStyle(color: cs.error)),
-                if (servers.isEmpty && error == null)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 40),
-                    child: Center(child: Text('No MCP servers reported')),
-                  ),
-                for (final s in servers)
-                  Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.hub_outlined),
-                      title: Text(s['name']?.toString() ?? 'unnamed'),
-                      subtitle: Text(
-                        [
-                          if (s['description'] != null) s['description'].toString(),
-                          if (s['status'] != null) 'status: ${s['status']}',
-                          if (s['tools'] is List)
-                            'tools: ${(s['tools'] as List).join(', ')}',
-                        ].where((e) => e.isNotEmpty).join('\n'),
-                      ),
-                      isThreeLine: true,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                  child: TextField(
+                    controller: _q,
+                    decoration: InputDecoration(
+                      hintText: 'Filter name / tools / status',
+                      isDense: true,
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.search, size: 18),
+                      suffixIcon: _query.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                _q.clear();
+                                setState(() => _query = '');
+                              },
+                            ),
                     ),
+                    onChanged: (v) => setState(() => _query = v),
                   ),
+                ),
+                if (error != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(error!, style: TextStyle(color: cs.error)),
+                  ),
+                Expanded(
+                  child: servers.isEmpty && error == null
+                      ? const Center(child: Text('No MCP servers reported'))
+                      : items.isEmpty
+                          ? const Center(child: Text('No servers match filter'))
+                          : ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
+                              itemCount: items.length,
+                              itemBuilder: (context, i) {
+                                final s = items[i];
+                                final name = s['name']?.toString() ?? 'unnamed';
+                                final tools = s['tools'] is List
+                                    ? (s['tools'] as List).map((e) => e.toString()).join(', ')
+                                    : '';
+                                final sub = [
+                                  if (s['description'] != null) s['description'].toString(),
+                                  if (s['status'] != null) 'status: ${s['status']}',
+                                  if (tools.isNotEmpty) 'tools: $tools',
+                                ].where((e) => e.isNotEmpty).join('\n');
+                                return Card(
+                                  child: ListTile(
+                                    leading: const Icon(Icons.hub_outlined),
+                                    title: Text(name),
+                                    subtitle: Text(sub),
+                                    isThreeLine: true,
+                                    trailing: IconButton(
+                                      tooltip: 'Copy',
+                                      icon: const Icon(Icons.copy, size: 18),
+                                      onPressed: () async {
+                                        await Clipboard.setData(ClipboardData(text: '$name\n$sub'));
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('MCP entry copied'),
+                                              duration: Duration(seconds: 1),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                ),
               ],
             ),
     );

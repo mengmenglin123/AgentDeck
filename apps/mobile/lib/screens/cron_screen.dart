@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/connection_config.dart';
 import '../services/mgmt_client.dart';
@@ -19,11 +20,21 @@ class _CronScreenState extends State<CronScreen> {
   bool _loading = true;
   String? _error;
   List<Map<String, dynamic>> _jobs = [];
+  final _q = TextEditingController();
+  String _query = '';
+  /// all | on | off
+  String _enabled = 'all';
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _q.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -60,8 +71,28 @@ class _CronScreenState extends State<CronScreen> {
     return v?.toString() ?? '—';
   }
 
+  List<Map<String, dynamic>> get _filtered {
+    Iterable<Map<String, dynamic>> it = _jobs;
+    if (_enabled == 'on') {
+      it = it.where((j) => j['enabled'] == true);
+    } else if (_enabled == 'off') {
+      it = it.where((j) => j['enabled'] != true);
+    }
+    final q = _query.trim().toLowerCase();
+    if (q.isNotEmpty) {
+      it = it.where((j) {
+        final hay =
+            '${j['name']} ${j['id']} ${j['kind']} ${j['schedule']} ${j['description']} ${j['last_status']}'
+                .toLowerCase();
+        return hay.contains(q);
+      });
+    }
+    return it.toList();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final items = _filtered;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Host schedules'),
@@ -76,36 +107,85 @@ class _CronScreenState extends State<CronScreen> {
               padding: const EdgeInsets.all(12),
               child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
             ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+            child: TextField(
+              controller: _q,
+              decoration: InputDecoration(
+                hintText: 'Filter name / schedule / status',
+                isDense: true,
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.search, size: 18),
+                suffixIcon: _query.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _q.clear();
+                          setState(() => _query = '');
+                        },
+                      ),
+              ),
+              onChanged: (v) => setState(() => _query = v),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                for (final f in const [
+                  ('all', 'All'),
+                  ('on', 'Enabled'),
+                  ('off', 'Disabled'),
+                ])
+                  FilterChip(
+                    label: Text(f.$2, style: const TextStyle(fontSize: 12)),
+                    selected: _enabled == f.$1,
+                    onSelected: (_) => setState(() => _enabled = f.$1),
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
+            ),
+          ),
           if (_loading) const LinearProgressIndicator(minHeight: 2),
           Expanded(
             child: _jobs.isEmpty && !_loading
                 ? const Center(child: Text('No cron jobs (Host may not expose /cron)'))
-                : ListView.separated(
-                    itemCount: _jobs.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (ctx, i) {
-                      final j = _jobs[i];
-                      final enabled = j['enabled'] == true;
-                      final name = (j['name'] ?? j['id'] ?? 'job').toString();
-                      final kind = (j['kind'] ?? '').toString();
-                      final schedule = (j['schedule'] ?? '').toString();
-                      final last = (j['last_status'] ?? '').toString();
-                      return ListTile(
-                        leading: Icon(
-                          enabled ? Icons.schedule : Icons.schedule_outlined,
-                          color: enabled ? Colors.green : Colors.grey,
-                        ),
-                        title: Text(name),
-                        subtitle: Text(
-                          '$kind · $schedule\n'
-                          'last: $last · next: ${_fmtTs(j['next_run_at'])}\n'
-                          '${j['description'] ?? ''}',
-                        ),
-                        isThreeLine: true,
-                        trailing: Text(enabled ? 'on' : 'off'),
-                      );
-                    },
-                  ),
+                : items.isEmpty
+                    ? const Center(child: Text('No jobs match filter'))
+                    : ListView.separated(
+                        itemCount: items.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (ctx, i) {
+                          final j = items[i];
+                          final enabled = j['enabled'] == true;
+                          final name = (j['name'] ?? j['id'] ?? 'job').toString();
+                          final kind = (j['kind'] ?? '').toString();
+                          final schedule = (j['schedule'] ?? '').toString();
+                          final last = (j['last_status'] ?? '').toString();
+                          final sub =
+                              '$kind · $schedule\nlast: $last · next: ${_fmtTs(j['next_run_at'])}\n${j['description'] ?? ''}';
+                          return ListTile(
+                            leading: Icon(
+                              enabled ? Icons.schedule : Icons.schedule_outlined,
+                              color: enabled ? Colors.green : Colors.grey,
+                            ),
+                            title: Text(name),
+                            subtitle: Text(sub),
+                            isThreeLine: true,
+                            trailing: Text(enabled ? 'on' : 'off'),
+                            onLongPress: () async {
+                              await Clipboard.setData(ClipboardData(text: '$name\n$sub'));
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Job copied'), duration: Duration(seconds: 1)),
+                                );
+                              }
+                            },
+                          );
+                        },
+                      ),
           ),
         ],
       ),

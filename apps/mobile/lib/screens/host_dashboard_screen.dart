@@ -129,21 +129,58 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                   ),
                   isThreeLine: true,
                 ),
-                if (_loading) const LinearProgressIndicator(minHeight: 2),
-                if (_error != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(_error!, style: TextStyle(color: cs.error, fontSize: 12)),
-                  ),
-                if (_lastOk != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      'Last refresh: ${_lastOk!.toLocal().toIso8601String().substring(11, 19)}'
-                      ' · auto ${refreshSec == 0 ? "off" : "${refreshSec}s"}',
-                      style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+                // Live health strip: green when last /status ok, red on error
+                Builder(builder: (context) {
+                  final connOk = conn.isReady;
+                  final degraded = conn.healthDegraded;
+                  final healthy = _error == null && _status.isNotEmpty && !degraded;
+                  final Color barColor;
+                  final String label;
+                  if (_loading && _status.isEmpty) {
+                    barColor = Colors.amber;
+                    label = 'Probing Host /status…';
+                  } else if (!connOk && _error != null) {
+                    barColor = cs.error;
+                    label = 'Host unreachable';
+                  } else if (_error != null) {
+                    barColor = cs.error;
+                    label = 'Status error';
+                  } else if (degraded) {
+                    barColor = Colors.orange;
+                    label = 'Health degraded (heartbeat)';
+                  } else if (healthy) {
+                    barColor = Colors.green;
+                    label = 'Host healthy';
+                  } else {
+                    barColor = Colors.orange;
+                    label = 'Waiting for status';
+                  }
+                  final age = _lastOk == null
+                      ? 'never'
+                      : _lastOk!.toLocal().toIso8601String().substring(11, 19);
+                  return Card(
+                    color: barColor.withOpacity(0.12),
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
+                      dense: true,
+                      leading: Icon(
+                        healthy ? Icons.favorite : (_error != null ? Icons.heart_broken : Icons.monitor_heart_outlined),
+                        color: barColor,
+                      ),
+                      title: Text(label, style: TextStyle(fontWeight: FontWeight.w600, color: barColor)),
+                      subtitle: Text(
+                        'Last OK: $age · auto ${refreshSec == 0 ? "off" : "${refreshSec}s"}'
+                        '${_error != null ? "\n$_error" : ""}',
+                        style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+                      ),
+                      trailing: TextButton(
+                        onPressed: _loading ? null : () => _refresh(),
+                        child: const Text('Check'),
+                      ),
                     ),
-                  ),
+                  );
+                }),
+                if (_loading) const LinearProgressIndicator(minHeight: 2),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
