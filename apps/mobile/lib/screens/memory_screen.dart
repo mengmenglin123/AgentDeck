@@ -113,54 +113,61 @@ class _MemoryScreenState extends State<MemoryScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-            child: Row(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+            child: Wrap(
+              spacing: 8,
               children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: _scope,
-                    decoration: const InputDecoration(
-                      labelText: 'Scope',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'all', child: Text('all')),
-                      DropdownMenuItem(value: 'global', child: Text('global')),
-                      DropdownMenuItem(value: 'project', child: Text('project')),
-                    ],
-                    onChanged: (v) {
-                      if (v == null) return;
-                      setState(() => _scope = v);
+                for (final f in const [
+                  ('all', 'All'),
+                  ('global', 'Global'),
+                  ('project', 'Project'),
+                ])
+                  FilterChip(
+                    label: Text(f.$2, style: const TextStyle(fontSize: 12)),
+                    selected: _scope == f.$1,
+                    onSelected: (_) {
+                      setState(() => _scope = f.$1);
                       _load();
                     },
+                    visualDensity: VisualDensity.compact,
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 2,
-                  child: TextField(
-                    controller: _search,
-                    decoration: InputDecoration(
-                      hintText: 'Search title/content',
-                      border: const OutlineInputBorder(),
-                      isDense: true,
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.search),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+            child: TextField(
+              controller: _search,
+              decoration: InputDecoration(
+                hintText: 'Search title/content',
+                border: const OutlineInputBorder(),
+                isDense: true,
+                prefixIcon: const Icon(Icons.search, size: 20),
+                suffixIcon: _search.text.isEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.manage_search),
+                        tooltip: 'Search host',
                         onPressed: () {
                           setState(() => _q = _search.text.trim());
                           _load();
                         },
+                      )
+                    : IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _search.clear();
+                          setState(() {
+                            _q = '';
+                          });
+                          _load();
+                        },
                       ),
-                    ),
-                    onChanged: (_) => setState(() {}),
-                    onSubmitted: (v) {
-                      setState(() => _q = v.trim());
-                      _load();
-                    },
-                  ),
-                ),
-              ],
+              ),
+              onChanged: (_) => setState(() {}),
+              onSubmitted: (v) {
+                setState(() => _q = v.trim());
+                _load();
+              },
             ),
           ),
           if (_error != null)

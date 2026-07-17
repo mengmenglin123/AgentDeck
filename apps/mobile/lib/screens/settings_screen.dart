@@ -148,6 +148,25 @@ class SettingsScreen extends StatelessWidget {
             value: settings.monoChat,
             onChanged: settings.setMonoChat,
           ),
+          ListTile(
+            leading: const Icon(Icons.format_size),
+            title: const Text('Chat text size'),
+            subtitle: Text('Body scale · ${settings.chatFontScale.toStringAsFixed(2)}x'),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                for (final s in const [0.9, 1.0, 1.15, 1.3])
+                  ChoiceChip(
+                    label: Text('${s}x'),
+                    selected: (settings.chatFontScale - s).abs() < 0.001,
+                    onSelected: (_) => settings.setChatFontScale(s),
+                  ),
+              ],
+            ),
+          ),
           const Divider(height: 28),
           ListTile(
             leading: const Icon(Icons.info_outline),
@@ -161,7 +180,7 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.tag),
             title: const Text('App version'),
-            subtitle: const Text('0.1.29+29 · console only · protocol Mock/self-host'),
+            subtitle: const Text('0.1.30+29 · console only · protocol Mock/self-host'),
           ),
           ListTile(
             leading: const Icon(Icons.policy_outlined),

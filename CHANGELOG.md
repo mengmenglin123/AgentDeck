@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.30
+
+- Host logs: wrap toggle + title counts (filtered/total)
+- Memory: scope FilterChips + clearer search chrome
+- Workspace: copy directory listing + entry count in title
+- Settings/Chat: chat body font scale (0.9–1.3×, device-local)
+
 ## 0.1.29
 
 - Audit: title counts + CSV export of filtered rows

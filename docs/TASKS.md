@@ -129,6 +129,11 @@
 | P3-91 | Diff 行号开关 | [x] |
 | P3-92 | Connect Test 延迟展示（last test N ms） | [x] |
 
+| P3-93 | Host logs 换行开关 + 标题计数 | [x] |
+| P3-94 | Memory scope FilterChips | [x] |
+| P3-95 | Workspace 复制目录 listing + 标题计数 | [x] |
+| P3-96 | Chat 正文字号缩放（设备本地） | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

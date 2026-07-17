@@ -995,6 +995,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               isActiveSearchHit: i == activeHit,
                               compact: settings.compactMode,
                               mono: settings.monoChat,
+                              fontScale: settings.chatFontScale,
                               onQuote: () {
                                 final clip = m.content.trim();
                                 if (clip.isEmpty) return;
@@ -1284,6 +1285,7 @@ class _MessageBubble extends StatelessWidget {
     this.onQuote,
     this.compact = false,
     this.mono = false,
+    this.fontScale = 1.0,
   });
 
   final TranscriptMessage message;
@@ -1295,6 +1297,7 @@ class _MessageBubble extends StatelessWidget {
   final VoidCallback? onQuote;
   final bool compact;
   final bool mono;
+  final double fontScale;
 
   List<Map<String, dynamic>> get _buttons {
     final raw = message.meta['buttons'];
@@ -1410,12 +1413,24 @@ class _MessageBubble extends StatelessWidget {
               if (useMd)
                  mono
                      ? DefaultTextStyle.merge(
-                         style: const TextStyle(fontFamily: 'monospace'),
+                         style: TextStyle(
+                           fontFamily: 'monospace',
+                           fontSize: 14 * fontScale,
+                         ),
                          child: MarkdownLite(message.content),
                        )
-                     : MarkdownLite(message.content)
+                     : DefaultTextStyle.merge(
+                         style: TextStyle(fontSize: 14 * fontScale),
+                         child: MarkdownLite(message.content),
+                       )
               else
-                SelectableText(message.content),
+                SelectableText(
+                  message.content,
+                  style: TextStyle(
+                    fontFamily: mono ? 'monospace' : null,
+                    fontSize: 14 * fontScale,
+                  ),
+                ),
               if (buttons.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Wrap(

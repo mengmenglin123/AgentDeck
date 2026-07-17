@@ -13,6 +13,7 @@ class AppSettingsController extends ChangeNotifier {
   static const _kHaptics = 'huanhermes.haptics.v1';
   static const _kKeepScreen = 'huanhermes.keep_screen_on.v1';
   static const _kMonoChat = 'huanhermes.mono_chat.v1';
+  static const _kChatFont = 'huanhermes.chat_font_scale.v1';
 
   /// 0.85 | 1.0 | 1.15 | 1.3
   double textScale = 1.0;
@@ -41,6 +42,9 @@ class AppSettingsController extends ChangeNotifier {
   /// Prefer monospace for chat message bodies.
   bool monoChat = false;
 
+  /// Chat message body font scale: 0.9 | 1.0 | 1.15 | 1.3
+  double chatFontScale = 1.0;
+
   Future<void> load() async {
     final p = await SharedPreferences.getInstance();
     textScale = p.getDouble(_kScale) ?? 1.0;
@@ -58,6 +62,8 @@ class AppSettingsController extends ChangeNotifier {
     hapticsEnabled = p.getBool(_kHaptics) ?? true;
     keepScreenOn = p.getBool(_kKeepScreen) ?? false;
     monoChat = p.getBool(_kMonoChat) ?? false;
+    chatFontScale = p.getDouble(_kChatFont) ?? 1.0;
+    if (chatFontScale < 0.85 || chatFontScale > 1.5) chatFontScale = 1.0;
     notifyListeners();
   }
 
@@ -122,6 +128,13 @@ class AppSettingsController extends ChangeNotifier {
     notifyListeners();
     final p = await SharedPreferences.getInstance();
     await p.setBool(_kMonoChat, v);
+  }
+
+  Future<void> setChatFontScale(double v) async {
+    chatFontScale = v;
+    notifyListeners();
+    final p = await SharedPreferences.getInstance();
+    await p.setDouble(_kChatFont, v);
   }
 
   /// Fire a light impact when haptics are enabled.

@@ -22,6 +22,7 @@ class _LogsScreenState extends State<LogsScreen> {
   List<Map<String, dynamic>> _logs = [];
   String _level = '';
   String _query = '';
+  bool _wrapLines = true;
 
   @override
   void initState() {
@@ -90,7 +91,13 @@ class _LogsScreenState extends State<LogsScreen> {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Host logs'),
+        title: Text(
+          _visible.isEmpty
+              ? 'Host logs'
+              : (_visible.length == _logs.length
+                  ? 'Host logs (${_visible.length})'
+                  : 'Host logs (${_visible.length}/${_logs.length})'),
+        ),
         actions: [
           IconButton(
             tooltip: 'Copy all',
@@ -112,6 +119,11 @@ class _LogsScreenState extends State<LogsScreen> {
                     }
                   },
             icon: const Icon(Icons.copy_all_outlined),
+          ),
+          IconButton(
+            tooltip: _wrapLines ? 'No wrap' : 'Wrap lines',
+            onPressed: () => setState(() => _wrapLines = !_wrapLines),
+            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
           ),
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
@@ -215,7 +227,13 @@ class _LogsScreenState extends State<LogsScreen> {
                               ),
                             ),
                           ),
-                          title: Text(msg, style: const TextStyle(fontSize: 13, fontFamily: 'monospace')),
+                          title: Text(
+                            msg,
+                            style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
+                            maxLines: _wrapLines ? null : 1,
+                            overflow: _wrapLines ? TextOverflow.visible : TextOverflow.ellipsis,
+                            softWrap: _wrapLines,
+                          ),
                           subtitle: Text(when, style: const TextStyle(fontSize: 10)),
                           onLongPress: () async {
                             await Clipboard.setData(ClipboardData(text: '[$level] $when $msg'));

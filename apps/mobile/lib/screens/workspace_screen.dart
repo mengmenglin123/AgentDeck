@@ -122,7 +122,11 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Workspace'),
+        title: Text(
+          isFile
+              ? 'Workspace'
+              : (entries.isEmpty ? 'Workspace' : 'Workspace (${entries.length})'),
+        ),
         actions: [
           IconButton(
             tooltip: 'Copy path',
@@ -136,6 +140,36 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               }
             },
             icon: const Icon(Icons.link),
+          ),
+          IconButton(
+            tooltip: 'Copy listing',
+            onPressed: () async {
+              final list = <String>[];
+              final p = _path.isEmpty ? '/' : '/$_path';
+              list.add(p);
+              for (final e in entries.whereType<Map>()) {
+                final name = e['name']?.toString() ?? '';
+                final typ = e['type']?.toString() ?? '';
+                if (name.isEmpty) continue;
+                list.add((typ == 'dir' || typ == 'directory' ? 'd ' : 'f ') + name);
+              }
+              if (list.length <= 1 && !isFile) {
+                list.add('(empty)');
+              }
+              if (isFile) {
+                list.add('file: ' + (_node?['name']?.toString() ?? _path));
+              }
+              await Clipboard.setData(ClipboardData(text: list.join('\n')));
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Copied listing (' + (list.length - 1).toString() + ')'),
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+              }
+            },
+            icon: const Icon(Icons.playlist_add_check_outlined),
           ),
           IconButton(
             tooltip: 'Copy content',
