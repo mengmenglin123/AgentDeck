@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../services/app_settings_controller.dart';
 import '../services/connection_controller.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
@@ -21,11 +23,33 @@ class _StatusScreenState extends State<StatusScreen> {
   bool _loading = false;
   String? _error;
   Map<String, dynamic> _status = const {};
+  Timer? _timer;
+  bool _autoRefresh = true;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _refresh());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refresh();
+      _armTimer();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _armTimer() {
+    _timer?.cancel();
+    if (!_autoRefresh || !mounted) return;
+    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
+    if (sec <= 0) return;
+    _timer = Timer.periodic(Duration(seconds: sec), (_) {
+      if (!mounted || _loading) return;
+      _refresh();
+    });
   }
 
   Future<void> _refresh() async {
@@ -133,7 +157,7 @@ class _StatusScreenState extends State<StatusScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Host connected'),
+        title: Text(_autoRefresh ? 'Host connected · auto' : 'Host connected'),
         actions: [
           IconButton(
             tooltip: 'Copy summary',
@@ -149,6 +173,14 @@ class _StatusScreenState extends State<StatusScreen> {
             tooltip: 'Refresh',
             onPressed: _loading ? null : _refresh,
             icon: const Icon(Icons.refresh),
+          ),
+          IconButton(
+            tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Resume auto-refresh',
+            onPressed: () {
+              setState(() => _autoRefresh = !_autoRefresh);
+              _armTimer();
+            },
+            icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
           ),
           IconButton(
             tooltip: 'Disconnect',

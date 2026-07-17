@@ -28,6 +28,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   String _filter = '';
   /// name ascending when true; dirs always first
   bool _sortAsc = true;
+  /// all | dir | file
+  String _typeFilter = 'all';
 
   @override
   void initState() {
@@ -49,9 +51,11 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     final q = _filter.trim().toLowerCase();
     final list = <Map>[];
     for (final e in raw.whereType<Map>()) {
+      final type = (e['type'] ?? '').toString().toLowerCase();
+      if (_typeFilter == 'dir' && type != 'dir') continue;
+      if (_typeFilter == 'file' && type == 'dir') continue;
       if (q.isNotEmpty) {
         final name = (e['name'] ?? '').toString().toLowerCase();
-        final type = (e['type'] ?? '').toString().toLowerCase();
         if (!name.contains(q) && !type.contains(q)) continue;
       }
       list.add(e);
@@ -283,6 +287,25 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
             child: Row(children: _breadcrumbChips()),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                for (final f in const [
+                  ('all', 'All'),
+                  ('dir', 'Dirs'),
+                  ('file', 'Files'),
+                ])
+                  FilterChip(
+                    label: Text(f.$2, style: const TextStyle(fontSize: 12)),
+                    selected: _typeFilter == f.$1,
+                    onSelected: (_) => setState(() => _typeFilter = f.$1),
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
+            ),
           ),
 
           ListTile(

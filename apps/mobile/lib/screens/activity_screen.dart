@@ -30,6 +30,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   List<Map<String, dynamic>> _events = [];
   String _query = '';
   String _kind = '';
+  bool _newestFirst = true;
   final _q = TextEditingController();
 
   @override
@@ -134,7 +135,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
   List<Map<String, dynamic>> get _filtered {
     final q = _query.trim().toLowerCase();
-    return _events.where((e) {
+    final list = _events.where((e) {
       final kind = (e['kind'] ?? e['type'] ?? 'event').toString().toLowerCase();
       if (_kind.isNotEmpty) {
         if (_kind == 'other') {
@@ -154,6 +155,17 @@ class _ActivityScreenState extends State<ActivityScreen> {
               .toLowerCase();
       return hay.contains(q);
     }).toList();
+    int tsOf(Map<String, dynamic> e) {
+      final v = e['ts'] ?? e['time'] ?? e['timestamp'];
+      if (v is num) return (v * 1000).round();
+      final p = DateTime.tryParse(v?.toString() ?? '');
+      return p?.millisecondsSinceEpoch ?? 0;
+    }
+    list.sort((a, b) {
+      final c = tsOf(a).compareTo(tsOf(b));
+      return _newestFirst ? -c : c;
+    });
+    return list;
   }
 
   @override
@@ -218,6 +230,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     }
                   },
             icon: const Icon(Icons.table_chart_outlined),
+          ),
+          IconButton(
+            tooltip: _newestFirst ? 'Oldest first' : 'Newest first',
+            onPressed: () => setState(() => _newestFirst = !_newestFirst),
+            icon: Icon(_newestFirst ? Icons.arrow_downward : Icons.arrow_upward),
           ),
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],

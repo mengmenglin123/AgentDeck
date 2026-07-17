@@ -169,6 +169,11 @@
 | P3-123 | Connect 导出 public profiles（无 token） | [x] |
 | P3-124 | Diff 标题 +adds/-dels 统计 | [x] |
 
+| P3-125 | Activity 新旧排序 | [x] |
+| P3-126 | Status 自动刷新（可暂停） | [x] |
+| P3-127 | Workspace All/Dirs/Files chips | [x] |
+| P3-128 | Logs 跳到顶部/底部 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

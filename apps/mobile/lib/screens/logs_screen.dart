@@ -23,11 +23,18 @@ class _LogsScreenState extends State<LogsScreen> {
   String _level = '';
   String _query = '';
   bool _wrapLines = true;
+  final _scroll = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -146,6 +153,26 @@ class _LogsScreenState extends State<LogsScreen> {
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
+            tooltip: 'Jump to top',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+            },
+            icon: const Icon(Icons.vertical_align_top),
+          ),
+          IconButton(
+            tooltip: 'Jump to end',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(
+                _scroll.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
+            },
+            icon: const Icon(Icons.vertical_align_bottom),
+          ),
+          IconButton(
             tooltip: _wrapLines ? 'No wrap' : 'Wrap lines',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
@@ -211,6 +238,7 @@ class _LogsScreenState extends State<LogsScreen> {
                 : RefreshIndicator(
                     onRefresh: _load,
                     child: ListView.separated(
+                      controller: _scroll,
                       physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(8, 4, 8, 24),
                     itemCount: _visible.length,

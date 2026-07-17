@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.38
+
+- Activity: newest/oldest sort toggle
+- Status: auto-refresh (dashboard interval) + pause
+- Workspace: All/Dirs/Files type FilterChips
+- Logs: jump to top / end
+
 ## 0.1.37
 
 - Terminal: local display timestamps toggle
