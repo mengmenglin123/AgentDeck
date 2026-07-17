@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.14] - 2026-07-17
+
+### Added
+- Settings screen: text scale, compact lists, dashboard auto-refresh interval, tools default
+- Session local archive (hide from default list; Archived filter chip)
+- Audit log search + level chips + copy visible / long-press copy entry
+- Host dashboard auto-refresh driven by settings (default 15s)
+
 ## [0.1.13] - 2026-07-17
 
 ### Added

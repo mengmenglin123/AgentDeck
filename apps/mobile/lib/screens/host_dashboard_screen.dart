@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../services/app_settings_controller.dart';
 import '../services/connection_controller.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
@@ -27,21 +29,45 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
   Map<String, dynamic> _status = const {};
   String? _error;
   bool _loading = true;
+  Timer? _timer;
+  DateTime? _lastOk;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _refresh());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refresh();
+      _armTimer();
+    });
   }
 
-  Future<void> _refresh() async {
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _armTimer() {
+    _timer?.cancel();
+    if (!mounted) return;
+    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
+    if (sec <= 0) return;
+    _timer = Timer.periodic(Duration(seconds: sec), (_) {
+      if (!mounted || _loading) return;
+      _refresh(silent: true);
+    });
+  }
+
+  Future<void> _refresh({bool silent = false}) async {
     final conn = context.read<ConnectionController>();
     final cfg = conn.saved;
     if (cfg == null) return;
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    if (!silent) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final client = MgmtClient(config: cfg);
       final st = await client.status();
@@ -49,6 +75,8 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
       setState(() {
         _status = st;
         _loading = false;
+        _lastOk = DateTime.now();
+        _error = null;
       });
     } catch (e) {
       if (!mounted) return;
@@ -64,6 +92,16 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
     final conn = context.watch<ConnectionController>();
     final cfg = conn.saved;
     final cs = Theme.of(context).colorScheme;
+    final refreshSec = context.watch<AppSettingsController>().dashboardRefreshSec;
+    // Re-arm timer when setting changes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final armed = _timer != null;
+      final want = refreshSec > 0;
+      if (armed != want || (want && _timer?.isActive != true)) {
+        _armTimer();
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -96,6 +134,15 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Text(_error!, style: TextStyle(color: cs.error, fontSize: 12)),
+                  ),
+                if (_lastOk != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      'Last refresh: ${_lastOk!.toLocal().toIso8601String().substring(11, 19)}'
+                      ' · auto ${refreshSec == 0 ? "off" : "${refreshSec}s"}',
+                      style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+                    ),
                   ),
                 const SizedBox(height: 8),
                 Wrap(

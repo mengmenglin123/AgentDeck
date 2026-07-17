@@ -63,3 +63,10 @@
 - 消息长按复制
 - 主题 system/light/dark
 - Host logs 只读
+
+## 0.1.14+
+
+- Settings（字号/紧凑/刷新）
+- 会话本地归档
+- 审计筛选复制
+- Dashboard 自动刷新

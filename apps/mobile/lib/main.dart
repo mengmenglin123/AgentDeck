@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'app.dart';
+import 'services/app_settings_controller.dart';
 import 'services/connection_controller.dart';
 import 'services/secure_config_store.dart';
 import 'services/theme_controller.dart';
@@ -14,11 +15,14 @@ Future<void> main() async {
   await controller.bootstrap();
   final theme = ThemeController();
   await theme.load();
+  final settings = AppSettingsController();
+  await settings.load();
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: controller),
         ChangeNotifierProvider.value(value: theme),
+        ChangeNotifierProvider.value(value: settings),
       ],
       child: const HuanHermesApp(),
     ),

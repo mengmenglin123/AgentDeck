@@ -62,6 +62,10 @@
 | P3-24 | 消息长按复制 | [x] |
 | P3-25 | 主题切换 system/light/dark（本机） | [x] |
 | P3-26 | Host logs 只读 | [x] |
+| P3-27 | Settings：字号 / 紧凑模式 / Dashboard 刷新 | [x] |
+| P3-28 | 会话本地归档（列表隐藏 + Archived chip） | [x] |
+| P3-29 | 审计日志筛选 / 复制 | [x] |
+| P3-30 | Host Dashboard 自动刷新 | [x] |
 
 ## P4 — 远期
 

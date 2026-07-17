@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../models/session_info.dart';
 import '../services/connection_controller.dart';
 import '../services/session_controller.dart';
+import '../services/app_settings_controller.dart';
+import '../services/session_archive_store.dart';
 import '../services/session_notes_store.dart';
 import '../services/theme_controller.dart';
 import '../services/session_pins_store.dart';
@@ -13,6 +15,7 @@ import 'diff_screen.dart';
 import 'activity_screen.dart';
 import 'agents_screen.dart';
 import 'logs_screen.dart';
+import 'settings_screen.dart';
 import 'host_dashboard_screen.dart';
 import 'mcp_screen.dart';
 import 'memory_screen.dart';
@@ -34,10 +37,12 @@ class _SessionsScreenState extends State<SessionsScreen> {
   final _searchCtrl = TextEditingController();
   final _pins = SessionPinsStore();
   final _notes = SessionNotesStore();
+  final _archive = SessionArchiveStore();
   String _query = '';
   Set<String> _pinned = {};
+  Set<String> _archived = {};
   Map<String, String> _noteMap = {};
-  /// all | pinned | running
+  /// all | pinned | running | archived
   String _filter = 'all';
 
   @override
@@ -49,11 +54,18 @@ class _SessionsScreenState extends State<SessionsScreen> {
   Future<void> _loadPins() async {
     final pins = await _pins.pins();
     final notes = await _notes.all();
+    final archived = await _archive.archived();
     if (!mounted) return;
     setState(() {
       _pinned = pins;
       _noteMap = notes;
+      _archived = archived;
     });
+  }
+
+  Future<void> _toggleArchive(SessionInfo s) async {
+    await _archive.toggle(s.sessionKey);
+    await _loadPins();
   }
 
   Future<void> _renameSession(SessionController sessions, SessionInfo s) async {
@@ -149,10 +161,16 @@ class _SessionsScreenState extends State<SessionsScreen> {
   List<SessionInfo> _filtered(List<SessionInfo> all) {
     final q = _query.trim().toLowerCase();
     Iterable<SessionInfo> base = all;
-    if (_filter == 'pinned') {
-      base = base.where((s) => _pinned.contains(s.sessionKey));
-    } else if (_filter == 'running') {
-      base = base.where((s) => s.running || s.live);
+    if (_filter == 'archived') {
+      base = base.where((s) => _archived.contains(s.sessionKey));
+    } else {
+      // default views hide archived
+      base = base.where((s) => !_archived.contains(s.sessionKey));
+      if (_filter == 'pinned') {
+        base = base.where((s) => _pinned.contains(s.sessionKey));
+      } else if (_filter == 'running') {
+        base = base.where((s) => s.running || s.live);
+      }
     }
     if (q.isNotEmpty) {
       base = base.where((s) {
@@ -275,6 +293,9 @@ class _SessionsScreenState extends State<SessionsScreen> {
                     case 'logs':
                       page = LogsScreen(config: cfg);
                       break;
+                    case 'settings':
+                      page = const SettingsScreen();
+                      break;
                     case 'workspace':
                       page = WorkspaceScreen(config: cfg);
                       break;
@@ -308,6 +329,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   PopupMenuItem(value: 'status', child: Text('Host status')),
                   PopupMenuItem(value: 'agents', child: Text('Agents')),
                   PopupMenuItem(value: 'logs', child: Text('Host logs')),
+                  PopupMenuItem(value: 'settings', child: Text('Settings')),
                   PopupMenuItem(value: 'workspace', child: Text('Workspace')),
                   PopupMenuItem(value: 'diff', child: Text('Git diff')),
                   PopupMenuItem(value: 'memory', child: Text('Host memory')),
@@ -406,6 +428,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       ('all', 'All'),
                       ('pinned', 'Pinned'),
                       ('running', 'Running'),
+                      ('archived', 'Archived'),
                     ])
                       FilterChip(
                         label: Text(f.$2, style: const TextStyle(fontSize: 12)),
@@ -491,7 +514,9 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                           final s = visible[i];
                                           final pinned = _pinned.contains(s.sessionKey);
                                           final note = _noteMap[s.sessionKey];
+                                          final compact = context.watch<AppSettingsController>().compactMode;
                                           return ListTile(
+                                            visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
                                             title: Text(s.displayTitle),
                                             subtitle: Text(
                                               [
@@ -522,6 +547,16 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                   tooltip: 'Rename',
                                                   icon: const Icon(Icons.drive_file_rename_outline, size: 20),
                                                   onPressed: () => _renameSession(sessions, s),
+                                                ),
+                                                IconButton(
+                                                  tooltip: _archived.contains(s.sessionKey) ? 'Unarchive' : 'Archive',
+                                                  icon: Icon(
+                                                    _archived.contains(s.sessionKey)
+                                                        ? Icons.unarchive_outlined
+                                                        : Icons.archive_outlined,
+                                                    size: 20,
+                                                  ),
+                                                  onPressed: () => _toggleArchive(s),
                                                 ),
                                                 IconButton(
                                                   tooltip: 'Note',
