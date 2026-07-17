@@ -201,6 +201,34 @@ class SettingsScreen extends StatelessWidget {
               }
             },
           ),
+          ListTile(
+            leading: const Icon(Icons.restart_alt),
+            title: const Text('Reset console prefs'),
+            subtitle: const Text('Defaults for theme-adjacent console options · no host tokens'),
+            trailing: const Icon(Icons.restore_outlined),
+            onTap: () async {
+              final ok = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Reset console prefs?'),
+                  content: const Text(
+                    'Restores local console defaults (scale, compact, refresh, haptics, mono chat, etc.). Host profiles and tokens are not touched.',
+                  ),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                    FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Reset')),
+                  ],
+                ),
+              );
+              if (ok != true || !context.mounted) return;
+              await settings.resetConsolePrefs();
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Console prefs reset to defaults'), duration: Duration(seconds: 1)),
+              );
+            },
+          ),
+
           const Divider(height: 28),
           ListTile(
             leading: const Icon(Icons.info_outline),
@@ -214,7 +242,7 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.tag),
             title: const Text('App version'),
-            subtitle: const Text('0.1.38+38 · console only · protocol Mock/self-host'),
+            subtitle: const Text('0.1.39+39 · console only · protocol Mock/self-host'),
           ),
           ListTile(
             leading: const Icon(Icons.policy_outlined),

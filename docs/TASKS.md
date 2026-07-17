@@ -174,6 +174,11 @@
 | P3-127 | Workspace All/Dirs/Files chips | [x] |
 | P3-128 | Logs 跳到顶部/底部 | [x] |
 
+| P3-129 | Terminal 跳到顶部/底部 | [x] |
+| P3-130 | Memory 新旧排序 | [x] |
+| P3-131 | Settings 重置控制台 prefs（无 token） | [x] |
+| P3-132 | Host Dashboard 复制 capabilities | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

@@ -89,6 +89,17 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
     }
   }
 
+
+  Future<void> _copyCapabilities() async {
+    final caps = (_status['capabilities'] as List? ?? const []).map((e) => '$e').toList();
+    final text = caps.isEmpty ? '(no capabilities)' : caps.join('\n');
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Copied ${caps.length} capabilities'), duration: const Duration(seconds: 1)),
+    );
+  }
+
   Future<void> _copyStatus() async {
     final conn = context.read<ConnectionController>();
     final cfg = conn.saved;
@@ -140,6 +151,12 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
             onPressed: _status.isEmpty && _error == null ? null : _copyStatus,
             icon: const Icon(Icons.copy_all_outlined),
           ),
+          IconButton(
+            tooltip: 'Copy capabilities',
+            onPressed: _status.isEmpty ? null : _copyCapabilities,
+            icon: const Icon(Icons.extension_outlined),
+          ),
+
           IconButton(
             tooltip: 'Refresh',
             onPressed: _loading ? null : _refresh,

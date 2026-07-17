@@ -23,6 +23,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
   String _scope = 'all';
   String _type = 'all';
   String _q = '';
+  bool _newestFirst = true;
   List<Map<String, dynamic>> _items = [];
   final _search = TextEditingController();
 
@@ -40,7 +41,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
 
   List<Map<String, dynamic>> get _visible {
     final q = _search.text.trim().toLowerCase();
-    return _items.where((m) {
+    final list = _items.where((m) {
       if (_type != 'all') {
         final t = (m['type'] ?? '').toString().toLowerCase();
         if (_type == 'other') {
@@ -59,6 +60,20 @@ class _MemoryScreenState extends State<MemoryScreen> {
       final hay = '${m['title']} ${m['id']} ${m['content']} ${m['scope']} ${m['type']}'.toLowerCase();
       return hay.contains(q);
     }).toList();
+    int tsOf(Map<String, dynamic> m) {
+      final v = m['updated_at'] ?? m['created_at'] ?? m['ts'] ?? m['time'];
+      if (v is num) {
+        final n = v.toDouble();
+        return n > 1e12 ? n.round() : (n * 1000).round();
+      }
+      final p = DateTime.tryParse(v?.toString() ?? '');
+      return p?.millisecondsSinceEpoch ?? 0;
+    }
+    list.sort((a, b) {
+      final c = tsOf(a).compareTo(tsOf(b));
+      return _newestFirst ? -c : c;
+    });
+    return list;
   }
 
   Future<void> _load() async {
@@ -156,6 +171,11 @@ class _MemoryScreenState extends State<MemoryScreen> {
                     }
                   },
             icon: const Icon(Icons.table_chart_outlined),
+          ),
+          IconButton(
+            tooltip: _newestFirst ? 'Oldest first' : 'Newest first',
+            onPressed: () => setState(() => _newestFirst = !_newestFirst),
+            icon: Icon(_newestFirst ? Icons.arrow_downward : Icons.arrow_upward),
           ),
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],

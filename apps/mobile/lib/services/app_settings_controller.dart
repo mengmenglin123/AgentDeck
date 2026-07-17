@@ -138,6 +138,33 @@ class AppSettingsController extends ChangeNotifier {
   }
 
   /// Fire a light impact when haptics are enabled.
+
+  /// Reset console prefs to defaults (device-local only; does not touch host tokens).
+  Future<void> resetConsolePrefs() async {
+    textScale = 1.0;
+    compactMode = false;
+    dashboardRefreshSec = 15;
+    showToolsDefault = true;
+    sessionSort = 'updated';
+    highContrast = false;
+    hapticsEnabled = true;
+    keepScreenOn = false;
+    monoChat = false;
+    chatFontScale = 1.0;
+    notifyListeners();
+    final p = await SharedPreferences.getInstance();
+    await p.setDouble(_kScale, textScale);
+    await p.setBool(_kCompact, compactMode);
+    await p.setInt(_kDashRefresh, dashboardRefreshSec);
+    await p.setBool(_kShowTools, showToolsDefault);
+    await p.setString(_kSort, sessionSort);
+    await p.setBool(_kContrast, highContrast);
+    await p.setBool(_kHaptics, hapticsEnabled);
+    await p.setBool(_kKeepScreen, keepScreenOn);
+    await p.setBool(_kMonoChat, monoChat);
+    await p.setDouble(_kChatFont, chatFontScale);
+  }
+
   void buzzLight() {
     if (!hapticsEnabled) return;
     HapticFeedback.lightImpact();

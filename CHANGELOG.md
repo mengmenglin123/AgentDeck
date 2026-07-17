@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.39
+
+- Terminal: jump to top / end
+- Memory: newest/oldest sort toggle
+- Settings: reset console prefs to defaults (no tokens)
+- Host Dashboard: copy capabilities list
+
 ## 0.1.38
 
 - Activity: newest/oldest sort toggle
