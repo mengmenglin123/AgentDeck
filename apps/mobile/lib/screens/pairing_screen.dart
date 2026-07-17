@@ -1,3 +1,4 @@
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -54,6 +55,22 @@ class _PairingScreenState extends State<PairingScreen> {
     return widget.config.toPairingUri();
   }
 
+  static String _fpHex(String seed) {
+    final bytes = utf8.encode(seed);
+    var state = 2166136261;
+    for (final b in bytes) {
+      state = (state ^ b) * 16777619;
+      state &= 0xFFFFFFFF;
+    }
+    var s2 = state;
+    final parts = <String>[];
+    for (var i = 0; i < 4; i++) {
+      s2 = (1103515245 * s2 + 12345) & 0x7FFFFFFF;
+      parts.add((s2 & 0xFFFF).toRadixString(16).padLeft(4, '0'));
+    }
+    return parts.join();
+  }
+
   Future<void> _copy(String text, String okMsg) async {
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
@@ -86,12 +103,26 @@ class _PairingScreenState extends State<PairingScreen> {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 16),
-                Center(child: ConnectionFingerprint(seed: publicUri, size: 168)),
+                Center(child: ConnectionFingerprint(seed: publicUri, size: 220, cells: 13)),
                 const SizedBox(height: 8),
                 Center(
                   child: Text(
                     'fingerprint · ${cfg.host}:${cfg.bridgePort}/${cfg.mgmtPort}',
+                    style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant, fontFamily: 'monospace'),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Center(
+                  child: SelectableText(
+                    'hex ${_fpHex(publicUri)}',
                     style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant, fontFamily: 'monospace'),
+                  ),
+                ),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: () => _copy(_fpHex(publicUri), 'Fingerprint hex copied'),
+                    icon: const Icon(Icons.tag, size: 16),
+                    label: const Text('Copy fingerprint hex'),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -127,6 +158,23 @@ class _PairingScreenState extends State<PairingScreen> {
                   ],
                 ),
                 const SizedBox(height: 24),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Verify checklist', style: Theme.of(context).textTheme.titleSmall),
+                        const SizedBox(height: 6),
+                        const Text('1. Compare visual fingerprint on both devices'),
+                        const Text('2. Match host:ports line and hex tag'),
+                        const Text('3. Paste public URI only (never share tokens)'),
+                        const Text('4. Camera QR scan remains P4'),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 Text('Host payload (redacted)', style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 8),
                 SelectableText(

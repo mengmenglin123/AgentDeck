@@ -145,8 +145,30 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final items = _filtered;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Host activity'),
+        title: Text(items.isEmpty ? 'Host activity' : 'Host activity (${items.length})'),
         actions: [
+          IconButton(
+            tooltip: 'Copy all',
+            onPressed: items.isEmpty
+                ? null
+                : () async {
+                    final buf = StringBuffer();
+                    for (final e in items) {
+                      final ts = e['ts'] ?? e['time'] ?? '';
+                      final kind = e['type'] ?? e['kind'] ?? 'event';
+                      final msg = e['message'] ?? e['summary'] ?? e['content'] ?? e;
+                      final sk = e['session_key'] ?? e['session_id'] ?? '';
+                      buf.writeln('[$ts] $kind  $msg  session=$sk');
+                    }
+                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Copied ${items.length} events'), duration: const Duration(seconds: 1)),
+                      );
+                    }
+                  },
+            icon: const Icon(Icons.copy_all_outlined),
+          ),
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
       ),

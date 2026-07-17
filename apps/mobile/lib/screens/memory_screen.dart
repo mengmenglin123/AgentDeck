@@ -37,6 +37,16 @@ class _MemoryScreenState extends State<MemoryScreen> {
     super.dispose();
   }
 
+  List<Map<String, dynamic>> get _visible {
+    final q = _search.text.trim().toLowerCase();
+    if (q.isEmpty) return _items;
+    // Client refine in case Host search is coarse / ignored.
+    return _items.where((m) {
+      final hay = '${m['title']} ${m['id']} ${m['content']} ${m['scope']} ${m['type']}'.toLowerCase();
+      return hay.contains(q);
+    }).toList();
+  }
+
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -70,15 +80,15 @@ class _MemoryScreenState extends State<MemoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Host memory'),
+        title: Text(_visible.isEmpty ? 'Host memory' : 'Host memory (${_visible.length})'),
         actions: [
           IconButton(
             tooltip: 'Copy all',
-            onPressed: _items.isEmpty
+            onPressed: _visible.isEmpty
                 ? null
                 : () async {
                     final buf = StringBuffer();
-                    for (final m in _items) {
+                    for (final m in _visible) {
                       final title = (m['title'] ?? m['id'] ?? 'memory').toString();
                       final content = (m['content'] ?? '').toString();
                       final scope = (m['scope'] ?? '').toString();
@@ -91,7 +101,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
                     await Clipboard.setData(ClipboardData(text: buf.toString()));
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Copied ${_items.length} memories'), duration: const Duration(seconds: 1)),
+                        SnackBar(content: Text('Copied ${_visible.length} memories'), duration: const Duration(seconds: 1)),
                       );
                     }
                   },
@@ -143,6 +153,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
                         },
                       ),
                     ),
+                    onChanged: (_) => setState(() {}),
                     onSubmitted: (v) {
                       setState(() => _q = v.trim());
                       _load();
@@ -161,14 +172,16 @@ class _MemoryScreenState extends State<MemoryScreen> {
           Expanded(
             child: _items.isEmpty && !_loading
                 ? const Center(child: Text('No memories (Host may not expose /memory)'))
+                : _visible.isEmpty && !_loading
+                    ? const Center(child: Text('No memories match filter'))
                 : RefreshIndicator(
                     onRefresh: _load,
                     child: ListView.separated(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      itemCount: _items.length,
+                      itemCount: _visible.length,
                       separatorBuilder: (_, __) => const Divider(height: 1),
                       itemBuilder: (ctx, i) {
-                        final m = _items[i];
+                        final m = _visible[i];
                         final title = (m['title'] ?? m['id'] ?? 'memory').toString();
                         final content = (m['content'] ?? '').toString();
                         final scope = (m['scope'] ?? '').toString();

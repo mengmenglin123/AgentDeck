@@ -143,9 +143,11 @@
 - Connect status banner
 - Status last health probe
 
-## 0.1.26+
+## 0.1.27+
 
 - Logs local filter
 - Terminal wrap
 - Session copy ids
 - Haptics
+
+- 0.1.27: memory client filter, cron/activity copy-all, chat msg count, pairing hex + workspace breadcrumbs

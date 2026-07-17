@@ -40,6 +40,35 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     super.dispose();
   }
 
+  List<Widget> _breadcrumbChips() {
+    final parts = _path.split('/').where((e) => e.isNotEmpty).toList();
+    final chips = <Widget>[
+      ActionChip(
+        label: const Text('/'),
+        visualDensity: VisualDensity.compact,
+        onPressed: _path.isEmpty ? null : () => _load(path: ''),
+      ),
+    ];
+    var acc = '';
+    for (var i = 0; i < parts.length; i++) {
+      acc = acc.isEmpty ? parts[i] : (acc + '/' + parts[i]);
+      final target = acc;
+      final last = i == parts.length - 1;
+      chips.add(const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 2),
+        child: Icon(Icons.chevron_right, size: 16),
+      ));
+      chips.add(
+        ActionChip(
+          label: Text(parts[i]),
+          visualDensity: VisualDensity.compact,
+          onPressed: last ? null : () => _load(path: target),
+        ),
+      );
+    }
+    return chips;
+  }
+
   Future<void> _load({String? path}) async {
     setState(() {
       _loading = true;
@@ -146,6 +175,12 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               ),
             ),
           if (_loading) const LinearProgressIndicator(minHeight: 2),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+            child: Row(children: _breadcrumbChips()),
+          ),
+
           ListTile(
             dense: true,
             leading: const Icon(Icons.folder_open, size: 20),

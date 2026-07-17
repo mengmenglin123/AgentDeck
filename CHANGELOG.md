@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.27
+
+- Memory: live client-side refine filter + title count; Copy all follows filter
+- Cron / Activity: Copy all filtered jobs/events + title counts
+- Chat: subtitle shows message count and tools-hidden hint
+- Pairing: larger fingerprint (13×13), hex tag + copy, verify checklist
+- Workspace: path breadcrumb chips (navigate ancestors)
+
 ## [0.1.26] - 2026-07-17
 
 ### Added

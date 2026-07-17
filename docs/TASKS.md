@@ -115,6 +115,10 @@
 | P3-77 | Terminal 自动换行开关 + 横向滚动 | [x] |
 | P3-78 | Sessions 复制 id/session_key | [x] |
 | P3-79 | Settings 触感反馈（发送/固定） | [x] |
+| P3-80 | Memory 客户端二次筛选 + 标题计数 / Copy 跟筛选 | [x] |
+| P3-81 | Cron / Activity 复制全部 + 标题计数 | [x] |
+| P3-82 | Chat 副标题消息数 + tools hidden 提示 | [x] |
+| P3-83 | Pairing 更大指纹 / hex / 校验清单；Workspace 路径面包屑 | [x] |
 
 ## P4 — 远期
 

@@ -95,8 +95,35 @@ class _CronScreenState extends State<CronScreen> {
     final items = _filtered;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Host schedules'),
+        title: Text(items.isEmpty ? 'Host schedules' : 'Host schedules (${items.length})'),
         actions: [
+          IconButton(
+            tooltip: 'Copy all',
+            onPressed: items.isEmpty
+                ? null
+                : () async {
+                    final buf = StringBuffer();
+                    for (final j in items) {
+                      buf.writeln('## ${j['name'] ?? j['id'] ?? 'job'}');
+                      buf.writeln('id: ${j['id']}');
+                      buf.writeln('enabled: ${j['enabled']}');
+                      buf.writeln('schedule: ${j['schedule']}');
+                      buf.writeln('kind: ${j['kind']}');
+                      buf.writeln('last_status: ${j['last_status']}');
+                      buf.writeln('last_run: ${_fmtTs(j['last_run'])}');
+                      final desc = (j['description'] ?? '').toString();
+                      if (desc.isNotEmpty) buf.writeln(desc);
+                      buf.writeln();
+                    }
+                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Copied ${items.length} jobs'), duration: const Duration(seconds: 1)),
+                      );
+                    }
+                  },
+            icon: const Icon(Icons.copy_all_outlined),
+          ),
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
       ),

@@ -722,12 +722,14 @@ class _ChatScreenState extends State<ChatScreen> {
                     [
                       widget.session.project,
                       _chat.model,
+                      '${_chat.messages.length} msg',
                       if (_chat.connecting)
                         'connecting…'
                       else if (_chat.connected)
                         'live'
                       else
                         'offline',
+                      if (!_showTools) 'tools hidden',
                       if (_chat.reconnectHint != null && _chat.reconnectHint!.isNotEmpty)
                         _chat.reconnectHint!,
                     ].join(' · '),
