@@ -227,6 +227,36 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             icon: const Icon(Icons.copy_all_outlined),
           ),
           IconButton(
+            tooltip: 'Copy git summary',
+            onPressed: _git == null
+                ? null
+                : () async {
+                    final g = _git!;
+                    final files = (g['files'] as List?) ?? const [];
+                    final buf = StringBuffer();
+                    buf.writeln('branch: ${g['branch'] ?? '—'}');
+                    buf.writeln('dirty: ${g['dirty'] ?? g['is_dirty'] ?? '—'}');
+                    buf.writeln('ahead: ${g['ahead'] ?? '—'} behind: ${g['behind'] ?? '—'}');
+                    buf.writeln('changes: ${files.length}');
+                    for (final f in files.whereType<Map>()) {
+                      final path = (f['path'] ?? f['file'] ?? '').toString();
+                      final status = (f['status'] ?? f['code'] ?? '').toString();
+                      if (path.isEmpty) continue;
+                      buf.writeln('$status $path');
+                    }
+                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Git summary copied (${files.length} files)'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    }
+                  },
+            icon: const Icon(Icons.account_tree_outlined),
+          ),
+          IconButton(
             tooltip: 'Git diff',
             onPressed: () => _openDiff(isFile ? _path : null),
             icon: const Icon(Icons.difference_outlined),

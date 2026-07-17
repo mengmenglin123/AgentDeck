@@ -24,6 +24,7 @@ class _DiffScreenState extends State<DiffScreen> {
   String? _path;
   String _diff = '';
   bool _lineNums = true;
+  bool _wrapLines = false;
   final _diffFindCtrl = TextEditingController();
   String _diffQuery = '';
   final _fileFilterCtrl = TextEditingController();
@@ -125,6 +126,11 @@ class _DiffScreenState extends State<DiffScreen> {
             tooltip: _lineNums ? 'Hide line numbers' : 'Show line numbers',
             onPressed: () => setState(() => _lineNums = !_lineNums),
             icon: Icon(_lineNums ? Icons.format_list_numbered : Icons.format_list_bulleted),
+          ),
+          IconButton(
+            tooltip: _wrapLines ? 'No wrap' : 'Wrap lines',
+            onPressed: () => setState(() => _wrapLines = !_wrapLines),
+            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
           ),
           IconButton(
             tooltip: 'Copy path',
@@ -248,7 +254,7 @@ class _DiffScreenState extends State<DiffScreen> {
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.all(12),
                         children: [
-                          _DiffText(diff: _displayDiff, showLineNumbers: _lineNums),
+                          _DiffText(diff: _displayDiff, showLineNumbers: _lineNums, wrapLines: _wrapLines),
                         ],
                       ),
                     ),
@@ -261,14 +267,15 @@ class _DiffScreenState extends State<DiffScreen> {
 }
 
 class _DiffText extends StatelessWidget {
-  const _DiffText({required this.diff, this.showLineNumbers = true});
+  const _DiffText({required this.diff, this.showLineNumbers = true, this.wrapLines = false});
   final String diff;
   final bool showLineNumbers;
+  final bool wrapLines;
 
   @override
   Widget build(BuildContext context) {
     final lines = diff.replaceAll('\r\n', '\n').split('\n');
-    return SelectableText.rich(
+    final rich = SelectableText.rich(
       TextSpan(
         children: [
           for (var i = 0; i < lines.length; i++)
@@ -292,5 +299,11 @@ class _DiffText extends StatelessWidget {
         ],
       ),
     );
+    if (wrapLines) return rich;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: rich,
+    );
+
   }
 }

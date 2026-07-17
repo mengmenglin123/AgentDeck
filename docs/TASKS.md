@@ -159,6 +159,11 @@
 | P3-115 | Skills 导出 CSV（筛选结果） | [x] |
 | P3-116 | Cron 导出 CSV（筛选结果） | [x] |
 
+| P3-117 | Memory 导出 CSV（筛选结果） | [x] |
+| P3-118 | Diff 换行 / 横向滚动开关 | [x] |
+| P3-119 | Workspace 复制 git 摘要 | [x] |
+| P3-120 | Host Dashboard capability FilterChips | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

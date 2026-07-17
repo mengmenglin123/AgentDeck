@@ -127,6 +127,36 @@ class _MemoryScreenState extends State<MemoryScreen> {
                   },
             icon: const Icon(Icons.copy_all_outlined),
           ),
+          IconButton(
+            tooltip: 'Copy CSV',
+            onPressed: _visible.isEmpty
+                ? null
+                : () async {
+                    final buf = StringBuffer();
+                    buf.writeln('id,title,scope,type,content');
+                    for (final m in _visible) {
+                      final id = (m['id'] ?? '').toString().replaceAll(',', ';');
+                      final title = (m['title'] ?? '').toString().replaceAll(',', ';');
+                      final scope = (m['scope'] ?? '').toString().replaceAll(',', ';');
+                      final type = (m['type'] ?? '').toString().replaceAll(',', ';');
+                      final content = (m['content'] ?? '')
+                          .toString()
+                          .replaceAll(',', ';')
+                          .replaceAll('\n', ' ');
+                      buf.writeln('$id,$title,$scope,$type,$content');
+                    }
+                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Copied CSV (${_visible.length})'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    }
+                  },
+            icon: const Icon(Icons.table_chart_outlined),
+          ),
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
       ),

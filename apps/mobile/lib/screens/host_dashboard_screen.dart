@@ -32,6 +32,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
   bool _loading = true;
   Timer? _timer;
   DateTime? _lastOk;
+  String _capFilter = '';
 
   @override
   void initState() {
@@ -259,22 +260,48 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                Text('Capabilities', style: Theme.of(context).textTheme.titleSmall),
+                Text(
+                  (() {
+                    final caps = (_status['capabilities'] as List? ?? const []);
+                    if (caps.isEmpty) return 'Capabilities';
+                    if (_capFilter.isEmpty) return 'Capabilities (${caps.length})';
+                    return 'Capabilities · $_capFilter';
+                  })(),
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
                   children: [
+                    FilterChip(
+                      visualDensity: VisualDensity.compact,
+                      label: const Text('All', style: TextStyle(fontSize: 11)),
+                      selected: _capFilter.isEmpty,
+                      onSelected: (_) => setState(() => _capFilter = ''),
+                    ),
                     for (final c in (_status['capabilities'] as List? ?? const []))
-                      Chip(
+                      FilterChip(
                         visualDensity: VisualDensity.compact,
                         avatar: Icon(_capIcon('$c'), size: 14),
                         label: Text('$c', style: const TextStyle(fontSize: 11)),
+                        selected: _capFilter == '$c',
+                        onSelected: (_) => setState(() {
+                          _capFilter = _capFilter == '$c' ? '' : '$c';
+                        }),
                       ),
                     if ((_status['capabilities'] as List? ?? const []).isEmpty)
                       const Text('—', style: TextStyle(fontSize: 12)),
                   ],
                 ),
+                if (_capFilter.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      'Selected capability: $_capFilter (filter is visual highlight only)',
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    ),
+                  ),
                 const Divider(height: 32),
                 Text('Shortcuts', style: Theme.of(context).textTheme.titleSmall),
                 ListTile(

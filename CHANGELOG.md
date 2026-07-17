@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.36
+
+- Memory: Copy CSV of filtered entries
+- Diff: wrap / horizontal scroll toggle
+- Workspace: copy git summary (branch + changed files)
+- Host Dashboard: capability FilterChips + count title
+
 ## 0.1.35
 
 - Agents: Copy CSV of agents/projects/platforms catalog
