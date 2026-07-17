@@ -24,6 +24,7 @@ class _CronScreenState extends State<CronScreen> {
   String _query = '';
   /// all | on | off
   String _enabled = 'all';
+  bool _sortAsc = true;
 
   @override
   void initState() {
@@ -87,7 +88,14 @@ class _CronScreenState extends State<CronScreen> {
         return hay.contains(q);
       });
     }
-    return it.toList();
+    final list = it.toList();
+    list.sort((a, b) {
+      final na = (a['name'] ?? a['id'] ?? '').toString().toLowerCase();
+      final nb = (b['name'] ?? b['id'] ?? '').toString().toLowerCase();
+      final c = na.compareTo(nb);
+      return _sortAsc ? c : -c;
+    });
+    return list;
   }
 
   @override
@@ -158,6 +166,11 @@ class _CronScreenState extends State<CronScreen> {
                     }
                   },
             icon: const Icon(Icons.table_chart_outlined),
+          ),
+          IconButton(
+            tooltip: _sortAsc ? 'Sort Z→A' : 'Sort A→Z',
+            onPressed: () => setState(() => _sortAsc = !_sortAsc),
+            icon: Icon(_sortAsc ? Icons.sort_by_alpha : Icons.sort),
           ),
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],

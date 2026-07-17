@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import '../models/connection_config.dart';
+import '../services/app_settings_controller.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 
@@ -24,17 +27,32 @@ class _LogsScreenState extends State<LogsScreen> {
   String _query = '';
   bool _wrapLines = true;
   final _scroll = ScrollController();
+  Timer? _timer;
+  bool _autoRefresh = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _scroll.dispose();
     super.dispose();
+  }
+
+  void _armTimer() {
+    _timer?.cancel();
+    if (!_autoRefresh || !mounted) return;
+    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
+    if (sec <= 0) return;
+    _timer = Timer.periodic(Duration(seconds: sec), (_) {
+      if (!mounted || _loading) return;
+      _load();
+    });
   }
 
   Future<void> _load() async {
@@ -99,11 +117,14 @@ class _LogsScreenState extends State<LogsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _visible.isEmpty
-              ? 'Host logs'
-              : (_visible.length == _logs.length
-                  ? 'Host logs (${_visible.length})'
-                  : 'Host logs (${_visible.length}/${_logs.length})'),
+          () {
+            final base = _visible.isEmpty
+                ? 'Host logs'
+                : (_visible.length == _logs.length
+                    ? 'Host logs (${_visible.length})'
+                    : 'Host logs (${_visible.length}/${_logs.length})');
+            return _autoRefresh ? '$base · auto' : base;
+          }(),
         ),
         actions: [
           IconButton(
@@ -172,6 +193,15 @@ class _LogsScreenState extends State<LogsScreen> {
             },
             icon: const Icon(Icons.vertical_align_bottom),
           ),
+          IconButton(
+            tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
+            onPressed: () {
+              setState(() => _autoRefresh = !_autoRefresh);
+              _armTimer();
+            },
+            icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
+          ),
+
           IconButton(
             tooltip: _wrapLines ? 'No wrap' : 'Wrap lines',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),

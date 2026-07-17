@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.41
+
+- MCP: A→Z / Z→A name sort
+- Cron: A→Z / Z→A name sort
+- Logs: auto-refresh toggle (dashboard interval)
+- Audit: wrap / clamp detail lines
+
 ## 0.1.40
 
 - Agents: A→Z / Z→A name sort

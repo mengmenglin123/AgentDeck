@@ -21,6 +21,7 @@ class _McpScreenState extends State<McpScreen> {
   final _q = TextEditingController();
   String _query = '';
   String _status = '';
+  bool _sortAsc = true;
 
   @override
   void initState() {
@@ -62,7 +63,7 @@ class _McpScreenState extends State<McpScreen> {
 
   List<Map<String, dynamic>> get _filtered {
     final q = _query.trim().toLowerCase();
-    return servers.where((s) {
+    final list = servers.where((s) {
       final st = (s['status'] ?? '').toString().toLowerCase();
       if (_status.isNotEmpty) {
         if (_status == 'unknown') {
@@ -76,6 +77,13 @@ class _McpScreenState extends State<McpScreen> {
       final hay = '${s['name']} ${s['description']} ${s['status']} $tools'.toLowerCase();
       return hay.contains(q);
     }).toList();
+    list.sort((a, b) {
+      final na = (a['name'] ?? a['id'] ?? '').toString().toLowerCase();
+      final nb = (b['name'] ?? b['id'] ?? '').toString().toLowerCase();
+      final c = na.compareTo(nb);
+      return _sortAsc ? c : -c;
+    });
+    return list;
   }
 
   @override
@@ -150,6 +158,11 @@ class _McpScreenState extends State<McpScreen> {
                     }
                   },
             icon: const Icon(Icons.table_chart_outlined),
+          ),
+          IconButton(
+            tooltip: _sortAsc ? 'Sort Z→A' : 'Sort A→Z',
+            onPressed: () => setState(() => _sortAsc = !_sortAsc),
+            icon: Icon(_sortAsc ? Icons.sort_by_alpha : Icons.sort),
           ),
           IconButton(
             onPressed: loading ? null : _load,

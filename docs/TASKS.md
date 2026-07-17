@@ -184,6 +184,11 @@
 | P3-135 | Diff 跳到顶部/底部 | [x] |
 | P3-136 | Pairing 复制 public JSON（无 token） | [x] |
 
+| P3-137 | MCP 名称 A→Z 排序 | [x] |
+| P3-138 | Cron 名称 A→Z 排序 | [x] |
+| P3-139 | Logs 自动刷新（可暂停） | [x] |
+| P3-140 | Audit 详情换行/截断 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

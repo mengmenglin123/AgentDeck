@@ -19,6 +19,7 @@ class _AuditScreenState extends State<AuditScreen> {
   /// all | info | warn | error
   String _level = 'all';
   bool _newestFirst = true;
+  bool _wrapLines = false;
 
   @override
   void dispose() {
@@ -139,6 +140,11 @@ class _AuditScreenState extends State<AuditScreen> {
             icon: Icon(_newestFirst ? Icons.south : Icons.north),
           ),
           IconButton(
+            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            onPressed: () => setState(() => _wrapLines = !_wrapLines),
+            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
+          ),
+          IconButton(
             tooltip: 'Clear',
             onPressed: audit.clear,
             icon: const Icon(Icons.delete_outline),
@@ -222,8 +228,8 @@ class _AuditScreenState extends State<AuditScreen> {
                       title: Text(e.action),
                       subtitle: Text(
                         '${e.ts.toIso8601String().substring(11, 19)}  ${e.detail}',
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
+                        maxLines: _wrapLines ? 12 : 3,
+                        overflow: _wrapLines ? TextOverflow.visible : TextOverflow.ellipsis,
                       ),
                       onLongPress: () async {
                         await Clipboard.setData(
