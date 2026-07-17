@@ -66,6 +66,10 @@
 | P3-28 | 会话本地归档（列表隐藏 + Archived chip） | [x] |
 | P3-29 | 审计日志筛选 / 复制 | [x] |
 | P3-30 | Host Dashboard 自动刷新 | [x] |
+| P3-31 | 连接分享：公开 pairing URI + 可视化指纹（非相机 QR） | [x] |
+| P3-32 | 聊天 tools 显示开关（读 Settings 默认） | [x] |
+| P3-33 | 聊天跳转底部 FAB / 非贴底暂停自动滚 | [x] |
+| P3-34 | 会话多选：批量 pin / archive / delete | [x] |
 
 ## P4 — 远期
 

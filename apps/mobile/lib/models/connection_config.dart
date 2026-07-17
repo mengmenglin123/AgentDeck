@@ -102,6 +102,25 @@ class ConnectionConfig {
 
   String sessionKeyFor(String conversationId) => 'huan:$deviceId:$conversationId';
 
+  /// Public pairing URI — host/ports/tls only (never embeds tokens).
+  String toPairingUri({bool includeTokens = false}) {
+    final q = <String, String>{
+      'host': host,
+      'bridge': '$bridgePort',
+      'mgmt': '$mgmtPort',
+      'tls': useTls ? '1' : '0',
+    };
+    if (includeTokens) {
+      if (bridgeToken.isNotEmpty) q['bridge_token'] = bridgeToken;
+      if (mgmtToken.isNotEmpty) q['mgmt_token'] = mgmtToken;
+    }
+    return Uri(scheme: 'huanhermes', host: 'connect', queryParameters: q).toString();
+  }
+
+  /// One-line public summary for clipboard / share cards.
+  String toPublicSummary() =>
+      'HuanHermes Host $host\nbridge=$bridgePort mgmt=$mgmtPort tls=$useTls\n${toPairingUri()}';
+
   /// Parse `huanhermes://connect?host=&bridge=&mgmt=&tls=` (no secrets expected).
   static ConnectionConfig? tryParsePairingUri(String raw) {
     final s = raw.trim();

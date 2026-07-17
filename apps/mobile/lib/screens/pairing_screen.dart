@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../models/connection_config.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
+import '../widgets/connection_fingerprint.dart';
 
 class PairingScreen extends StatefulWidget {
   const PairingScreen({super.key, required this.config});
@@ -46,16 +47,33 @@ class _PairingScreenState extends State<PairingScreen> {
 
   String get code {
     final c = data['pairing_code']?.toString();
-    if (c != null && c.isNotEmpty) return c;
-    final cfg = widget.config;
-    return 'huanhermes://connect?host=${cfg.host}&bridge=${cfg.bridgePort}&mgmt=${cfg.mgmtPort}&tls=${cfg.useTls ? 1 : 0}';
+    if (c != null && c.isNotEmpty) {
+      // Prefer Host-provided code if present; still never invent tokens.
+      return c;
+    }
+    return widget.config.toPairingUri();
+  }
+
+  Future<void> _copy(String text, String okMsg) async {
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(okMsg), duration: const Duration(seconds: 1)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final cfg = widget.config;
+    final publicUri = cfg.toPairingUri();
     return Scaffold(
-      appBar: AppBar(title: const Text('Device pairing')),
+      appBar: AppBar(
+        title: const Text('Device pairing'),
+        actions: [
+          IconButton(onPressed: loading ? null : _load, icon: const Icon(Icons.refresh)),
+        ],
+      ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -63,8 +81,18 @@ class _PairingScreenState extends State<PairingScreen> {
               children: [
                 if (error != null) Text(error!, style: TextStyle(color: cs.error)),
                 Text(
-                  'Share this connection stub (no tokens). Paste into Connect or scan as text QR elsewhere.',
+                  'Share connection stub without tokens. Paste into Connect on another device. '
+                  'Visual fingerprint is for human verification only — not a camera QR (P4).',
                   style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                Center(child: ConnectionFingerprint(seed: publicUri, size: 168)),
+                const SizedBox(height: 8),
+                Center(
+                  child: Text(
+                    'fingerprint · ${cfg.host}:${cfg.bridgePort}/${cfg.mgmtPort}',
+                    style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant, fontFamily: 'monospace'),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Container(
@@ -77,16 +105,26 @@ class _PairingScreenState extends State<PairingScreen> {
                   child: SelectableText(code, style: const TextStyle(fontFamily: 'monospace', fontSize: 13)),
                 ),
                 const SizedBox(height: 12),
-                FilledButton.icon(
-                  onPressed: () async {
-                    await Clipboard.setData(ClipboardData(text: code));
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Copied pairing text')),
-                    );
-                  },
-                  icon: const Icon(Icons.copy),
-                  label: const Text('Copy'),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: () => _copy(code, 'Copied pairing text'),
+                      icon: const Icon(Icons.copy),
+                      label: const Text('Copy URI'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () => _copy(cfg.toPublicSummary(), 'Copied public summary'),
+                      icon: const Icon(Icons.notes_outlined),
+                      label: const Text('Copy summary'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () => _copy(publicUri, 'Copied public pairing URI'),
+                      icon: const Icon(Icons.link),
+                      label: const Text('Copy public URI'),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 24),
                 Text('Host payload (redacted)', style: Theme.of(context).textTheme.titleSmall),
@@ -98,7 +136,7 @@ class _PairingScreenState extends State<PairingScreen> {
                 const SizedBox(height: 16),
                 Text(
                   data['note']?.toString() ??
-                      'Tokens stay on each device. Never put secrets in QR payloads committed to git.',
+                      'Tokens stay on each device. Camera QR scan is not implemented yet.',
                   style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
                 ),
               ],

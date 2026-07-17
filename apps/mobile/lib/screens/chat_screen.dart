@@ -3,10 +3,12 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import '../models/connection_config.dart';
 import '../models/session_info.dart';
 import '../models/transcript.dart';
+import '../services/app_settings_controller.dart';
 import '../services/chat_controller.dart';
 import '../widgets/markdown_lite.dart';
 import 'audit_screen.dart';
@@ -36,11 +38,19 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _searchOpen = false;
   final _searchCtrl = TextEditingController();
   String _searchQ = '';
+  bool _showTools = true;
+  bool _stickToBottom = true;
+  bool _showJumpBottom = false;
 
   @override
   void initState() {
     super.initState();
     _chat = ChatController(config: widget.config, session: widget.session);
+    try {
+      _showTools = context.read<AppSettingsController>().showToolsDefault;
+    } catch (_) {
+      _showTools = true;
+    }
     if (widget.projectCapabilities.isNotEmpty) {
       _chat.applyProjectCapabilities(widget.projectCapabilities);
     } else if (widget.session.project == 'hermes') {
@@ -56,7 +66,34 @@ class _ChatScreenState extends State<ChatScreen> {
       _chat.model = 'mock-hermes';
     }
     _chat.addListener(_onChat);
+    _scroll.addListener(_onScroll);
     _bootstrap();
+  }
+
+  void _onScroll() {
+    if (!_scroll.hasClients) return;
+    final pos = _scroll.position;
+    final atBottom = pos.pixels >= pos.maxScrollExtent - 80;
+    final showJump = !atBottom && pos.maxScrollExtent > 120;
+    if (atBottom != _stickToBottom || showJump != _showJumpBottom) {
+      setState(() {
+        _stickToBottom = atBottom;
+        _showJumpBottom = showJump;
+      });
+    }
+  }
+
+  void _jumpToBottom() {
+    if (!_scroll.hasClients) return;
+    _scroll.animateTo(
+      _scroll.position.maxScrollExtent + 80,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+    );
+    setState(() {
+      _stickToBottom = true;
+      _showJumpBottom = false;
+    });
   }
 
   Future<void> _bootstrap() async {
@@ -67,8 +104,9 @@ class _ChatScreenState extends State<ChatScreen> {
   void _onChat() {
     if (!mounted) return;
     setState(() {});
+    if (!_stickToBottom) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scroll.hasClients) return;
+      if (!_scroll.hasClients || !_stickToBottom) return;
       _scroll.animateTo(
         _scroll.position.maxScrollExtent + 80,
         duration: const Duration(milliseconds: 200),
@@ -79,6 +117,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    _scroll.removeListener(_onScroll);
     _chat.removeListener(_onChat);
     _chat.dispose();
     _input.dispose();
@@ -423,6 +462,13 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
+      floatingActionButton: _showJumpBottom
+          ? FloatingActionButton.small(
+              tooltip: 'Jump to latest',
+              onPressed: _jumpToBottom,
+              child: const Icon(Icons.arrow_downward),
+            )
+          : null,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -446,6 +492,12 @@ class _ChatScreenState extends State<ChatScreen> {
             }),
             icon: Icon(_searchOpen ? Icons.search_off : Icons.search),
           ),
+          if (_chat.hasCap('tools_visible'))
+            IconButton(
+              tooltip: _showTools ? 'Hide tool messages' : 'Show tool messages',
+              onPressed: () => setState(() => _showTools = !_showTools),
+              icon: Icon(_showTools ? Icons.build_circle : Icons.build_circle_outlined),
+            ),
           IconButton(
             tooltip: 'Export transcript',
             onPressed: _chat.messages.isEmpty ? null : _exportTranscript,
@@ -623,7 +675,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           return _MessageBubble(
                             message: m,
                             onPermission: _chat.respondPermission,
-                            showTools: _chat.hasCap('tools_visible'),
+                            showTools: _showTools && _chat.hasCap('tools_visible'),
                             highlight: _searchQ.trim(),
                           );
                         },

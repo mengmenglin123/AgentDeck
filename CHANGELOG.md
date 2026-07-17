@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.15] - 2026-07-17
+
+### Added
+- Connection share: public pairing URI / summary (no tokens) + visual fingerprint on Pairing screen
+- Sessions multi-select: bulk pin / archive-or-unarchive / delete; long-press enters selection
+- Chat tool-message toggle (honors Settings default showTools)
+- Chat jump-to-bottom FAB; auto-scroll only while stick-to-bottom
+
+### Notes
+- Fingerprint is human verification only — camera QR scan remains P4
+
 ## [0.1.14] - 2026-07-17
 
 ### Added

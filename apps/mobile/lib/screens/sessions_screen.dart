@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../models/session_info.dart';
@@ -44,6 +45,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
   Map<String, String> _noteMap = {};
   /// all | pinned | running | archived
   String _filter = 'all';
+  bool _selectMode = false;
+  final Set<String> _selected = {};
 
   @override
   void initState() {
@@ -67,6 +70,89 @@ class _SessionsScreenState extends State<SessionsScreen> {
     await _archive.toggle(s.sessionKey);
     await _loadPins();
   }
+
+  void _enterSelectMode([SessionInfo? first]) {
+    setState(() {
+      _selectMode = true;
+      _selected.clear();
+      if (first != null) _selected.add(first.sessionKey);
+    });
+  }
+
+  void _exitSelectMode() {
+    setState(() {
+      _selectMode = false;
+      _selected.clear();
+    });
+  }
+
+  void _toggleSelected(SessionInfo s) {
+    setState(() {
+      if (_selected.contains(s.sessionKey)) {
+        _selected.remove(s.sessionKey);
+        if (_selected.isEmpty) _selectMode = false;
+      } else {
+        _selected.add(s.sessionKey);
+      }
+    });
+  }
+
+  List<SessionInfo> _selectedSessions(List<SessionInfo> all) {
+    return all.where((s) => _selected.contains(s.sessionKey)).toList();
+  }
+
+  Future<void> _bulkArchive({required bool archive}) async {
+    for (final k in _selected.toList()) {
+      await _archive.setArchived(k, archive);
+    }
+    await _loadPins();
+    _exitSelectMode();
+  }
+
+  Future<void> _bulkPin({required bool pin}) async {
+    for (final k in _selected.toList()) {
+      await _pins.setPinned(k, pin);
+    }
+    await _loadPins();
+    _exitSelectMode();
+  }
+
+  Future<void> _bulkDelete(SessionController sessions, List<SessionInfo> all) async {
+    final targets = _selectedSessions(all);
+    if (targets.isEmpty) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete ${targets.length} session(s)?'),
+        content: const Text(
+          'Removes sessions on the Host. Local notes/pins for those keys stay until cleared.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    for (final s in targets) {
+      await sessions.deleteSession(s);
+    }
+    _exitSelectMode();
+  }
+
+  Future<void> _shareConnection(ConnectionController conn) async {
+    final cfg = conn.saved;
+    if (cfg == null) return;
+    await Clipboard.setData(ClipboardData(text: cfg.toPublicSummary()));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Public connection summary copied (no tokens)'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
 
   Future<void> _renameSession(SessionController sessions, SessionInfo s) async {
     final ctrl = TextEditingController(text: s.displayTitle);
@@ -250,8 +336,38 @@ class _SessionsScreenState extends State<SessionsScreen> {
       builder: (context, _) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Sessions'),
+            leading: _selectMode
+                ? IconButton(
+                    tooltip: 'Cancel selection',
+                    icon: const Icon(Icons.close),
+                    onPressed: _exitSelectMode,
+                  )
+                : null,
+            title: Text(_selectMode ? '${_selected.length} selected' : 'Sessions'),
             actions: [
+              if (_selectMode) ...[
+                IconButton(
+                  tooltip: 'Pin selected',
+                  onPressed: _selected.isEmpty ? null : () => _bulkPin(pin: true),
+                  icon: const Icon(Icons.push_pin),
+                ),
+                IconButton(
+                  tooltip: 'Archive selected',
+                  onPressed: _selected.isEmpty
+                      ? null
+                      : () => _bulkArchive(archive: _filter != 'archived'),
+                  icon: Icon(
+                    _filter == 'archived' ? Icons.unarchive_outlined : Icons.archive_outlined,
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Delete selected',
+                  onPressed: _selected.isEmpty
+                      ? null
+                      : () => _bulkDelete(sessions, sessions.sessions),
+                  icon: const Icon(Icons.delete_outline),
+                ),
+              ] else ...[
             Builder(
               builder: (context) {
                 final theme = context.watch<ThemeController>();
@@ -262,7 +378,16 @@ class _SessionsScreenState extends State<SessionsScreen> {
                 );
               },
             ),
-
+              IconButton(
+                tooltip: 'Share connection (no tokens)',
+                onPressed: () => _shareConnection(conn),
+                icon: const Icon(Icons.ios_share_outlined),
+              ),
+              IconButton(
+                tooltip: 'Select sessions',
+                onPressed: () => _enterSelectMode(),
+                icon: const Icon(Icons.checklist),
+              ),
               IconButton(
                 tooltip: 'Host status',
                 onPressed: () {
@@ -363,6 +488,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                 },
                 icon: const Icon(Icons.logout),
               ),
+              ], // end non-select actions
             ],
           ),
           body: Column(
@@ -515,7 +641,9 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                           final pinned = _pinned.contains(s.sessionKey);
                                           final note = _noteMap[s.sessionKey];
                                           final compact = context.watch<AppSettingsController>().compactMode;
+                                          final selected = _selected.contains(s.sessionKey);
                                           return ListTile(
+                                            selected: selected,
                                             visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
                                             title: Text(s.displayTitle),
                                             subtitle: Text(
@@ -526,21 +654,40 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                               ].join('\n'),
                                             ),
                                             isThreeLine: true,
-                                            leading: Icon(
-                                              pinned
-                                                  ? Icons.push_pin
-                                                  : s.running
-                                                      ? Icons.play_circle_fill
-                                                      : Icons.chat_bubble_outline,
-                                              color: pinned
-                                                  ? Colors.amber
-                                                  : s.running
-                                                      ? Colors.blue
-                                                      : null,
-                                            ),
-                                            onTap: () => _openChat(s),
-                                            onLongPress: () => _editNote(s),
-                                            trailing: Wrap(
+                                            leading: _selectMode
+                                                ? Checkbox(
+                                                    value: selected,
+                                                    onChanged: (_) => _toggleSelected(s),
+                                                  )
+                                                : Icon(
+                                                    pinned
+                                                        ? Icons.push_pin
+                                                        : s.running
+                                                            ? Icons.play_circle_fill
+                                                            : Icons.chat_bubble_outline,
+                                                    color: pinned
+                                                        ? Colors.amber
+                                                        : s.running
+                                                            ? Colors.blue
+                                                            : null,
+                                                  ),
+                                            onTap: () {
+                                              if (_selectMode) {
+                                                _toggleSelected(s);
+                                              } else {
+                                                _openChat(s);
+                                              }
+                                            },
+                                            onLongPress: () {
+                                              if (_selectMode) {
+                                                _toggleSelected(s);
+                                              } else {
+                                                _enterSelectMode(s);
+                                              }
+                                            },
+                                            trailing: _selectMode
+                                                ? null
+                                                : Wrap(
                                               spacing: 0,
                                               children: [
                                                 IconButton(
