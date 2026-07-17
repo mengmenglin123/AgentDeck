@@ -129,3 +129,11 @@ flutter build apk --debug
 
 MIT（见 [LICENSE](LICENSE)）。  
 上游参考项目各自保留其 License；本仓库不内嵌其专有代码。
+
+
+## Guides
+
+- [Connect real Host](docs/guides/connect-real-host.md)
+- [Release / 内测](docs/guides/release.md)
+- [Self-host compat](docs/guides/self-host-compat.md)
+- [Security](docs/security.md)
