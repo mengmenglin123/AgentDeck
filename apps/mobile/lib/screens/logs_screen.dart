@@ -139,7 +139,10 @@ class _LogsScreenState extends State<LogsScreen> {
           Expanded(
             child: _logs.isEmpty && !_loading
                 ? const Center(child: Text('No log lines (Host may omit /logs)'))
-                : ListView.separated(
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(8, 4, 8, 24),
                     itemCount: _logs.length,
                     separatorBuilder: (_, __) => const Divider(height: 1),
@@ -193,7 +196,7 @@ class _LogsScreenState extends State<LogsScreen> {
                         ),
                       );
                     },
-                  ),
+                  )),
           ),
         ],
       ),

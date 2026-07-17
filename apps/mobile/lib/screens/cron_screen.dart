@@ -154,7 +154,10 @@ class _CronScreenState extends State<CronScreen> {
                 ? const Center(child: Text('No cron jobs (Host may not expose /cron)'))
                 : items.isEmpty
                     ? const Center(child: Text('No jobs match filter'))
-                    : ListView.separated(
+                    : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(),
                         itemCount: items.length,
                         separatorBuilder: (_, __) => const Divider(height: 1),
                         itemBuilder: (ctx, i) {
@@ -185,7 +188,7 @@ class _CronScreenState extends State<CronScreen> {
                             },
                           );
                         },
-                      ),
+                      )),
           ),
         ],
       ),

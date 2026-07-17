@@ -126,7 +126,10 @@ class _McpScreenState extends State<McpScreen> {
                       ? const Center(child: Text('No MCP servers reported'))
                       : items.isEmpty
                           ? const Center(child: Text('No servers match filter'))
-                          : ListView.builder(
+                          : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
                               padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
                               itemCount: items.length,
                               itemBuilder: (context, i) {
@@ -164,7 +167,7 @@ class _McpScreenState extends State<McpScreen> {
                                   ),
                                 );
                               },
-                            ),
+                            )),
                 ),
               ],
             ),

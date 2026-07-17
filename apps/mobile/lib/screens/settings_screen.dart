@@ -137,6 +137,20 @@ class SettingsScreen extends StatelessWidget {
             ),
             isThreeLine: true,
           ),
+          ListTile(
+            leading: const Icon(Icons.tag),
+            title: const Text('App version'),
+            subtitle: const Text('0.1.23+23 · console only · protocol Mock/self-host'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.policy_outlined),
+            title: const Text('Privacy notes'),
+            subtitle: const Text(
+              'Tokens stay in secure storage. Pairing URI / exports never include tokens. '
+              'Pins, notes, drafts, recents, audit are device-local.',
+            ),
+            isThreeLine: true,
+          ),
         ],
       ),
     );

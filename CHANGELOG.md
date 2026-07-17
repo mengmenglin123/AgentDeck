@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.23] - 2026-07-17
+
+### Added
+- Memory: copy entry / copy all export + pull-to-refresh
+- Workspace: copy path / file content; long-press entry copies path
+- Pull-to-refresh on Logs, Activity, Cron, Skills, MCP
+- Chat local message timestamps (HH:mm:ss on bubbles)
+- Settings: app version + privacy notes
+
 ## [0.1.22] - 2026-07-17
 
 ### Added

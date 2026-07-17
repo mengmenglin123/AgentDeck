@@ -29,13 +29,17 @@ class TranscriptMessage {
     required this.content,
     this.streaming = false,
     Map<String, dynamic>? meta,
-  }) : meta = meta ?? <String, dynamic>{};
+    DateTime? at,
+  })  : meta = meta ?? <String, dynamic>{},
+        at = at ?? DateTime.now();
 
   /// user | assistant | system | tool | permission
   final String role;
   String content;
   bool streaming;
   final Map<String, dynamic> meta;
+  /// Local client timestamp (not Host authoritative).
+  final DateTime at;
 
   TranscriptMessage copyWith({
     String? content,
@@ -46,6 +50,7 @@ class TranscriptMessage {
       content: content ?? this.content,
       streaming: streaming ?? this.streaming,
       meta: Map<String, dynamic>.from(meta),
+      at: at,
     );
   }
 }

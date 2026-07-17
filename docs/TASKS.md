@@ -99,6 +99,10 @@
 | P3-61 | Diff 文件筛选 / 复制 diff | [x] |
 | P3-62 | Status 着陆页健康条 + 摘要复制 + 快捷入口 | [x] |
 | P3-63 | Chat 气泡响应 Compact lists 密度 | [x] |
+| P3-64 | Memory 复制条目 / 导出全部 + 下拉刷新 | [x] |
+| P3-65 | Workspace 复制路径 / 文件内容 / 长按条目 | [x] |
+| P3-66 | 多页 Pull-to-refresh（logs/activity/cron/skills/mcp/memory） | [x] |
+| P3-67 | Chat 本地消息时间戳 + Settings 版本/隐私说明 | [x] |
 
 ## P4 — 远期
 

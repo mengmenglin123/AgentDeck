@@ -189,7 +189,10 @@ class _ActivityScreenState extends State<ActivityScreen> {
                           : 'No events match filter',
                     ),
                   )
-                : ListView.separated(
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(),
                     itemCount: items.length,
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (ctx, i) {
@@ -227,7 +230,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                         },
                       );
                     },
-                  ),
+                  )),
           ),
         ],
       ),

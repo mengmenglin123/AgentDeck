@@ -122,3 +122,9 @@
 - Agents/Diff filters
 - Status landing enrich
 - Chat compact density
+
+## 0.1.23+
+
+- Memory/Workspace copy exports
+- Catalog pull-to-refresh
+- Chat timestamps + Settings version

@@ -112,7 +112,10 @@ class _SkillsScreenState extends State<SkillsScreen> {
                             )
                           : items.isEmpty
                               ? const Center(child: Text('No skills match filter'))
-                              : ListView.separated(
+                              : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(),
                                   itemCount: items.length,
                                   separatorBuilder: (_, __) => const Divider(height: 1),
                                   itemBuilder: (context, i) {
@@ -146,7 +149,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
                                       ),
                                     );
                                   },
-                                ),
+                                )),
                     ),
                   ],
                 ),

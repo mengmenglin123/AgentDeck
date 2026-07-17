@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/connection_config.dart';
 import '../services/mgmt_client.dart';
@@ -94,6 +95,34 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       appBar: AppBar(
         title: const Text('Workspace'),
         actions: [
+          IconButton(
+            tooltip: 'Copy path',
+            onPressed: () async {
+              final p = _path.isEmpty ? '/' : '/$_path';
+              await Clipboard.setData(ClipboardData(text: p));
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Copied $p'), duration: const Duration(seconds: 1)),
+                );
+              }
+            },
+            icon: const Icon(Icons.link),
+          ),
+          IconButton(
+            tooltip: 'Copy content',
+            onPressed: !isFile
+                ? null
+                : () async {
+                    final text = _node?['content']?.toString() ?? '';
+                    await Clipboard.setData(ClipboardData(text: text));
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('File content copied'), duration: Duration(seconds: 1)),
+                      );
+                    }
+                  },
+            icon: const Icon(Icons.copy_all_outlined),
+          ),
           IconButton(
             tooltip: 'Git diff',
             onPressed: () => _openDiff(isFile ? _path : null),
@@ -222,6 +251,16 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                               ? Text('${e['size'] ?? '?'} B', style: const TextStyle(fontSize: 11))
                               : const Text('directory', style: TextStyle(fontSize: 11)),
                           onTap: () => _openEntry(e),
+                          onLongPress: () async {
+                            final name = e['name']?.toString() ?? '';
+                            final p = _path.isEmpty ? name : '$_path/$name';
+                            await Clipboard.setData(ClipboardData(text: p));
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Copied $p'), duration: const Duration(seconds: 1)),
+                              );
+                            }
+                          },
                           trailing: e['type'] == 'file'
                               ? IconButton(
                                   tooltip: 'Diff',

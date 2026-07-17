@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/connection_config.dart';
 import '../services/mgmt_client.dart';
@@ -71,6 +72,31 @@ class _MemoryScreenState extends State<MemoryScreen> {
       appBar: AppBar(
         title: const Text('Host memory'),
         actions: [
+          IconButton(
+            tooltip: 'Copy all',
+            onPressed: _items.isEmpty
+                ? null
+                : () async {
+                    final buf = StringBuffer();
+                    for (final m in _items) {
+                      final title = (m['title'] ?? m['id'] ?? 'memory').toString();
+                      final content = (m['content'] ?? '').toString();
+                      final scope = (m['scope'] ?? '').toString();
+                      final type = (m['type'] ?? '').toString();
+                      buf.writeln('## $title');
+                      buf.writeln('scope: $scope · type: $type');
+                      buf.writeln(content);
+                      buf.writeln();
+                    }
+                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Copied ${_items.length} memories'), duration: const Duration(seconds: 1)),
+                      );
+                    }
+                  },
+            icon: const Icon(Icons.copy_all_outlined),
+          ),
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
       ),
@@ -135,42 +161,65 @@ class _MemoryScreenState extends State<MemoryScreen> {
           Expanded(
             child: _items.isEmpty && !_loading
                 ? const Center(child: Text('No memories (Host may not expose /memory)'))
-                : ListView.separated(
-                    itemCount: _items.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (ctx, i) {
-                      final m = _items[i];
-                      final title = (m['title'] ?? m['id'] ?? 'memory').toString();
-                      final content = (m['content'] ?? '').toString();
-                      final scope = (m['scope'] ?? '').toString();
-                      final type = (m['type'] ?? '').toString();
-                      final conf = (m['confidence'] ?? '').toString();
-                      return ListTile(
-                        leading: Icon(
-                          scope == 'project' ? Icons.folder_special_outlined : Icons.psychology_outlined,
-                        ),
-                        title: Text(title),
-                        subtitle: Text(
-                          '[$scope/$type${conf.isNotEmpty ? ' · $conf' : ''}]\n'
-                          '${content.length > 160 ? '${content.substring(0, 160)}…' : content}',
-                        ),
-                        isThreeLine: true,
-                        onTap: () {
-                          showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            builder: (_) => Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                              child: SingleChildScrollView(
-                                child: SelectableText(
-                                  '# $title\n\nscope: $scope\ntype: $type\nconfidence: $conf\n\n$content',
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      itemCount: _items.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (ctx, i) {
+                        final m = _items[i];
+                        final title = (m['title'] ?? m['id'] ?? 'memory').toString();
+                        final content = (m['content'] ?? '').toString();
+                        final scope = (m['scope'] ?? '').toString();
+                        final type = (m['type'] ?? '').toString();
+                        final conf = (m['confidence'] ?? '').toString();
+                        final full = '# $title\n\nscope: $scope\ntype: $type\nconfidence: $conf\n\n$content';
+                        return ListTile(
+                          leading: Icon(
+                            scope == 'project' ? Icons.folder_special_outlined : Icons.psychology_outlined,
+                          ),
+                          title: Text(title),
+                          subtitle: Text(
+                            '[$scope/$type${conf.isNotEmpty ? ' · $conf' : ''}]\n'
+                            '${content.length > 160 ? '${content.substring(0, 160)}…' : content}',
+                          ),
+                          isThreeLine: true,
+                          trailing: IconButton(
+                            tooltip: 'Copy',
+                            icon: const Icon(Icons.copy, size: 18),
+                            onPressed: () async {
+                              await Clipboard.setData(ClipboardData(text: full));
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Memory copied'), duration: Duration(seconds: 1)),
+                                );
+                              }
+                            },
+                          ),
+                          onTap: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              builder: (_) => Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                                child: SingleChildScrollView(
+                                  child: SelectableText(full),
                                 ),
                               ),
-                            ),
-                          );
-                        },
-                      );
-                    },
+                            );
+                          },
+                          onLongPress: () async {
+                            await Clipboard.setData(ClipboardData(text: full));
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Memory copied'), duration: Duration(seconds: 1)),
+                              );
+                            }
+                          },
+                        );
+                      },
+                    ),
                   ),
           ),
         ],

@@ -1336,11 +1336,21 @@ class _MessageBubble extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                role + (message.streaming ? ' …' : ''),
-                style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      role + (message.streaming ? ' …' : ''),
+                      style: TextStyle(fontSize: compact ? 9 : 10, color: cs.onSurfaceVariant),
+                    ),
+                  ),
+                  Text(
+                    _fmtTime(message.at),
+                    style: TextStyle(fontSize: 9, color: cs.onSurfaceVariant.withOpacity(0.8), fontFamily: 'monospace'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: compact ? 2 : 4),
               if (useMd)
                 MarkdownLite(message.content)
               else
