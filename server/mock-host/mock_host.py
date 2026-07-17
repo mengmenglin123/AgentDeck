@@ -297,6 +297,34 @@ MOCK_DIFFS: Dict[str, str] = {
 }
 
 
+
+# Recent host activity ring buffer (readonly console feed)
+ACTIVITY_EVENTS: List[Dict[str, Any]] = []
+ACTIVITY_LOCK = threading.Lock()
+ACTIVITY_MAX = 100
+
+
+def activity_push(kind: str, summary: str, **extra: Any) -> None:
+    evt = {
+        "id": f"act-{uuid.uuid4().hex[:10]}",
+        "ts": time.time(),
+        "kind": kind,
+        "summary": summary,
+        **extra,
+    }
+    with ACTIVITY_LOCK:
+        ACTIVITY_EVENTS.append(evt)
+        if len(ACTIVITY_EVENTS) > ACTIVITY_MAX:
+            del ACTIVITY_EVENTS[: len(ACTIVITY_EVENTS) - ACTIVITY_MAX]
+
+
+def activity_list(limit: int = 50) -> List[Dict[str, Any]]:
+    with ACTIVITY_LOCK:
+        items = list(ACTIVITY_EVENTS)
+    items.reverse()
+    return items[: max(1, min(limit, ACTIVITY_MAX))]
+
+
 def workspace_diff(path: str = "") -> Dict[str, Any]:
     """Readonly unified diff snapshot for a path (or all)."""
     cleaned = (path or "").strip().lstrip("./")
@@ -740,6 +768,7 @@ def _handle_message(conn: socket.socket, msg: Dict[str, Any]) -> None:
         )
         return
 
+    activity_push("chat.message", f"message in {sk}", session_key=sk, preview=(content or "")[:80])
     if content.startswith("/"):
         reply = _mock_slash(sk, content)
         _stream_reply(conn, sk, ctx, reply, cancellable=False)
@@ -1014,6 +1043,7 @@ def _create_session_rec(project: str, body: Dict[str, Any]) -> Dict[str, Any]:
         SESSIONS[sid] = rec
         for p in PROJECTS:
             p["sessions_count"] = sum(1 for s in SESSIONS.values() if s.get("project") == p["name"])
+    activity_push("session.create", f"session {sid}", project=project, title=title)
     return rec
 
 
@@ -1061,7 +1091,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                 {
                     "ok": True,
                     "data": {
-                        "version": "mock-0.1.10",
+                        "version": "mock-0.1.11",
                         "uptime_seconds": int(time.time() - START_TS),
                         "connected_platforms": ["bridge"],
                         "projects_count": len(PROJECTS),
@@ -1077,6 +1107,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                             "memory_readonly",
                             "cron_readonly",
                             "diff_readonly",
+                            "activity_readonly",
                         ],
                         "bridge_adapters": [
                             {
@@ -1253,6 +1284,15 @@ class MgmtHandler(BaseHTTPRequestHandler):
                     return
             self._send(404, {"ok": False, "error": "memory not found"})
             return
+
+        if path == "/api/v1/activity":
+            qs = parse_qs(urlparse(self.path).query)
+            try:
+                lim = int((qs.get("limit") or ["50"])[0])
+            except ValueError:
+                lim = 50
+            self._send(200, {"ok": True, "data": {"events": activity_list(lim)}})
+            return
         if path == "/api/v1/cron":
             self._send(200, {"ok": True, "data": {"jobs": CRON_JOBS}})
             return
@@ -1355,6 +1395,7 @@ def mgmt_server() -> None:
 
 
 def main() -> None:
+    activity_push("host.start", "Mock Host started", bridge=BRIDGE_PORT, mgmt=MGMT_PORT)
     log("starting HuanHermes Mock Host")
     log(f"BRIDGE_TOKEN set (len={len(BRIDGE_TOKEN)}) MGMT_TOKEN set (len={len(MGMT_TOKEN)})")
     t = threading.Thread(target=mgmt_server, name="mgmt", daemon=True)

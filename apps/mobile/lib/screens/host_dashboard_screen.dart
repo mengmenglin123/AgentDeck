@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/connection_controller.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
+import 'activity_screen.dart';
 import 'cron_screen.dart';
 import 'diff_screen.dart';
 import 'mcp_screen.dart';
@@ -168,6 +169,14 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                   title: const Text('MCP'),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => McpScreen(config: cfg)),
+                  ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.bolt_outlined),
+                  title: const Text('Host activity'),
+                  subtitle: const Text('Readonly event feed'),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => ActivityScreen(config: cfg)),
                   ),
                 ),
                 ListTile(

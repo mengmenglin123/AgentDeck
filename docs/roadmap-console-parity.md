@@ -41,3 +41,11 @@
 2. GitHub 只参考不拷贝、不引入运行时依赖  
 3. 不碰 live 第三方 Host（9810/9820）  
 4. 任务板只写 `docs/TASKS.md`
+
+## 0.1.11+
+
+- Bridge 自动重连 UX + 手动 Reconnect
+- 聊天内搜索 / 高亮
+- Transcript 导出（剪贴板 Markdown/Plain）
+- 附件 demo 预览
+- Host activity 只读事件流

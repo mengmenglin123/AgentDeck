@@ -84,9 +84,9 @@ class BridgeClient {
     send({
       'type': 'register',
       'platform': config.platformName,
-      'capabilities': ['text', 'buttons', 'typing', 'preview'],
+      'capabilities': ['text', 'buttons', 'typing', 'preview', 'terminal'],
       'metadata': {
-        'version': '0.1.1',
+        'version': '0.1.11',
         'device_id': config.deviceId,
       },
     });

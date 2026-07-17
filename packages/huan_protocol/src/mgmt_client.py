@@ -125,6 +125,12 @@ class MgmtClient:
         except ProtocolError:
             return {"jobs": []}
 
+    def activity(self, limit: int = 50) -> Dict[str, Any]:
+        try:
+            return self._request("GET", f"/activity?limit={int(limit)}")
+        except ProtocolError:
+            return {"events": []}
+
     def sessions(self, project: Optional[str] = None) -> Dict[str, Any]:
         if self.dialect == "project" and project:
             return self._request("GET", f"/projects/{project}/sessions")

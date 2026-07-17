@@ -55,6 +55,7 @@ class ChatController extends ChangeNotifier {
   int reconnectAttempts = 0;
   Timer? _reconnectTimer;
   bool _disposed = false;
+  String? reconnectHint;
 
   List<TranscriptMessage> get messages => List.unmodifiable(reducer.messages);
   bool get isEmpty => messages.isEmpty;
@@ -81,6 +82,7 @@ class ChatController extends ChangeNotifier {
       await client.connect();
       connected = true;
       reconnectAttempts = 0;
+      reconnectHint = null;
       audit.add('bridge.connected', detail: config.bridgeWsUrlRedacted);
     } on AuthError catch (e) {
       error = e.message;
@@ -200,6 +202,47 @@ class ChatController extends ChangeNotifier {
 
   Future<void> sendSlash(String command) => send(command);
 
+  /// Export current transcript as Markdown (client-side; no Host secrets).
+  String exportTranscriptMarkdown() {
+    final buf = StringBuffer();
+    buf.writeln('# Session ${session.displayTitle}');
+    buf.writeln();
+    buf.writeln('- project: `${session.project}`');
+    buf.writeln('- session_key: `${session.sessionKey}`');
+    buf.writeln('- model: `$model` · mode: `$mode`');
+    buf.writeln('- workdir: `$workdir`');
+    buf.writeln('- exported: ${DateTime.now().toIso8601String()}');
+    buf.writeln();
+    for (final m in messages) {
+      buf.writeln('## ${m.role}');
+      buf.writeln();
+      buf.writeln(m.content);
+      buf.writeln();
+    }
+    return buf.toString();
+  }
+
+  String exportTranscriptPlain() {
+    final buf = StringBuffer();
+    for (final m in messages) {
+      buf.writeln('[${m.role}] ${m.content}');
+      buf.writeln();
+    }
+    return buf.toString();
+  }
+
+  void cancelReconnect() {
+    _reconnectTimer?.cancel();
+    reconnectAttempts = 0;
+  }
+
+  Future<void> reconnectNow() async {
+    _reconnectTimer?.cancel();
+    await disconnect();
+    reconnectAttempts = 0;
+    await connect();
+  }
+
   Future<void> cancelRun() async {
     if (_bridge == null || !connected) return;
     try {
@@ -239,9 +282,13 @@ class ChatController extends ChangeNotifier {
     reconnectAttempts += 1;
     final delay = Duration(seconds: reconnectAttempts * 2);
     audit.add('bridge.reconnect_scheduled', detail: 'attempt=$reconnectAttempts delay=${delay.inSeconds}s');
+    reconnectHint = 'Reconnecting in ${delay.inSeconds}s (attempt $reconnectAttempts/5)…';
+    notifyListeners();
     _reconnectTimer?.cancel();
     _reconnectTimer = Timer(delay, () {
       if (!_disposed && !connected) {
+        reconnectHint = 'Reconnecting…';
+        notifyListeners();
         connect(silent: true);
       }
     });
@@ -295,6 +342,7 @@ class ChatController extends ChangeNotifier {
     connected = false;
     typing = false;
     runActive = false;
+    error = error ?? 'Bridge connection closed';
     audit.add('bridge.closed', level: 'warn');
     notifyListeners();
     _scheduleReconnect();

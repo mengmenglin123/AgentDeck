@@ -8,6 +8,7 @@ import '../services/session_pins_store.dart';
 import 'chat_screen.dart';
 import 'cron_screen.dart';
 import 'diff_screen.dart';
+import 'activity_screen.dart';
 import 'host_dashboard_screen.dart';
 import 'mcp_screen.dart';
 import 'memory_screen.dart';
@@ -183,6 +184,9 @@ class _SessionsScreenState extends State<SessionsScreen> {
                     case 'memory':
                       page = MemoryScreen(config: cfg);
                       break;
+                    case 'activity':
+                      page = ActivityScreen(config: cfg);
+                      break;
                     case 'cron':
                       page = CronScreen(config: cfg);
                       break;
@@ -200,11 +204,12 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   }
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
                 },
-                itemBuilder: (ctx) => const [
+                itemBuilder: (ctx) => [
                   PopupMenuItem(value: 'status', child: Text('Host status')),
                   PopupMenuItem(value: 'workspace', child: Text('Workspace')),
                   PopupMenuItem(value: 'diff', child: Text('Git diff')),
                   PopupMenuItem(value: 'memory', child: Text('Host memory')),
+                  PopupMenuItem(value: 'activity', child: Text('Host activity')),
                   PopupMenuItem(value: 'cron', child: Text('Schedules')),
                   PopupMenuItem(value: 'skills', child: Text('Skills')),
                   PopupMenuItem(value: 'mcp', child: Text('MCP')),

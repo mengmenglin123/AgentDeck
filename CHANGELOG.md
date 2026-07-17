@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.11] - 2026-07-17
+
+### Added
+- Bridge reconnect UX: countdown hint, status chip tap, manual Reconnect
+- In-chat transcript search with amber highlight on hits
+- Export transcript to clipboard (Markdown + plain)
+- Attachment demo chips with text preview sheet
+- Host activity feed (`GET /activity`) + Activity screen + menu/dashboard links
+
+### Protocol
+- management-subset: `/activity?limit=`
+- status capability: `activity_readonly`
+- Mock activity ring buffer on host.start / session.create / chat.message
+
 ## [0.1.10] - 2026-07-17
 
 ### Added

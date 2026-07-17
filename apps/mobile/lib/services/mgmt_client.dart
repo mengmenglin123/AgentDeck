@@ -163,6 +163,15 @@ class MgmtClient {
     }
   }
 
+  /// Host activity feed (readonly): GET /activity?limit=
+  Future<Map<String, dynamic>> listActivity({int limit = 50}) async {
+    try {
+      return await _request('GET', '/activity?limit=$limit');
+    } on ProtocolError {
+      return {'events': <dynamic>[]};
+    }
+  }
+
   Future<List<SessionInfo>> sessions({String? project}) async {
     final proj = project ?? '';
     // Prefer dialect if known

@@ -157,6 +157,19 @@ class TestMgmtDialects(unittest.TestCase):
         self.assertIn("cron_readonly", caps)
         self.assertIn("diff_readonly", caps)
 
+    def test_activity_feed(self) -> None:
+        c = MgmtClient(self.cfg)
+        # Creating a session should emit activity
+        c.create_session(project="default", title="activity-probe")
+        data = c.activity(limit=20)
+        events = data.get("events") or []
+        self.assertTrue(events)
+        kinds = {e.get("kind") for e in events if isinstance(e, dict)}
+        self.assertTrue(kinds.intersection({"session.create", "host.start", "chat.message"}))
+        st = c.status()
+        caps = st.get("capabilities") or []
+        self.assertIn("activity_readonly", caps)
+
 
 if __name__ == "__main__":
     unittest.main()

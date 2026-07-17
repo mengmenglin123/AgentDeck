@@ -40,6 +40,7 @@ App 客户端自动探测，无需用户选择。
 | GET | `/workspace/diff?path=` | 可选只读 unified diff（`path` 空=文件索引） |
 | GET | `/memory?scope=&q=` | 可选只读 Host 记忆目录 |
 | GET | `/cron` | 可选只读 Host 定时任务 |
+| GET | `/activity?limit=` | 可选只读 Host 活动事件流 |
 
 ## Project capabilities（可选）
 

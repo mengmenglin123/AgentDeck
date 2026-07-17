@@ -2,6 +2,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/connection_config.dart';
 import '../models/session_info.dart';
@@ -32,6 +33,9 @@ class _ChatScreenState extends State<ChatScreen> {
   final _scroll = ScrollController();
   final List<Map<String, dynamic>> _pendingImages = [];
   final List<Map<String, dynamic>> _pendingFiles = [];
+  bool _searchOpen = false;
+  final _searchCtrl = TextEditingController();
+  String _searchQ = '';
 
   @override
   void initState() {
@@ -79,6 +83,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _chat.dispose();
     _input.dispose();
     _scroll.dispose();
+    _searchCtrl.dispose();
     super.dispose();
   }
 
@@ -321,6 +326,56 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  List<TranscriptMessage> get _visibleMessages {
+    final q = _searchQ.trim().toLowerCase();
+    if (q.isEmpty) return _chat.messages;
+    return _chat.messages
+        .where((m) => m.content.toLowerCase().contains(q) || m.role.toLowerCase().contains(q))
+        .toList();
+  }
+
+  Future<void> _exportTranscript() async {
+    final md = _chat.exportTranscriptMarkdown();
+    await Clipboard.setData(ClipboardData(text: md));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Copied ${md.length} chars Markdown transcript'),
+        action: SnackBarAction(
+          label: 'Plain',
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: _chat.exportTranscriptPlain()));
+          },
+        ),
+      ),
+    );
+  }
+
+  void _previewAttachment(Map<String, dynamic> att, {required bool image}) {
+    final name = (att['name'] ?? 'attachment').toString();
+    final b64 = (att['data_base64'] ?? '').toString();
+    String body = '';
+    try {
+      if (b64.isNotEmpty) {
+        body = utf8.decode(base64Decode(b64), allowMalformed: true);
+      }
+    } catch (_) {
+      body = '(binary ${b64.length} b64 chars)';
+    }
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        child: SingleChildScrollView(
+          child: SelectableText(
+            '# ${image ? 'image' : 'file'}: $name\n\nmime: ${att['mime'] ?? '?'}\n\n$body',
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -337,6 +392,22 @@ class _ChatScreenState extends State<ChatScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Search chat',
+            onPressed: () => setState(() {
+              _searchOpen = !_searchOpen;
+              if (!_searchOpen) {
+                _searchCtrl.clear();
+                _searchQ = '';
+              }
+            }),
+            icon: Icon(_searchOpen ? Icons.search_off : Icons.search),
+          ),
+          IconButton(
+            tooltip: 'Export transcript',
+            onPressed: _chat.messages.isEmpty ? null : _exportTranscript,
+            icon: const Icon(Icons.ios_share_outlined),
+          ),
           IconButton(
             tooltip: 'Reload transcript',
             onPressed: _chat.reloading ? null : _chat.reloadTranscript,
@@ -359,6 +430,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 connected: _chat.connected,
                 typing: _chat.typing,
                 runActive: _chat.runActive,
+                reconnectHint: _chat.reconnectHint,
+                onReconnect: () => _chat.reconnectNow(),
               ),
             ),
           ),
@@ -366,19 +439,56 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
-          if (_chat.error != null)
+          if (_chat.error != null || _chat.reconnectHint != null)
             Material(
-              color: cs.errorContainer,
+              color: _chat.connected ? cs.secondaryContainer : cs.errorContainer,
               child: ListTile(
                 dense: true,
                 title: Text(
-                  _chat.error!,
-                  style: TextStyle(color: cs.onErrorContainer),
+                  _chat.error ?? _chat.reconnectHint ?? '',
+                  style: TextStyle(
+                    color: _chat.connected ? cs.onSecondaryContainer : cs.onErrorContainer,
+                    fontSize: 13,
+                  ),
                 ),
-                trailing: TextButton(
-                  onPressed: () => _chat.connect(),
-                  child: const Text('Retry'),
+                trailing: Wrap(
+                  spacing: 0,
+                  children: [
+                    if (!_chat.connected)
+                      TextButton(
+                        onPressed: _chat.connecting ? null : () => _chat.reconnectNow(),
+                        child: const Text('Reconnect'),
+                      )
+                    else
+                      TextButton(
+                        onPressed: () => _chat.connect(),
+                        child: const Text('Retry'),
+                      ),
+                  ],
                 ),
+              ),
+            ),
+          if (_searchOpen)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+              child: TextField(
+                controller: _searchCtrl,
+                decoration: InputDecoration(
+                  hintText: 'Search in transcript',
+                  isDense: true,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.search, size: 18),
+                  suffixIcon: _searchQ.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _searchCtrl.clear();
+                            setState(() => _searchQ = '');
+                          },
+                        ),
+                ),
+                onChanged: (v) => setState(() => _searchQ = v),
               ),
             ),
           _AgentToolbar(
@@ -400,20 +510,52 @@ class _ChatScreenState extends State<ChatScreen> {
           if (_pendingImages.isNotEmpty || _pendingFiles.isNotEmpty)
             Material(
               color: cs.surfaceContainerHighest.withOpacity(0.5),
-              child: ListTile(
-                dense: true,
-                leading: const Icon(Icons.attach_file, size: 18),
-                title: Text(
-                  '${_pendingImages.length} image(s), ${_pendingFiles.length} file(s) ready',
-                  style: const TextStyle(fontSize: 12),
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.close, size: 18),
-                  onPressed: () => setState(() {
-                    _pendingImages.clear();
-                    _pendingFiles.clear();
-                  }),
-                ),
+              child: Column(
+                children: [
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.attach_file, size: 18),
+                    title: Text(
+                      '${_pendingImages.length} image(s), ${_pendingFiles.length} file(s) ready — tap to preview',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.close, size: 18),
+                      onPressed: () => setState(() {
+                        _pendingImages.clear();
+                        _pendingFiles.clear();
+                      }),
+                    ),
+                  ),
+                  if (_pendingImages.isNotEmpty || _pendingFiles.isNotEmpty)
+                    SizedBox(
+                      height: 36,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                        children: [
+                          for (final img in _pendingImages)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: ActionChip(
+                                avatar: const Icon(Icons.image, size: 16),
+                                label: Text((img['name'] ?? 'image').toString(), style: const TextStyle(fontSize: 11)),
+                                onPressed: () => _previewAttachment(img, image: true),
+                              ),
+                            ),
+                          for (final f in _pendingFiles)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: ActionChip(
+                                avatar: const Icon(Icons.insert_drive_file, size: 16),
+                                label: Text((f['name'] ?? 'file').toString(), style: const TextStyle(fontSize: 11)),
+                                onPressed: () => _previewAttachment(f, image: false),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
             ),
           Expanded(
@@ -423,16 +565,25 @@ class _ChatScreenState extends State<ChatScreen> {
                     connected: _chat.connected,
                     connecting: _chat.connecting,
                   )
-                : ListView.builder(
-                    controller: _scroll,
-                    padding: const EdgeInsets.all(12),
-                    itemCount: _chat.messages.length,
-                    itemBuilder: (context, i) {
-                      final m = _chat.messages[i];
-                      return _MessageBubble(
-                        message: m,
-                        onPermission: _chat.respondPermission,
-                        showTools: _chat.hasCap('tools_visible'),
+                : Builder(
+                    builder: (context) {
+                      final visible = _visibleMessages;
+                      if (visible.isEmpty) {
+                        return const Center(child: Text('No messages match search'));
+                      }
+                      return ListView.builder(
+                        controller: _scroll,
+                        padding: const EdgeInsets.all(12),
+                        itemCount: visible.length,
+                        itemBuilder: (context, i) {
+                          final m = visible[i];
+                          return _MessageBubble(
+                            message: m,
+                            onPermission: _chat.respondPermission,
+                            showTools: _chat.hasCap('tools_visible'),
+                            highlight: _searchQ.trim(),
+                          );
+                        },
                       );
                     },
                   ),
@@ -616,36 +767,50 @@ class _StatusChip extends StatelessWidget {
     required this.connected,
     required this.typing,
     required this.runActive,
+    this.reconnectHint,
+    this.onReconnect,
   });
 
   final bool connecting;
   final bool connected;
   final bool typing;
   final bool runActive;
+  final String? reconnectHint;
+  final VoidCallback? onReconnect;
 
   @override
   Widget build(BuildContext context) {
-    final label = connecting
-        ? 'connecting'
-        : typing
-            ? 'typing…'
-            : runActive
-                ? 'running'
-                : connected
-                    ? 'online'
-                    : 'offline';
-    final color = connecting
-        ? Colors.orange
-        : connected
-            ? (runActive || typing ? Colors.blue : Colors.green)
-            : Colors.grey;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(12),
+    Color c;
+    String label;
+    if (connecting) {
+      c = Colors.orange;
+      label = '…';
+    } else if (connected) {
+      c = typing || runActive ? Colors.blue : Colors.green;
+      label = typing ? 'typing' : (runActive ? 'run' : 'live');
+    } else {
+      c = Colors.red;
+      label = reconnectHint != null ? 're…' : 'off';
+    }
+    return InkWell(
+      onTap: connected ? null : onReconnect,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: c.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: c.withOpacity(0.5)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 8, height: 8, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
+            const SizedBox(width: 6),
+            Text(label, style: TextStyle(fontSize: 11, color: c, fontWeight: FontWeight.w600)),
+          ],
+        ),
       ),
-      child: Text(label, style: TextStyle(fontSize: 11, color: color)),
     );
   }
 }
@@ -656,11 +821,13 @@ class _MessageBubble extends StatelessWidget {
     required this.message,
     required this.onPermission,
     this.showTools = true,
+    this.highlight = '',
   });
 
   final TranscriptMessage message;
   final Future<void> Function(String action) onPermission;
   final bool showTools;
+  final String highlight;
 
   List<Map<String, dynamic>> get _buttons {
     final raw = message.meta['buttons'];
@@ -699,6 +866,8 @@ class _MessageBubble extends StatelessWidget {
     final align = isUser ? Alignment.centerRight : Alignment.centerLeft;
     final buttons = _buttons;
     final useMd = !isUser && !isTool && message.content.contains(RegExp(r'[#*`>\n-]'));
+    final hl = highlight.trim().isNotEmpty &&
+        message.content.toLowerCase().contains(highlight.trim().toLowerCase());
 
     return Align(
       alignment: align,
@@ -709,6 +878,7 @@ class _MessageBubble extends StatelessWidget {
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(12),
+          border: hl ? Border.all(color: Colors.amber, width: 1.5) : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

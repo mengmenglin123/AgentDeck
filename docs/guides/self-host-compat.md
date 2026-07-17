@@ -33,6 +33,7 @@
 | GET | `/workspace/diff?path=`（可选 unified diff） |
 | GET | `/memory?scope=&q=`（可选只读记忆目录） |
 | GET | `/cron`（可选只读定时任务） |
+| GET | `/activity?limit=`（可选只读活动流） |
 | GET | `/pairing`（可选，**禁止返回 token**） |
 
 ## Hermes
