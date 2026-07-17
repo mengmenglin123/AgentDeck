@@ -641,6 +641,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final settings = context.watch<AppSettingsController>();
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
       floatingActionButton: _showJumpBottom
@@ -939,6 +940,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               highlight: _searchQ.trim(),
                               isSearchHit: hits.contains(i),
                               isActiveSearchHit: i == activeHit,
+                              compact: settings.compactMode,
                               onQuote: () {
                                 final clip = m.content.trim();
                                 if (clip.isEmpty) return;
@@ -1226,6 +1228,7 @@ class _MessageBubble extends StatelessWidget {
     this.isSearchHit = false,
     this.isActiveSearchHit = false,
     this.onQuote,
+    this.compact = false,
   });
 
   final TranscriptMessage message;
@@ -1235,6 +1238,7 @@ class _MessageBubble extends StatelessWidget {
   final bool isSearchHit;
   final bool isActiveSearchHit;
   final VoidCallback? onQuote;
+  final bool compact;
 
   List<Map<String, dynamic>> get _buttons {
     final raw = message.meta['buttons'];
@@ -1321,8 +1325,8 @@ class _MessageBubble extends StatelessWidget {
           }
         },
         child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 4),
-          padding: const EdgeInsets.all(10),
+          margin: EdgeInsets.symmetric(vertical: compact ? 2 : 4),
+          padding: EdgeInsets.all(compact ? 6 : 10),
           constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.88),
           decoration: BoxDecoration(
             color: bg,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/connection_config.dart';
 import '../services/mgmt_client.dart';
@@ -22,12 +23,26 @@ class _DiffScreenState extends State<DiffScreen> {
   List<Map<String, dynamic>> _files = [];
   String? _path;
   String _diff = '';
+  final _fileFilterCtrl = TextEditingController();
+  String _fileFilter = '';
 
   @override
   void initState() {
     super.initState();
     _path = widget.initialPath;
     _loadIndex();
+  }
+
+  @override
+  void dispose() {
+    _fileFilterCtrl.dispose();
+    super.dispose();
+  }
+
+  List<Map<String, dynamic>> get _visibleFiles {
+    final q = _fileFilter.trim().toLowerCase();
+    if (q.isEmpty) return _files;
+    return _files.where((f) => '${f['path']}'.toLowerCase().contains(q)).toList();
   }
 
   Future<void> _loadIndex() async {
@@ -86,6 +101,20 @@ class _DiffScreenState extends State<DiffScreen> {
       appBar: AppBar(
         title: Text(_path == null ? 'Git diff' : 'Diff · $_path'),
         actions: [
+          IconButton(
+            tooltip: 'Copy diff',
+            onPressed: _diff.isEmpty
+                ? null
+                : () async {
+                    await Clipboard.setData(ClipboardData(text: _diff));
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Diff copied'), duration: Duration(seconds: 1)),
+                      );
+                    }
+                  },
+            icon: const Icon(Icons.copy_all_outlined),
+          ),
           IconButton(onPressed: _loading ? null : _loadIndex, icon: const Icon(Icons.refresh)),
         ],
       ),
@@ -98,15 +127,38 @@ class _DiffScreenState extends State<DiffScreen> {
             ),
           if (_loading) const LinearProgressIndicator(minHeight: 2),
           if (_files.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
+              child: TextField(
+                controller: _fileFilterCtrl,
+                decoration: InputDecoration(
+                  hintText: 'Filter changed files',
+                  isDense: true,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.search, size: 18),
+                  suffixIcon: _fileFilter.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _fileFilterCtrl.clear();
+                            setState(() => _fileFilter = '');
+                          },
+                        ),
+                ),
+                onChanged: (v) => setState(() => _fileFilter = v),
+              ),
+            ),
+          if (_files.isNotEmpty)
             SizedBox(
               height: 48,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                itemCount: _files.length,
+                itemCount: _visibleFiles.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 6),
                 itemBuilder: (ctx, i) {
-                  final p = (_files[i]['path'] ?? '').toString();
+                  final p = (_visibleFiles[i]['path'] ?? '').toString();
                   final selected = p == _path;
                   return ChoiceChip(
                     label: Text(p, style: const TextStyle(fontSize: 12)),

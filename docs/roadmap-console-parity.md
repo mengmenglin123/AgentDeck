@@ -116,3 +116,9 @@
 
 - Skills/MCP/Cron/Workspace local filters
 - Dashboard health strip
+
+## 0.1.22+
+
+- Agents/Diff filters
+- Status landing enrich
+- Chat compact density

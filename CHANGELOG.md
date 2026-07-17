@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.22] - 2026-07-17
+
+### Added
+- Agents catalog filter/copy; fixed agent title/subtitle helpers
+- Diff viewer: filter changed files + copy full diff
+- Status landing: health strip, snapshot chips, copy summary (no token), open sessions/dashboard
+- Chat bubbles honor Compact lists (tighter margin/padding)
+
 ## [0.1.21] - 2026-07-17
 
 ### Added

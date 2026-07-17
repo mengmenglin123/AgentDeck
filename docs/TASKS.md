@@ -95,6 +95,10 @@
 | P3-57 | Cron 筛选（文本 + enabled） / 长按复制 | [x] |
 | P3-58 | Workspace 目录内本地过滤 | [x] |
 | P3-59 | Host Dashboard 健康条（/status + heartbeat 降级） | [x] |
+| P3-60 | Agents 筛选 / 复制（修复 title helpers） | [x] |
+| P3-61 | Diff 文件筛选 / 复制 diff | [x] |
+| P3-62 | Status 着陆页健康条 + 摘要复制 + 快捷入口 | [x] |
+| P3-63 | Chat 气泡响应 Compact lists 密度 | [x] |
 
 ## P4 — 远期
 
