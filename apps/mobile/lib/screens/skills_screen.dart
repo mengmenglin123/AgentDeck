@@ -22,6 +22,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
   String _query = '';
   String _source = '';
   bool _sortAsc = true;
+  final _scroll = ScrollController();
 
   @override
   void initState() {
@@ -31,6 +32,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
 
   @override
   void dispose() {
+    _scroll.dispose();
     _q.dispose();
     super.dispose();
   }
@@ -160,6 +162,27 @@ class _SkillsScreenState extends State<SkillsScreen> {
             onPressed: () => setState(() => _sortAsc = !_sortAsc),
             icon: Icon(_sortAsc ? Icons.sort_by_alpha : Icons.sort),
           ),
+          IconButton(
+            tooltip: 'Jump to top',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+            },
+            icon: const Icon(Icons.vertical_align_top),
+          ),
+          IconButton(
+            tooltip: 'Jump to end',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(
+                _scroll.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
+            },
+            icon: const Icon(Icons.vertical_align_bottom),
+          ),
+
           IconButton(onPressed: loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
       ),
@@ -231,6 +254,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
                     onRefresh: _load,
                     child: ListView.separated(
                       physics: const AlwaysScrollableScrollPhysics(),
+                      controller: _scroll,
                                   itemCount: items.length,
                                   separatorBuilder: (_, __) => const Divider(height: 1),
                                   itemBuilder: (context, i) {

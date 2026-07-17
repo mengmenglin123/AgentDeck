@@ -25,6 +25,7 @@ class _CronScreenState extends State<CronScreen> {
   /// all | on | off
   String _enabled = 'all';
   bool _sortAsc = true;
+  final _scroll = ScrollController();
 
   @override
   void initState() {
@@ -34,6 +35,7 @@ class _CronScreenState extends State<CronScreen> {
 
   @override
   void dispose() {
+    _scroll.dispose();
     _q.dispose();
     super.dispose();
   }
@@ -172,6 +174,27 @@ class _CronScreenState extends State<CronScreen> {
             onPressed: () => setState(() => _sortAsc = !_sortAsc),
             icon: Icon(_sortAsc ? Icons.sort_by_alpha : Icons.sort),
           ),
+          IconButton(
+            tooltip: 'Jump to top',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+            },
+            icon: const Icon(Icons.vertical_align_top),
+          ),
+          IconButton(
+            tooltip: 'Jump to end',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(
+                _scroll.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
+            },
+            icon: const Icon(Icons.vertical_align_bottom),
+          ),
+
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
       ),
@@ -233,6 +256,7 @@ class _CronScreenState extends State<CronScreen> {
                     onRefresh: _load,
                     child: ListView.separated(
                       physics: const AlwaysScrollableScrollPhysics(),
+                      controller: _scroll,
                         itemCount: items.length,
                         separatorBuilder: (_, __) => const Divider(height: 1),
                         itemBuilder: (ctx, i) {

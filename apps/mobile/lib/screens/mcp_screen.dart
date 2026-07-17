@@ -22,6 +22,7 @@ class _McpScreenState extends State<McpScreen> {
   String _query = '';
   String _status = '';
   bool _sortAsc = true;
+  final _scroll = ScrollController();
 
   @override
   void initState() {
@@ -31,6 +32,7 @@ class _McpScreenState extends State<McpScreen> {
 
   @override
   void dispose() {
+    _scroll.dispose();
     _q.dispose();
     super.dispose();
   }
@@ -165,6 +167,27 @@ class _McpScreenState extends State<McpScreen> {
             icon: Icon(_sortAsc ? Icons.sort_by_alpha : Icons.sort),
           ),
           IconButton(
+            tooltip: 'Jump to top',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+            },
+            icon: const Icon(Icons.vertical_align_top),
+          ),
+          IconButton(
+            tooltip: 'Jump to end',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(
+                _scroll.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
+            },
+            icon: const Icon(Icons.vertical_align_bottom),
+          ),
+
+          IconButton(
             onPressed: loading ? null : _load,
             icon: const Icon(Icons.refresh),
           ),
@@ -239,6 +262,7 @@ class _McpScreenState extends State<McpScreen> {
                     onRefresh: _load,
                     child: ListView.builder(
                       physics: const AlwaysScrollableScrollPhysics(),
+                      controller: _scroll,
                               padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
                               itemCount: items.length,
                               itemBuilder: (context, i) {

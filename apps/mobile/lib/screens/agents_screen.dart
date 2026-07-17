@@ -27,6 +27,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
   /// all | agents | platforms | projects
   String _section = 'all';
   bool _sortAsc = true;
+  final _scroll = ScrollController();
 
   @override
   void initState() {
@@ -36,6 +37,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
 
   @override
   void dispose() {
+    _scroll.dispose();
     _q.dispose();
     super.dispose();
   }
@@ -237,6 +239,27 @@ class _AgentsScreenState extends State<AgentsScreen> {
             onPressed: () => setState(() => _sortAsc = !_sortAsc),
             icon: Icon(_sortAsc ? Icons.sort_by_alpha : Icons.sort),
           ),
+          IconButton(
+            tooltip: 'Jump to top',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+            },
+            icon: const Icon(Icons.vertical_align_top),
+          ),
+          IconButton(
+            tooltip: 'Jump to end',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(
+                _scroll.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
+            },
+            icon: const Icon(Icons.vertical_align_bottom),
+          ),
+
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
       ),
@@ -295,6 +318,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
               onRefresh: _load,
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
+                      controller: _scroll,
                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
                 children: [
                 if (_section == 'all' || _section == 'agents') ...[

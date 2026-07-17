@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.43
+
+- Agents: jump to top / end
+- MCP: jump to top / end
+- Skills: jump to top / end
+- Cron: jump to top / end
+
 ## 0.1.42
 
 - Activity: auto-refresh toggle (dashboard interval)
