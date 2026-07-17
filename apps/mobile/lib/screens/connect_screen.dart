@@ -173,6 +173,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
               'Tokens stay in secure storage. Do not paste secrets into git.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
+            const SizedBox(height: 12),
+            _ConnectionStatusBanner(controller: controller),
             if (controller.profiles.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text('Saved hosts', style: Theme.of(context).textTheme.titleSmall),
@@ -346,6 +348,63 @@ class _ConnectScreenState extends State<ConnectScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ConnectionStatusBanner extends StatelessWidget {
+  const _ConnectionStatusBanner({required this.controller});
+
+  final ConnectionController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final phase = controller.phase;
+    Color color;
+    IconData icon;
+    String title;
+    String subtitle;
+    switch (phase) {
+      case ConnectionPhase.ready:
+        if (controller.healthDegraded) {
+          color = Colors.orange;
+          icon = Icons.warning_amber_rounded;
+          title = 'Connected · health degraded';
+          subtitle = controller.lastHealthError ?? 'Last /status probe failed';
+        } else {
+          color = Colors.green;
+          icon = Icons.check_circle_outline;
+          title = 'Connected · ready';
+          final ok = controller.lastHealthOkAt;
+          subtitle = ok == null
+              ? 'Host profile active'
+              : 'Last health OK ${ok.toLocal().toIso8601String().substring(11, 19)}';
+        }
+      case ConnectionPhase.testing:
+        color = Colors.amber.shade800;
+        icon = Icons.hourglass_top;
+        title = 'Testing connection…';
+        subtitle = 'Probing management + bridge';
+      case ConnectionPhase.error:
+        color = cs.error;
+        icon = Icons.error_outline;
+        title = 'Connection error';
+        subtitle = controller.lastError ?? 'Check host / ports / tokens';
+      case ConnectionPhase.idle:
+        color = cs.onSurfaceVariant;
+        icon = Icons.link_off;
+        title = 'Not connected';
+        subtitle = 'Fill profile and Test & Save';
+    }
+    return Card(
+      color: color.withOpacity(0.12),
+      child: ListTile(
+        dense: true,
+        leading: Icon(icon, color: color),
+        title: Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: color)),
+        subtitle: Text(subtitle, maxLines: 3, overflow: TextOverflow.ellipsis),
       ),
     );
   }

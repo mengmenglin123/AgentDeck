@@ -602,6 +602,31 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  Future<void> _clearLocalTranscript() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Clear local view?'),
+        content: const Text(
+          'Removes messages from this screen only. Host transcript is unchanged. '
+          'Use Reload to fetch again.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Clear')),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    _chat.clearLocalTranscript();
+    setState(() {});
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Local transcript cleared'), duration: Duration(seconds: 1)),
+      );
+    }
+  }
+
   Future<void> _exportTranscript() async {
     final md = _chat.exportTranscriptMarkdown();
     await Clipboard.setData(ClipboardData(text: md));
@@ -736,6 +761,11 @@ class _ChatScreenState extends State<ChatScreen> {
             tooltip: 'Export transcript',
             onPressed: _chat.messages.isEmpty ? null : _exportTranscript,
             icon: const Icon(Icons.ios_share_outlined),
+          ),
+          IconButton(
+            tooltip: 'Clear local view',
+            onPressed: _chat.messages.isEmpty ? null : _clearLocalTranscript,
+            icon: const Icon(Icons.cleaning_services_outlined),
           ),
           IconButton(
             tooltip: 'Reload transcript',

@@ -135,3 +135,10 @@
 - Dashboard status copy
 - Chat jump top
 - Terminal font scale
+
+## 0.1.25+
+
+- Clear local chat view
+- Sessions search debounce
+- Connect status banner
+- Status last health probe

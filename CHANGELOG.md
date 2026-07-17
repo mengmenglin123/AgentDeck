@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.25] - 2026-07-17
+
+### Added
+- Chat: clear local transcript view (Host history untouched; Reload to refetch)
+- Sessions: search debounce (220ms)
+- Connect: connection status banner (ready / degraded / testing / error / idle)
+- Status: last health probe card + copy health error; summary includes health fields
+
 ## [0.1.24] - 2026-07-17
 
 ### Added

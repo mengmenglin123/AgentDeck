@@ -107,6 +107,10 @@
 | P3-69 | Host Dashboard 复制 status 摘要（无 token） | [x] |
 | P3-70 | Chat 跳转顶部 FAB（与跳转底部并列） | [x] |
 | P3-71 | Terminal 字号 A± 本地缩放 | [x] |
+| P3-72 | Chat 清除本地 transcript 视图（不删 Host） | [x] |
+| P3-73 | Sessions 搜索防抖（220ms） | [x] |
+| P3-74 | Connect 连接态状态条（ready/degraded/error/idle） | [x] |
+| P3-75 | Status 最近健康探测详情 / 复制错误 | [x] |
 
 ## P4 — 远期
 

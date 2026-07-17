@@ -76,6 +76,9 @@ class _StatusScreenState extends State<StatusScreen> {
       'sessions: ${_status['sessions_count'] ?? '—'}',
       'active_runs: ${_status['active_runs'] ?? '—'}',
       if (caps.isNotEmpty) 'capabilities: $caps',
+      if (_error != null) 'status_error: $_error',
+      if (c.lastHealthOkAt != null) 'last_health_ok: ${c.lastHealthOkAt!.toIso8601String()}',
+      if (c.lastHealthError != null) 'last_health_error: ${c.lastHealthError}',
     ].join('\n');
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
@@ -182,6 +185,40 @@ class _StatusScreenState extends State<StatusScreen> {
               'Mgmt ${cfg.mgmtBaseUrl}\nBridge ${cfg.bridgeWsUrlRedacted}',
             ),
             isThreeLine: true,
+          ),
+          Card(
+            child: ListTile(
+              leading: Icon(
+                c.lastHealthError == null ? Icons.health_and_safety_outlined : Icons.report_gmailerrorred_outlined,
+                color: c.lastHealthError == null ? Colors.green : cs.error,
+              ),
+              title: const Text('Last health probe'),
+              subtitle: Text(
+                [
+                  if (c.lastHealthOkAt != null)
+                    'OK at ${c.lastHealthOkAt!.toLocal().toIso8601String()}',
+                  if (c.lastHealthError != null)
+                    'Error: ${c.lastHealthError}',
+                  if (c.lastHealthOkAt == null && c.lastHealthError == null)
+                    'No probe yet',
+                ].join('\n'),
+              ),
+              isThreeLine: true,
+              trailing: c.lastHealthError == null
+                  ? null
+                  : IconButton(
+                      tooltip: 'Copy error',
+                      icon: const Icon(Icons.copy, size: 18),
+                      onPressed: () async {
+                        await Clipboard.setData(ClipboardData(text: c.lastHealthError ?? ''));
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Health error copied'), duration: Duration(seconds: 1)),
+                          );
+                        }
+                      },
+                    ),
+            ),
           ),
           const Divider(),
           Text('Snapshot', style: Theme.of(context).textTheme.titleMedium),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -51,6 +53,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
   bool _groupByProject = false;
   bool _selectMode = false;
   final Set<String> _selected = {};
+  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -293,6 +296,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _titleCtrl.dispose();
     _searchCtrl.dispose();
     _sessions?.dispose();
@@ -761,7 +765,13 @@ class _SessionsScreenState extends State<SessionsScreen> {
                             },
                           ),
                   ),
-                  onChanged: (v) => setState(() => _query = v),
+                  onChanged: (v) {
+                    _searchDebounce?.cancel();
+                    _searchDebounce = Timer(const Duration(milliseconds: 220), () {
+                      if (!mounted) return;
+                      setState(() => _query = v);
+                    });
+                  },
                 ),
               ),
               Padding(

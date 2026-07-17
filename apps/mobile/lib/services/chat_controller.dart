@@ -116,6 +116,16 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Clear only the in-memory transcript view (does not delete Host history).
+  void clearLocalTranscript() {
+    reducer.reset();
+    typing = false;
+    runActive = false;
+    error = null;
+    notifyListeners();
+    audit.add('session.clear_local', detail: session.id);
+  }
+
   Future<void> reloadTranscript() async {
     reloading = true;
     notifyListeners();
