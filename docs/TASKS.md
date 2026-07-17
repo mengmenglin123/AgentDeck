@@ -58,6 +58,10 @@
 | P3-20 | 会话筛选 chips（all/pinned/running） | [x] |
 | P3-21 | 斜杠命令面板 | [x] |
 | P3-22 | 代码块语言标签 + 一键复制 | [x] |
+| P3-23 | 会话重命名（PATCH title） | [x] |
+| P3-24 | 消息长按复制 | [x] |
+| P3-25 | 主题切换 system/light/dark（本机） | [x] |
+| P3-26 | Host logs 只读 | [x] |
 
 ## P4 — 远期
 

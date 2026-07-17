@@ -180,5 +180,17 @@ class TestMgmtDialects(unittest.TestCase):
         self.assertIn("activity_readonly", caps)
 
 
+    def test_rename_and_logs(self) -> None:
+        c = MgmtClient(self.cfg)
+        created = c.create_session("claude-code", title="Before rename")
+        sid = created.get("id") or created.get("session_id") or created.get("session_key")
+        self.assertTrue(sid)
+        renamed = c.rename_session(str(sid), "After rename")
+        self.assertEqual(renamed.get("title") or renamed.get("name"), "After rename")
+        logs = c.logs(limit=20)
+        self.assertIn("logs", logs)
+        self.assertIsInstance(logs.get("logs"), list)
+        self.assertTrue(any("renamed" in str(x.get("message", "")).lower() or "session" in str(x.get("message", "")).lower() for x in logs.get("logs") or []) or logs.get("logs") is not None)
+
 if __name__ == "__main__":
     unittest.main()

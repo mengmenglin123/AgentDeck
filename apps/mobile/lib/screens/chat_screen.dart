@@ -919,51 +919,63 @@ class _MessageBubble extends StatelessWidget {
 
     return Align(
       alignment: align,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.all(10),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.88),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(12),
-          border: hl ? Border.all(color: Colors.amber, width: 1.5) : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              role + (message.streaming ? ' …' : ''),
-              style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant),
-            ),
-            const SizedBox(height: 4),
-            if (useMd)
-              MarkdownLite(message.content)
-            else
-              SelectableText(message.content),
-            if (buttons.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                children: buttons
-                    .map(
-                      (b) => FilledButton.tonal(
-                        onPressed: () {
-                          final action = b['data']?.toString() ?? b['text']?.toString() ?? '';
-                          if (action.contains('allow_all')) {
-                            onPermission('allow_all');
-                          } else if (action.contains('deny')) {
-                            onPermission('deny');
-                          } else {
-                            onPermission('allow');
-                          }
-                        },
-                        child: Text(b['text']?.toString() ?? 'action'),
-                      ),
-                    )
-                    .toList(),
+      child: GestureDetector(
+        onLongPress: () async {
+          final text = message.content.trim();
+          if (text.isEmpty) return;
+          await Clipboard.setData(ClipboardData(text: text));
+          if (context.mounted) {
+            ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+              const SnackBar(content: Text('Message copied'), duration: Duration(seconds: 1)),
+            );
+          }
+        },
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.all(10),
+          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.88),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(12),
+            border: hl ? Border.all(color: Colors.amber, width: 1.5) : null,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                role + (message.streaming ? ' …' : ''),
+                style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant),
               ),
+              const SizedBox(height: 4),
+              if (useMd)
+                MarkdownLite(message.content)
+              else
+                SelectableText(message.content),
+              if (buttons.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  children: buttons
+                      .map(
+                        (b) => FilledButton.tonal(
+                          onPressed: () {
+                            final action = b['data']?.toString() ?? b['text']?.toString() ?? '';
+                            if (action.contains('allow_all')) {
+                              onPermission('allow_all');
+                            } else if (action.contains('deny')) {
+                              onPermission('deny');
+                            } else {
+                              onPermission('allow');
+                            }
+                          },
+                          child: Text(b['text']?.toString() ?? 'action'),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

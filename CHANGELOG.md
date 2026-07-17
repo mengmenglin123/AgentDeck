@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.13] - 2026-07-17
+
+### Added
+- Session rename via `PATCH /sessions/{id}` (title/name) + UI
+- Message long-press copy to clipboard
+- Theme toggle (system / light / dark, device local)
+- Host logs readonly screen (`GET /logs`, capability `logs_readonly`)
+- Mock Host log ring buffer + rename activity/log events
+
 ## [0.1.12] - 2026-07-17
 
 ### Added

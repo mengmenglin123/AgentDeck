@@ -33,6 +33,10 @@ class MgmtClient {
                   return http.get(url, headers: headers);
                 case 'POST':
                   return http.post(url, headers: headers, body: body);
+                case 'PATCH':
+                  return http.patch(url, headers: headers, body: body);
+                case 'PUT':
+                  return http.put(url, headers: headers, body: body);
                 case 'DELETE':
                   return http.delete(url, headers: headers);
                 default:
@@ -295,6 +299,48 @@ class MgmtClient {
     final id = DateTime.now().microsecondsSinceEpoch.toRadixString(16);
     // platform:scope:user  — App is bridge platform adapter
     return 'huanhermes-app:$project:$id';
+  }
+
+
+  Future<SessionInfo> renameSession(
+    String sessionId, {
+    required String title,
+    String? project,
+  }) async {
+    final body = <String, dynamic>{'title': title, 'name': title};
+    if (dialect == 'project' && project != null && project.isNotEmpty) {
+      final data = await _request(
+        'PATCH',
+        '/projects/${Uri.encodeComponent(project)}/sessions/${Uri.encodeComponent(sessionId)}',
+        body: body,
+      );
+      return SessionInfo.fromJson(data);
+    }
+    try {
+      final data = await _request(
+        'PATCH',
+        '/sessions/${Uri.encodeComponent(sessionId)}',
+        body: body,
+      );
+      return SessionInfo.fromJson(data);
+    } on ProtocolError catch (e) {
+      if (project != null && project.isNotEmpty && _looksMissing(e.message)) {
+        dialect = 'project';
+        final data = await _request(
+          'PATCH',
+          '/projects/${Uri.encodeComponent(project)}/sessions/${Uri.encodeComponent(sessionId)}',
+          body: body,
+        );
+        return SessionInfo.fromJson(data);
+      }
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> logs({int limit = 80, String? level}) async {
+    final q = StringBuffer('?limit=$limit');
+    if (level != null && level.isNotEmpty) q.write('&level=${Uri.encodeQueryComponent(level)}');
+    return _request('GET', '/logs$q');
   }
 
   Future<void> deleteSession(String sessionId, {String? project}) async {

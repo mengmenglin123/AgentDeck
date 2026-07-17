@@ -182,6 +182,34 @@ class MgmtClient:
         self.dialect = "flat"
         return data
 
+
+    def rename_session(
+        self,
+        session_id: str,
+        title: str,
+        project: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        body = {"title": title, "name": title}
+        if self.dialect == "project" and project:
+            return self._request(
+                "PATCH", f"/projects/{project}/sessions/{session_id}", body
+            )
+        try:
+            return self._request("PATCH", f"/sessions/{session_id}", body)
+        except ProtocolError as e:
+            if project and ("not found" in str(e).lower() or "404" in str(e)):
+                self.dialect = "project"
+                return self._request(
+                    "PATCH", f"/projects/{project}/sessions/{session_id}", body
+                )
+            raise
+
+    def logs(self, limit: int = 80, level: Optional[str] = None) -> Dict[str, Any]:
+        q = f"?limit={int(limit)}"
+        if level:
+            q += f"&level={level}"
+        return self._request("GET", f"/logs{q}")
+
     def delete_session(self, session_id: str, project: Optional[str] = None) -> Dict[str, Any]:
         if self.dialect == "project" and project:
             return self._request("DELETE", f"/projects/{project}/sessions/{session_id}")

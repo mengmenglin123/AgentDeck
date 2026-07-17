@@ -304,6 +304,25 @@ ACTIVITY_LOCK = threading.Lock()
 ACTIVITY_MAX = 100
 
 
+
+# Host log lines (readonly console feed)
+HOST_LOGS: list[dict] = []
+HOST_LOGS_LOCK = threading.Lock()
+HOST_LOGS_MAX = 200
+
+
+def host_log(level: str, message: str, **extra) -> None:
+    entry = {
+        "ts": int(time.time()),
+        "level": level,
+        "message": message,
+        **extra,
+    }
+    with HOST_LOGS_LOCK:
+        HOST_LOGS.append(entry)
+        del HOST_LOGS[: max(0, len(HOST_LOGS) - HOST_LOGS_MAX)]
+
+
 def activity_push(kind: str, summary: str, **extra: Any) -> None:
     evt = {
         "id": f"act-{uuid.uuid4().hex[:10]}",
@@ -1044,6 +1063,7 @@ def _create_session_rec(project: str, body: Dict[str, Any]) -> Dict[str, Any]:
         for p in PROJECTS:
             p["sessions_count"] = sum(1 for s in SESSIONS.values() if s.get("project") == p["name"])
     activity_push("session.create", f"session {sid}", project=project, title=title)
+    host_log("info", f"session created {sid}", project=project, title=title)
     return rec
 
 
@@ -1091,7 +1111,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                 {
                     "ok": True,
                     "data": {
-                        "version": "mock-0.1.12",
+                        "version": "mock-0.1.13",
                         "uptime_seconds": int(time.time() - START_TS),
                         "connected_platforms": ["bridge"],
                         "projects_count": len(PROJECTS),
@@ -1108,6 +1128,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                             "cron_readonly",
                             "diff_readonly",
                             "activity_readonly",
+                "logs_readonly",
                         ],
                         "bridge_adapters": [
                             {
@@ -1315,6 +1336,22 @@ class MgmtHandler(BaseHTTPRequestHandler):
             self._send(404, {"ok": False, "error": "memory not found"})
             return
 
+        if path == "/api/v1/logs":
+            qs = parse_qs(urlparse(self.path).query)
+            try:
+                limit = int((qs.get("limit") or ["80"])[0])
+            except ValueError:
+                limit = 80
+            limit = max(1, min(limit, 200))
+            level = ((qs.get("level") or [""])[0] or "").lower()
+            with HOST_LOGS_LOCK:
+                items = list(HOST_LOGS)
+            if level:
+                items = [x for x in items if str(x.get("level", "")).lower() == level]
+            items = items[-limit:]
+            items = list(reversed(items))
+            self._send(200, {"ok": True, "data": {"logs": items, "count": len(items)}})
+            return
         if path == "/api/v1/activity":
             qs = parse_qs(urlparse(self.path).query)
             try:
@@ -1394,6 +1431,48 @@ class MgmtHandler(BaseHTTPRequestHandler):
             return
         self._send(404, {"ok": False, "error": "not found"})
 
+    def do_PATCH(self) -> None:  # noqa: N802
+        if not self._auth_ok():
+            self._send(401, {"ok": False, "error": "unauthorized: missing or invalid token"})
+            return
+        path = urlparse(self.path).path
+        length = int(self.headers.get("Content-Length") or 0)
+        raw = self.rfile.read(length) if length else b"{}"
+        try:
+            body = json.loads(raw.decode("utf-8") or "{}")
+        except json.JSONDecodeError:
+            self._send(400, {"ok": False, "error": "invalid json"})
+            return
+        m = re.match(r"^/api/v1/sessions/(.+)$", path)
+        proj_m = re.match(r"^/api/v1/projects/([^/]+)/sessions/(.+)$", path)
+        sid = None
+        if m:
+            sid = m.group(1)
+        elif proj_m:
+            sid = proj_m.group(2)
+        if sid:
+            title = body.get("title") or body.get("name")
+            if not title or not str(title).strip():
+                self._send(400, {"ok": False, "error": "title required"})
+                return
+            title = str(title).strip()
+            with SESSIONS_LOCK:
+                rec = SESSIONS.get(sid)
+                if not rec:
+                    self._send(404, {"ok": False, "error": "session not found"})
+                    return
+                rec["title"] = title
+                rec["name"] = title
+                rec["updated_at"] = int(time.time())
+                SESSIONS[sid] = rec
+                out = dict(rec)
+            activity_push("session.rename", f"renamed {sid}", session_id=sid, title=title)
+            host_log("info", f"session renamed {sid} -> {title}", session_id=sid)
+            self._send(200, {"ok": True, "data": out})
+            return
+        self._send(404, {"ok": False, "error": "not found"})
+
+
     def do_DELETE(self) -> None:  # noqa: N802
         if not self._auth_ok():
             self._send(401, {"ok": False, "error": "unauthorized: missing or invalid token"})
@@ -1426,6 +1505,9 @@ def mgmt_server() -> None:
 
 def main() -> None:
     activity_push("host.start", "Mock Host started", bridge=BRIDGE_PORT, mgmt=MGMT_PORT)
+    host_log("info", "Mock Host started", bridge=BRIDGE_PORT, mgmt=MGMT_PORT)
+    host_log("info", "Management HTTP ready")
+    host_log("debug", "Seed demo log lines for console")
     log("starting HuanHermes Mock Host")
     log(f"BRIDGE_TOKEN set (len={len(BRIDGE_TOKEN)}) MGMT_TOKEN set (len={len(MGMT_TOKEN)})")
     t = threading.Thread(target=mgmt_server, name="mgmt", daemon=True)

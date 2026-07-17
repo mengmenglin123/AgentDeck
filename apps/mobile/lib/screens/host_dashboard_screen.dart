@@ -6,6 +6,7 @@ import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 import 'activity_screen.dart';
 import 'agents_screen.dart';
+import 'logs_screen.dart';
 import 'cron_screen.dart';
 import 'diff_screen.dart';
 import 'mcp_screen.dart';
@@ -196,6 +197,15 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                     MaterialPageRoute(builder: (_) => PairingScreen(config: cfg)),
                   ),
                 ),
+                ListTile(
+                  leading: const Icon(Icons.article_outlined),
+                  title: const Text('Host logs'),
+                  subtitle: const Text('Readonly log feed'),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => LogsScreen(config: cfg)),
+                  ),
+                ),
+
                 const SizedBox(height: 12),
                 ExpansionTile(
                   title: const Text('Raw /status'),

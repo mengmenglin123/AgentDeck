@@ -46,3 +46,5 @@ Host 侧将 Hermes 映射为 `agent_type=hermes` 的 project（ADR-002）。App 
 - 把「安装外部宿主」写成唯一路径  
 - 协议扩展不写文档就进代码  
 - 修改用户已有渠道/密钥配置
+| GET | `/logs`（可选） |
+| PATCH | `/sessions/{id}` 重命名 |

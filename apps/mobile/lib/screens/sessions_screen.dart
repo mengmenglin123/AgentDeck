@@ -5,12 +5,14 @@ import '../models/session_info.dart';
 import '../services/connection_controller.dart';
 import '../services/session_controller.dart';
 import '../services/session_notes_store.dart';
+import '../services/theme_controller.dart';
 import '../services/session_pins_store.dart';
 import 'chat_screen.dart';
 import 'cron_screen.dart';
 import 'diff_screen.dart';
 import 'activity_screen.dart';
 import 'agents_screen.dart';
+import 'logs_screen.dart';
 import 'host_dashboard_screen.dart';
 import 'mcp_screen.dart';
 import 'memory_screen.dart';
@@ -52,6 +54,37 @@ class _SessionsScreenState extends State<SessionsScreen> {
       _pinned = pins;
       _noteMap = notes;
     });
+  }
+
+  Future<void> _renameSession(SessionController sessions, SessionInfo s) async {
+    final ctrl = TextEditingController(text: s.displayTitle);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Rename session'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Title',
+            border: OutlineInputBorder(),
+          ),
+          onSubmitted: (_) => Navigator.pop(ctx, true),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Save')),
+        ],
+      ),
+    );
+    if (ok == true && mounted) {
+      final t = ctrl.text.trim();
+      if (t.isEmpty) return;
+      final r = await sessions.renameSession(s, t);
+      if (r == null && mounted && sessions.error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(sessions.error!)));
+      }
+    }
   }
 
   Future<void> _editNote(SessionInfo s) async {
@@ -201,6 +234,17 @@ class _SessionsScreenState extends State<SessionsScreen> {
           appBar: AppBar(
             title: const Text('Sessions'),
             actions: [
+            Builder(
+              builder: (context) {
+                final theme = context.watch<ThemeController>();
+                return IconButton(
+                  tooltip: 'Theme: ${theme.label}',
+                  icon: Icon(theme.icon),
+                  onPressed: () => theme.cycle(),
+                );
+              },
+            ),
+
               IconButton(
                 tooltip: 'Host status',
                 onPressed: () {
@@ -227,6 +271,9 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       break;
                     case 'agents':
                       page = AgentsScreen(config: cfg);
+                      break;
+                    case 'logs':
+                      page = LogsScreen(config: cfg);
                       break;
                     case 'workspace':
                       page = WorkspaceScreen(config: cfg);
@@ -260,6 +307,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                 itemBuilder: (ctx) => [
                   PopupMenuItem(value: 'status', child: Text('Host status')),
                   PopupMenuItem(value: 'agents', child: Text('Agents')),
+                  PopupMenuItem(value: 'logs', child: Text('Host logs')),
                   PopupMenuItem(value: 'workspace', child: Text('Workspace')),
                   PopupMenuItem(value: 'diff', child: Text('Git diff')),
                   PopupMenuItem(value: 'memory', child: Text('Host memory')),
@@ -470,6 +518,11 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                             trailing: Wrap(
                                               spacing: 0,
                                               children: [
+                                                IconButton(
+                                                  tooltip: 'Rename',
+                                                  icon: const Icon(Icons.drive_file_rename_outline, size: 20),
+                                                  onPressed: () => _renameSession(sessions, s),
+                                                ),
                                                 IconButton(
                                                   tooltip: 'Note',
                                                   icon: Icon(

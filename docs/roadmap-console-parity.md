@@ -56,3 +56,10 @@
 - 会话本地备注 + 筛选 chips
 - 斜杠命令面板
 - 代码块 lang + copy
+
+## 0.1.13+
+
+- 会话重命名 PATCH
+- 消息长按复制
+- 主题 system/light/dark
+- Host logs 只读

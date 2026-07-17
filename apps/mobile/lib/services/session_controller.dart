@@ -81,4 +81,22 @@ class SessionController extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<SessionInfo?> renameSession(SessionInfo session, String title) async {
+    final t = title.trim();
+    if (t.isEmpty) return null;
+    try {
+      final s = await _mgmt.renameSession(
+        session.id,
+        title: t,
+        project: session.project.isEmpty ? selectedProject : session.project,
+      );
+      await refresh();
+      return s;
+    } on Exception catch (e) {
+      error = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
 }
