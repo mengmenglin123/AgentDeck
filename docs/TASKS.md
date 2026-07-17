@@ -74,6 +74,10 @@
 | P3-36 | 多 Host profile 切换（Sessions 内一键 switch+connect） | [x] |
 | P3-37 | 聊天搜索命中上下跳转 / 当前命中高亮 | [x] |
 | P3-38 | 高对比度主题（Settings + AppTheme） | [x] |
+| P3-39 | Host 健康心跳（30s /status + 手动 Check） | [x] |
+| P3-40 | Sessions 空状态引导 / 筛选无结果引导 | [x] |
+| P3-41 | 会话元数据导出（单条 / 可见列表 / 多选） | [x] |
+| P3-42 | Terminal 复制全部缓冲 | [x] |
 
 ## P4 — 远期
 

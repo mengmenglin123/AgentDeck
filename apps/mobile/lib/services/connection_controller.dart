@@ -1,3 +1,4 @@
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
@@ -35,7 +36,20 @@ class ConnectionController extends ChangeNotifier {
   String? activeProfileId;
   String draftProfileName = 'Default';
 
+  /// Last successful /status probe while connected (UI health chip).
+  DateTime? lastHealthOkAt;
+  String? lastHealthError;
+  bool healthChecking = false;
+  Timer? _healthTimer;
+
   bool get isReady => phase == ConnectionPhase.ready && saved != null;
+
+  /// true when last probe failed (or stale success + newer error).
+  bool get healthDegraded {
+    if (!isReady) return false;
+    if (lastHealthError == null) return false;
+    return true;
+  }
 
   Future<void> bootstrap() async {
     await _store.init();
@@ -79,6 +93,9 @@ class ConnectionController extends ChangeNotifier {
 
   /// Select an existing profile into the form (does not auto-connect).
   Future<void> selectProfile(String id) async {
+    stopHealthHeartbeat();
+    lastHealthOkAt = null;
+    lastHealthError = null;
     await refreshProfiles();
     final hit = profiles.where((p) => p.id == id);
     if (hit.isEmpty) return;
@@ -141,6 +158,9 @@ class ConnectionController extends ChangeNotifier {
       saved = cfg;
       lastStatus = status;
       phase = ConnectionPhase.ready;
+      lastHealthOkAt = DateTime.now();
+      lastHealthError = null;
+      _restartHealthHeartbeat();
       notifyListeners();
       return true;
     } on AuthError catch (e) {
@@ -175,6 +195,9 @@ class ConnectionController extends ChangeNotifier {
   }
 
   Future<void> startNewProfile() async {
+    stopHealthHeartbeat();
+    lastHealthOkAt = null;
+    lastHealthError = null;
     draft = ConnectionConfig(
       bridgeToken: '',
       mgmtToken: '',
@@ -188,7 +211,48 @@ class ConnectionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void stopHealthHeartbeat() {
+    _healthTimer?.cancel();
+    _healthTimer = null;
+  }
+
+  void _restartHealthHeartbeat() {
+    stopHealthHeartbeat();
+    if (!isReady || saved == null) return;
+    // First tick after a short delay, then every 30s.
+    _healthTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      unawaited(probeHealth());
+    });
+  }
+
+  /// Lightweight GET /status for connection health chip (does not change phase on success).
+  Future<bool> probeHealth() async {
+    final cfg = saved;
+    if (cfg == null || phase != ConnectionPhase.ready) return false;
+    if (healthChecking) return lastHealthError == null;
+    healthChecking = true;
+    notifyListeners();
+    try {
+      final client = _mgmtFactory(cfg);
+      final status = await client.status();
+      lastStatus = status;
+      lastHealthOkAt = DateTime.now();
+      lastHealthError = null;
+      healthChecking = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      lastHealthError = e.toString();
+      healthChecking = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<void> disconnect({bool clearStorage = false}) async {
+    stopHealthHeartbeat();
+    lastHealthOkAt = null;
+    lastHealthError = null;
     if (clearStorage) {
       await _store.clear();
       profiles = [];
@@ -226,5 +290,11 @@ class ConnectionController extends ChangeNotifier {
     phase = ConnectionPhase.error;
     notifyListeners();
     return false;
+  }
+
+  @override
+  void dispose() {
+    stopHealthHeartbeat();
+    super.dispose();
   }
 }

@@ -83,3 +83,10 @@
 - 多 profile 切换
 - 聊天搜索跳转
 - 高对比度
+
+## 0.1.17+
+
+- Host health heartbeat
+- Empty-state onboarding
+- Session meta export
+- Terminal copy-all

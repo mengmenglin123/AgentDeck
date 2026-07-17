@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.17] - 2026-07-17
+
+### Added
+- Host health heartbeat: 30s GET /status probe while connected + Sessions health strip + manual Check
+- Richer Sessions empty states (first-run guide + filter reset)
+- Session metadata export to clipboard (tile / visible list menu / multi-select)
+- Terminal "Copy all" for local buffer (tokens still never logged)
+
 ## [0.1.16] - 2026-07-17
 
 ### Added

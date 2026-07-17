@@ -97,6 +97,55 @@ class _SessionsScreenState extends State<SessionsScreen> {
     });
   }
 
+
+  Future<void> _exportSessionMeta(SessionInfo s) async {
+    final note = _noteMap[s.sessionKey] ?? '';
+    final lines = <String>[
+      '# HuanHermes session export',
+      'id: ${s.id}',
+      'session_key: ${s.sessionKey}',
+      'title: ${s.displayTitle}',
+      'project: ${s.project}',
+      if (s.mode != null) 'mode: ${s.mode}',
+      if (s.model != null) 'model: ${s.model}',
+      if (s.workdir != null) 'workdir: ${s.workdir}',
+      if (s.platform != null) 'platform: ${s.platform}',
+      if (s.agentType != null) 'agent_type: ${s.agentType}',
+      'running: ${s.running}',
+      'live: ${s.live}',
+      if (s.updatedAt != null) 'updated_at: ${s.updatedAt}',
+      if (s.createdAt != null) 'created_at: ${s.createdAt}',
+      'pinned_local: ${_pinned.contains(s.sessionKey)}',
+      'archived_local: ${_archived.contains(s.sessionKey)}',
+      if (note.isNotEmpty) 'note_local: $note',
+      '',
+      'Export is metadata only (device console). Transcript export lives in Chat.',
+    ];
+    final text = lines.join('\n');
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Session metadata copied')),
+    );
+  }
+
+  Future<void> _exportVisibleMeta(List<SessionInfo> list) async {
+    if (list.isEmpty) return;
+    final buf = StringBuffer('# HuanHermes sessions export (${list.length})\n');
+    for (final s in list) {
+      final note = _noteMap[s.sessionKey] ?? '';
+      buf.writeln('- ${s.displayTitle} | ${s.project} | ${s.sessionKey}'
+          '${note.isEmpty ? '' : ' | note: $note'}');
+    }
+    buf.writeln();
+    buf.writeln('Local pins/archives/notes only; tokens never included.');
+    await Clipboard.setData(ClipboardData(text: buf.toString()));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Copied ${list.length} session row(s)')),
+    );
+  }
+
   List<SessionInfo> _selectedSessions(List<SessionInfo> all) {
     return all.where((s) => _selected.contains(s.sessionKey)).toList();
   }
@@ -362,6 +411,13 @@ class _SessionsScreenState extends State<SessionsScreen> {
             actions: [
               if (_selectMode) ...[
                 IconButton(
+                  tooltip: 'Export selected meta',
+                  onPressed: _selected.isEmpty
+                      ? null
+                      : () => _exportVisibleMeta(_selectedSessions(sessions.sessions)),
+                  icon: const Icon(Icons.copy_all_outlined),
+                ),
+                IconButton(
                   tooltip: 'Pin selected',
                   onPressed: _selected.isEmpty ? null : () => _bulkPin(pin: true),
                   icon: const Icon(Icons.push_pin),
@@ -433,6 +489,9 @@ class _SessionsScreenState extends State<SessionsScreen> {
                     case 'logs':
                       page = LogsScreen(config: cfg);
                       break;
+                    case 'export_list':
+                      _exportVisibleMeta(_filtered(sessions.sessions));
+                      return;
                     case 'settings':
                       page = const SettingsScreen();
                       break;
@@ -469,6 +528,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   PopupMenuItem(value: 'status', child: Text('Host status')),
                   PopupMenuItem(value: 'agents', child: Text('Agents')),
                   PopupMenuItem(value: 'logs', child: Text('Host logs')),
+                  PopupMenuItem(value: 'export_list', child: Text('Export visible list')),
                   PopupMenuItem(value: 'settings', child: Text('Settings')),
                   PopupMenuItem(value: 'workspace', child: Text('Workspace')),
                   PopupMenuItem(value: 'diff', child: Text('Git diff')),
@@ -545,7 +605,6 @@ class _SessionsScreenState extends State<SessionsScreen> {
                             final success = await conn.switchAndConnect(id);
                             if (!context.mounted) return;
                             if (success) {
-                              // rebuild SessionController for new host
                               _sessions?.dispose();
                               _sessions = SessionController(config: conn.saved!)..refresh();
                               setState(() {});
@@ -584,6 +643,45 @@ class _SessionsScreenState extends State<SessionsScreen> {
                           ],
                         )
                       : null,
+                ),
+              if (conn.saved != null)
+                Material(
+                  color: conn.healthDegraded
+                      ? Theme.of(context).colorScheme.errorContainer.withOpacity(0.55)
+                      : Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.45),
+                  child: ListTile(
+                    dense: true,
+                    visualDensity: VisualDensity.compact,
+                    leading: Icon(
+                      conn.healthDegraded ? Icons.cloud_off : Icons.cloud_done_outlined,
+                      size: 18,
+                      color: conn.healthDegraded
+                          ? Theme.of(context).colorScheme.error
+                          : Colors.green.shade700,
+                    ),
+                    title: Text(
+                      conn.healthDegraded
+                          ? 'Host health degraded'
+                          : 'Host health OK',
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    subtitle: Text(
+                      [
+                        if (conn.lastHealthOkAt != null)
+                          'Last OK: ${conn.lastHealthOkAt!.toLocal().toIso8601String().substring(11, 19)}',
+                        if (conn.lastHealthError != null)
+                          'Error: ${conn.lastHealthError}',
+                        if (conn.lastStatus != null && conn.lastStatus!['version'] != null)
+                          'version: ${conn.lastStatus!['version']}',
+                        'Probe every 30s while connected',
+                      ].where((e) => e.toString().isNotEmpty).join(' · '),
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    trailing: TextButton(
+                      onPressed: conn.healthChecking ? null : () => conn.probeHealth(),
+                      child: Text(conn.healthChecking ? '…' : 'Check'),
+                    ),
+                  ),
                 ),
               if (sessions.projects.isNotEmpty)
                 Padding(
@@ -725,33 +823,86 @@ class _SessionsScreenState extends State<SessionsScreen> {
                             onRefresh: sessions.refresh,
                             child: sessions.sessions.isEmpty
                                 ? ListView(
+                                    padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
                                     children: [
-                                      const SizedBox(height: 48),
                                       Icon(
                                         Icons.forum_outlined,
-                                        size: 40,
+                                        size: 48,
                                         color: Theme.of(context).colorScheme.outline,
                                       ),
                                       const SizedBox(height: 12),
-                                      const Center(child: Text('No sessions yet')),
+                                      Text(
+                                        'No sessions yet',
+                                        textAlign: TextAlign.center,
+                                        style: Theme.of(context).textTheme.titleMedium,
+                                      ),
                                       const SizedBox(height: 8),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                                        child: Text(
-                                          'Create a session for Claude Code / Codex / Hermes and open chat to control the server agent.',
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                          ),
+                                      Text(
+                                        'This App is a remote console only — agents run on the Host.\n'
+                                        '1) Confirm Host health above is OK\n'
+                                        '2) Pick a project if listed\n'
+                                        '3) Tap New to create a session\n'
+                                        '4) Open chat to control Claude Code / Codex / Hermes',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                          height: 1.35,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Center(
+                                        child: FilledButton.icon(
+                                          onPressed: sessions.loading ? null : _create,
+                                          icon: const Icon(Icons.add),
+                                          label: const Text('Create first session'),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Center(
+                                        child: TextButton.icon(
+                                          onPressed: () {
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(builder: (_) => const HostDashboardScreen()),
+                                            );
+                                          },
+                                          icon: const Icon(Icons.monitor_heart_outlined),
+                                          label: const Text('Open Host dashboard'),
                                         ),
                                       ),
                                     ],
                                   )
                                 : visible.isEmpty
                                     ? ListView(
-                                        children: const [
-                                          SizedBox(height: 48),
-                                          Center(child: Text('No sessions match search')),
+                                        padding: const EdgeInsets.fromLTRB(24, 48, 24, 24),
+                                        children: [
+                                          Icon(
+                                            Icons.filter_alt_off_outlined,
+                                            size: 40,
+                                            color: Theme.of(context).colorScheme.outline,
+                                          ),
+                                          const SizedBox(height: 12),
+                                          const Center(child: Text('No sessions match filters')),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            _filter == 'archived'
+                                                ? 'Nothing archived on this device, or search hides them.'
+                                                : 'Try All filter, clear search, or create a new session.',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Center(
+                                            child: TextButton(
+                                              onPressed: () => setState(() {
+                                                _filter = 'all';
+                                                _query = '';
+                                                _searchCtrl.clear();
+                                              }),
+                                              child: const Text('Reset filters'),
+                                            ),
+                                          ),
                                         ],
                                       )
                                     : ListView.separated(
@@ -811,6 +962,11 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                 : Wrap(
                                               spacing: 0,
                                               children: [
+                                                IconButton(
+                                                  tooltip: 'Export meta',
+                                                  icon: const Icon(Icons.copy_all_outlined, size: 20),
+                                                  onPressed: () => _exportSessionMeta(s),
+                                                ),
                                                 IconButton(
                                                   tooltip: 'Rename',
                                                   icon: const Icon(Icons.drive_file_rename_outline, size: 20),

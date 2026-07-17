@@ -182,6 +182,19 @@ class _TerminalScreenState extends State<TerminalScreen> {
         title: Text('Terminal · ${widget.session.project}'),
         actions: [
           IconButton(
+            tooltip: 'Copy all',
+            onPressed: () async {
+              final text = _buf.toString();
+              if (text.trim().isEmpty) return;
+              await Clipboard.setData(ClipboardData(text: text));
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Copied ${text.length} chars'), duration: const Duration(seconds: 1)),
+              );
+            },
+            icon: const Icon(Icons.copy_all_outlined),
+          ),
+          IconButton(
             tooltip: 'Clear local buffer',
             onPressed: () => setState(_buf.clear),
             icon: const Icon(Icons.delete_outline),
