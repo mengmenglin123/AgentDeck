@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.16] - 2026-07-17
+
+### Added
+- Session list sort modes: updated / title / project / created (Settings + list chip; pins still first)
+- In-session host profile switcher (test-and-connect another saved profile)
+- Chat search hit navigation (prev/next, N/M counter, active hit border)
+- High-contrast appearance toggle in Settings (stronger outlines/surfaces)
+- SessionInfo.createdAt parsing for created-time sort
+
 ## [0.1.15] - 2026-07-17
 
 ### Added

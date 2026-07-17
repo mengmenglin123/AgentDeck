@@ -267,11 +267,26 @@ class _SessionsScreenState extends State<SessionsScreen> {
       });
     }
     final list = base.toList();
+    final sortMode = context.mounted
+        ? (context.read<AppSettingsController>().sessionSort)
+        : 'updated';
     list.sort((a, b) {
       final ap = _pinned.contains(a.sessionKey) ? 0 : 1;
       final bp = _pinned.contains(b.sessionKey) ? 0 : 1;
       if (ap != bp) return ap.compareTo(bp);
-      return (b.updatedAt ?? 0).compareTo(a.updatedAt ?? 0);
+      switch (sortMode) {
+        case 'title':
+          return a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase());
+        case 'project':
+          final pc = a.project.toLowerCase().compareTo(b.project.toLowerCase());
+          if (pc != 0) return pc;
+          return a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase());
+        case 'created':
+          return (b.createdAt ?? b.updatedAt ?? 0).compareTo(a.createdAt ?? a.updatedAt ?? 0);
+        case 'updated':
+        default:
+          return (b.updatedAt ?? 0).compareTo(a.updatedAt ?? 0);
+      }
     });
     return list;
   }
@@ -497,8 +512,78 @@ class _SessionsScreenState extends State<SessionsScreen> {
                 ListTile(
                   dense: true,
                   leading: const Icon(Icons.dns_outlined, size: 20),
-                  title: Text(conn.saved!.host),
-                  subtitle: Text(conn.saved!.mgmtBaseUrl),
+                  title: Text(
+                    conn.profiles
+                            .where((p) => p.id == conn.activeProfileId)
+                            .map((p) => p.name)
+                            .cast<String?>()
+                            .firstWhere((_) => true, orElse: () => null) ??
+                        conn.draftProfileName,
+                  ),
+                  subtitle: Text('${conn.saved!.host} · ${conn.saved!.mgmtBaseUrl}'),
+                  trailing: conn.profiles.length > 1
+                      ? PopupMenuButton<String>(
+                          tooltip: 'Switch host profile',
+                          icon: const Icon(Icons.swap_horiz, size: 20),
+                          onSelected: (id) async {
+                            if (id == conn.activeProfileId) return;
+                            final ok = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Switch host profile?'),
+                                content: const Text(
+                                  'Disconnects the current Host and tests the selected profile. '
+                                  'Sessions list will reload for the new Host.',
+                                ),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                                  FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Switch')),
+                                ],
+                              ),
+                            );
+                            if (ok != true || !context.mounted) return;
+                            final success = await conn.switchAndConnect(id);
+                            if (!context.mounted) return;
+                            if (success) {
+                              // rebuild SessionController for new host
+                              _sessions?.dispose();
+                              _sessions = SessionController(config: conn.saved!)..refresh();
+                              setState(() {});
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Switched host profile')),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(conn.lastError ?? 'Switch failed'),
+                                  backgroundColor: Colors.red.shade700,
+                                ),
+                              );
+                            }
+                          },
+                          itemBuilder: (ctx) => [
+                            for (final p in conn.profiles)
+                              PopupMenuItem(
+                                value: p.id,
+                                child: ListTile(
+                                  dense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: Icon(
+                                    p.id == conn.activeProfileId
+                                        ? Icons.radio_button_checked
+                                        : Icons.radio_button_off,
+                                    size: 18,
+                                  ),
+                                  title: Text(p.name),
+                                  subtitle: Text(
+                                    '${p.config.host}:${p.config.mgmtPort}',
+                                    style: const TextStyle(fontSize: 11),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        )
+                      : null,
                 ),
               if (sessions.projects.isNotEmpty)
                 Padding(
@@ -562,6 +647,42 @@ class _SessionsScreenState extends State<SessionsScreen> {
                         onSelected: (_) => setState(() => _filter = f.$1),
                         visualDensity: VisualDensity.compact,
                       ),
+                    Builder(
+                      builder: (context) {
+                        final settings = context.watch<AppSettingsController>();
+                        return PopupMenuButton<String>(
+                          tooltip: 'Sort',
+                          initialValue: settings.sessionSort,
+                          onSelected: (v) async {
+                            await settings.setSessionSort(v);
+                            setState(() {});
+                          },
+                          itemBuilder: (ctx) => const [
+                            PopupMenuItem(value: 'updated', child: Text('Sort: Updated')),
+                            PopupMenuItem(value: 'title', child: Text('Sort: Title')),
+                            PopupMenuItem(value: 'project', child: Text('Sort: Project')),
+                            PopupMenuItem(value: 'created', child: Text('Sort: Created')),
+                          ],
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: Chip(
+                              avatar: const Icon(Icons.sort, size: 16),
+                              label: Text(
+                                {
+                                  'title': 'Title',
+                                  'project': 'Project',
+                                  'created': 'Created',
+                                }[settings.sessionSort] ??
+                                    'Updated',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),

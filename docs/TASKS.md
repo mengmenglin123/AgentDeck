@@ -70,6 +70,10 @@
 | P3-32 | 聊天 tools 显示开关（读 Settings 默认） | [x] |
 | P3-33 | 聊天跳转底部 FAB / 非贴底暂停自动滚 | [x] |
 | P3-34 | 会话多选：批量 pin / archive / delete | [x] |
+| P3-35 | 会话排序（updated/title/project/created，本机） | [x] |
+| P3-36 | 多 Host profile 切换（Sessions 内一键 switch+connect） | [x] |
+| P3-37 | 聊天搜索命中上下跳转 / 当前命中高亮 | [x] |
+| P3-38 | 高对比度主题（Settings + AppTheme） | [x] |
 
 ## P4 — 远期
 

@@ -35,6 +35,13 @@ class SettingsScreen extends StatelessWidget {
               style: const ButtonStyle(visualDensity: VisualDensity.compact),
             ),
           ),
+          SwitchListTile(
+            secondary: const Icon(Icons.contrast),
+            title: const Text('High contrast'),
+            subtitle: const Text('Stronger borders and higher contrast surfaces'),
+            value: settings.highContrast,
+            onChanged: settings.setHighContrast,
+          ),
           ListTile(
             leading: const Icon(Icons.format_size),
             title: const Text('Text size'),
@@ -60,6 +67,32 @@ class SettingsScreen extends StatelessWidget {
             subtitle: const Text('Denser session tiles and menus'),
             value: settings.compactMode,
             onChanged: settings.setCompactMode,
+          ),
+          const Divider(height: 28),
+          Text('Sessions', style: Theme.of(context).textTheme.titleSmall),
+          ListTile(
+            leading: const Icon(Icons.sort),
+            title: const Text('Default sort'),
+            subtitle: Text(_sortLabel(settings.sessionSort)),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                for (final e in const [
+                  ('updated', 'Updated'),
+                  ('title', 'Title'),
+                  ('project', 'Project'),
+                  ('created', 'Created'),
+                ])
+                  ChoiceChip(
+                    label: Text(e.$2),
+                    selected: settings.sessionSort == e.$1,
+                    onSelected: (_) => settings.setSessionSort(e.$1),
+                  ),
+              ],
+            ),
           ),
           const Divider(height: 28),
           Text('Console', style: Theme.of(context).textTheme.titleSmall),
@@ -99,12 +132,25 @@ class SettingsScreen extends StatelessWidget {
             title: const Text('About'),
             subtitle: const Text(
               'HuanHermes is a remote console only. Settings stay on this device. '
-              'No agent loop runs on the phone.',
+              'No agent loop runs on the phone. Multi-host profiles live on Connect.',
             ),
             isThreeLine: true,
           ),
         ],
       ),
     );
+  }
+
+  static String _sortLabel(String k) {
+    switch (k) {
+      case 'title':
+        return 'By title A–Z (pins still first)';
+      case 'project':
+        return 'By project then title';
+      case 'created':
+        return 'By created time (newest first)';
+      default:
+        return 'By last updated (newest first)';
+    }
   }
 }

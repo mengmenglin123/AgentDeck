@@ -18,8 +18,8 @@ class HuanHermesApp extends StatelessWidget {
         return MaterialApp(
           title: 'HuanHermes',
           debugShowCheckedModeBanner: false,
-          theme: AppTheme.light(),
-          darkTheme: AppTheme.dark(),
+          theme: AppTheme.light(highContrast: settings.highContrast),
+          darkTheme: AppTheme.dark(highContrast: settings.highContrast),
           themeMode: theme.mode,
           builder: (context, child) {
             final mq = MediaQuery.of(context);

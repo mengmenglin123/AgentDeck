@@ -41,6 +41,8 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _showTools = true;
   bool _stickToBottom = true;
   bool _showJumpBottom = false;
+  int _hitIndex = 0;
+  final Map<int, GlobalKey> _msgKeys = {};
 
   @override
   void initState() {
@@ -409,11 +411,56 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   List<TranscriptMessage> get _visibleMessages {
+    // Keep full transcript order so jump-to-hit can scroll by index.
+    if (!_showTools && _chat.hasCap('tools_visible')) {
+      return _chat.messages.where((m) => m.role != 'tool' && m.role != 'tool_result').toList();
+    }
+    return _chat.messages;
+  }
+
+  List<int> get _searchHits {
     final q = _searchQ.trim().toLowerCase();
-    if (q.isEmpty) return _chat.messages;
-    return _chat.messages
-        .where((m) => m.content.toLowerCase().contains(q) || m.role.toLowerCase().contains(q))
-        .toList();
+    if (q.isEmpty) return const [];
+    final hits = <int>[];
+    final msgs = _visibleMessages;
+    for (var i = 0; i < msgs.length; i++) {
+      final m = msgs[i];
+      if (m.content.toLowerCase().contains(q) || m.role.toLowerCase().contains(q)) {
+        hits.add(i);
+      }
+    }
+    return hits;
+  }
+
+  void _gotoHit(int delta) {
+    final hits = _searchHits;
+    if (hits.isEmpty) return;
+    setState(() {
+      _hitIndex = (_hitIndex + delta) % hits.length;
+      if (_hitIndex < 0) _hitIndex += hits.length;
+    });
+    final idx = hits[_hitIndex];
+    final key = _msgKeys[idx];
+    final ctx = key?.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 220),
+        alignment: 0.2,
+        curve: Curves.easeOut,
+      );
+    } else if (_scroll.hasClients) {
+      // fallback approximate
+      _scroll.animateTo(
+        (idx * 96.0).clamp(0.0, _scroll.position.maxScrollExtent),
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+      );
+    }
+    setState(() {
+      _stickToBottom = false;
+      _showJumpBottom = true;
+    });
   }
 
   Future<void> _exportTranscript() async {
@@ -566,24 +613,64 @@ class _ChatScreenState extends State<ChatScreen> {
           if (_searchOpen)
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
-              child: TextField(
-                controller: _searchCtrl,
-                decoration: InputDecoration(
-                  hintText: 'Search in transcript',
-                  isDense: true,
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.search, size: 18),
-                  suffixIcon: _searchQ.isEmpty
-                      ? null
-                      : IconButton(
-                          icon: const Icon(Icons.clear, size: 18),
-                          onPressed: () {
-                            _searchCtrl.clear();
-                            setState(() => _searchQ = '');
-                          },
-                        ),
-                ),
-                onChanged: (v) => setState(() => _searchQ = v),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchCtrl,
+                      decoration: InputDecoration(
+                        hintText: 'Search in transcript',
+                        isDense: true,
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.search, size: 18),
+                        suffixIcon: _searchQ.isEmpty
+                            ? null
+                            : IconButton(
+                                icon: const Icon(Icons.clear, size: 18),
+                                onPressed: () {
+                                  _searchCtrl.clear();
+                                  setState(() {
+                                    _searchQ = '';
+                                    _hitIndex = 0;
+                                  });
+                                },
+                              ),
+                      ),
+                      onChanged: (v) => setState(() {
+                        _searchQ = v;
+                        _hitIndex = 0;
+                      }),
+                      onSubmitted: (_) => _gotoHit(1),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Builder(
+                    builder: (context) {
+                      final hits = _searchHits;
+                      final label = hits.isEmpty
+                          ? '0/0'
+                          : '${(_hitIndex % hits.length) + 1}/${hits.length}';
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(label, style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
+                          IconButton(
+                            tooltip: 'Previous hit',
+                            onPressed: hits.isEmpty ? null : () => _gotoHit(-1),
+                            icon: const Icon(Icons.keyboard_arrow_up, size: 22),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          IconButton(
+                            tooltip: 'Next hit',
+                            onPressed: hits.isEmpty ? null : () => _gotoHit(1),
+                            icon: const Icon(Icons.keyboard_arrow_down, size: 22),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
           _AgentToolbar(
@@ -664,19 +751,29 @@ class _ChatScreenState extends State<ChatScreen> {
                     builder: (context) {
                       final visible = _visibleMessages;
                       if (visible.isEmpty) {
-                        return const Center(child: Text('No messages match search'));
+                        return const Center(child: Text('No messages'));
                       }
+                      final hits = _searchHits.toSet();
+                      final activeHit = _searchHits.isEmpty
+                          ? -1
+                          : _searchHits[_hitIndex % _searchHits.length];
                       return ListView.builder(
                         controller: _scroll,
                         padding: const EdgeInsets.all(12),
                         itemCount: visible.length,
                         itemBuilder: (context, i) {
                           final m = visible[i];
-                          return _MessageBubble(
-                            message: m,
-                            onPermission: _chat.respondPermission,
-                            showTools: _showTools && _chat.hasCap('tools_visible'),
-                            highlight: _searchQ.trim(),
+                          final key = _msgKeys.putIfAbsent(i, GlobalKey.new);
+                          return KeyedSubtree(
+                            key: key,
+                            child: _MessageBubble(
+                              message: m,
+                              onPermission: _chat.respondPermission,
+                              showTools: true, // filtering already applied in _visibleMessages
+                              highlight: _searchQ.trim(),
+                              isSearchHit: hits.contains(i),
+                              isActiveSearchHit: i == activeHit,
+                            ),
                           );
                         },
                       );
@@ -922,12 +1019,16 @@ class _MessageBubble extends StatelessWidget {
     required this.onPermission,
     this.showTools = true,
     this.highlight = '',
+    this.isSearchHit = false,
+    this.isActiveSearchHit = false,
   });
 
   final TranscriptMessage message;
   final Future<void> Function(String action) onPermission;
   final bool showTools;
   final String highlight;
+  final bool isSearchHit;
+  final bool isActiveSearchHit;
 
   List<Map<String, dynamic>> get _buttons {
     final raw = message.meta['buttons'];
@@ -966,8 +1067,14 @@ class _MessageBubble extends StatelessWidget {
     final align = isUser ? Alignment.centerRight : Alignment.centerLeft;
     final buttons = _buttons;
     final useMd = !isUser && !isTool && message.content.contains(RegExp(r'[#*`>\n-]'));
-    final hl = highlight.trim().isNotEmpty &&
-        message.content.toLowerCase().contains(highlight.trim().toLowerCase());
+    final hl = isSearchHit ||
+        (highlight.trim().isNotEmpty &&
+            message.content.toLowerCase().contains(highlight.trim().toLowerCase()));
+    final borderColor = isActiveSearchHit
+        ? cs.primary
+        : hl
+            ? Colors.amber
+            : null;
 
     return Align(
       alignment: align,
@@ -989,7 +1096,7 @@ class _MessageBubble extends StatelessWidget {
           decoration: BoxDecoration(
             color: bg,
             borderRadius: BorderRadius.circular(12),
-            border: hl ? Border.all(color: Colors.amber, width: 1.5) : null,
+            border: borderColor != null ? Border.all(color: borderColor, width: isActiveSearchHit ? 2 : 1.5) : null,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

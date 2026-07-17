@@ -7,6 +7,7 @@ class SessionInfo {
     this.title,
     this.lastUser,
     this.updatedAt,
+    this.createdAt,
     this.running = false,
     this.mode,
     this.model,
@@ -22,6 +23,7 @@ class SessionInfo {
   final String? title;
   final String? lastUser;
   final double? updatedAt;
+  final double? createdAt;
   final bool running;
   final String? mode;
   final String? model;
@@ -67,6 +69,7 @@ class SessionInfo {
       title: title,
       lastUser: lastUser,
       updatedAt: _asDouble(json['updated_at'] ?? json['updatedAt']),
+      createdAt: _asDouble(json['created_at'] ?? json['createdAt'] ?? json['created']),
       running: json['running'] == true || json['live'] == true || json['active'] == true,
       mode: json['mode']?.toString(),
       model: json['model']?.toString(),

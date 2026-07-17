@@ -7,6 +7,8 @@ class AppSettingsController extends ChangeNotifier {
   static const _kCompact = 'huanhermes.compact_mode.v1';
   static const _kDashRefresh = 'huanhermes.dashboard_refresh_sec.v1';
   static const _kShowTools = 'huanhermes.show_tools_default.v1';
+  static const _kSort = 'huanhermes.session_sort.v1';
+  static const _kContrast = 'huanhermes.high_contrast.v1';
 
   /// 0.85 | 1.0 | 1.15 | 1.3
   double textScale = 1.0;
@@ -20,6 +22,12 @@ class AppSettingsController extends ChangeNotifier {
   /// Default for chat tools visibility preference (UI hint only).
   bool showToolsDefault = true;
 
+  /// Session list sort: updated | title | project | created
+  String sessionSort = 'updated';
+
+  /// Stronger borders / higher contrast surfaces for a11y.
+  bool highContrast = false;
+
   Future<void> load() async {
     final p = await SharedPreferences.getInstance();
     textScale = p.getDouble(_kScale) ?? 1.0;
@@ -30,6 +38,10 @@ class AppSettingsController extends ChangeNotifier {
       dashboardRefreshSec = 15;
     }
     showToolsDefault = p.getBool(_kShowTools) ?? true;
+    sessionSort = p.getString(_kSort) ?? 'updated';
+    const allowed = {'updated', 'title', 'project', 'created'};
+    if (!allowed.contains(sessionSort)) sessionSort = 'updated';
+    highContrast = p.getBool(_kContrast) ?? false;
     notifyListeners();
   }
 
@@ -59,5 +71,19 @@ class AppSettingsController extends ChangeNotifier {
     notifyListeners();
     final p = await SharedPreferences.getInstance();
     await p.setBool(_kShowTools, v);
+  }
+
+  Future<void> setSessionSort(String v) async {
+    sessionSort = v;
+    notifyListeners();
+    final p = await SharedPreferences.getInstance();
+    await p.setString(_kSort, v);
+  }
+
+  Future<void> setHighContrast(bool v) async {
+    highContrast = v;
+    notifyListeners();
+    final p = await SharedPreferences.getInstance();
+    await p.setBool(_kContrast, v);
   }
 }

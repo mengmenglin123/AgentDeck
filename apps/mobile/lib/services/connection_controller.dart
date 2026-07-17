@@ -95,6 +95,12 @@ class ConnectionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Load a saved profile and run Test & connect (for in-app host switching).
+  Future<bool> switchAndConnect(String id) async {
+    await selectProfile(id);
+    return testAndSave();
+  }
+
   Future<bool> testAndSave() async {
     phase = ConnectionPhase.testing;
     lastError = null;
