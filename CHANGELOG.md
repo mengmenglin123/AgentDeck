@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.32
+
+- Skills: source FilterChips + filtered/total title counts
+- Diff: local find-in-diff (display filter; copy still full diff)
+- Host Dashboard: auto-refresh badge + last-ok time chips
+- Pairing: AppBar copy public summary / public URI (no tokens)
+
 ## 0.1.31
 
 - Activity: kind FilterChips + filtered/total title counts

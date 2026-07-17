@@ -139,6 +139,11 @@
 | P3-99 | MCP status FilterChips + 标题计数 | [x] |
 | P3-100 | Terminal 本地 buffer 查找 | [x] |
 
+| P3-101 | Skills source FilterChips + 标题计数 | [x] |
+| P3-102 | Diff 本地 find-in-diff | [x] |
+| P3-103 | Host Dashboard 自动刷新 / last-ok 徽标 | [x] |
+| P3-104 | Pairing AppBar 复制 public summary/URI | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

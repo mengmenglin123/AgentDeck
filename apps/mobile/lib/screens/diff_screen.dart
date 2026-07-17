@@ -24,6 +24,8 @@ class _DiffScreenState extends State<DiffScreen> {
   String? _path;
   String _diff = '';
   bool _lineNums = true;
+  final _diffFindCtrl = TextEditingController();
+  String _diffQuery = '';
   final _fileFilterCtrl = TextEditingController();
   String _fileFilter = '';
 
@@ -37,6 +39,7 @@ class _DiffScreenState extends State<DiffScreen> {
   @override
   void dispose() {
     _fileFilterCtrl.dispose();
+    _diffFindCtrl.dispose();
     super.dispose();
   }
 
@@ -96,11 +99,27 @@ class _DiffScreenState extends State<DiffScreen> {
     }
   }
 
+
+  String get _displayDiff {
+    final q = _diffQuery.trim().toLowerCase();
+    if (q.isEmpty) return _diff;
+    final lines = _diff.replaceAll('\r\n', '\n').split('\n');
+    final hit = lines.where((l) => l.toLowerCase().contains(q)).toList();
+    if (hit.isEmpty) return '(no diff lines match: $_diffQuery)';
+    return hit.join('\n');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_path == null ? 'Git diff' : 'Diff · $_path'),
+        title: Text(
+          _path == null
+              ? 'Git diff'
+              : (_diffQuery.trim().isEmpty
+                  ? 'Diff · $_path'
+                  : 'Diff · $_path (find)'),
+        ),
         actions: [
           IconButton(
             tooltip: _lineNums ? 'Hide line numbers' : 'Show line numbers',
@@ -188,6 +207,29 @@ class _DiffScreenState extends State<DiffScreen> {
                 },
               ),
             ),
+          if (_diff.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
+              child: TextField(
+                controller: _diffFindCtrl,
+                decoration: InputDecoration(
+                  hintText: 'Find in diff (local)',
+                  isDense: true,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.search, size: 18),
+                  suffixIcon: _diffQuery.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _diffFindCtrl.clear();
+                            setState(() => _diffQuery = '');
+                          },
+                        ),
+                ),
+                onChanged: (v) => setState(() => _diffQuery = v),
+              ),
+            ),
           Expanded(
             child: RefreshIndicator(
               onRefresh: _loadIndex,
@@ -206,7 +248,7 @@ class _DiffScreenState extends State<DiffScreen> {
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.all(12),
                         children: [
-                          _DiffText(diff: _diff, showLineNumbers: _lineNums),
+                          _DiffText(diff: _displayDiff, showLineNumbers: _lineNums),
                         ],
                       ),
                     ),

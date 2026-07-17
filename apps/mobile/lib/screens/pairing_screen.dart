@@ -88,6 +88,16 @@ class _PairingScreenState extends State<PairingScreen> {
       appBar: AppBar(
         title: const Text('Device pairing'),
         actions: [
+          IconButton(
+            tooltip: 'Copy public summary',
+            onPressed: () => _copy(cfg.toPublicSummary(), 'Copied public summary'),
+            icon: const Icon(Icons.notes_outlined),
+          ),
+          IconButton(
+            tooltip: 'Copy public URI',
+            onPressed: () => _copy(publicUri, 'Copied public pairing URI'),
+            icon: const Icon(Icons.link),
+          ),
           IconButton(onPressed: loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
       ),

@@ -130,7 +130,9 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Host status'),
+        title: Text(
+          refreshSec > 0 ? 'Host status · auto ${refreshSec}s' : 'Host status',
+        ),
         actions: [
           IconButton(
             tooltip: 'Copy status',
@@ -162,6 +164,36 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                   ),
                   isThreeLine: true,
                 ),
+                if (_lastOk != null || refreshSec > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        if (_lastOk != null)
+                          Chip(
+                            visualDensity: VisualDensity.compact,
+                            avatar: const Icon(Icons.schedule, size: 16),
+                            label: Text(
+                              'Last ok ${_lastOk!.toLocal().toIso8601String().substring(11, 19)}',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        Chip(
+                          visualDensity: VisualDensity.compact,
+                          avatar: Icon(
+                            refreshSec > 0 ? Icons.autorenew : Icons.pause_circle_outline,
+                            size: 16,
+                          ),
+                          label: Text(
+                            refreshSec > 0 ? 'Auto every ${refreshSec}s' : 'Auto refresh off',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 // Live health strip: green when last /status ok, red on error
                 Builder(builder: (context) {
                   final connOk = conn.isReady;

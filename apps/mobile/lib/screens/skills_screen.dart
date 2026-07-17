@@ -20,6 +20,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
   List<Map<String, dynamic>> skills = [];
   final _q = TextEditingController();
   String _query = '';
+  String _source = '';
 
   @override
   void initState() {
@@ -54,8 +55,22 @@ class _SkillsScreenState extends State<SkillsScreen> {
 
   List<Map<String, dynamic>> get _filtered {
     final q = _query.trim().toLowerCase();
-    if (q.isEmpty) return skills;
     return skills.where((s) {
+      final src = (s['source'] ?? '').toString().toLowerCase();
+      if (_source.isNotEmpty) {
+        if (_source == 'other') {
+          final known = src.contains('builtin') ||
+              src.contains('built-in') ||
+              src.contains('user') ||
+              src.contains('project') ||
+              src.contains('plugin') ||
+              src.contains('host');
+          if (known) return false;
+        } else if (!src.contains(_source)) {
+          return false;
+        }
+      }
+      if (q.isEmpty) return true;
       final hay = '${s['name']} ${s['description']} ${s['source']}'.toLowerCase();
       return hay.contains(q);
     }).toList();
@@ -66,7 +81,13 @@ class _SkillsScreenState extends State<SkillsScreen> {
     final items = _filtered;
     return Scaffold(
       appBar: AppBar(
-        title: Text(items.isEmpty ? 'Skills (readonly)' : 'Skills (${items.length})'),
+        title: Text(
+          items.isEmpty
+              ? 'Skills (readonly)'
+              : (items.length == skills.length
+                  ? 'Skills (${items.length})'
+                  : 'Skills (${items.length}/${skills.length})'),
+        ),
         actions: [
           IconButton(
             tooltip: 'Copy all',
@@ -103,6 +124,29 @@ class _SkillsScreenState extends State<SkillsScreen> {
               ? Center(child: Text(error!))
               : Column(
                   children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                      child: Wrap(
+                        spacing: 8,
+                        children: [
+                          for (final f in const [
+                            ('', 'All'),
+                            ('builtin', 'Builtin'),
+                            ('user', 'User'),
+                            ('project', 'Project'),
+                            ('plugin', 'Plugin'),
+                            ('host', 'Host'),
+                            ('other', 'Other'),
+                          ])
+                            FilterChip(
+                              label: Text(f.$2, style: const TextStyle(fontSize: 12)),
+                              selected: _source == f.$1,
+                              onSelected: (_) => setState(() => _source = f.$1),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                        ],
+                      ),
+                    ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
                       child: TextField(
