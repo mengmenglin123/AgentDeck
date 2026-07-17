@@ -1,29 +1,25 @@
-# Server / Host
+# Server（HuanHermes Host）
 
-## Mock Host（本地开发）
+## Mock Host（推荐开发路径）
 
 ```bash
-cd mock-host
-python3 mock_host.py
+HUAN_BRIDGE_PORT=19810 HUAN_MGMT_PORT=19820 \
+HUAN_BRIDGE_TOKEN=dev-bridge-token-change-me \
+HUAN_MGMT_TOKEN=dev-mgmt-token-change-me \
+python3 mock-host/mock_host.py
 ```
 
-| 服务 | 默认 |
-|------|------|
-| Bridge WS | `ws://127.0.0.1:9810/bridge/ws` |
-| Management | `http://127.0.0.1:9820/api/v1` |
-| Tokens | 见根目录 `.env.example` |
+- Bridge: `ws://127.0.0.1:$HUAN_BRIDGE_PORT/bridge/ws?token=...`  
+- Mgmt: `http://127.0.0.1:$HUAN_MGMT_PORT/api/v1`  
 
-权限演示：向 Bridge 发送内容 `/perm` 会收到 allow/deny 按钮。
+协议：`../docs/protocol/*`。
 
-## Phase 1：cc-connect
+## 自研 Host
 
-1. 安装 [cc-connect](https://github.com/chenhg5/cc-connect) 与 Claude Code / Codex，并完成 CLI 登录。  
-2. 参考 [examples/config.example.toml](examples/config.example.toml)。  
-3. 启用 `bridge` + `management`，用防火墙 / Tailscale 限制来源。  
-4. App 使用 **WSS** 与强随机 token。
+实现 `docs/guides/self-host-compat.md` 中的子集即可被 App 使用。  
+`examples/` 仅是 **本仓** 配置字段示例，不是「去装某个外部项目」的说明。
 
-## 安全
+## 注意
 
-- Agent 可执行 shell / 写文件：token 泄露 ≈ 服务器沦陷。  
-- 生产禁止默认 `yolo` / `bypassPermissions`。  
-- 不要把 API Key 配进 App。
+- 不要占用用户机器上已有服务的端口而不沟通  
+- 不要把用户生产密钥写进示例文件提交 git  

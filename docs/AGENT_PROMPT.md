@@ -1,53 +1,31 @@
-# HuanHermes App — 系统开发提示词（Master Prompt）
+# Agent 协作提示（本仓库）
 
-## 角色
+## 产品
 
-你是资深全栈/移动端工程师 + 分布式 Agent 系统架构师。你在完善私有仓库
-`mengmenglin123/huanhermes-app`：一款可连接**用户自有服务器**上
-Hermes / Codex / Claude Code 等 Agent 并远程操控的 App。
+HuanHermes = **移动控制台**，连接 **HuanHermes Host**（Mock 或自研实现本仓协议），操控服务器侧 Agent。
 
-## 产品目标
+## 硬约束
 
-用户在手机/平板/桌面客户端上：
+1. **只改本仓库**。不要部署/修改/杀死用户机器上已有的第三方宿主服务。
+2. **不把外部项目当依赖**。协议与 UX 可对照开源灵感，但实现、文档默认路径、安装步骤必须是 **HuanHermes 自有**。
+3. **禁止** 整仓拷贝外部 Agent 桌面端或 CLI 宿主源码。
+4. 凭证不进 git、不进对话明文。
+5. 任务以 `docs/TASKS.md` 为准；小步 commit + CHANGELOG。
 
-1. 安全连接到自建 Host（默认兼容 cc-connect Bridge + Management API）
-2. 选择 Agent 后端：claude-code | codex | hermes（可扩展）
-3. 创建/切换/停止会话，流式查看思考/工具/结果
-4. 审批工具权限（allow / deny / allow all），切换 permission mode
-5. 切换工作目录（受限白名单），查看 Host/项目状态
+## 协议
 
-**禁止**：在客户端内重新实现完整 coding agent；禁止默认开启 YOLO 对公网。
+- 规范源：`docs/protocol/*`（本仓拥有）
+- 参考实现：`server/mock-host/mock_host.py`
+- 客户端：`packages/huan_protocol` + `apps/mobile`
 
-## 参考实现（只读学习，注意 License）
+## 措辞
 
-- LiveAgent (MIT)：远程控制台 UX、chat 事件 seq/恢复、密钥脱敏  
-  https://github.com/Stack-Cairn/LiveAgent  
-  重点：`docs/architecture/protocols.md`、`overview.md`
-- cc-connect：CLI Agent 宿主、Bridge WS、Management API  
-  https://github.com/chenhg5/cc-connect  
-  重点：`AGENTS.md`、`docs/bridge-protocol.md`、`docs/usage.md`、`docs/management-api.md`
+| 禁止 | 改为 |
+|------|------|
+| 「安装/真连某外部上游宿主」 | 「连接实现本仓协议的 Host / Mock」 |
+| 「某某产品方言」 | 「project-scoped 会话路径 / flat 会话路径」 |
+| 「依赖某桌面控制台项目」 | 「控制台 UX 自研；实现为本仓 Flutter」 |
 
-## 架构约束
+## 联调端口
 
-- Client ↔ Host：TLS(WSS/HTTPS) + 强 token；token 存系统安全存储
-- 协议 Phase1：兼容本仓库 `docs/protocol/*` 与上游 cc-connect 子集
-- Host 可先部署上游 cc-connect；Hermes 用 adapter 接入
-- 桌面 LiveAgent 的 gRPC Desktop 通道**不**作为 App 主路径
-- 日志脱敏 token；不提交真实密钥
-
-## 技术选型（当前仓库状态）
-
-- 协议参考实现 + Mock Host：**Python 3 标准库**（便于无依赖跑通）
-- App UI：下一步 **Flutter 3.x**（iOS/Android/桌面），未初始化前用 Python demo 验证协议
-- 包结构见根 README
-
-## 编码标准
-
-- 每个任务：可运行、有最小测试
-- 错误类型化（AuthError / Disconnected / PermissionRequired / AgentFailed）
-- 流式 UI：event reducer；权限必须阻断到用户选择
-- 按 `docs/TASKS.md` 的 P0→P1→P2 顺序交付并更新 CHANGELOG
-
-## 当前优先
-
-完成/完善 P0：协议稳定、Mock Host、参考客户端测试；然后 Flutter 壳与真连 cc-connect。
+Mock 默认可用环境变量改端口，避免与用户机器上其他服务冲突。

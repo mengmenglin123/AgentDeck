@@ -12,7 +12,7 @@
 
 - 禁止提交真实 token / provider key
 - `.env.example` 仅本地默认占位
-- **禁止**为联调修改用户已部署 Host 的渠道 / 代理 / API key
+- **禁止**为联调修改用户已部署服务的渠道 / 代理 / API key
 
 ## Host
 

@@ -1,139 +1,72 @@
-# HuanHermes App
+# HuanHermes
 
-在手机 / 平板 / 桌面客户端上，**安全连接你自己的服务器**，远程操控：
+**远程控制台 App**：在手机上管理会话，驱动**你服务器上的** Claude Code / Codex / Hermes（二期）Agent。  
+App **不做** coding agent loop；真相源在服务器 Host。
 
-- **Claude Code**
-- **Codex**
-- **Hermes**（二期适配）
-- 以及其它可挂到 Host 上的 Coding Agent
+## 产品原则
 
-> 私有仓库 · 个人自建环境 · 不在客户端内重写完整 agent loop。
+1. **本仓自有** Bridge WebSocket + Management REST 协议子集（见 `docs/protocol/`）。
+2. **Mock Host**（`server/mock-host`）是一等公民参考实现与联调环境。
+3. **自研 Host** 只需实现本仓协议即可对接（见 `docs/guides/self-host-compat.md`）。
+4. 外部开源项目（桌面控制台 UX、CLI 宿主协议形状）仅作**设计灵感**，**不是依赖、不是运行时、不是安装步骤**。
+5. 禁止把第三方 Host 源码拷进本仓；禁止为联调修改用户已部署服务的渠道/密钥。
 
----
+## 架构
 
-## 架构一句话
-
-| 层 | 策略 |
-|----|------|
-| **App UI** | 信息架构与流式事件语义参考 [LiveAgent](https://github.com/Stack-Cairn/LiveAgent) |
-| **服务器 Host** | Phase 1 兼容 [cc-connect](https://github.com/chenhg5/cc-connect) 的 **Bridge WebSocket** + **Management REST** |
-| **Agent 执行** | 在服务器上驱动真实 CLI（不把 API Key 放进 App） |
-
-```text
-App  ──WSS Bridge + HTTPS Mgmt──►  Host (cc-connect or mock)
-                                      ├─ claude-code project
-                                      ├─ codex project
-                                      └─ hermes (later)
+```
+App (Flutter Android)  ──WSS Bridge + HTTPS Mgmt──►  Host (Mock 或自研兼容实现)
+                                                      └── 驱动服务器侧 Agent 进程
 ```
 
-详见 [docs/adr/001-architecture.md)
-- [ADR-002 Hermes adapter](docs/adr/002-hermes-adapter.md](docs/adr/001-architecture.md)
-- [ADR-002 Hermes adapter](docs/adr/002-hermes-adapter.md)。
-
----
+| 层 | 说明 |
+|----|------|
+| **App** | 连接配置、多 Host profile、会话列表、流式聊天、权限、工具栏、审计 |
+| **协议** | `docs/protocol/bridge-subset.md` + `management-subset.md` |
+| **Mock Host** | 可演示全流程（流式 / cancel / mode / hermes project / skills / pairing） |
+| **Agent** | 服务器侧 Claude Code / Codex / Hermes — **不在 App 内重写** |
 
 ## 仓库结构
 
-```text
-huanhermes-app/
-├── apps/mobile/              # Flutter Android 客户端（Connect / Sessions / Chat）
-├── packages/huan_protocol/   # Bridge/Mgmt 协议模型与参考客户端（Python）
-├── server/
-│   ├── mock-host/            # 本地 Mock：Bridge + Management
-│   └── examples/             # cc-connect 示例 config
-├── docs/
-│   ├── AGENT_PROMPT.md       # 给 AI/协作者的主提示词
-│   ├── TASKS.md              # 任务板 P0–P3
-│   ├── adr/                  # 架构决策
-│   └── protocol/             # 协议子集
-└── CHANGELOG.md
+```
+apps/mobile/              # Flutter Android 控制台
+packages/huan_protocol/   # Python 协议参考客户端 + 测试
+server/mock-host/         # Mock Host（默认端口见环境变量）
+docs/protocol/            # 协议规范（本仓拥有）
+docs/guides/              # 连接 / 发布 / 自研 Host
+docs/adr/                 # 架构决策
 ```
 
----
-
-## 快速开始（Mock Host）
-
-需要 **Python 3.10+**（仅标准库）。
+## 快速开始（Mock，推荐）
 
 ```bash
-# 终端 1：启动 Mock Host（Bridge :9810，Management :9820）
-cd server/mock-host
-python3 mock_host.py
+# 开发机：任意空闲端口（示例 19810/19820）
+HUAN_BRIDGE_PORT=19810 HUAN_MGMT_PORT=19820 HUAN_BRIDGE_TOKEN=dev-bridge-token-change-me HUAN_MGMT_TOKEN=dev-mgmt-token-change-me python3 server/mock-host/mock_host.py
 
-# 终端 2：跑协议自测
-cd packages/huan_protocol
-python3 -m test.test_bridge_client
-
-# 终端 2：用参考客户端发一条消息
-python3 -m src.bridge_client_demo
+cd apps/mobile && flutter pub get && flutter test && flutter run
+# 模拟器 Host 填 10.0.2.2，端口与上面一致
 ```
 
-默认 token（仅本地开发，务必修改）：
+## 连接你自己的 Host
 
-| 用途 | 默认值 |
-|------|--------|
-| Bridge | `dev-bridge-token-change-me` |
-| Management | `dev-mgmt-token-change-me` |
+1. 在服务器跑 **实现本仓协议** 的 Host（Mock 或自研）。  
+2. 在 App Connect 页填 host / 端口 / token。  
+3. 详见 [connect-real-host.md](docs/guides/connect-real-host.md)。
 
-环境变量见根目录 `.env.example`。
-
-### 真机 Host（Phase 1）
-
-1. 在服务器安装 [cc-connect](https://github.com/chenhg5/cc-connect) 与 Claude Code / Codex CLI 并完成登录。  
-2. 参考 [server/examples/config.example.toml](server/examples/config.example.toml) 启用 `bridge` 与 `management`。  
-3. 用 App 或 `packages/huan_protocol` 客户端连接 `wss://your-host:9810/bridge/ws`。
-
----
-
-## 移动端（Flutter Android）
-
-```bash
-# 终端 1：Mock Host
-python3 server/mock-host/mock_host.py
-
-# 终端 2：App（需本机 Flutter 3.x + Android SDK）
-cd apps/mobile
-flutter pub get
-flutter run
-# 或
-flutter build apk --debug
-```
-
-应用 ID：`com.huanmeng.huanhermes`。Connect 保存 token；Sessions/Chat 走 Mgmt + Bridge 流式与权限按钮；Chat 工具栏支持 mode/model/dir/stop、重连与审计日志（对齐 LiveAgent 控制台体验）。
-
-## 安全原则
-
-- Token 只存系统安全存储；日志脱敏。  
-- Host 上的 Agent 权限极高：**禁止默认公网 YOLO**。  
-- 网关 / App **不持有** 模型主 API Key（Key 留在服务器 CLI / env）。  
-- 仅连接你明确授权的自建 Host。
-
----
+**不要**把「安装某个外部宿主项目」当作本产品的前置条件。
 
 ## 文档
 
-- [连接真实 Host](docs/guides/connect-real-host.md)（只在 App 填 token，不改服务器渠道）
-- [LiveAgent 能力对照](docs/roadmap-liveagent-parity.md)
+- [任务板](docs/TASKS.md)
+- [ADR-001 架构](docs/adr/001-architecture.md)
+- [ADR-002 Hermes adapter](docs/adr/002-hermes-adapter.md)
+- [Bridge 协议子集](docs/protocol/bridge-subset.md)
+- [Management 协议子集](docs/protocol/management-subset.md)
+- [控制台能力路线图](docs/roadmap-console-parity.md)
+- [连接真实 Host](docs/guides/connect-real-host.md)
+- [内测 / 发布](docs/guides/release.md)
+- [自研 Host 兼容](docs/guides/self-host-compat.md)
+- [安全](docs/security.md)
 
+## 版本
 
-| 文档 | 说明 |
-|------|------|
-| [docs/TASKS.md](docs/TASKS.md) | 开发任务板 |
-| [docs/AGENT_PROMPT.md](docs/AGENT_PROMPT.md) | 后续开发主提示词 |
-| [docs/protocol/bridge-subset.md](docs/protocol/bridge-subset.md) | Bridge 兼容子集 |
-| [docs/protocol/management-subset.md](docs/protocol/management-subset.md) | Management API 子集 |
-
----
-
-## License
-
-MIT（见 [LICENSE](LICENSE)）。  
-上游参考项目各自保留其 License；本仓库不内嵌其专有代码。
-
-
-## Guides
-
-- [Connect real Host](docs/guides/connect-real-host.md)
-- [Release / 内测](docs/guides/release.md)
-- [Self-host compat](docs/guides/self-host-compat.md)
-- [Security](docs/security.md)
+见 `CHANGELOG.md` · App `apps/mobile/pubspec.yaml`

@@ -1,45 +1,34 @@
-# ADR-001: HuanHermes 总体架构
+# ADR-001: HuanHermes 架构
 
 - **状态**: Accepted  
-- **日期**: 2026-07-17  
-- **决策者**: mengmenglin123 + 安全工程助手  
+- **日期**: 2026-07  
 
 ## 背景
 
-需要一款 App，连接用户**自有服务器**上的 Hermes / Codex / Claude Code 等 Agent 并远程操控。  
-已分析：
-
-- [LiveAgent](https://github.com/Stack-Cairn/LiveAgent)：本地优先桌面 Agent + Gateway 远程 WebUI  
-- [cc-connect](https://github.com/chenhg5/cc-connect)：CLI Agent 宿主 + IM/Bridge 入口  
+需要一个 **Android 控制台**，远程管理服务器上的 coding agent（Claude Code / Codex / Hermes），而不是在手机上跑完整 agent loop。
 
 ## 决策
 
-1. **App 不做 coding agent loop**  
-   客户端只做控制台：连接、会话、流式 transcript、权限审批、状态。
+1. **App = 控制台 only**  
+   会话列表、流式 transcript、权限、mode/model/dir/stop、审计。不在客户端重写 agent loop。
 
-2. **服务器 Host 采用「CLI 驱动」模型（对齐 cc-connect）**  
-   Phase 1：直接部署 / 兼容 **cc-connect Bridge WebSocket + Management REST**。  
-   Phase 2：可自研 Host，保留 Bridge 兼容层，并增加 Hermes adapter。
+2. **Host = 服务器真相源**  
+   Host 暴露 **HuanHermes Bridge WebSocket** + **Management REST**（规范在 `docs/protocol/`）。  
+   Phase 1 参考实现：**本仓 Mock Host**。生产可用 **自研兼容 Host** 驱动 CLI/Agent 进程。
 
-3. **UI / 事件语义对齐 LiveAgent 思想**  
-   - 会话侧栏 + running 态  
-   - 流式事件 + 可恢复游标（seq 语义，实现可渐进）  
-   - 密钥脱敏；网关不越权执行本地工具  
-   - **不**以 LiveAgent 桌面 gRPC 作为 App 主路径  
+3. **协议本仓拥有**  
+   字段与路径以 `docs/protocol/*` 为准。可借鉴业界常见 Bridge/Mgmt 形状，但文档与代码默认语言是 HuanHermes，不要求用户安装特定第三方宿主。
 
-4. **Hermes 二期**  
-   不阻塞 Claude Code / Codex MVP；单独 ADR 定 adapter。
+4. **UI 事件语义**  
+   流式、thinking、tool、permission buttons、run cancel — 对齐常见远程控制台体验；实现完全在本仓 Flutter。
+
+5. **不做**  
+   - 把第三方桌面 gRPC 当 App 主路径  
+   - 把 IM 全家桶内置进 App  
+   - 拷贝外部项目源码进本仓  
 
 ## 后果
 
-| 正面 | 负面 |
-|------|------|
-| 快速验证产品；复用成熟 CLI | 依赖上游 Bridge 草案演进 |
-| 安全边界清晰 | 完整终端 / MCP 市场需后置 |
-| 可替换 Host 实现 | Hermes 需额外开发 |
-
-## 非目标（MVP）
-
-- 重写 Claude/Codex 内核  
-- 默认公网无审批高权限  
-- 飞书/Telegram 全家桶内置到 App（用户可自建 cc-connect）  
+- 开发主路径：Mock Host ↔ App  
+- 扩展：自研 Host 按 `docs/guides/self-host-compat.md` 实现子集  
+- Hermes：见 ADR-002（Host 侧 adapter，App 只消费协议）

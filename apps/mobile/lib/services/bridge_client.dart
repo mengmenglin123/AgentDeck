@@ -11,7 +11,7 @@ typedef BridgeMessageHandler = void Function(Map<String, dynamic> payload);
 typedef BridgeErrorHandler = void Function(Object error);
 typedef BridgeCloseHandler = void Function();
 
-/// Minimal Bridge WebSocket client (cc-connect compatible subset).
+/// Minimal Bridge WebSocket client (HuanHermes protocol subset).
 class BridgeClient {
   BridgeClient({
     required this.config,

@@ -1,55 +1,28 @@
-# Example cc-connect style config for HuanHermes Phase-1 host.
-# Copy and adapt on your server after installing cc-connect + CLI agents.
-# Docs: https://github.com/chenhg5/cc-connect
+# HuanHermes Host — example configuration shape (documentation only)
+# This is NOT a config for any third-party product.
+# Implement your own Host against docs/protocol/* and docs/guides/self-host-compat.md.
 
-# --- Bridge: App connects here ---
-[bridge]
-enabled = true
-port = 9810
-path = "/bridge/ws"
-token = "change-me-bridge-token-min-32-chars!!"
+[server]
+# Bind addresses for your Host process
+bridge_host = "0.0.0.0"
+bridge_port = 9810
+mgmt_host = "0.0.0.0"
+mgmt_port = 9820
 
-# --- Management API: status / projects / sessions ---
-[management]
-enabled = true
-port = 9820
-token = "change-me-mgmt-token-min-32-chars!!!!"
+[auth]
+# Generate strong tokens; store only on server + enter in App UI
+bridge_token = "change-me-bridge"
+mgmt_token = "change-me-mgmt"
 
-# --- Project: Claude Code ---
-[[projects]]
-name = "claude-code"
-# admin_from = ["huan:device:user"]  # optional privileged commands
+[projects.claude-code]
+agent_type = "claudecode"
+workdir = "/workspace"
 
-[projects.agent]
-type = "claudecode"
+[projects.codex]
+agent_type = "codex"
+workdir = "/workspace"
 
-[projects.agent.options]
-work_dir = "/home/you/projects/app"
-mode = "default"   # do NOT use yolo on public networks
-
-# Optional providers — prefer CLI login on server
-# [[projects.agent.providers]]
-# name = "anthropic"
-# api_key = "sk-ant-..."
-
-# Bridge platform is built-in when [bridge] enabled; IM platforms optional.
-# [[projects.platforms]]
-# type = "telegram"
-# ...
-
-# --- Project: Codex ---
-[[projects]]
-name = "codex"
-
-[projects.agent]
-type = "codex"
-
-[projects.agent.options]
-work_dir = "/home/you/projects/app"
-mode = "suggest"
-
-# --- Hermes (not first-class in upstream; placeholder for Phase-2 adapter) ---
-# [[projects]]
-# name = "hermes"
-# [projects.agent]
-# type = "hermes"   # requires custom plugin / adapter
+[projects.hermes]
+agent_type = "hermes"
+workdir = "/workspace"
+# Host-side adapter maps Bridge sessions → Hermes process (ADR-002)

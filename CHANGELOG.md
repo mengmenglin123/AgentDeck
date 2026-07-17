@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.7] - 2026-07-17
+
+### Changed
+- Product framing: HuanHermes **owns** Bridge/Mgmt protocol; Mock/self-host are first-class
+- Docs/comments no longer present third-party hosts as install/runtime dependency
+- Session paths described as flat vs project-scoped (not external product dialects)
+
+### Notes
+- Behavior unchanged: dual-path Mgmt + Mock still work; only wording/ownership clarified
+
+
 ## [0.1.6] - 2026-07-17
 
 ### Added
@@ -23,35 +34,35 @@
 - `Security.redactText` helpers; Mock project `capabilities` fields
 
 ### Notes
-- Does not modify any live Host / cc-connect / channel config
+- Does not modify any live Host / channel config
 - Real Hermes process still Host-side (P2-2+)
 
 
 ## [0.1.4] - 2026-07-17
 
 ### Added
-- Management dual-dialect client: flat `/sessions` (Mock) + project-scoped `/projects/{}/sessions` (cc-connect shape)
+- Management dual-dialect client: flat `/sessions` (Mock) + project-scoped `/projects/{}/sessions` (project-scoped)
 - Mock Host mirrors both path shapes + `/agents`, project session detail
 - `docs/guides/connect-real-host.md` — user connects App to their Host without editing Host channels
 - Bridge handling for `preview_start` / `card` / `update_message` (protocol reference)
 
 ### Notes
-- LiveAgent & cc-connect remain **references only**; no production Host config is modified by this repo
+- External projects are design references only; this repo does not modify production Host configs
 - App still does not run coding agent loops locally
 
 
 ## [0.1.3] - 2026-07-17
 
 ### Added
-- LiveAgent-oriented console controls: mode / model / dir / stop toolbar
+- Console controls: mode / model / dir / stop toolbar
 - Bridge `cancel` + Mock cancellable streaming runs (`run_done`, thinking, tool_*)
 - Session transcript reload via `GET /api/v1/sessions/{id}`
 - Auto-reconnect with backoff; local redacted audit log screen
 - Empty states for sessions/chat; running indicator
-- `docs/roadmap-liveagent-parity.md` capability matrix
+- `docs/roadmap-console-parity.md` capability matrix
 
 ### Notes
-- P1-2 true cc-connect wiring still open (deploy/docs next)
+- P1-2 real Host connect path via App tokens + dual-path client
 - App remains a remote console — agent loop stays on server
 
 
@@ -80,7 +91,7 @@
 
 ### Added
 - Repository scaffold (docs, protocol package, mock host, example configs)
-- ADR-001 architecture decision (cc-connect-compatible host + LiveAgent-inspired UI)
+- ADR-001 architecture decision (HuanHermes Host protocol + console UI)
 - Bridge / Management protocol subset documentation
 - Python mock Bridge + Management host for offline UI development
 - Python reference Bridge client + unit tests

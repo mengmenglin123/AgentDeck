@@ -1,5 +1,5 @@
 
-"""Management REST client (Python stdlib) — Mock flat + cc-connect project-scoped."""
+"""Management REST client (Python stdlib) — flat + project-scoped session paths."""
 
 from __future__ import annotations
 

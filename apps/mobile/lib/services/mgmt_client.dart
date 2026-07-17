@@ -18,7 +18,7 @@ typedef HttpSender = Future<http.Response> Function(
 ///
 /// Supports **both**:
 /// - HuanHermes Mock flat paths: `/sessions`, `/sessions/{id}`
-/// - cc-connect-shaped paths: `/projects/{name}/sessions`
+/// - project-scoped paths: `/projects/{name}/sessions`
 ///
 /// Never prints tokens. Does not modify any host config.
 class MgmtClient {
@@ -116,8 +116,8 @@ class MgmtClient {
       return _sessionsFlat(project: project);
     }
 
-    // Auto-detect: try project-scoped first when project known (cc-connect shape),
-    // then flat Mock MVP.
+    // Auto-detect: try project-scoped first when project known,
+    // then flat path.
     if (proj.isNotEmpty) {
       try {
         final list = await _sessionsProjectScoped(proj);
@@ -176,7 +176,7 @@ class MgmtClient {
       return SessionInfo.fromJson(data);
     }
 
-    // Auto: try project-scoped (cc-connect) then flat
+    // Auto: try project-scoped then flat
     try {
       final s = await _createProjectScoped(project, body);
       dialect = 'project';

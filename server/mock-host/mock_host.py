@@ -770,7 +770,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                     return
             self._send(404, {"ok": False, "error": "project not found"})
             return
-        # cc-connect shape: /projects/{name}/sessions
+        # project-scoped: /projects/{name}/sessions
         m = re.match(r"^/api/v1/projects/([^/]+)/sessions$", path)
         if m:
             name = m.group(1)
@@ -898,7 +898,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
             rec = _create_session_rec(project, body)
             self._send(200, {"ok": True, "data": rec})
             return
-        # cc-connect shape: POST /projects/{name}/sessions  (session_key optional; generated if missing)
+        # project-scoped POST /projects/{name}/sessions  (session_key optional; generated if missing)
         m = re.match(r"^/api/v1/projects/([^/]+)/sessions$", path)
         if m:
             project = m.group(1)

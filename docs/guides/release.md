@@ -24,7 +24,7 @@ python3 server/mock-host/mock_host.py
 ```
 
 2. App Connect 填 host / 端口 / token（模拟器用 `10.0.2.2`）。
-3. 真 Host：只在 App 填用户自有 token，**禁止改服务器渠道配置**。
+3. 真 Host：只在 App 填用户自有 token；**禁止**为联调改服务器无关服务/渠道配置。
 
 ## 验收清单
 
