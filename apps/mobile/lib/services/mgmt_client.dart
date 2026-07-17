@@ -116,6 +116,21 @@ class MgmtClient {
     }
   }
 
+  /// Readonly workspace listing / file content: GET /workspace?path=
+  Future<Map<String, dynamic>> workspace({String path = ''}) async {
+    final q = path.isEmpty ? '' : '?path=${Uri.encodeQueryComponent(path)}';
+    return _request('GET', '/workspace$q');
+  }
+
+  /// Mock/host git status snapshot: GET /workspace/git
+  Future<Map<String, dynamic>> workspaceGit() async {
+    try {
+      return await _request('GET', '/workspace/git');
+    } on ProtocolError {
+      return {'branch': '?', 'files': <dynamic>[], 'note': 'not available'};
+    }
+  }
+
   Future<List<SessionInfo>> sessions({String? project}) async {
     final proj = project ?? '';
     // Prefer dialect if known

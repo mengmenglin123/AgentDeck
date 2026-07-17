@@ -49,8 +49,20 @@
 - [x] Skills/MCP 只读浏览（GET `/skills`、`/mcp`）
 - [x] 设备配对 URI（复制 + Connect 导入；真相机扫码可后置）
 - [x] 会话本地搜索
+- [x] 终端快捷操作（help/pwd/ls/y/n/^C）
+- [x] Prompt 本地历史 + 收藏
+- [x] Host 状态面板（可刷新 /status）
+- [x] 工作区只读浏览（GET `/workspace` + `/workspace/git`）
+
+## P4 — 可选后续
+
+- [ ] 真远程 PTY
+- [ ] 相机扫码配对
+- [ ] Diff 可视化
+- [ ] Host 侧真 Hermes 进程 adapter
 
 ## 措辞约束（给贡献者）
 
 - 产品路径只写 **HuanHermes Host / Mock / 自研兼容**
 - 禁止把外部宿主项目写成安装依赖或默认运行时
+- 可参考 GitHub 同类控制台的 **UX/协议想法**，实现必须本仓自写

@@ -93,6 +93,16 @@ class MgmtClient:
                 "note": "Host has no /pairing — local fallback",
             }
 
+    def workspace(self, path: str = "") -> Dict[str, Any]:
+        q = f"?path={path}" if path else ""
+        return self._request("GET", f"/workspace{q}")
+
+    def workspace_git(self) -> Dict[str, Any]:
+        try:
+            return self._request("GET", "/workspace/git")
+        except ProtocolError:
+            return {"branch": "?", "files": [], "note": "not available"}
+
     def sessions(self, project: Optional[str] = None) -> Dict[str, Any]:
         if self.dialect == "project" and project:
             return self._request("GET", f"/projects/{project}/sessions")

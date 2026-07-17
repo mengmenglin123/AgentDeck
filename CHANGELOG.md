@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.9] - 2026-07-17
+
+### Added
+- Host status dashboard (refreshable `/status`, capability chips, shortcuts)
+- Readonly workspace browser (`GET /workspace`, `/workspace/git`) + Mock tree
+- Chat local prompt history + favorites (device SharedPreferences only)
+- Terminal quick-action chips: help/pwd/ls/whoami/y/n/^C/clear
+- Status payload: `sessions_count`, `active_runs`, `capabilities[]`
+
+### Notes
+- Inspired by common remote-console UX patterns; **in-repo only**, no third-party runtime
+- Workspace is readonly demo — Host remains source of truth
+
 ## [0.1.8] - 2026-07-17
 
 ### Added

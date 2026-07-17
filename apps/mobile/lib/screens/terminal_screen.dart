@@ -116,11 +116,12 @@ class _TerminalScreenState extends State<TerminalScreen> {
     });
   }
 
-  void _send() {
-    final text = _input.text;
-    if (text.trim().isEmpty || _bridge == null || _busy) return;
+  void _sendRaw(String text) {
+    if (_bridge == null || _busy) return;
+    // Allow Ctrl-C even though trim would keep it; reject empty only.
+    if (text.isEmpty) return;
+    if (text != '\u0003' && text.trim().isEmpty) return;
     setState(() => _busy = true);
-    _input.clear();
     try {
       _bridge!.terminalInput(
         sessionKey: widget.session.sessionKey,
@@ -132,6 +133,36 @@ class _TerminalScreenState extends State<TerminalScreen> {
         _busy = false;
         _error = Security.redactText(e.toString());
       });
+    }
+  }
+
+  void _send() {
+    final text = _input.text;
+    if (text.trim().isEmpty || _bridge == null || _busy) return;
+    _input.clear();
+    _sendRaw(text);
+  }
+
+  void _quick(String cmd) {
+    if (_bridge == null || _busy || _connecting) return;
+    _sendRaw(cmd);
+  }
+
+  void _interrupt() {
+    // Soft interrupt signal over terminal channel (Host may map to Ctrl-C).
+    if (_bridge == null || _connecting) return;
+    try {
+      _bridge!.terminalInput(
+        sessionKey: widget.session.sessionKey,
+        data: '\u0003',
+        streamId: _streamId,
+      );
+      setState(() {
+        _buf.writeln('^C');
+        _busy = false;
+      });
+    } catch (e) {
+      setState(() => _error = Security.redactText(e.toString()));
     }
   }
 
@@ -182,6 +213,42 @@ class _TerminalScreenState extends State<TerminalScreen> {
               ),
             ),
           if (_connecting) const LinearProgressIndicator(minHeight: 2),
+          Material(
+            color: cs.surfaceContainerLow,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: Row(
+                children: [
+                  for (final q in const [
+                    ('help', 'help'),
+                    ('pwd', 'pwd'),
+                    ('ls', 'ls'),
+                    ('whoami', 'whoami'),
+                    ('y', 'y'),
+                    ('n', 'n'),
+                    ('^C', null),
+                    ('clear', 'clear'),
+                  ])
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: ActionChip(
+                        label: Text(q.$1, style: const TextStyle(fontSize: 12)),
+                        onPressed: (_connecting || _bridge == null)
+                            ? null
+                            : () {
+                                if (q.$2 == null) {
+                                  _interrupt();
+                                } else {
+                                  _quick(q.$2!);
+                                }
+                              },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
           Expanded(
             child: Container(
               width: double.infinity,

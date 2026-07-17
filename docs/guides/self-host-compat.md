@@ -28,6 +28,8 @@
 | GET | `/sessions/{id}` 或 project 作用域 detail |
 | GET | `/skills`（可选） |
 | GET | `/mcp`（可选只读目录） |
+| GET | `/workspace?path=`（可选只读文件树） |
+| GET | `/workspace/git`（可选 git 摘要） |
 | GET | `/pairing`（可选，**禁止返回 token**） |
 
 ## Hermes

@@ -122,6 +122,22 @@ class TestMgmtDialects(unittest.TestCase):
         self.assertTrue(servers)
         self.assertTrue(any(s.get("name") for s in servers))
 
+    def test_workspace_readonly(self) -> None:
+        c = MgmtClient(self.cfg)
+        root = c.workspace()
+        self.assertEqual(root.get("type"), "dir")
+        names = {e.get("name") for e in (root.get("entries") or [])}
+        self.assertIn("README.md", names)
+        readme = c.workspace(path="README.md")
+        self.assertEqual(readme.get("type"), "file")
+        self.assertIn("Mock", readme.get("content") or "")
+        git = c.workspace_git()
+        self.assertIn("branch", git)
+        st = c.status()
+        self.assertIn("sessions_count", st)
+        caps = st.get("capabilities") or []
+        self.assertIn("workspace_readonly", caps)
+
 
 if __name__ == "__main__":
     unittest.main()

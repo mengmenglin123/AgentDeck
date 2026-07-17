@@ -89,6 +89,117 @@ SESSION_STATE: Dict[str, Dict[str, Any]] = {}
 ACTIVE_RUNS: Dict[str, threading.Event] = {}
 ACTIVE_LOCK = threading.Lock()
 
+# Readonly mock workspace tree for GET /workspace (console file browser demo).
+WORKSPACE_TREE: Dict[str, Any] = {
+    "type": "dir",
+    "name": "",
+    "children": {
+        "AGENTS.md": {
+            "type": "file",
+            "content": "# AGENTS\n\nMock workspace. Host is source of truth.\n",
+            "size": 48,
+        },
+        "README.md": {
+            "type": "file",
+            "content": "# Demo project\n\nHuanHermes Mock workspace (readonly).\n",
+            "size": 52,
+        },
+        "src": {
+            "type": "dir",
+            "children": {
+                "main.py": {
+                    "type": "file",
+                    "content": "def main():\n    print('hello from mock workspace')\n\nif __name__ == '__main__':\n    main()\n",
+                    "size": 90,
+                },
+                "util.py": {
+                    "type": "file",
+                    "content": "def greet(name: str) -> str:\n    return f'hi {name}'\n",
+                    "size": 50,
+                },
+            },
+        },
+        "docs": {
+            "type": "dir",
+            "children": {
+                "notes.md": {
+                    "type": "file",
+                    "content": "Console notes.\n- status dashboard\n- prompt history\n- workspace browse\n",
+                    "size": 70,
+                }
+            },
+        },
+    },
+}
+
+
+def _ws_resolve(path: str) -> Tuple[Optional[Dict[str, Any]], str]:
+    """Resolve relative path under WORKSPACE_TREE. Returns (node, cleaned_path)."""
+    raw = (path or "").strip().replace("\\", "/")
+    while raw.startswith("./"):
+        raw = raw[2:]
+    if raw.startswith("/"):
+        raw = raw[1:]
+    if ".." in raw.split("/"):
+        return None, raw
+    node: Dict[str, Any] = WORKSPACE_TREE
+    if not raw or raw in {".", "/"}:
+        return node, ""
+    parts = [p for p in raw.split("/") if p]
+    for part in parts:
+        kids = node.get("children") if isinstance(node, dict) else None
+        if not isinstance(kids, dict) or part not in kids:
+            return None, raw
+        node = kids[part]
+    return node, "/".join(parts)
+
+
+def workspace_list(path: str = "") -> Dict[str, Any]:
+    node, cleaned = _ws_resolve(path)
+    if node is None:
+        return {"error": "not found", "path": path}
+    if node.get("type") == "file":
+        return {
+            "path": cleaned,
+            "type": "file",
+            "name": cleaned.split("/")[-1] if cleaned else "",
+            "size": node.get("size", len(node.get("content") or "")),
+            "content": node.get("content") or "",
+        }
+    kids = node.get("children") or {}
+    entries = []
+    for name, child in sorted(kids.items(), key=lambda x: (x[1].get("type") != "dir", x[0])):
+        entries.append(
+            {
+                "name": name,
+                "type": child.get("type"),
+                "size": child.get("size") if child.get("type") == "file" else None,
+            }
+        )
+    parent = ""
+    if cleaned:
+        parts = cleaned.split("/")
+        parent = "/".join(parts[:-1])
+    return {
+        "path": cleaned,
+        "type": "dir",
+        "parent": parent,
+        "entries": entries,
+    }
+
+
+def workspace_git_status() -> Dict[str, Any]:
+    return {
+        "branch": "main",
+        "clean": False,
+        "files": [
+            {"path": "src/main.py", "status": "M"},
+            {"path": "docs/notes.md", "status": "?"},
+        ],
+        "note": "Mock git status — readonly demo",
+    }
+
+
 
 def log(msg: str) -> None:
     print(f"[mock-host] {msg}", flush=True)
@@ -339,13 +450,23 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         out("", done=True, exit_code=0)
         return
 
-    # local echo
-    out(f"$ {data}\n")
     lower = data.strip().lower()
+    # local echo (skip raw ctrl chars)
+    if data != "\x03":
+        out(f"$ {data}\n")
+
+    # Ctrl-C / soft interrupt
+    if data == "\x03" or lower in {"^c", "ctrl-c", "ctrl+c"}:
+        out("^C\n", done=True, exit_code=130)
+        return
+    if lower in {"y", "n", "yes", "no"}:
+        out(f"(ack) {data.strip()}\n", done=True, exit_code=0)
+        return
     if lower in {"help", "?"}:
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, ls, whoami, echo <text>, clear, exit\n"
+            "Commands: help, pwd, ls, whoami, echo <text>, y/n, clear, exit\n"
+            "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
             done=True,
             exit_code=0,
@@ -826,15 +947,25 @@ class MgmtHandler(BaseHTTPRequestHandler):
                 {
                     "ok": True,
                     "data": {
-                        "version": "mock-0.1.0",
+                        "version": "mock-0.1.9",
                         "uptime_seconds": int(time.time() - START_TS),
                         "connected_platforms": ["bridge"],
                         "projects_count": len(PROJECTS),
+                        "sessions_count": len(SESSIONS),
+                        "active_runs": len(ACTIVE_RUNS),
+                        "capabilities": [
+                            "sessions",
+                            "workspace_readonly",
+                            "skills",
+                            "mcp",
+                            "pairing",
+                            "terminal",
+                        ],
                         "bridge_adapters": [
                             {
                                 "platform": "huanhermes-app",
                                 "project": "*",
-                                "capabilities": ["text", "buttons", "typing", "preview"],
+                                "capabilities": ["text", "buttons", "typing", "preview", "terminal"],
                             }
                         ],
                     },
@@ -965,6 +1096,18 @@ class MgmtHandler(BaseHTTPRequestHandler):
                     },
                 },
             )
+            return
+        if path == "/api/v1/workspace" or path == "/api/v1/workspace/":
+            qs = parse_qs(urlparse(self.path).query)
+            p = (qs.get("path") or [""])[0]
+            data = workspace_list(p)
+            if data.get("error"):
+                self._send(404, {"ok": False, "error": data["error"], "path": p})
+            else:
+                self._send(200, {"ok": True, "data": data})
+            return
+        if path == "/api/v1/workspace/git":
+            self._send(200, {"ok": True, "data": workspace_git_status()})
             return
         if path == "/api/v1/sessions":
             q = parse_qs(urlparse(self.path).query)

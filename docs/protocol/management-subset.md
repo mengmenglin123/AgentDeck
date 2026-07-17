@@ -35,6 +35,8 @@ App 客户端自动探测，无需用户选择。
 | GET | `/skills` | 可选只读 |
 | GET | `/mcp` | 可选 MCP 目录只读 |
 | GET | `/pairing` | 可选，**无 secrets** |
+| GET | `/workspace?path=` | 可选只读工作区浏览（dir listing / file content） |
+| GET | `/workspace/git` | 可选只读 git 状态摘要 |
 
 ## Project capabilities（可选）
 

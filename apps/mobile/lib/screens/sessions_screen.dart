@@ -5,10 +5,12 @@ import '../models/session_info.dart';
 import '../services/connection_controller.dart';
 import '../services/session_controller.dart';
 import 'chat_screen.dart';
+import 'host_dashboard_screen.dart';
 import 'mcp_screen.dart';
 import 'pairing_screen.dart';
 import 'skills_screen.dart';
 import 'terminal_screen.dart';
+import 'workspace_screen.dart';
 
 class SessionsScreen extends StatefulWidget {
   const SessionsScreen({super.key});
@@ -118,6 +120,15 @@ class _SessionsScreenState extends State<SessionsScreen> {
             title: const Text('Sessions'),
             actions: [
               IconButton(
+                tooltip: 'Host status',
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const HostDashboardScreen()),
+                  );
+                },
+                icon: const Icon(Icons.monitor_heart_outlined),
+              ),
+              IconButton(
                 tooltip: 'Refresh',
                 onPressed: sessions.loading ? null : sessions.refresh,
                 icon: const Icon(Icons.refresh),
@@ -129,6 +140,12 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   if (cfg == null) return;
                   Widget page;
                   switch (v) {
+                    case 'status':
+                      page = const HostDashboardScreen();
+                      break;
+                    case 'workspace':
+                      page = WorkspaceScreen(config: cfg);
+                      break;
                     case 'skills':
                       page = SkillsScreen(config: cfg);
                       break;
@@ -144,6 +161,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
                 },
                 itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'status', child: Text('Host status')),
+                  PopupMenuItem(value: 'workspace', child: Text('Workspace (readonly)')),
                   PopupMenuItem(value: 'skills', child: Text('Skills (readonly)')),
                   PopupMenuItem(value: 'mcp', child: Text('MCP (readonly)')),
                   PopupMenuItem(value: 'pairing', child: Text('Pairing URI')),

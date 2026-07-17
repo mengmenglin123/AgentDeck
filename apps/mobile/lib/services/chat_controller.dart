@@ -7,6 +7,7 @@ import '../models/connection_config.dart';
 import '../models/session_info.dart';
 import '../models/transcript.dart';
 import 'audit_log.dart';
+import 'prompt_history_store.dart';
 import 'bridge_client.dart';
 import 'mgmt_client.dart';
 
@@ -26,6 +27,7 @@ class ChatController extends ChangeNotifier {
   final BridgeClient Function(ConnectionConfig config)? _bridgeFactory;
   final MgmtClient Function(ConnectionConfig config) _mgmtFactory;
   final AuditLog audit;
+  final PromptHistoryStore promptHistory = PromptHistoryStore();
 
   final TranscriptReducer reducer = TranscriptReducer();
   BridgeClient? _bridge;
@@ -171,6 +173,9 @@ class ChatController extends ChangeNotifier {
       );
       lastReplyCtx = meta['reply_ctx'];
       runActive = true;
+      if (content.isNotEmpty && !content.startsWith('/')) {
+        await promptHistory.addRecent(content);
+      }
       audit.add(
         'chat.send',
         detail: display.length > 80 ? '${display.substring(0, 80)}…' : display,

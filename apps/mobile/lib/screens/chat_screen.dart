@@ -226,6 +226,100 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  Future<void> _openPromptHistory() async {
+    final store = _chat.promptHistory;
+    final recent = await store.recent();
+    final favs = await store.favorites();
+    if (!mounted) return;
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.55,
+          minChildSize: 0.35,
+          maxChildSize: 0.9,
+          builder: (_, scroll) {
+            return ListView(
+              controller: scroll,
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
+              children: [
+                ListTile(
+                  title: Text('Prompts', style: Theme.of(ctx).textTheme.titleMedium),
+                  subtitle: const Text('Local favorites + recent (device only)'),
+                  trailing: IconButton(
+                    tooltip: 'Clear recent',
+                    onPressed: () async {
+                      await store.clearRecent();
+                      if (ctx.mounted) Navigator.pop(ctx);
+                    },
+                    icon: const Icon(Icons.delete_sweep_outlined),
+                  ),
+                ),
+                if (favs.isNotEmpty) ...[
+                  const ListTile(dense: true, title: Text('Favorites')),
+                  for (final t in favs)
+                    ListTile(
+                      leading: const Icon(Icons.star, color: Colors.amber),
+                      title: Text(t, maxLines: 3, overflow: TextOverflow.ellipsis),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.star_border),
+                        tooltip: 'Unfavorite',
+                        onPressed: () async {
+                          await store.removeFavorite(t);
+                          if (ctx.mounted) Navigator.pop(ctx, '__refresh__');
+                        },
+                      ),
+                      onTap: () => Navigator.pop(ctx, t),
+                      onLongPress: () async {
+                        await store.toggleFavorite(t);
+                        if (ctx.mounted) Navigator.pop(ctx, '__refresh__');
+                      },
+                    ),
+                ],
+                const ListTile(dense: true, title: Text('Recent')),
+                if (recent.isEmpty)
+                  const ListTile(title: Text('No recent prompts yet')),
+                for (final t in recent)
+                  ListTile(
+                    leading: const Icon(Icons.history),
+                    title: Text(t, maxLines: 3, overflow: TextOverflow.ellipsis),
+                    trailing: IconButton(
+                      icon: Icon(favs.contains(t) ? Icons.star : Icons.star_border),
+                      tooltip: 'Toggle favorite',
+                      onPressed: () async {
+                        await store.toggleFavorite(t);
+                        if (ctx.mounted) Navigator.pop(ctx, '__refresh__');
+                      },
+                    ),
+                    onTap: () => Navigator.pop(ctx, t),
+                  ),
+                if (_input.text.trim().isNotEmpty)
+                  ListTile(
+                    leading: const Icon(Icons.star_outline),
+                    title: const Text('Favorite current draft'),
+                    onTap: () async {
+                      await store.toggleFavorite(_input.text);
+                      if (ctx.mounted) Navigator.pop(ctx);
+                    },
+                  ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    if (!mounted) return;
+    if (picked == '__refresh__') {
+      await _openPromptHistory();
+      return;
+    }
+    if (picked != null && picked.isNotEmpty) {
+      setState(() => _input.text = picked);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -348,6 +442,11 @@ class _ChatScreenState extends State<ChatScreen> {
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
               child: Row(
                 children: [
+                  IconButton(
+                    tooltip: 'Prompt history',
+                    onPressed: _openPromptHistory,
+                    icon: const Icon(Icons.bookmark_border),
+                  ),
                   IconButton(
                     tooltip: 'Attach demo',
                     onPressed: (_chat.connected && !_chat.sending) ? _attachDemo : null,
