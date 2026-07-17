@@ -40,6 +40,9 @@ class _TerminalScreenState extends State<TerminalScreen> {
   String _draftBeforeHist = '';
   double _termScale = 1.0; // local terminal font multiplier
   bool _wrapLines = true;
+  bool _showFind = false;
+  final _findCtrl = TextEditingController();
+  String _findQuery = '';
 
   @override
   void initState() {
@@ -270,9 +273,22 @@ class _TerminalScreenState extends State<TerminalScreen> {
   @override
   void dispose() {
     _input.dispose();
+    _findCtrl.dispose();
     _scroll.dispose();
     unawaited(_bridge?.close() ?? Future.value());
     super.dispose();
+  }
+
+
+
+  String get _displayBuffer {
+    final full = _buf.toString();
+    final q = _findQuery.trim().toLowerCase();
+    if (q.isEmpty) return full;
+    final lines = full.split('\n');
+    final hit = lines.where((l) => l.toLowerCase().contains(q)).toList();
+    if (hit.isEmpty) return '(no lines match find: $_findQuery)\n';
+    return hit.join('\n') + (hit.isNotEmpty ? '\n' : '');
   }
 
   @override
@@ -318,6 +334,19 @@ class _TerminalScreenState extends State<TerminalScreen> {
             tooltip: _wrapLines ? 'No wrap' : 'Wrap lines',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
+          ),
+          IconButton(
+            tooltip: _showFind ? 'Hide find' : 'Find in buffer',
+            onPressed: () {
+              setState(() {
+                _showFind = !_showFind;
+                if (!_showFind) {
+                  _findQuery = '';
+                  _findCtrl.clear();
+                }
+              });
+            },
+            icon: Icon(_showFind ? Icons.search_off : Icons.search),
           ),
           IconButton(
             tooltip: 'Smaller text',
@@ -419,6 +448,30 @@ class _TerminalScreenState extends State<TerminalScreen> {
               ),
             ),
           ),
+          if (_showFind)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
+              child: TextField(
+                controller: _findCtrl,
+                style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
+                decoration: InputDecoration(
+                  hintText: 'Find in local buffer (client-only)',
+                  isDense: true,
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.search, size: 18),
+                  suffixIcon: _findQuery.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _findCtrl.clear();
+                            setState(() => _findQuery = '');
+                          },
+                        ),
+                ),
+                onChanged: (v) => setState(() => _findQuery = v),
+              ),
+            ),
           Expanded(
             child: Container(
               width: double.infinity,
@@ -437,7 +490,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
                           : double.infinity,
                     ),
                     child: SelectableText(
-                      _buf.toString(),
+                      _displayBuffer,
                       softWrap: _wrapLines,
                       style: TextStyle(
                         fontFamily: 'monospace',

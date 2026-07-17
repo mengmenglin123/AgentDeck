@@ -134,6 +134,11 @@
 | P3-95 | Workspace 复制目录 listing + 标题计数 | [x] |
 | P3-96 | Chat 正文字号缩放（设备本地） | [x] |
 
+| P3-97 | Activity kind FilterChips + 标题计数 | [x] |
+| P3-98 | Agents 分区 FilterChips | [x] |
+| P3-99 | MCP status FilterChips + 标题计数 | [x] |
+| P3-100 | Terminal 本地 buffer 查找 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

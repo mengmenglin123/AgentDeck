@@ -24,6 +24,8 @@ class _AgentsScreenState extends State<AgentsScreen> {
   List<Map<String, dynamic>> _projects = [];
   final _q = TextEditingController();
   String _query = '';
+  /// all | agents | platforms | projects
+  String _section = 'all';
 
   @override
   void initState() {
@@ -178,6 +180,26 @@ class _AgentsScreenState extends State<AgentsScreen> {
               child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
             ),
           Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                for (final f in const [
+                  ('all', 'All'),
+                  ('agents', 'Agents'),
+                  ('platforms', 'Platforms'),
+                  ('projects', 'Projects'),
+                ])
+                  FilterChip(
+                    label: Text(f.$2, style: const TextStyle(fontSize: 12)),
+                    selected: _section == f.$1,
+                    onSelected: (_) => setState(() => _section = f.$1),
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
+            ),
+          ),
+          Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
             child: TextField(
               controller: _q,
@@ -207,6 +229,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
                 children: [
+                if (_section == 'all' || _section == 'agents') ...[
                 Text('Host agent types', style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 6),
                 if (_agents.isEmpty)
@@ -230,6 +253,8 @@ class _AgentsScreenState extends State<AgentsScreen> {
                         ),
                     ],
                   ),
+                ],
+                if (_section == 'all' || _section == 'platforms') ...[
                 const SizedBox(height: 16),
                 Text('Platforms', style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 6),
@@ -249,6 +274,8 @@ class _AgentsScreenState extends State<AgentsScreen> {
                         ),
                     ],
                   ),
+                ],
+                if (_section == 'all' || _section == 'projects') ...[
                 const Divider(height: 32),
                 Text('Projects (from /projects)', style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 4),
@@ -274,6 +301,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                       ),
                     ),
                   ),
+                ],
               ],
             ),
             ),

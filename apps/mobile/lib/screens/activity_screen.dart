@@ -29,6 +29,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   String? _error;
   List<Map<String, dynamic>> _events = [];
   String _query = '';
+  String _kind = '';
   final _q = TextEditingController();
 
   @override
@@ -133,9 +134,24 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
   List<Map<String, dynamic>> get _filtered {
     final q = _query.trim().toLowerCase();
-    if (q.isEmpty) return _events;
     return _events.where((e) {
-      final hay = '${e['kind']} ${e['summary']} ${e['session_key']} ${e['session_id']}'.toLowerCase();
+      final kind = (e['kind'] ?? e['type'] ?? 'event').toString().toLowerCase();
+      if (_kind.isNotEmpty) {
+        if (_kind == 'other') {
+          final known = kind.contains('session') ||
+              kind.contains('chat') ||
+              kind.contains('message') ||
+              kind.contains('host') ||
+              kind.contains('cron');
+          if (known) return false;
+        } else if (!kind.contains(_kind)) {
+          return false;
+        }
+      }
+      if (q.isEmpty) return true;
+      final hay =
+          '${e['kind']} ${e['type']} ${e['summary']} ${e['message']} ${e['session_key']} ${e['session_id']}'
+              .toLowerCase();
       return hay.contains(q);
     }).toList();
   }
@@ -145,7 +161,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final items = _filtered;
     return Scaffold(
       appBar: AppBar(
-        title: Text(items.isEmpty ? 'Host activity' : 'Host activity (${items.length})'),
+        title: Text(
+          items.isEmpty
+              ? 'Host activity'
+              : (_events.isEmpty || items.length == _events.length
+                  ? 'Host activity (${items.length})'
+                  : 'Host activity (${items.length}/${_events.length})'),
+        ),
         actions: [
           IconButton(
             tooltip: 'Copy all',
@@ -179,6 +201,28 @@ class _ActivityScreenState extends State<ActivityScreen> {
               padding: const EdgeInsets.all(12),
               child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
             ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                for (final f in const [
+                  ('', 'All'),
+                  ('session', 'Session'),
+                  ('chat', 'Chat'),
+                  ('host', 'Host'),
+                  ('cron', 'Cron'),
+                  ('other', 'Other'),
+                ])
+                  FilterChip(
+                    label: Text(f.$2, style: const TextStyle(fontSize: 12)),
+                    selected: _kind == f.$1,
+                    onSelected: (_) => setState(() => _kind = f.$1),
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
             child: TextField(

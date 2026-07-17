@@ -20,6 +20,7 @@ class _McpScreenState extends State<McpScreen> {
   List<Map<String, dynamic>> servers = [];
   final _q = TextEditingController();
   String _query = '';
+  String _status = '';
 
   @override
   void initState() {
@@ -61,8 +62,16 @@ class _McpScreenState extends State<McpScreen> {
 
   List<Map<String, dynamic>> get _filtered {
     final q = _query.trim().toLowerCase();
-    if (q.isEmpty) return servers;
     return servers.where((s) {
+      final st = (s['status'] ?? '').toString().toLowerCase();
+      if (_status.isNotEmpty) {
+        if (_status == 'unknown') {
+          if (st.isNotEmpty && st != 'unknown' && st != '—') return false;
+        } else if (!st.contains(_status)) {
+          return false;
+        }
+      }
+      if (q.isEmpty) return true;
       final tools = s['tools'] is List ? (s['tools'] as List).join(' ') : '';
       final hay = '${s['name']} ${s['description']} ${s['status']} $tools'.toLowerCase();
       return hay.contains(q);
@@ -75,7 +84,13 @@ class _McpScreenState extends State<McpScreen> {
     final items = _filtered;
     return Scaffold(
       appBar: AppBar(
-        title: Text(items.isEmpty ? 'MCP (readonly)' : 'MCP (${items.length})'),
+        title: Text(
+          items.isEmpty
+              ? 'MCP (readonly)'
+              : (items.length == servers.length
+                  ? 'MCP (${items.length})'
+                  : 'MCP (${items.length}/${servers.length})'),
+        ),
         actions: [
           IconButton(
             tooltip: 'Copy all',
@@ -119,6 +134,28 @@ class _McpScreenState extends State<McpScreen> {
                   child: Text(
                     'Catalog only — App does not start MCP servers. Host owns tools.',
                     style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                  child: Wrap(
+                    spacing: 8,
+                    children: [
+                      for (final f in const [
+                        ('', 'All'),
+                        ('ok', 'Ok'),
+                        ('connected', 'Connected'),
+                        ('error', 'Error'),
+                        ('disabled', 'Disabled'),
+                        ('unknown', 'Unknown'),
+                      ])
+                        FilterChip(
+                          label: Text(f.$2, style: const TextStyle(fontSize: 12)),
+                          selected: _status == f.$1,
+                          onSelected: (_) => setState(() => _status = f.$1),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                    ],
                   ),
                 ),
                 Padding(

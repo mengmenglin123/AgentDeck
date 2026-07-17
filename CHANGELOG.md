@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.31
+
+- Activity: kind FilterChips + filtered/total title counts
+- Agents: section chips (agents / platforms / projects)
+- MCP: status FilterChips + filtered/total title counts
+- Terminal: local find-in-buffer (client-only; copy still full buffer)
+
 ## 0.1.30
 
 - Host logs: wrap toggle + title counts (filtered/total)
