@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.10] - 2026-07-17
+
+### Added
+- MarkdownLite chat bubbles (headings/lists/code/bold; no extra pub package)
+- Host memory browser (`GET /memory`) + Cron schedules (`GET /cron`) readonly
+- Git diff viewer (`GET /workspace/diff`) with green/red unified coloring
+- Session pin/favorite (device-local SharedPreferences)
+- Dashboard + Sessions menu shortcuts for memory/cron/diff
+- Mock markdown-rich agent replies for UI verification
+
+### Protocol
+- management-subset: `/memory`, `/cron`, `/workspace/diff`
+- status capabilities: `memory_readonly`, `cron_readonly`, `diff_readonly`
+
 ## [0.1.9] - 2026-07-17
 
 ### Added

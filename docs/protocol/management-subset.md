@@ -37,6 +37,9 @@ App 客户端自动探测，无需用户选择。
 | GET | `/pairing` | 可选，**无 secrets** |
 | GET | `/workspace?path=` | 可选只读工作区浏览（dir listing / file content） |
 | GET | `/workspace/git` | 可选只读 git 状态摘要 |
+| GET | `/workspace/diff?path=` | 可选只读 unified diff（`path` 空=文件索引） |
+| GET | `/memory?scope=&q=` | 可选只读 Host 记忆目录 |
+| GET | `/cron` | 可选只读 Host 定时任务 |
 
 ## Project capabilities（可选）
 

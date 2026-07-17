@@ -4,7 +4,10 @@ import 'package:provider/provider.dart';
 import '../services/connection_controller.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
+import 'cron_screen.dart';
+import 'diff_screen.dart';
 import 'mcp_screen.dart';
+import 'memory_screen.dart';
 import 'pairing_screen.dart';
 import 'skills_screen.dart';
 import 'workspace_screen.dart';
@@ -127,6 +130,30 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                   subtitle: const Text('Browse host files + mock git status'),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => WorkspaceScreen(config: cfg)),
+                  ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.difference_outlined),
+                  title: const Text('Git diff (readonly)'),
+                  subtitle: const Text('Unified diff from Host'),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => DiffScreen(config: cfg)),
+                  ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.psychology_outlined),
+                  title: const Text('Host memory'),
+                  subtitle: const Text('Readonly catalog from Host'),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => MemoryScreen(config: cfg)),
+                  ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.schedule),
+                  title: const Text('Host schedules'),
+                  subtitle: const Text('Readonly cron jobs'),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => CronScreen(config: cfg)),
                   ),
                 ),
                 ListTile(

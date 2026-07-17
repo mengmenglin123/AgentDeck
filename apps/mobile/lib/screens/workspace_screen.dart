@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/connection_config.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
+import 'diff_screen.dart';
 
 /// Readonly Host workspace browser (`GET /workspace`, `/workspace/git`).
 /// Console-only — no write/delete; Host is source of truth.
@@ -58,12 +59,15 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     final name = entry['name']?.toString() ?? '';
     if (name.isEmpty) return;
     final next = _path.isEmpty ? name : '$_path/$name';
-    final type = entry['type']?.toString();
-    if (type == 'dir') {
-      _load(path: next);
-    } else {
-      _load(path: next);
-    }
+    _load(path: next);
+  }
+
+  void _openDiff([String? path]) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DiffScreen(config: widget.config, initialPath: path),
+      ),
+    );
   }
 
   @override
@@ -78,6 +82,11 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       appBar: AppBar(
         title: const Text('Workspace'),
         actions: [
+          IconButton(
+            tooltip: 'Git diff',
+            onPressed: () => _openDiff(isFile ? _path : null),
+            icon: const Icon(Icons.difference_outlined),
+          ),
           IconButton(
             tooltip: 'Refresh',
             onPressed: _loading ? null : () => _load(),
@@ -106,6 +115,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   : 'git ${_git!['branch'] ?? '?'} · ${(_git!['files'] as List?)?.length ?? 0} changes (mock)',
               style: const TextStyle(fontSize: 11),
             ),
+            trailing: TextButton(
+              onPressed: () => _openDiff(),
+              child: const Text('Diff'),
+            ),
           ),
           if (_git != null && (_git!['files'] is List) && (_git!['files'] as List).isNotEmpty)
             SizedBox(
@@ -117,12 +130,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   for (final f in (_git!['files'] as List).whereType<Map>())
                     Padding(
                       padding: const EdgeInsets.only(right: 6),
-                      child: Chip(
+                      child: ActionChip(
                         visualDensity: VisualDensity.compact,
                         label: Text(
                           '${f['status'] ?? '?'} ${f['path'] ?? ''}',
                           style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
                         ),
+                        onPressed: () => _openDiff(f['path']?.toString()),
                       ),
                     ),
                 ],
@@ -158,6 +172,17 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                               ? Text('${e['size'] ?? '?'} B', style: const TextStyle(fontSize: 11))
                               : const Text('directory', style: TextStyle(fontSize: 11)),
                           onTap: () => _openEntry(e),
+                          trailing: e['type'] == 'file'
+                              ? IconButton(
+                                  tooltip: 'Diff',
+                                  icon: const Icon(Icons.difference_outlined, size: 18),
+                                  onPressed: () {
+                                    final name = e['name']?.toString() ?? '';
+                                    final p = _path.isEmpty ? name : '$_path/$name';
+                                    _openDiff(p);
+                                  },
+                                )
+                              : null,
                         ),
                     ],
                   ),

@@ -4,9 +4,13 @@ import 'package:provider/provider.dart';
 import '../models/session_info.dart';
 import '../services/connection_controller.dart';
 import '../services/session_controller.dart';
+import '../services/session_pins_store.dart';
 import 'chat_screen.dart';
+import 'cron_screen.dart';
+import 'diff_screen.dart';
 import 'host_dashboard_screen.dart';
 import 'mcp_screen.dart';
+import 'memory_screen.dart';
 import 'pairing_screen.dart';
 import 'skills_screen.dart';
 import 'terminal_screen.dart';
@@ -23,7 +27,26 @@ class _SessionsScreenState extends State<SessionsScreen> {
   SessionController? _sessions;
   final _titleCtrl = TextEditingController();
   final _searchCtrl = TextEditingController();
+  final _pins = SessionPinsStore();
   String _query = '';
+  Set<String> _pinned = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPins();
+  }
+
+  Future<void> _loadPins() async {
+    final pins = await _pins.pins();
+    if (!mounted) return;
+    setState(() => _pinned = pins);
+  }
+
+  Future<void> _togglePin(SessionInfo s) async {
+    await _pins.toggle(s.sessionKey);
+    await _loadPins();
+  }
 
   @override
   void didChangeDependencies() {
@@ -48,12 +71,21 @@ class _SessionsScreenState extends State<SessionsScreen> {
 
   List<SessionInfo> _filtered(List<SessionInfo> all) {
     final q = _query.trim().toLowerCase();
-    if (q.isEmpty) return all;
-    return all.where((s) {
-      final hay = '${s.displayTitle} ${s.project} ${s.sessionKey} ${s.model ?? ''}'
-          .toLowerCase();
-      return hay.contains(q);
-    }).toList();
+    Iterable<SessionInfo> base = all;
+    if (q.isNotEmpty) {
+      base = all.where((s) {
+        final hay = '${s.displayTitle} ${s.project} ${s.sessionKey} ${s.model ?? ''}'.toLowerCase();
+        return hay.contains(q);
+      });
+    }
+    final list = base.toList();
+    list.sort((a, b) {
+      final ap = _pinned.contains(a.sessionKey) ? 0 : 1;
+      final bp = _pinned.contains(b.sessionKey) ? 0 : 1;
+      if (ap != bp) return ap.compareTo(bp);
+      return (b.updatedAt ?? 0).compareTo(a.updatedAt ?? 0);
+    });
+    return list;
   }
 
   Future<void> _openTerminal(SessionInfo session) async {
@@ -100,7 +132,6 @@ class _SessionsScreenState extends State<SessionsScreen> {
         ),
       ),
     );
-    // refresh after returning (mock may have updated last_user)
     await _sessions?.refresh();
   }
 
@@ -146,6 +177,15 @@ class _SessionsScreenState extends State<SessionsScreen> {
                     case 'workspace':
                       page = WorkspaceScreen(config: cfg);
                       break;
+                    case 'diff':
+                      page = DiffScreen(config: cfg);
+                      break;
+                    case 'memory':
+                      page = MemoryScreen(config: cfg);
+                      break;
+                    case 'cron':
+                      page = CronScreen(config: cfg);
+                      break;
                     case 'skills':
                       page = SkillsScreen(config: cfg);
                       break;
@@ -160,12 +200,15 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   }
                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
                 },
-                itemBuilder: (_) => const [
+                itemBuilder: (ctx) => const [
                   PopupMenuItem(value: 'status', child: Text('Host status')),
-                  PopupMenuItem(value: 'workspace', child: Text('Workspace (readonly)')),
-                  PopupMenuItem(value: 'skills', child: Text('Skills (readonly)')),
-                  PopupMenuItem(value: 'mcp', child: Text('MCP (readonly)')),
-                  PopupMenuItem(value: 'pairing', child: Text('Pairing URI')),
+                  PopupMenuItem(value: 'workspace', child: Text('Workspace')),
+                  PopupMenuItem(value: 'diff', child: Text('Git diff')),
+                  PopupMenuItem(value: 'memory', child: Text('Host memory')),
+                  PopupMenuItem(value: 'cron', child: Text('Schedules')),
+                  PopupMenuItem(value: 'skills', child: Text('Skills')),
+                  PopupMenuItem(value: 'mcp', child: Text('MCP')),
+                  PopupMenuItem(value: 'pairing', child: Text('Pairing')),
                 ],
               ),
               IconButton(
@@ -320,6 +363,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                         separatorBuilder: (_, __) => const Divider(height: 1),
                                         itemBuilder: (context, i) {
                                           final s = visible[i];
+                                          final pinned = _pinned.contains(s.sessionKey);
                                           return ListTile(
                                             title: Text(s.displayTitle),
                                             subtitle: Text(
@@ -327,15 +371,29 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                             ),
                                             isThreeLine: true,
                                             leading: Icon(
-                                              s.running
-                                                  ? Icons.play_circle_fill
-                                                  : Icons.chat_bubble_outline,
-                                              color: s.running ? Colors.blue : null,
+                                              pinned
+                                                  ? Icons.push_pin
+                                                  : s.running
+                                                      ? Icons.play_circle_fill
+                                                      : Icons.chat_bubble_outline,
+                                              color: pinned
+                                                  ? Colors.amber
+                                                  : s.running
+                                                      ? Colors.blue
+                                                      : null,
                                             ),
                                             onTap: () => _openChat(s),
                                             trailing: Wrap(
                                               spacing: 0,
                                               children: [
+                                                IconButton(
+                                                  tooltip: pinned ? 'Unpin' : 'Pin',
+                                                  icon: Icon(
+                                                    pinned ? Icons.push_pin : Icons.push_pin_outlined,
+                                                    size: 20,
+                                                  ),
+                                                  onPressed: () => _togglePin(s),
+                                                ),
                                                 IconButton(
                                                   tooltip: 'Terminal',
                                                   icon: const Icon(Icons.terminal),

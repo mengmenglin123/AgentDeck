@@ -30,6 +30,9 @@
 | GET | `/mcp`（可选只读目录） |
 | GET | `/workspace?path=`（可选只读文件树） |
 | GET | `/workspace/git`（可选 git 摘要） |
+| GET | `/workspace/diff?path=`（可选 unified diff） |
+| GET | `/memory?scope=&q=`（可选只读记忆目录） |
+| GET | `/cron`（可选只读定时任务） |
 | GET | `/pairing`（可选，**禁止返回 token**） |
 
 ## Hermes

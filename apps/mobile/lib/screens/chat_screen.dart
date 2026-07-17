@@ -7,6 +7,7 @@ import '../models/connection_config.dart';
 import '../models/session_info.dart';
 import '../models/transcript.dart';
 import '../services/chat_controller.dart';
+import '../widgets/markdown_lite.dart';
 import 'audit_screen.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -697,6 +698,7 @@ class _MessageBubble extends StatelessWidget {
                 : cs.secondaryContainer;
     final align = isUser ? Alignment.centerRight : Alignment.centerLeft;
     final buttons = _buttons;
+    final useMd = !isUser && !isTool && message.content.contains(RegExp(r'[#*`>\n-]'));
 
     return Align(
       alignment: align,
@@ -716,7 +718,10 @@ class _MessageBubble extends StatelessWidget {
               style: TextStyle(fontSize: 10, color: cs.onSurfaceVariant),
             ),
             const SizedBox(height: 4),
-            SelectableText(message.content),
+            if (useMd)
+              MarkdownLite(message.content)
+            else
+              SelectableText(message.content),
             if (buttons.isNotEmpty) ...[
               const SizedBox(height: 8),
               Wrap(

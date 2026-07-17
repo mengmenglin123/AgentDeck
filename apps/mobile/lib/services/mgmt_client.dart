@@ -131,6 +131,38 @@ class MgmtClient {
     }
   }
 
+  /// Readonly unified diff: GET /workspace/diff?path=
+  Future<Map<String, dynamic>> workspaceDiff({String path = ''}) async {
+    final q = path.isEmpty ? '' : '?path=${Uri.encodeQueryComponent(path)}';
+    return _request('GET', '/workspace/diff$q');
+  }
+
+  /// Host memory catalog (readonly): GET /memory
+  Future<Map<String, dynamic>> listMemory({String? scope, String? q}) async {
+    final parts = <String>[];
+    if (scope != null && scope.isNotEmpty) {
+      parts.add('scope=${Uri.encodeQueryComponent(scope)}');
+    }
+    if (q != null && q.isNotEmpty) {
+      parts.add('q=${Uri.encodeQueryComponent(q)}');
+    }
+    final qs = parts.isEmpty ? '' : '?${parts.join('&')}';
+    try {
+      return await _request('GET', '/memory$qs');
+    } on ProtocolError {
+      return {'memories': <dynamic>[], 'count': 0};
+    }
+  }
+
+  /// Host cron jobs (readonly): GET /cron
+  Future<Map<String, dynamic>> listCron() async {
+    try {
+      return await _request('GET', '/cron');
+    } on ProtocolError {
+      return {'jobs': <dynamic>[]};
+    }
+  }
+
   Future<List<SessionInfo>> sessions({String? project}) async {
     final proj = project ?? '';
     // Prefer dialect if known

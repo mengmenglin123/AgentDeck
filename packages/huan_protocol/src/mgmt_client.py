@@ -103,6 +103,28 @@ class MgmtClient:
         except ProtocolError:
             return {"branch": "?", "files": [], "note": "not available"}
 
+    def workspace_diff(self, path: str = "") -> Dict[str, Any]:
+        q = f"?path={path}" if path else ""
+        return self._request("GET", f"/workspace/diff{q}")
+
+    def memory(self, scope: Optional[str] = None, q: Optional[str] = None) -> Dict[str, Any]:
+        parts = []
+        if scope:
+            parts.append(f"scope={scope}")
+        if q:
+            parts.append(f"q={q}")
+        qs = ("?" + "&".join(parts)) if parts else ""
+        try:
+            return self._request("GET", f"/memory{qs}")
+        except ProtocolError:
+            return {"memories": [], "count": 0}
+
+    def cron(self) -> Dict[str, Any]:
+        try:
+            return self._request("GET", "/cron")
+        except ProtocolError:
+            return {"jobs": []}
+
     def sessions(self, project: Optional[str] = None) -> Dict[str, Any]:
         if self.dialect == "project" and project:
             return self._request("GET", f"/projects/{project}/sessions")

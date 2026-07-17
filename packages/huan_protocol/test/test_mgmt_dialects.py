@@ -138,6 +138,25 @@ class TestMgmtDialects(unittest.TestCase):
         caps = st.get("capabilities") or []
         self.assertIn("workspace_readonly", caps)
 
+    def test_memory_cron_diff(self) -> None:
+        c = MgmtClient(self.cfg)
+        mem = c.memory()
+        self.assertTrue(mem.get("memories"))
+        mem_q = c.memory(q="language")
+        self.assertGreaterEqual(len(mem_q.get("memories") or []), 1)
+        cron = c.cron()
+        self.assertTrue(cron.get("jobs"))
+        idx = c.workspace_diff()
+        self.assertTrue(idx.get("files"))
+        one = c.workspace_diff(path="README.md")
+        self.assertIn("diff", one)
+        self.assertIn("Mock workspace", one.get("diff") or "")
+        st = c.status()
+        caps = st.get("capabilities") or []
+        self.assertIn("memory_readonly", caps)
+        self.assertIn("cron_readonly", caps)
+        self.assertIn("diff_readonly", caps)
+
 
 if __name__ == "__main__":
     unittest.main()

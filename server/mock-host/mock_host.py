@@ -201,6 +201,115 @@ def workspace_git_status() -> Dict[str, Any]:
 
 
 
+
+# Host-side memory catalog (readonly demo for console; Host is source of truth)
+MEMORY_ENTRIES: List[Dict[str, Any]] = [
+    {
+        "id": "mem-user-pref-lang",
+        "scope": "global",
+        "type": "user",
+        "title": "Preferred language",
+        "content": "User prefers concise Chinese UI labels with English technical terms.",
+        "confidence": "high",
+        "updated_at": time.time() - 3600,
+        "tags": ["preference", "i18n"],
+    },
+    {
+        "id": "mem-project-layout",
+        "scope": "project",
+        "type": "project",
+        "title": "Repo layout",
+        "content": "HuanHermes App is console-only; Mock Host owns sessions and workspace demo tree.",
+        "confidence": "high",
+        "project": "claude-code",
+        "updated_at": time.time() - 7200,
+        "tags": ["architecture"],
+    },
+    {
+        "id": "mem-feedback-brief",
+        "scope": "global",
+        "type": "feedback",
+        "title": "Response style",
+        "content": "Prefer short summaries + tables; avoid long preambles.",
+        "confidence": "medium",
+        "updated_at": time.time() - 86400,
+        "tags": ["style"],
+    },
+]
+
+CRON_JOBS: List[Dict[str, Any]] = [
+    {
+        "id": "cron-daily-status",
+        "name": "Daily host status",
+        "kind": "prompt",
+        "schedule": "0 9 * * *",
+        "enabled": True,
+        "next_run_at": time.time() + 3600,
+        "last_run_at": time.time() - 86400,
+        "last_status": "ok",
+        "description": "Ask agent for a short host health summary",
+    },
+    {
+        "id": "cron-git-digest",
+        "name": "Workspace git digest",
+        "kind": "http",
+        "schedule": "every 6h",
+        "enabled": True,
+        "next_run_at": time.time() + 7200,
+        "last_run_at": time.time() - 20000,
+        "last_status": "ok",
+        "description": "GET /workspace/git and store summary (mock)",
+    },
+    {
+        "id": "cron-cleanup",
+        "name": "Session hygiene note",
+        "kind": "bash",
+        "schedule": "0 3 * * 0",
+        "enabled": False,
+        "next_run_at": None,
+        "last_run_at": time.time() - 604800,
+        "last_status": "skipped",
+        "description": "Disabled mock job — Host would run cleanup scripts",
+    },
+]
+
+MOCK_DIFFS: Dict[str, str] = {
+    "README.md": """--- a/README.md
++++ b/README.md
+@@ -1,5 +1,8 @@
+ # Demo Workspace
+-Placeholder readme
++Mock workspace for HuanHermes console.
++
++Host is the source of truth; App is remote control only.
+""",
+    "src/main.py": """--- a/src/main.py
++++ b/src/main.py
+@@ -1,4 +1,7 @@
+ def main():
+-    print("hello")
++    print("hello from mock workspace")
++    # demo change for diff viewer
+ 
+ if __name__ == "__main__":
+     main()
+""",
+}
+
+
+def workspace_diff(path: str = "") -> Dict[str, Any]:
+    """Readonly unified diff snapshot for a path (or all)."""
+    cleaned = (path or "").strip().lstrip("./")
+    if cleaned:
+        body = MOCK_DIFFS.get(cleaned)
+        if body is None:
+            return {"path": cleaned, "diff": "", "note": "no changes"}
+        return {"path": cleaned, "diff": body, "note": "mock unified diff"}
+    files = [{"path": k, "has_diff": True} for k in MOCK_DIFFS]
+    return {"files": files, "note": "mock diff index"}
+
+
+
 def log(msg: str) -> None:
     print(f"[mock-host] {msg}", flush=True)
 
@@ -655,9 +764,14 @@ def _handle_message(conn: socket.socket, msg: Dict[str, Any]) -> None:
         reply = (
             f"[mock:{st_project}|{st.get('model')}|mode={st.get('mode')}] 收到：{content or '(attachment)'}\n"
             f"{attach_note}\n\n"
-            "这是 HuanHermes Mock Host 的流式回复。\n"
-            "真连服务器时，此处将由 Claude Code / Codex / Hermes 产生。\n"
-            f"workdir={st.get('workdir')}"
+            "### Mock markdown\n"
+            "这是 **HuanHermes Mock Host** 的流式回复，用于验证控制台 Markdown 渲染。\n\n"
+            "- 列表项 · 粗体 · `inline code`\n"
+            "- 真连服务器时，此处将由 Claude Code / Codex / Hermes 产生\n\n"
+            "```\n"
+            f"workdir={st.get('workdir')}\n"
+            "```\n"
+            f"> workdir={st.get('workdir')}"
         )
         tool_name = "echo"
         tool_out = "ok"
@@ -947,7 +1061,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                 {
                     "ok": True,
                     "data": {
-                        "version": "mock-0.1.9",
+                        "version": "mock-0.1.10",
                         "uptime_seconds": int(time.time() - START_TS),
                         "connected_platforms": ["bridge"],
                         "projects_count": len(PROJECTS),
@@ -960,6 +1074,9 @@ class MgmtHandler(BaseHTTPRequestHandler):
                             "mcp",
                             "pairing",
                             "terminal",
+                            "memory_readonly",
+                            "cron_readonly",
+                            "diff_readonly",
                         ],
                         "bridge_adapters": [
                             {
@@ -1108,6 +1225,50 @@ class MgmtHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/v1/workspace/git":
             self._send(200, {"ok": True, "data": workspace_git_status()})
+            return
+
+        if path == "/api/v1/memory":
+            q = parse_qs(urlparse(self.path).query)
+            scope = (q.get("scope") or [None])[0]
+            qtext = ((q.get("q") or [""])[0] or "").lower()
+            items = list(MEMORY_ENTRIES)
+            if scope:
+                items = [m for m in items if m.get("scope") == scope]
+            if qtext:
+                items = [
+                    m
+                    for m in items
+                    if qtext in (m.get("title") or "").lower()
+                    or qtext in (m.get("content") or "").lower()
+                    or qtext in " ".join(m.get("tags") or []).lower()
+                ]
+            self._send(200, {"ok": True, "data": {"memories": items, "count": len(items)}})
+            return
+        m = re.match(r"^/api/v1/memory/([^/]+)$", path)
+        if m:
+            mid = m.group(1)
+            for ent in MEMORY_ENTRIES:
+                if ent.get("id") == mid:
+                    self._send(200, {"ok": True, "data": ent})
+                    return
+            self._send(404, {"ok": False, "error": "memory not found"})
+            return
+        if path == "/api/v1/cron":
+            self._send(200, {"ok": True, "data": {"jobs": CRON_JOBS}})
+            return
+        m = re.match(r"^/api/v1/cron/([^/]+)$", path)
+        if m:
+            jid = m.group(1)
+            for job in CRON_JOBS:
+                if job.get("id") == jid:
+                    self._send(200, {"ok": True, "data": job})
+                    return
+            self._send(404, {"ok": False, "error": "cron job not found"})
+            return
+        if path == "/api/v1/workspace/diff":
+            qs = parse_qs(urlparse(self.path).query)
+            p = (qs.get("path") or [""])[0]
+            self._send(200, {"ok": True, "data": workspace_diff(p)})
             return
         if path == "/api/v1/sessions":
             q = parse_qs(urlparse(self.path).query)
