@@ -4,11 +4,13 @@ import 'package:provider/provider.dart';
 import '../models/session_info.dart';
 import '../services/connection_controller.dart';
 import '../services/session_controller.dart';
+import '../services/session_notes_store.dart';
 import '../services/session_pins_store.dart';
 import 'chat_screen.dart';
 import 'cron_screen.dart';
 import 'diff_screen.dart';
 import 'activity_screen.dart';
+import 'agents_screen.dart';
 import 'host_dashboard_screen.dart';
 import 'mcp_screen.dart';
 import 'memory_screen.dart';
@@ -29,8 +31,12 @@ class _SessionsScreenState extends State<SessionsScreen> {
   final _titleCtrl = TextEditingController();
   final _searchCtrl = TextEditingController();
   final _pins = SessionPinsStore();
+  final _notes = SessionNotesStore();
   String _query = '';
   Set<String> _pinned = {};
+  Map<String, String> _noteMap = {};
+  /// all | pinned | running
+  String _filter = 'all';
 
   @override
   void initState() {
@@ -40,8 +46,45 @@ class _SessionsScreenState extends State<SessionsScreen> {
 
   Future<void> _loadPins() async {
     final pins = await _pins.pins();
+    final notes = await _notes.all();
     if (!mounted) return;
-    setState(() => _pinned = pins);
+    setState(() {
+      _pinned = pins;
+      _noteMap = notes;
+    });
+  }
+
+  Future<void> _editNote(SessionInfo s) async {
+    final ctrl = TextEditingController(text: _noteMap[s.sessionKey] ?? '');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Session note (device only)'),
+        content: TextField(
+          controller: ctrl,
+          maxLines: 4,
+          decoration: const InputDecoration(
+            hintText: 'Local note — not uploaded to Host',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () async {
+              await _notes.set(s.sessionKey, '');
+              if (ctx.mounted) Navigator.pop(ctx, true);
+            },
+            child: const Text('Clear'),
+          ),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Save')),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await _notes.set(s.sessionKey, ctrl.text);
+      await _loadPins();
+    }
   }
 
   Future<void> _togglePin(SessionInfo s) async {
@@ -73,9 +116,16 @@ class _SessionsScreenState extends State<SessionsScreen> {
   List<SessionInfo> _filtered(List<SessionInfo> all) {
     final q = _query.trim().toLowerCase();
     Iterable<SessionInfo> base = all;
+    if (_filter == 'pinned') {
+      base = base.where((s) => _pinned.contains(s.sessionKey));
+    } else if (_filter == 'running') {
+      base = base.where((s) => s.running || s.live);
+    }
     if (q.isNotEmpty) {
-      base = all.where((s) {
-        final hay = '${s.displayTitle} ${s.project} ${s.sessionKey} ${s.model ?? ''}'.toLowerCase();
+      base = base.where((s) {
+        final note = _noteMap[s.sessionKey] ?? '';
+        final hay =
+            '${s.displayTitle} ${s.project} ${s.sessionKey} ${s.model ?? ''} $note'.toLowerCase();
         return hay.contains(q);
       });
     }
@@ -175,6 +225,9 @@ class _SessionsScreenState extends State<SessionsScreen> {
                     case 'status':
                       page = const HostDashboardScreen();
                       break;
+                    case 'agents':
+                      page = AgentsScreen(config: cfg);
+                      break;
                     case 'workspace':
                       page = WorkspaceScreen(config: cfg);
                       break;
@@ -206,6 +259,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                 },
                 itemBuilder: (ctx) => [
                   PopupMenuItem(value: 'status', child: Text('Host status')),
+                  PopupMenuItem(value: 'agents', child: Text('Agents')),
                   PopupMenuItem(value: 'workspace', child: Text('Workspace')),
                   PopupMenuItem(value: 'diff', child: Text('Git diff')),
                   PopupMenuItem(value: 'memory', child: Text('Host memory')),
@@ -278,7 +332,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                 child: TextField(
                   controller: _searchCtrl,
                   decoration: InputDecoration(
-                    hintText: 'Search sessions',
+                    hintText: 'Search sessions / notes',
                     border: const OutlineInputBorder(),
                     isDense: true,
                     prefixIcon: const Icon(Icons.search, size: 20),
@@ -293,6 +347,25 @@ class _SessionsScreenState extends State<SessionsScreen> {
                           ),
                   ),
                   onChanged: (v) => setState(() => _query = v),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                child: Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final f in const [
+                      ('all', 'All'),
+                      ('pinned', 'Pinned'),
+                      ('running', 'Running'),
+                    ])
+                      FilterChip(
+                        label: Text(f.$2, style: const TextStyle(fontSize: 12)),
+                        selected: _filter == f.$1,
+                        onSelected: (_) => setState(() => _filter = f.$1),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                  ],
                 ),
               ),
               Padding(
@@ -369,10 +442,15 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                         itemBuilder: (context, i) {
                                           final s = visible[i];
                                           final pinned = _pinned.contains(s.sessionKey);
+                                          final note = _noteMap[s.sessionKey];
                                           return ListTile(
                                             title: Text(s.displayTitle),
                                             subtitle: Text(
-                                              '${s.project} · ${s.model ?? "model?"} · ${s.sessionKey}',
+                                              [
+                                                '${s.project} · ${s.model ?? "model?"}',
+                                                s.sessionKey,
+                                                if (note != null && note.isNotEmpty) '📝 $note',
+                                              ].join('\n'),
                                             ),
                                             isThreeLine: true,
                                             leading: Icon(
@@ -388,9 +466,20 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                       : null,
                                             ),
                                             onTap: () => _openChat(s),
+                                            onLongPress: () => _editNote(s),
                                             trailing: Wrap(
                                               spacing: 0,
                                               children: [
+                                                IconButton(
+                                                  tooltip: 'Note',
+                                                  icon: Icon(
+                                                    (note != null && note.isNotEmpty)
+                                                        ? Icons.sticky_note_2
+                                                        : Icons.sticky_note_2_outlined,
+                                                    size: 20,
+                                                  ),
+                                                  onPressed: () => _editNote(s),
+                                                ),
                                                 IconButton(
                                                   tooltip: pinned ? 'Unpin' : 'Pin',
                                                   icon: Icon(

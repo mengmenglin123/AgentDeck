@@ -5,6 +5,7 @@ import '../services/connection_controller.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 import 'activity_screen.dart';
+import 'agents_screen.dart';
 import 'cron_screen.dart';
 import 'diff_screen.dart';
 import 'mcp_screen.dart';
@@ -179,6 +180,15 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                     MaterialPageRoute(builder: (_) => ActivityScreen(config: cfg)),
                   ),
                 ),
+                ListTile(
+                  leading: const Icon(Icons.smart_toy_outlined),
+                  title: const Text('Agents'),
+                  subtitle: const Text('Host agent catalog'),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => AgentsScreen(config: cfg)),
+                  ),
+                ),
+
                 ListTile(
                   leading: const Icon(Icons.qr_code_2),
                   title: const Text('Pairing URI'),

@@ -31,7 +31,7 @@ App 客户端自动探测，无需用户选择。
 | GET | `/projects/{name}` | 项目详情 |
 | GET/POST/DELETE | `/sessions` 或 project 作用域 | 会话 CRUD |
 | GET | `/sessions/{id}` | transcript / mode / model / workdir |
-| GET | `/agents` | 可选 |
+| GET | `/agents` | 可选；agent id 列表或 `{id,name,status}` 对象 |
 | GET | `/skills` | 可选只读 |
 | GET | `/mcp` | 可选 MCP 目录只读 |
 | GET | `/pairing` | 可选，**无 secrets** |

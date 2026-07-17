@@ -49,3 +49,10 @@
 - Transcript 导出（剪贴板 Markdown/Plain）
 - 附件 demo 预览
 - Host activity 只读事件流
+
+## 0.1.12+
+
+- Agents 目录
+- 会话本地备注 + 筛选 chips
+- 斜杠命令面板
+- 代码块 lang + copy

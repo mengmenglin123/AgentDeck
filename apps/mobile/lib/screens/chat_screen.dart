@@ -326,6 +326,49 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  Future<void> _openSlashPalette() async {
+    const items = <(String, String)>[
+      ('/status', 'Host/session status'),
+      ('/mode default', 'Permission mode: default'),
+      ('/mode plan', 'Permission mode: plan'),
+      ('/mode acceptEdits', 'Permission mode: acceptEdits'),
+      ('/mode bypassPermissions', 'Permission mode: bypassPermissions'),
+      ('/model mock-sonnet', 'Switch model (mock-sonnet)'),
+      ('/model mock-codex', 'Switch model (mock-codex)'),
+      ('/model mock-hermes', 'Switch model (mock-hermes)'),
+      ('/dir /workspace', 'Set workdir /workspace'),
+      ('/stop', 'Request stop'),
+      ('/perm', 'Permission demo'),
+      ('/help', 'Host help (if supported)'),
+    ];
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            ListTile(
+              title: Text('Slash commands', style: Theme.of(ctx).textTheme.titleMedium),
+              subtitle: const Text('Fills input — review then send'),
+            ),
+            for (final it in items)
+              ListTile(
+                dense: true,
+                leading: const Icon(Icons.terminal, size: 18),
+                title: Text(it.$1, style: const TextStyle(fontFamily: 'monospace', fontSize: 13)),
+                subtitle: Text(it.$2, style: const TextStyle(fontSize: 11)),
+                onTap: () => Navigator.pop(ctx, it.$1),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (picked != null && picked.isNotEmpty && mounted) {
+      setState(() => _input.text = picked);
+    }
+  }
+
   List<TranscriptMessage> get _visibleMessages {
     final q = _searchQ.trim().toLowerCase();
     if (q.isEmpty) return _chat.messages;
@@ -598,6 +641,11 @@ class _ChatScreenState extends State<ChatScreen> {
                     tooltip: 'Prompt history',
                     onPressed: _openPromptHistory,
                     icon: const Icon(Icons.bookmark_border),
+                  ),
+                  IconButton(
+                    tooltip: 'Slash commands',
+                    onPressed: (_chat.connected && !_chat.sending) ? _openSlashPalette : null,
+                    icon: const Icon(Icons.flash_on_outlined),
                   ),
                   IconButton(
                     tooltip: 'Attach demo',

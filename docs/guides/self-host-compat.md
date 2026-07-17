@@ -23,6 +23,7 @@
 | Method | Path |
 |--------|------|
 | GET | `/status` |
+| GET | `/agents`（可选目录） |
 | GET | `/projects` （可选 `capabilities[]`） |
 | GET/POST/DELETE | `/sessions` **或** `/projects/{name}/sessions` |
 | GET | `/sessions/{id}` 或 project 作用域 detail |

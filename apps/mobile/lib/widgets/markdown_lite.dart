@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings, lists, fenced code, inline code, bold/italic — enough for
-/// console chat richness without pulling flutter_markdown (pub may be geo-blocked).
+/// Covers headings, lists, fenced code (+lang/copy), inline code, bold/italic.
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -32,14 +32,59 @@ class MarkdownLite extends StatelessWidget {
           if (b.kind == _BlockKind.code)
             Container(
               margin: const EdgeInsets.symmetric(vertical: 6),
-              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: Colors.black87,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: SelectableText(
-                b.text,
-                style: codeBase.copyWith(color: const Color(0xFFB2FF59), backgroundColor: Colors.transparent),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 6, 4, 0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            (b.lang == null || b.lang!.isEmpty) ? 'code' : b.lang!,
+                            style: const TextStyle(
+                              color: Color(0xFF9E9E9E),
+                              fontSize: 11,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Copy code',
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 32, minHeight: 28),
+                          icon: const Icon(Icons.copy, size: 16, color: Color(0xFFBDBDBD)),
+                          onPressed: () async {
+                            await Clipboard.setData(ClipboardData(text: b.text));
+                            if (context.mounted) {
+                              ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Code copied'),
+                                  duration: Duration(seconds: 1),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                    child: SelectableText(
+                      b.text,
+                      style: codeBase.copyWith(
+                        color: const Color(0xFFB2FF59),
+                        backgroundColor: Colors.transparent,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             )
           else if (b.kind == _BlockKind.h1)
@@ -79,7 +124,7 @@ class MarkdownLite extends StatelessWidget {
               ),
               child: SelectableText.rich(_inline(b.text, base.copyWith(fontStyle: FontStyle.italic))),
             )
-          else
+          else if (b.kind != _BlockKind.blank)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: SelectableText.rich(_inline(b.text, base)),
@@ -94,14 +139,18 @@ class MarkdownLite extends StatelessWidget {
     final out = <_Block>[];
     final codeBuf = StringBuffer();
     var inCode = false;
+    String? lang;
     for (final line in lines) {
       if (line.trimLeft().startsWith('```')) {
         if (inCode) {
-          out.add(_Block(_BlockKind.code, codeBuf.toString().trimRight()));
+          out.add(_Block(_BlockKind.code, codeBuf.toString().trimRight(), lang: lang));
           codeBuf.clear();
           inCode = false;
+          lang = null;
         } else {
           inCode = true;
+          final fence = line.trimLeft().substring(3).trim();
+          lang = fence.isEmpty ? null : fence.split(RegExp(r'\s+')).first;
         }
         continue;
       }
@@ -131,13 +180,12 @@ class MarkdownLite extends StatelessWidget {
       }
     }
     if (inCode && codeBuf.isNotEmpty) {
-      out.add(_Block(_BlockKind.code, codeBuf.toString().trimRight()));
+      out.add(_Block(_BlockKind.code, codeBuf.toString().trimRight(), lang: lang));
     }
     return out;
   }
 
   static TextSpan _inline(String text, TextStyle base) {
-    // Order: code, bold, italic, links as label
     final spans = <InlineSpan>[];
     final re = RegExp(
       r'(`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|\[[^\]]+\]\([^)]+\))',
@@ -190,7 +238,8 @@ class MarkdownLite extends StatelessWidget {
 enum _BlockKind { para, h1, h2, h3, list, code, quote, blank }
 
 class _Block {
-  const _Block(this.kind, this.text);
+  const _Block(this.kind, this.text, {this.lang});
   final _BlockKind kind;
   final String text;
+  final String? lang;
 }

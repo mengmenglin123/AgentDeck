@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.12] - 2026-07-17
+
+### Added
+- Agents catalog screen (`GET /agents` + projects summary)
+- Device-local session notes (long-press / note icon; never uploaded)
+- Session list filter chips: All / Pinned / Running
+- Chat slash-command palette (fills input)
+- MarkdownLite code fences: language label + copy button
+- Mock `/agents` returns structured agent objects
+
 ## [0.1.11] - 2026-07-17
 
 ### Added

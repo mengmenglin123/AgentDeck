@@ -1091,7 +1091,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                 {
                     "ok": True,
                     "data": {
-                        "version": "mock-0.1.11",
+                        "version": "mock-0.1.12",
                         "uptime_seconds": int(time.time() - START_TS),
                         "connected_platforms": ["bridge"],
                         "projects_count": len(PROJECTS),
@@ -1165,8 +1165,38 @@ class MgmtHandler(BaseHTTPRequestHandler):
                 {
                     "ok": True,
                     "data": {
-                        "agents": ["claudecode", "codex", "hermes", "cursor", "opencode"],
+                        "agents": [
+                            {
+                                "id": "claudecode",
+                                "name": "Claude Code",
+                                "status": "mock",
+                                "description": "Project-scoped coding agent (mock)",
+                            },
+                            {
+                                "id": "codex",
+                                "name": "Codex",
+                                "status": "mock",
+                                "description": "Codex-style agent (mock)",
+                            },
+                            {
+                                "id": "hermes",
+                                "name": "Hermes",
+                                "status": "planned",
+                                "description": "Host adapter maps Bridge → Hermes later (ADR-002)",
+                            },
+                            {
+                                "id": "cursor",
+                                "name": "Cursor",
+                                "status": "mock",
+                            },
+                            {
+                                "id": "opencode",
+                                "name": "OpenCode",
+                                "status": "mock",
+                            },
+                        ],
                         "platforms": ["bridge", "telegram"],
+                        "note": "Catalog only — App does not run agents locally",
                     },
                 },
             )

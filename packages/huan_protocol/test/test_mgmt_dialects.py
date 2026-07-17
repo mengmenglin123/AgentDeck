@@ -96,6 +96,15 @@ class TestMgmtDialects(unittest.TestCase):
         c = MgmtClient(self.cfg)
         a = c.agents()
         self.assertIn("agents", a)
+        agents = a.get("agents") or []
+        self.assertTrue(agents)
+        # string ids or objects with id
+        def _id(x):
+            if isinstance(x, dict):
+                return str(x.get("id") or x.get("name") or "")
+            return str(x)
+        ids = {_id(x) for x in agents}
+        self.assertTrue(ids.intersection({"claudecode", "hermes", "codex"}))
 
     def test_skills_and_pairing(self) -> None:
         c = MgmtClient(self.cfg)
