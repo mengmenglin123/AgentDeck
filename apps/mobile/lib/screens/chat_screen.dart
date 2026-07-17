@@ -517,13 +517,45 @@ class _ChatScreenState extends State<ChatScreen> {
             )
           : null,
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        title: Row(
           children: [
-            Text(widget.session.displayTitle, style: const TextStyle(fontSize: 16)),
-            Text(
-              '${widget.session.project} · ${_chat.model}',
-              style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+            Container(
+              width: 10,
+              height: 10,
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _chat.connecting
+                    ? Colors.amber
+                    : _chat.connected
+                        ? Colors.green
+                        : Colors.redAccent,
+              ),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(widget.session.displayTitle, style: const TextStyle(fontSize: 16)),
+                  Text(
+                    [
+                      widget.session.project,
+                      _chat.model,
+                      if (_chat.connecting)
+                        'connecting…'
+                      else if (_chat.connected)
+                        'live'
+                      else
+                        'offline',
+                      if (_chat.reconnectHint != null && _chat.reconnectHint!.isNotEmpty)
+                        _chat.reconnectHint!,
+                    ].join(' · '),
+                    style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -62,6 +63,33 @@ class _AuditScreenState extends State<AuditScreen> {
               }
             },
             icon: const Icon(Icons.copy_all_outlined),
+          ),
+          IconButton(
+            tooltip: 'Copy JSON',
+            onPressed: () async {
+              final items = _filter(audit.entries.reversed.toList());
+              final payload = {
+                'exported_at': DateTime.now().toIso8601String(),
+                'count': items.length,
+                'entries': [
+                  for (final e in items)
+                    {
+                      'ts': e.ts.toIso8601String(),
+                      'level': e.level,
+                      'action': e.action,
+                      'detail': e.detail,
+                    },
+                ],
+              };
+              final text = const JsonEncoder.withIndent('  ').convert(payload);
+              await Clipboard.setData(ClipboardData(text: text));
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Copied JSON (${items.length})'), duration: const Duration(seconds: 1)),
+                );
+              }
+            },
+            icon: const Icon(Icons.data_object),
           ),
           IconButton(
             tooltip: 'Clear',

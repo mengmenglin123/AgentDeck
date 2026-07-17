@@ -22,7 +22,7 @@ class AppSettingsController extends ChangeNotifier {
   /// Default for chat tools visibility preference (UI hint only).
   bool showToolsDefault = true;
 
-  /// Session list sort: updated | title | project | created
+  /// Session list sort: updated | title | project | created | recent
   String sessionSort = 'updated';
 
   /// Stronger borders / higher contrast surfaces for a11y.
@@ -39,7 +39,7 @@ class AppSettingsController extends ChangeNotifier {
     }
     showToolsDefault = p.getBool(_kShowTools) ?? true;
     sessionSort = p.getString(_kSort) ?? 'updated';
-    const allowed = {'updated', 'title', 'project', 'created'};
+    const allowed = {'updated', 'title', 'project', 'created', 'recent'};
     if (!allowed.contains(sessionSort)) sessionSort = 'updated';
     highContrast = p.getBool(_kContrast) ?? false;
     notifyListeners();

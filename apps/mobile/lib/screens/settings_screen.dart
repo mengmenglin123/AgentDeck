@@ -82,6 +82,7 @@ class SettingsScreen extends StatelessWidget {
               children: [
                 for (final e in const [
                   ('updated', 'Updated'),
+                  ('recent', 'Recent'),
                   ('title', 'Title'),
                   ('project', 'Project'),
                   ('created', 'Created'),
@@ -149,6 +150,8 @@ class SettingsScreen extends StatelessWidget {
         return 'By project then title';
       case 'created':
         return 'By created time (newest first)';
+      case 'recent':
+        return 'By recently opened on this device (pins still first)';
       default:
         return 'By last updated (newest first)';
     }

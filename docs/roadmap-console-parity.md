@@ -90,3 +90,10 @@
 - Empty-state onboarding
 - Session meta export
 - Terminal copy-all
+
+## 0.1.18+
+
+- Connection status lights
+- Session recents sort
+- Activity → session jump
+- Audit JSON export

@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/connection_config.dart';
+import '../models/session_info.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
+import 'chat_screen.dart';
 
 /// Readonly Host activity feed (`GET /activity`).
 class ActivityScreen extends StatefulWidget {
-  const ActivityScreen({super.key, required this.config});
+  const ActivityScreen({
+    super.key,
+    required this.config,
+    this.sessions = const [],
+  });
 
   final ConnectionConfig config;
+  /// Optional known sessions for open-chat jump.
+  final List<SessionInfo> sessions;
 
   @override
   State<ActivityScreen> createState() => _ActivityScreenState();
@@ -19,11 +28,19 @@ class _ActivityScreenState extends State<ActivityScreen> {
   bool _loading = true;
   String? _error;
   List<Map<String, dynamic>> _events = [];
+  String _query = '';
+  final _q = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _q.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -68,8 +85,64 @@ class _ActivityScreenState extends State<ActivityScreen> {
     return Icons.bolt_outlined;
   }
 
+  String? _sessionRef(Map<String, dynamic> e) {
+    for (final k in const ['session_key', 'sessionKey', 'session_id', 'sessionId', 'id']) {
+      final v = e[k]?.toString().trim();
+      if (v != null && v.isNotEmpty && (k.contains('session') || v.contains(':'))) {
+        return v;
+      }
+    }
+    // summary may embed session key/id
+    final summary = (e['summary'] ?? '').toString();
+    final m = RegExp(r'(huan:[^\s]+|sess-[a-zA-Z0-9_-]+|[a-f0-9]{8,})').firstMatch(summary);
+    return m?.group(1);
+  }
+
+  SessionInfo? _resolveSession(String ref) {
+    for (final s in widget.sessions) {
+      if (s.sessionKey == ref || s.id == ref) return s;
+      if (s.sessionKey.endsWith(ref) || s.id.endsWith(ref)) return s;
+    }
+    return null;
+  }
+
+  Future<void> _openSession(Map<String, dynamic> e) async {
+    final ref = _sessionRef(e);
+    if (ref == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No session reference on this event')),
+      );
+      return;
+    }
+    final hit = _resolveSession(ref);
+    if (hit == null) {
+      await Clipboard.setData(ClipboardData(text: ref));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Session not in list — copied ref: $ref')),
+      );
+      return;
+    }
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChatScreen(config: widget.config, session: hit),
+      ),
+    );
+  }
+
+  List<Map<String, dynamic>> get _filtered {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return _events;
+    return _events.where((e) {
+      final hay = '${e['kind']} ${e['summary']} ${e['session_key']} ${e['session_id']}'.toLowerCase();
+      return hay.contains(q);
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final items = _filtered;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Host activity'),
@@ -84,22 +157,74 @@ class _ActivityScreenState extends State<ActivityScreen> {
               padding: const EdgeInsets.all(12),
               child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
             ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+            child: TextField(
+              controller: _q,
+              decoration: InputDecoration(
+                hintText: 'Filter kind / summary / session',
+                isDense: true,
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.search, size: 18),
+                suffixIcon: _query.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _q.clear();
+                          setState(() => _query = '');
+                        },
+                      ),
+              ),
+              onChanged: (v) => setState(() => _query = v),
+            ),
+          ),
           if (_loading) const LinearProgressIndicator(minHeight: 2),
           Expanded(
-            child: _events.isEmpty && !_loading
-                ? const Center(child: Text('No activity yet (Host may not expose /activity)'))
+            child: items.isEmpty && !_loading
+                ? Center(
+                    child: Text(
+                      _events.isEmpty
+                          ? 'No activity yet (Host may not expose /activity)'
+                          : 'No events match filter',
+                    ),
+                  )
                 : ListView.separated(
-                    itemCount: _events.length,
+                    itemCount: items.length,
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (ctx, i) {
-                      final e = _events[i];
+                      final e = items[i];
                       final kind = (e['kind'] ?? 'event').toString();
                       final summary = (e['summary'] ?? '').toString();
+                      final ref = _sessionRef(e);
+                      final resolvable = ref != null && _resolveSession(ref) != null;
                       return ListTile(
                         leading: Icon(_icon(kind)),
                         title: Text(summary.isEmpty ? kind : summary),
-                        subtitle: Text('$kind · ${_fmtTs(e['ts'])}'),
+                        subtitle: Text(
+                          [
+                            kind,
+                            _fmtTs(e['ts']),
+                            if (ref != null) ref,
+                          ].join(' · '),
+                        ),
                         dense: true,
+                        trailing: ref == null
+                            ? null
+                            : Icon(
+                                resolvable ? Icons.chat_outlined : Icons.copy_all_outlined,
+                                size: 18,
+                              ),
+                        onTap: ref == null ? null : () => _openSession(e),
+                        onLongPress: () async {
+                          final text = '${e['kind']} ${e['summary']} ${e['session_key'] ?? e['session_id'] ?? ''}'.trim();
+                          await Clipboard.setData(ClipboardData(text: text));
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Event copied'), duration: Duration(seconds: 1)),
+                            );
+                          }
+                        },
                       );
                     },
                   ),

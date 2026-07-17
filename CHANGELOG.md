@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.18] - 2026-07-17
+
+### Added
+- Chat/Terminal connection status lights (connecting/live/offline)
+- Device-local session recents + Sort: Recent (pins still first)
+- Host activity filter + tap-to-open session (or copy ref)
+- Audit log Copy JSON export (redacted entries)
+
 ## [0.1.17] - 2026-07-17
 
 ### Added

@@ -179,7 +179,29 @@ class _TerminalScreenState extends State<TerminalScreen> {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: Text('Terminal · ${widget.session.project}'),
+        title: Row(
+          children: [
+            Container(
+              width: 10,
+              height: 10,
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _connecting
+                    ? Colors.amber
+                    : _bridge != null
+                        ? Colors.green
+                        : Colors.redAccent,
+              ),
+            ),
+            Expanded(
+              child: Text(
+                'Terminal · ${widget.session.project}',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: 'Copy all',

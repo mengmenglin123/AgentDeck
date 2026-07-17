@@ -10,6 +10,7 @@ import '../services/session_archive_store.dart';
 import '../services/session_notes_store.dart';
 import '../services/theme_controller.dart';
 import '../services/session_pins_store.dart';
+import '../services/session_recents_store.dart';
 import 'chat_screen.dart';
 import 'cron_screen.dart';
 import 'diff_screen.dart';
@@ -39,10 +40,12 @@ class _SessionsScreenState extends State<SessionsScreen> {
   final _pins = SessionPinsStore();
   final _notes = SessionNotesStore();
   final _archive = SessionArchiveStore();
+  final _recents = SessionRecentsStore();
   String _query = '';
   Set<String> _pinned = {};
   Set<String> _archived = {};
   Map<String, String> _noteMap = {};
+  Map<String, int> _recentRank = {};
   /// all | pinned | running | archived
   String _filter = 'all';
   bool _selectMode = false;
@@ -58,11 +61,13 @@ class _SessionsScreenState extends State<SessionsScreen> {
     final pins = await _pins.pins();
     final notes = await _notes.all();
     final archived = await _archive.archived();
+    final ranks = await _recents.ranks();
     if (!mounted) return;
     setState(() {
       _pinned = pins;
       _noteMap = notes;
       _archived = archived;
+      _recentRank = ranks;
     });
   }
 
@@ -332,6 +337,15 @@ class _SessionsScreenState extends State<SessionsScreen> {
           return a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase());
         case 'created':
           return (b.createdAt ?? b.updatedAt ?? 0).compareTo(a.createdAt ?? a.updatedAt ?? 0);
+        case 'recent':
+          final ar = _recentRank[a.sessionKey];
+          final br = _recentRank[b.sessionKey];
+          if (ar == null && br == null) {
+            return (b.updatedAt ?? 0).compareTo(a.updatedAt ?? 0);
+          }
+          if (ar == null) return 1;
+          if (br == null) return -1;
+          return ar.compareTo(br);
         case 'updated':
         default:
           return (b.updatedAt ?? 0).compareTo(a.updatedAt ?? 0);
@@ -344,6 +358,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
     final conn = context.read<ConnectionController>();
     final cfg = conn.saved;
     if (cfg == null) return;
+    await _recents.touch(session.sessionKey);
+    await _loadPins();
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => TerminalScreen(config: cfg, session: session),
@@ -370,6 +386,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
     final conn = context.read<ConnectionController>();
     final cfg = conn.saved;
     if (cfg == null) return;
+    await _recents.touch(session.sessionKey);
+    await _loadPins();
     final caps = _sessions?.projects
             .where((p) => p.name == session.project)
             .map((p) => p.capabilities)
@@ -505,7 +523,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       page = MemoryScreen(config: cfg);
                       break;
                     case 'activity':
-                      page = ActivityScreen(config: cfg);
+                      page = ActivityScreen(config: cfg, sessions: sessions.sessions);
                       break;
                     case 'cron':
                       page = CronScreen(config: cfg);
@@ -757,6 +775,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                           },
                           itemBuilder: (ctx) => const [
                             PopupMenuItem(value: 'updated', child: Text('Sort: Updated')),
+                            PopupMenuItem(value: 'recent', child: Text('Sort: Recent')),
                             PopupMenuItem(value: 'title', child: Text('Sort: Title')),
                             PopupMenuItem(value: 'project', child: Text('Sort: Project')),
                             PopupMenuItem(value: 'created', child: Text('Sort: Created')),
@@ -770,6 +789,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                   'title': 'Title',
                                   'project': 'Project',
                                   'created': 'Created',
+                                  'recent': 'Recent',
                                 }[settings.sessionSort] ??
                                     'Updated',
                                 style: const TextStyle(fontSize: 12),
