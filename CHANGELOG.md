@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.74
+
+- Agents case-sensitive filter
+- Memory case-sensitive search
+- Connect profile sort by port
+- Diff sort files by deletions
+
 ## 0.1.73
 
 - Audit case-sensitive filter

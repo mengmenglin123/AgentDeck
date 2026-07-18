@@ -27,6 +27,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
   String _type = 'all';
   String _q = '';
   bool _wrapLines = false;
+  bool _queryCase = false;
   bool _sortByTitle = false;
   bool _sortByType = false;
   bool _sortByContent = false;
@@ -57,7 +58,8 @@ class _MemoryScreenState extends State<MemoryScreen> {
   }
 
   List<Map<String, dynamic>> get _visible {
-    final q = _search.text.trim().toLowerCase();
+    final rawQ = _search.text.trim();
+    final q = _queryCase ? rawQ : rawQ.toLowerCase();
     final list = _items.where((m) {
       if (_type != 'all') {
         final t = (m['type'] ?? '').toString().toLowerCase();
@@ -74,7 +76,8 @@ class _MemoryScreenState extends State<MemoryScreen> {
         }
       }
       if (q.isEmpty) return true;
-      final hay = '${m['title']} ${m['id']} ${m['content']} ${m['scope']} ${m['type']}'.toLowerCase();
+      final hayRaw = '${m['title']} ${m['id']} ${m['content']} ${m['scope']} ${m['type']}';
+      final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
       return hay.contains(q);
     }).toList();
     int tsOf(Map<String, dynamic> m) {
@@ -452,10 +455,17 @@ class _MemoryScreenState extends State<MemoryScreen> {
             child: TextField(
               controller: _search,
               decoration: InputDecoration(
-                hintText: 'Search title/content',
+                hintText: _queryCase ? 'Search (case-sensitive)' : 'Search title/content',
                 border: const OutlineInputBorder(),
                 isDense: true,
-                prefixIcon: const Icon(Icons.search, size: 20),
+                prefixIcon: IconButton(
+                  tooltip: _queryCase ? 'Case-sensitive on' : 'Case-insensitive',
+                  icon: Icon(
+                    _queryCase ? Icons.text_fields : Icons.search,
+                    size: 20,
+                  ),
+                  onPressed: () => setState(() => _queryCase = !_queryCase),
+                ),
                 suffixIcon: _search.text.isEmpty
                     ? IconButton(
                         icon: const Icon(Icons.manage_search),

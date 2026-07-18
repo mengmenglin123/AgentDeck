@@ -349,6 +349,11 @@
 | P3-267 | Workspace 过滤区分大小写 | [x] |
 | P3-268 | Skills 过滤区分大小写 | [x] |
 
+| P3-269 | Agents 过滤区分大小写 | [x] |
+| P3-270 | Memory 搜索区分大小写 | [x] |
+| P3-271 | Connect 按 port 排序 | [x] |
+| P3-272 | Diff 按 deletions 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

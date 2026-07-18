@@ -27,6 +27,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
   List<Map<String, dynamic>> _projects = [];
   final _q = TextEditingController();
   String _query = '';
+  bool _queryCase = false;
   /// all | agents | platforms | projects
   String _section = 'all';
   String _statusFilter = '';
@@ -111,16 +112,22 @@ class _AgentsScreenState extends State<AgentsScreen> {
       final st = _agentStatusKey(a);
       if (st != _statusFilter) return false;
     }
-    final q = _query.trim().toLowerCase();
+    final rawQ = _query.trim();
+    final q = _queryCase ? rawQ : rawQ.toLowerCase();
     if (q.isEmpty) return true;
-    return '${_agentTitle(a)} ${_agentSub(a)}'.toLowerCase().contains(q);
+    final hayRaw = '${_agentTitle(a)} ${_agentSub(a)}';
+    final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
+    return hay.contains(q);
   }
 
   bool _matchProject(Map<String, dynamic> p) {
-    final q = _query.trim().toLowerCase();
+    final rawQ = _query.trim();
+    final q = _queryCase ? rawQ : rawQ.toLowerCase();
     if (q.isEmpty) return true;
     final caps = ((p['capabilities'] as List?) ?? const []).join(' ');
-    return '${p['name']} ${p['agent_type']} ${p['note']} $caps'.toLowerCase().contains(q);
+    final hayRaw = '${p['name']} ${p['agent_type']} ${p['note']} $caps';
+    final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
+    return hay.contains(q);
   }
 
   String _agentStatusKey(dynamic a) {
@@ -454,10 +461,17 @@ class _AgentsScreenState extends State<AgentsScreen> {
             child: TextField(
               controller: _q,
               decoration: InputDecoration(
-                hintText: 'Filter agents / platforms / projects',
+                hintText: _queryCase ? 'Filter (case-sensitive)' : 'Filter agents / platforms / projects',
                 isDense: true,
                 border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.search, size: 18),
+                prefixIcon: IconButton(
+                  tooltip: _queryCase ? 'Case-sensitive on' : 'Case-insensitive',
+                  icon: Icon(
+                    _queryCase ? Icons.text_fields : Icons.search,
+                    size: 18,
+                  ),
+                  onPressed: () => setState(() => _queryCase = !_queryCase),
+                ),
                 suffixIcon: _query.isEmpty
                     ? null
                     : IconButton(

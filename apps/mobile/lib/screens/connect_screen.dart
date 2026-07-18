@@ -26,7 +26,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
   bool _obscureMgmt = true;
   bool _wrapLines = false;
   bool _sortAsc = true;
-  /// name | host | updated
+  /// name | host | updated | port
   String _sortMode = 'name';
   String _tlsFilter = 'all'; // all | tls | plain
   final _scroll = ScrollController();
@@ -283,11 +283,13 @@ class _ConnectScreenState extends State<ConnectScreen> {
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
           IconButton(
-            tooltip: _sortMode == 'host'
-                ? (_sortAsc ? 'Host Z→A' : 'Host A→Z')
-                : (_sortMode == 'updated'
-                    ? (_sortAsc ? 'Updated new→old' : 'Updated old→new')
-                    : (_sortAsc ? 'Profiles Z→A' : 'Profiles A→Z')),
+            tooltip: _sortMode == 'port'
+                ? (_sortAsc ? 'Port high→low' : 'Port low→high')
+                : (_sortMode == 'host'
+                    ? (_sortAsc ? 'Host Z→A' : 'Host A→Z')
+                    : (_sortMode == 'updated'
+                        ? (_sortAsc ? 'Updated new→old' : 'Updated old→new')
+                        : (_sortAsc ? 'Profiles Z→A' : 'Profiles A→Z'))),
             onPressed: () {
               setState(() {
                 if (_sortMode == 'name' && _sortAsc) {
@@ -302,17 +304,24 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   _sortAsc = true;
                 } else if (_sortMode == 'updated' && _sortAsc) {
                   _sortAsc = false;
+                } else if (_sortMode == 'updated' && !_sortAsc) {
+                  _sortMode = 'port';
+                  _sortAsc = true;
+                } else if (_sortMode == 'port' && _sortAsc) {
+                  _sortAsc = false;
                 } else {
                   _sortMode = 'name';
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortMode == 'host'
-                ? Icons.dns_outlined
-                : (_sortMode == 'updated'
-                    ? Icons.schedule
-                    : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))),
+            icon: Icon(_sortMode == 'port'
+                ? Icons.tag
+                : (_sortMode == 'host'
+                    ? Icons.dns_outlined
+                    : (_sortMode == 'updated'
+                        ? Icons.schedule
+                        : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))),
           ),
 
           IconButton(
@@ -410,6 +419,14 @@ class _ConnectScreenState extends State<ConnectScreen> {
                       }
                     } else if (_sortMode == 'updated') {
                       c = a.updatedAt.compareTo(b.updatedAt);
+                      if (c == 0) {
+                        c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+                      }
+                    } else if (_sortMode == 'port') {
+                      c = a.config.mgmtPort.compareTo(b.config.mgmtPort);
+                      if (c == 0) {
+                        c = a.config.bridgePort.compareTo(b.config.bridgePort);
+                      }
                       if (c == 0) {
                         c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
                       }

@@ -31,6 +31,7 @@ class _DiffScreenState extends State<DiffScreen> {
   bool _sortAsc = true;
   bool _sortByStatus = false;
   bool _sortByAdds = false;
+  bool _sortByDels = false;
   Timer? _timer;
   bool _autoRefresh = false;
   final _scroll = ScrollController();
@@ -109,7 +110,15 @@ class _DiffScreenState extends State<DiffScreen> {
         if (v is num) return v.round();
         return int.tryParse(v?.toString() ?? '') ?? 0;
       }
-      if (_sortByAdds) {
+      int delsOf(Map x) {
+        final v = x['deletions'] ?? x['dels'] ?? x['-'] ?? x['removals'];
+        if (v is num) return v.round();
+        return int.tryParse(v?.toString() ?? '') ?? 0;
+      }
+      if (_sortByDels) {
+        final c = delsOf(a).compareTo(delsOf(b));
+        if (c != 0) return _sortAsc ? c : -c;
+      } else if (_sortByAdds) {
         final c = addsOf(a).compareTo(addsOf(b));
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByStatus) {
@@ -245,39 +254,53 @@ class _DiffScreenState extends State<DiffScreen> {
             icon: Icon(_lineNums ? Icons.format_list_numbered : Icons.format_list_bulleted),
           ),
           IconButton(
-            tooltip: _sortByAdds
-                ? (_sortAsc ? 'Adds high→low' : 'Adds low→high')
-                : (_sortByStatus
-                    ? (_sortAsc ? 'Status Z→A' : 'Status A→Z')
-                    : (_sortAsc ? 'Path Z→A' : 'Path A→Z')),
+            tooltip: _sortByDels
+                ? (_sortAsc ? 'Dels high→low' : 'Dels low→high')
+                : (_sortByAdds
+                    ? (_sortAsc ? 'Adds high→low' : 'Adds low→high')
+                    : (_sortByStatus
+                        ? (_sortAsc ? 'Status Z→A' : 'Status A→Z')
+                        : (_sortAsc ? 'Path Z→A' : 'Path A→Z'))),
             onPressed: () {
               setState(() {
-                if (!_sortByStatus && !_sortByAdds && _sortAsc) {
+                if (!_sortByStatus && !_sortByAdds && !_sortByDels && _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortByStatus && !_sortByAdds && !_sortAsc) {
+                } else if (!_sortByStatus && !_sortByAdds && !_sortByDels && !_sortAsc) {
                   _sortByStatus = true;
                   _sortByAdds = false;
+                  _sortByDels = false;
                   _sortAsc = true;
                 } else if (_sortByStatus && _sortAsc) {
                   _sortAsc = false;
                 } else if (_sortByStatus && !_sortAsc) {
                   _sortByStatus = false;
                   _sortByAdds = true;
+                  _sortByDels = false;
                   _sortAsc = false; // high first by default
                 } else if (_sortByAdds && !_sortAsc) {
+                  _sortAsc = true;
+                } else if (_sortByAdds && _sortAsc) {
+                  _sortByStatus = false;
+                  _sortByAdds = false;
+                  _sortByDels = true;
+                  _sortAsc = false; // high first
+                } else if (_sortByDels && !_sortAsc) {
                   _sortAsc = true;
                 } else {
                   _sortByStatus = false;
                   _sortByAdds = false;
+                  _sortByDels = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortByAdds
-                ? Icons.add_box_outlined
-                : (_sortByStatus
-                    ? Icons.flag_outlined
-                    : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))),
+            icon: Icon(_sortByDels
+                ? Icons.remove_circle_outline
+                : (_sortByAdds
+                    ? Icons.add_box_outlined
+                    : (_sortByStatus
+                        ? Icons.flag_outlined
+                        : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))),
           ),
 
           IconButton(
