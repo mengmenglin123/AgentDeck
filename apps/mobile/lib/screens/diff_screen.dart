@@ -42,6 +42,7 @@ class _DiffScreenState extends State<DiffScreen> {
   final _fileFilterCtrl = TextEditingController();
   String _fileFilter = '';
   bool _fileCase = false;
+  bool _fileRegex = false;
   String _statusFilter = '';
 
   @override
@@ -95,10 +96,17 @@ class _DiffScreenState extends State<DiffScreen> {
     final raw = _fileFilter.trim();
     final q = _fileCase ? raw : raw.toLowerCase();
     var list = List<Map<String, dynamic>>.from(_files);
-    if (q.isNotEmpty) {
+    if (raw.isNotEmpty) {
       list = list
           .where((f) {
             final p = '${f['path']}';
+            if (_fileRegex) {
+              try {
+                return RegExp(raw, caseSensitive: _fileCase).hasMatch(p);
+              } catch (_) {
+                return false;
+              }
+            }
             return (_fileCase ? p : p.toLowerCase()).contains(q);
           })
           .toList();
@@ -403,18 +411,31 @@ class _DiffScreenState extends State<DiffScreen> {
               child: TextField(
                 controller: _fileFilterCtrl,
                 decoration: InputDecoration(
-                  hintText: _fileCase
-                      ? 'Filter paths (case-sensitive)'
-                      : 'Filter changed files',
+                  hintText: _fileRegex
+                      ? (_fileCase
+                          ? 'Filter paths (regex · case)'
+                          : 'Filter paths (regex)')
+                      : (_fileCase
+                          ? 'Filter paths (case-sensitive)'
+                          : 'Filter changed files'),
                   isDense: true,
                   border: const OutlineInputBorder(),
                   prefixIcon: IconButton(
-                    tooltip: _fileCase ? 'Case-sensitive on' : 'Case-insensitive',
+                    tooltip: _fileRegex
+                        ? (_fileCase
+                            ? 'Regex · case on (long-press: plain filter)'
+                            : 'Regex · case off (long-press: plain filter)')
+                        : (_fileCase
+                            ? 'Case-sensitive (long-press: regex)'
+                            : 'Case-insensitive (long-press: regex)'),
                     icon: Icon(
-                      _fileCase ? Icons.text_fields : Icons.search,
+                      _fileRegex
+                          ? Icons.code
+                          : (_fileCase ? Icons.text_fields : Icons.search),
                       size: 18,
                     ),
                     onPressed: () => setState(() => _fileCase = !_fileCase),
+                    onLongPress: () => setState(() => _fileRegex = !_fileRegex),
                   ),
                   suffixIcon: _fileFilter.isEmpty
                       ? null

@@ -28,6 +28,7 @@ class _StatusScreenState extends State<StatusScreen> {
   bool _sortAsc = true;
   bool _sortByValue = false;
   bool _queryCase = false;
+  bool _queryRegex = false;
   bool _relativeTs = false;
   String _keyQuery = '';
   String _capQuery = '';
@@ -452,14 +453,25 @@ class _StatusScreenState extends State<StatusScreen> {
               decoration: InputDecoration(
                 isDense: true,
                 prefixIcon: IconButton(
-                  tooltip: _queryCase ? 'Case-sensitive on' : 'Case-insensitive',
+                  tooltip: _queryRegex
+                      ? (_queryCase
+                          ? 'Regex · case on (long-press: plain filter)'
+                          : 'Regex · case off (long-press: plain filter)')
+                      : (_queryCase
+                          ? 'Case-sensitive (long-press: regex)'
+                          : 'Case-insensitive (long-press: regex)'),
                   icon: Icon(
-                    _queryCase ? Icons.text_fields : Icons.search,
+                    _queryRegex
+                        ? Icons.code
+                        : (_queryCase ? Icons.text_fields : Icons.search),
                     size: 18,
                   ),
                   onPressed: () => setState(() => _queryCase = !_queryCase),
+                  onLongPress: () => setState(() => _queryRegex = !_queryRegex),
                 ),
-                hintText: _queryCase ? 'Filter (case-sensitive)' : 'Filter capabilities',
+                hintText: _queryRegex
+                    ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
+                    : (_queryCase ? 'Filter (case-sensitive)' : 'Filter capabilities'),
                 border: const OutlineInputBorder(),
                 suffixIcon: _capQuery.isEmpty
                     ? null
@@ -482,8 +494,16 @@ class _StatusScreenState extends State<StatusScreen> {
                   if (() {
                     final rawCq = _capQuery.trim();
                     if (rawCq.isEmpty) return true;
+                    final hayRaw = '$cap';
+                    if (_queryRegex) {
+                      try {
+                        return RegExp(rawCq, caseSensitive: _queryCase).hasMatch(hayRaw);
+                      } catch (_) {
+                        return false;
+                      }
+                    }
                     final cq = _queryCase ? rawCq : rawCq.toLowerCase();
-                    final hay = _queryCase ? '$cap' : '$cap'.toLowerCase();
+                    final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
                     return hay.contains(cq);
                   }())
                     Chip(label: Text('$cap', style: const TextStyle(fontSize: 11))),
@@ -496,14 +516,25 @@ class _StatusScreenState extends State<StatusScreen> {
             decoration: InputDecoration(
               isDense: true,
               prefixIcon: IconButton(
-                tooltip: _queryCase ? 'Case-sensitive on' : 'Case-insensitive',
+                tooltip: _queryRegex
+                    ? (_queryCase
+                        ? 'Regex · case on (long-press: plain filter)'
+                        : 'Regex · case off (long-press: plain filter)')
+                    : (_queryCase
+                        ? 'Case-sensitive (long-press: regex)'
+                        : 'Case-insensitive (long-press: regex)'),
                 icon: Icon(
-                  _queryCase ? Icons.text_fields : Icons.search,
+                  _queryRegex
+                      ? Icons.code
+                      : (_queryCase ? Icons.text_fields : Icons.search),
                   size: 18,
                 ),
                 onPressed: () => setState(() => _queryCase = !_queryCase),
+                onLongPress: () => setState(() => _queryRegex = !_queryRegex),
               ),
-              hintText: _queryCase ? 'Filter (case-sensitive)' : 'Filter keys / values',
+              hintText: _queryRegex
+                  ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
+                  : (_queryCase ? 'Filter (case-sensitive)' : 'Filter keys / values'),
               border: const OutlineInputBorder(),
               suffixIcon: _keyQuery.isEmpty
                   ? null
@@ -529,9 +560,17 @@ class _StatusScreenState extends State<StatusScreen> {
               final rawQ = _keyQuery.trim();
               final q = _queryCase ? rawQ : rawQ.toLowerCase();
               var entries = status.entries.toList();
-              if (q.isNotEmpty) {
+              if (rawQ.isNotEmpty) {
                 entries = entries
                     .where((e) {
+                      final hayRaw = '${e.key} ${e.value}';
+                      if (_queryRegex) {
+                        try {
+                          return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
+                        } catch (_) {
+                          return false;
+                        }
+                      }
                       final k = _queryCase ? e.key : e.key.toLowerCase();
                       final v = _queryCase ? '${e.value}' : '${e.value}'.toLowerCase();
                       return k.contains(q) || v.contains(q);

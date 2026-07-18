@@ -379,6 +379,11 @@
 | P3-291 | Workspace 正则过滤（长按） | [x] |
 | P3-292 | Pairing payload 正则过滤（长按） | [x] |
 
+| P3-293 | Status 正则过滤（长按） | [x] |
+| P3-294 | Host Dashboard 正则过滤（长按） | [x] |
+| P3-295 | Connect 配置正则过滤（长按） | [x] |
+| P3-296 | Diff 路径正则过滤（长按） | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

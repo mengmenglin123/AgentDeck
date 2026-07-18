@@ -31,6 +31,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
   String _tlsFilter = 'all'; // all | tls | plain
   String _profileQuery = '';
   bool _queryCase = false;
+  bool _queryRegex = false;
   final _profileFilterCtrl = TextEditingController();
   final _scroll = ScrollController();
   bool _useTls = false;
@@ -418,16 +419,29 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 decoration: InputDecoration(
                   isDense: true,
                   border: const OutlineInputBorder(),
-                  hintText: _queryCase
-                      ? 'Filter profiles (case-sensitive)'
-                      : 'Filter profiles name/host/note',
+                  hintText: _queryRegex
+                      ? (_queryCase
+                          ? 'Filter profiles (regex · case)'
+                          : 'Filter profiles (regex)')
+                      : (_queryCase
+                          ? 'Filter profiles (case-sensitive)'
+                          : 'Filter profiles name/host/note'),
                   prefixIcon: IconButton(
-                    tooltip: _queryCase ? 'Case-sensitive on' : 'Case-insensitive',
+                    tooltip: _queryRegex
+                        ? (_queryCase
+                            ? 'Regex · case on (long-press: plain filter)'
+                            : 'Regex · case off (long-press: plain filter)')
+                        : (_queryCase
+                            ? 'Case-sensitive (long-press: regex)'
+                            : 'Case-insensitive (long-press: regex)'),
                     icon: Icon(
-                      _queryCase ? Icons.text_fields : Icons.search,
+                      _queryRegex
+                          ? Icons.code
+                          : (_queryCase ? Icons.text_fields : Icons.search),
                       size: 18,
                     ),
                     onPressed: () => setState(() => _queryCase = !_queryCase),
+                    onLongPress: () => setState(() => _queryRegex = !_queryRegex),
                   ),
                   suffixIcon: _profileQuery.isEmpty
                       ? null
@@ -453,6 +467,13 @@ class _ConnectScreenState extends State<ConnectScreen> {
                       if (rawQ.isEmpty) return true;
                       final hayRaw =
                           '${p.name} ${p.config.host} ${p.config.bridgePort} ${p.config.mgmtPort} ${p.note ?? ''}';
+                      if (_queryRegex) {
+                        try {
+                          return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
+                        } catch (_) {
+                          return false;
+                        }
+                      }
                       final q = _queryCase ? rawQ : rawQ.toLowerCase();
                       final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
                       return hay.contains(q);

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.80
+
+- Status regex filter (long-press)
+- Host Dashboard regex filter (long-press)
+- Connect profiles regex filter (long-press)
+- Diff path filter regex (long-press)
+
 ## 0.1.79
 
 - Skills regex filter (long-press)
