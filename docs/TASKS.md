@@ -339,6 +339,11 @@
 | P3-259 | Skills 按 tags 排序 | [x] |
 | P3-260 | Diff 按 additions 排序 | [x] |
 
+| P3-261 | MCP 过滤区分大小写 | [x] |
+| P3-262 | Activity 过滤区分大小写 | [x] |
+| P3-263 | Cron 过滤区分大小写 | [x] |
+| P3-264 | Memory 按 scope 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

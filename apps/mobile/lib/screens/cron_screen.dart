@@ -25,6 +25,7 @@ class _CronScreenState extends State<CronScreen> {
   List<Map<String, dynamic>> _jobs = [];
   final _q = TextEditingController();
   String _query = '';
+  bool _queryCase = false;
   /// all | on | off
   String _enabled = 'all';
   bool _wrapLines = false;
@@ -93,12 +94,13 @@ class _CronScreenState extends State<CronScreen> {
     } else if (_enabled == 'off') {
       it = it.where((j) => j['enabled'] != true);
     }
-    final q = _query.trim().toLowerCase();
+    final rawQ = _query.trim();
+    final q = _queryCase ? rawQ : rawQ.toLowerCase();
     if (q.isNotEmpty) {
       it = it.where((j) {
-        final hay =
-            '${j['name']} ${j['id']} ${j['kind']} ${j['schedule']} ${j['description']} ${j['last_status']}'
-                .toLowerCase();
+        final hayRaw =
+            '${j['name']} ${j['id']} ${j['kind']} ${j['schedule']} ${j['description']} ${j['last_status']}';
+        final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
         return hay.contains(q);
       });
     }
@@ -336,10 +338,17 @@ class _CronScreenState extends State<CronScreen> {
             child: TextField(
               controller: _q,
               decoration: InputDecoration(
-                hintText: 'Filter name / schedule / status',
+                hintText: _queryCase ? 'Filter (case-sensitive)' : 'Filter name / schedule / status',
                 isDense: true,
                 border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.search, size: 18),
+                prefixIcon: IconButton(
+                  tooltip: _queryCase ? 'Case-sensitive on' : 'Case-insensitive',
+                  icon: Icon(
+                    _queryCase ? Icons.text_fields : Icons.search,
+                    size: 18,
+                  ),
+                  onPressed: () => setState(() => _queryCase = !_queryCase),
+                ),
                 suffixIcon: _query.isEmpty
                     ? null
                     : IconButton(

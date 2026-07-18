@@ -23,6 +23,7 @@ class _McpScreenState extends State<McpScreen> {
   List<Map<String, dynamic>> servers = [];
   final _q = TextEditingController();
   String _query = '';
+  bool _queryCase = false;
   String _status = '';
   String _transportFilter = ''; // empty=all | stdio | sse | http | ws | other
   bool _wrapLines = false;
@@ -76,7 +77,8 @@ class _McpScreenState extends State<McpScreen> {
   }
 
   List<Map<String, dynamic>> get _filtered {
-    final q = _query.trim().toLowerCase();
+    final rawQ = _query.trim();
+    final q = _queryCase ? rawQ : rawQ.toLowerCase();
     final list = servers.where((s) {
       final st = (s['status'] ?? '').toString().toLowerCase();
       if (_status.isNotEmpty) {
@@ -103,9 +105,9 @@ class _McpScreenState extends State<McpScreen> {
       }
       if (q.isEmpty) return true;
       final tools = s['tools'] is List ? (s['tools'] as List).join(' ') : '';
-      final hay =
-          '${s['name']} ${s['description']} ${s['status']} ${s['transport']} ${s['url']} ${s['command']} $tools'
-              .toLowerCase();
+      final hayRaw =
+          '${s['name']} ${s['description']} ${s['status']} ${s['transport']} ${s['url']} ${s['command']} $tools';
+      final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
       return hay.contains(q);
     }).toList();
     list.sort((a, b) {
@@ -370,10 +372,17 @@ class _McpScreenState extends State<McpScreen> {
                   child: TextField(
                     controller: _q,
                     decoration: InputDecoration(
-                      hintText: 'Filter name / tools / status',
+                      hintText: _queryCase ? 'Filter (case-sensitive)' : 'Filter name / tools / status',
                       isDense: true,
                       border: const OutlineInputBorder(),
-                      prefixIcon: const Icon(Icons.search, size: 18),
+                      prefixIcon: IconButton(
+                        tooltip: _queryCase ? 'Case-sensitive on' : 'Case-insensitive',
+                        icon: Icon(
+                          _queryCase ? Icons.text_fields : Icons.search,
+                          size: 18,
+                        ),
+                        onPressed: () => setState(() => _queryCase = !_queryCase),
+                      ),
                       suffixIcon: _query.isEmpty
                           ? null
                           : IconButton(

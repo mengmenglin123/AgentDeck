@@ -32,6 +32,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   String? _error;
   List<Map<String, dynamic>> _events = [];
   String _query = '';
+  bool _queryCase = false;
   String _kind = '';
   bool _wrapLines = false;
   bool _newestFirst = true;
@@ -176,7 +177,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
   }
 
   List<Map<String, dynamic>> get _filtered {
-    final q = _query.trim().toLowerCase();
+    final rawQ = _query.trim();
+    final q = _queryCase ? rawQ : rawQ.toLowerCase();
     final list = _events.where((e) {
       final kind = (e['kind'] ?? e['type'] ?? 'event').toString().toLowerCase();
       if (_kind.isNotEmpty) {
@@ -192,9 +194,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
         }
       }
       if (q.isEmpty) return true;
-      final hay =
-          '${e['kind']} ${e['type']} ${e['summary']} ${e['message']} ${e['session_key']} ${e['session_id']}'
-              .toLowerCase();
+      final hayRaw =
+          '${e['kind']} ${e['type']} ${e['summary']} ${e['message']} ${e['session_key']} ${e['session_id']} ${e['source']}';
+      final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
       return hay.contains(q);
     }).toList();
     int tsOf(Map<String, dynamic> e) {
@@ -442,10 +444,17 @@ class _ActivityScreenState extends State<ActivityScreen> {
             child: TextField(
               controller: _q,
               decoration: InputDecoration(
-                hintText: 'Filter kind / summary / session',
+                hintText: _queryCase ? 'Filter (case-sensitive)' : 'Filter kind / summary / session',
                 isDense: true,
                 border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.search, size: 18),
+                prefixIcon: IconButton(
+                  tooltip: _queryCase ? 'Case-sensitive on' : 'Case-insensitive',
+                  icon: Icon(
+                    _queryCase ? Icons.text_fields : Icons.search,
+                    size: 18,
+                  ),
+                  onPressed: () => setState(() => _queryCase = !_queryCase),
+                ),
                 suffixIcon: _query.isEmpty
                     ? null
                     : IconButton(

@@ -31,6 +31,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
   bool _sortByType = false;
   bool _sortByContent = false;
   bool _sortByConfidence = false;
+  bool _sortByScope = false;
   bool _sortAsc = true;
   bool _relativeTs = false;
   bool _newestFirst = true;
@@ -91,7 +92,16 @@ class _MemoryScreenState extends State<MemoryScreen> {
         if (v is num) return v.toDouble();
         return double.tryParse(v?.toString() ?? '') ?? -1;
       }
-      if (_sortByConfidence) {
+      if (_sortByScope) {
+        final sa = (a['scope'] ?? '').toString().toLowerCase();
+        final sb = (b['scope'] ?? '').toString().toLowerCase();
+        final c = sa.compareTo(sb);
+        if (c != 0) return _sortAsc ? c : -c;
+        final na = (a['title'] ?? a['id'] ?? '').toString().toLowerCase();
+        final nb = (b['title'] ?? b['id'] ?? '').toString().toLowerCase();
+        final cn = na.compareTo(nb);
+        if (cn != 0) return _sortAsc ? cn : -cn;
+      } else if (_sortByConfidence) {
         final c = confOf(a).compareTo(confOf(b));
         if (c != 0) return _sortAsc ? c : -c;
         final na = (a['title'] ?? a['id'] ?? '').toString().toLowerCase();
@@ -271,22 +281,25 @@ class _MemoryScreenState extends State<MemoryScreen> {
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
           IconButton(
-            tooltip: _sortByConfidence
-                ? (_sortAsc ? 'Confidence high→low' : 'Confidence low→high')
-                : (_sortByContent
-                    ? (_sortAsc ? 'Content Z→A' : 'Content A→Z')
-                    : (_sortByType
-                        ? (_sortAsc ? 'Types Z→A' : 'Types A→Z')
-                        : (_sortByTitle
-                            ? (_sortAsc ? 'Titles Z→A' : 'Titles A→Z')
-                            : 'Sort by title / type / content / confidence'))),
+            tooltip: _sortByScope
+                ? (_sortAsc ? 'Scope Z→A' : 'Scope A→Z')
+                : (_sortByConfidence
+                    ? (_sortAsc ? 'Confidence high→low' : 'Confidence low→high')
+                    : (_sortByContent
+                        ? (_sortAsc ? 'Content Z→A' : 'Content A→Z')
+                        : (_sortByType
+                            ? (_sortAsc ? 'Types Z→A' : 'Types A→Z')
+                            : (_sortByTitle
+                                ? (_sortAsc ? 'Titles Z→A' : 'Titles A→Z')
+                                : 'Sort by title / type / content / confidence / scope')))),
             onPressed: () {
               setState(() {
-                if (!_sortByTitle && !_sortByType && !_sortByContent && !_sortByConfidence) {
+                if (!_sortByTitle && !_sortByType && !_sortByContent && !_sortByConfidence && !_sortByScope) {
                   _sortByTitle = true;
                   _sortByType = false;
                   _sortByContent = false;
                   _sortByConfidence = false;
+                  _sortByScope = false;
                   _sortAsc = true;
                 } else if (_sortByTitle && _sortAsc) {
                   _sortAsc = false;
@@ -295,6 +308,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
                   _sortByType = true;
                   _sortByContent = false;
                   _sortByConfidence = false;
+                  _sortByScope = false;
                   _sortAsc = true;
                 } else if (_sortByType && _sortAsc) {
                   _sortAsc = false;
@@ -303,6 +317,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
                   _sortByType = false;
                   _sortByContent = true;
                   _sortByConfidence = false;
+                  _sortByScope = false;
                   _sortAsc = true;
                 } else if (_sortByContent && _sortAsc) {
                   _sortAsc = false;
@@ -311,25 +326,38 @@ class _MemoryScreenState extends State<MemoryScreen> {
                   _sortByType = false;
                   _sortByContent = false;
                   _sortByConfidence = true;
+                  _sortByScope = false;
                   _sortAsc = false; // high first by default
                 } else if (_sortByConfidence && !_sortAsc) {
                   _sortAsc = true;
+                } else if (_sortByConfidence && _sortAsc) {
+                  _sortByTitle = false;
+                  _sortByType = false;
+                  _sortByContent = false;
+                  _sortByConfidence = false;
+                  _sortByScope = true;
+                  _sortAsc = true;
+                } else if (_sortByScope && _sortAsc) {
+                  _sortAsc = false;
                 } else {
                   _sortByTitle = false;
                   _sortByType = false;
                   _sortByContent = false;
                   _sortByConfidence = false;
+                  _sortByScope = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortByConfidence
-                ? Icons.speed
-                : (_sortByContent
-                    ? Icons.article_outlined
-                    : (_sortByType
-                        ? Icons.category_outlined
-                        : (_sortByTitle ? Icons.sort_by_alpha : Icons.sort)))),
+            icon: Icon(_sortByScope
+                ? Icons.folder_outlined
+                : (_sortByConfidence
+                    ? Icons.speed
+                    : (_sortByContent
+                        ? Icons.article_outlined
+                        : (_sortByType
+                            ? Icons.category_outlined
+                            : (_sortByTitle ? Icons.sort_by_alpha : Icons.sort))))),
           ),
 
           IconButton(

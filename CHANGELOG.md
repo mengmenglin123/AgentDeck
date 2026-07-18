@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.72
+
+- MCP case-sensitive filter
+- Activity case-sensitive filter
+- Cron case-sensitive filter
+- Memory sort by scope
+
 ## 0.1.71
 
 - Pairing: sort payload lines A↔Z
