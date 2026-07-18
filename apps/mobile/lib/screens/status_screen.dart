@@ -132,6 +132,8 @@ class _StatusScreenState extends State<StatusScreen> {
       'active_runs: ${_status['active_runs'] ?? '—'}',
       if (c.lastTestLatencyMs != null) 'last_test_latency_ms: ${c.lastTestLatencyMs}',
       if (caps.isNotEmpty) 'capabilities: $caps',
+      if (_status['bridge_adapters'] is List)
+        'bridge_adapters: ${(_status['bridge_adapters'] as List).map((e) => e is Map ? (e['platform'] ?? e).toString() : '$e').join('|')}',
       if (_error != null) 'status_error: $_error',
       if (c.lastHealthOkAt != null) 'last_health_ok: ${c.lastHealthOkAt!.toIso8601String()}',
       if (c.lastHealthError != null) 'last_health_error: ${c.lastHealthError}',
@@ -494,6 +496,47 @@ class _StatusScreenState extends State<StatusScreen> {
               Chip(label: Text('runs ${status['active_runs'] ?? '—'}')),
             ],
           ),
+          if (status['bridge_adapters'] is List &&
+              (status['bridge_adapters'] as List).isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text('Bridge adapters', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 6),
+            ...[
+              for (final raw in (status['bridge_adapters'] as List))
+                if (raw is Map)
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(
+                      (raw['status']?.toString() == 'mock')
+                          ? Icons.science_outlined
+                          : Icons.cable,
+                      size: 20,
+                    ),
+                    title: Text(
+                      '${raw['platform'] ?? '—'}'
+                      '${raw['project'] != null ? ' · ${raw['project']}' : ''}',
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    subtitle: Text(
+                      [
+                        if (raw['status'] != null) 'status=${raw['status']}',
+                        if (raw['capabilities'] is List)
+                          (raw['capabilities'] as List).join(', '),
+                      ].where((s) => s.toString().isNotEmpty).join(' · '),
+                      style: const TextStyle(fontSize: 11),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  )
+                else
+                  ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('$raw', style: const TextStyle(fontSize: 13)),
+                  ),
+            ],
+          ],
           if (caps.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text('Capabilities', style: Theme.of(context).textTheme.titleSmall),

@@ -177,6 +177,23 @@ WORKSPACE_TREE: Dict[str, Any] = {
 }
 
 
+
+def _ws_walk_files(node: Optional[Dict[str, Any]], prefix: str = "") -> List[Tuple[str, Dict[str, Any]]]:
+    """Yield (relpath, file_node) for all files under node."""
+    out: List[Tuple[str, Dict[str, Any]]] = []
+    if not node or not isinstance(node, dict):
+        return out
+    if node.get("type") == "file":
+        out.append((prefix, node))
+        return out
+    kids = node.get("children") or {}
+    if not isinstance(kids, dict):
+        return out
+    for name, child in sorted(kids.items()):
+        p = f"{prefix}/{name}" if prefix else name
+        out.extend(_ws_walk_files(child, p))
+    return out
+
 def _ws_resolve(path: str) -> Tuple[Optional[Dict[str, Any]], str]:
     """Resolve relative path under WORKSPACE_TREE. Returns (node, cleaned_path)."""
     raw = (path or "").strip().replace("\\", "/")
@@ -788,7 +805,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, cat, head, tail, wc, stat, du, basename, dirname, realpath, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -865,7 +882,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         known = {
             "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date",
             "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help",
-            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history",
+            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1092,6 +1109,150 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             done=True,
             exit_code=0,
         )
+
+
+    elif lower.startswith("grep ") or lower.startswith("grep -"):
+        # Minimal: grep <pattern> [path] over workspace file contents (mock)
+        parts = data.strip().split()
+        # drop flags like -n -i -r for mock simplicity but honor -i
+        flags = {p for p in parts[1:] if p.startswith("-")}
+        args = [p for p in parts[1:] if not p.startswith("-")]
+        if not args:
+            out("grep: missing pattern\n", done=True, exit_code=2)
+        else:
+            pattern = args[0]
+            path_arg = args[1] if len(args) > 1 else ""
+            st_g = _session_state(sk)
+            wd = st_g.get("workdir") or "/workspace"
+            if path_arg:
+                if path_arg.startswith("/"):
+                    rel = path_arg.replace("/workspace", "").lstrip("/")
+                else:
+                    base = wd.replace("/workspace", "").lstrip("/")
+                    rel = "/".join(p for p in (base + "/" + path_arg).split("/") if p and p != ".")
+            else:
+                rel = wd.replace("/workspace", "").lstrip("/")
+            node, cleaned = _ws_resolve(rel)
+            if node is None:
+                out(f"grep: {path_arg or rel}: No such file or directory\n", done=True, exit_code=2)
+            else:
+                files = _ws_walk_files(node, cleaned)
+                if node.get("type") == "file":
+                    files = [(cleaned, node)]
+                ignore_case = any(f in {"-i", "--ignore-case"} for f in flags) or "-i" in lower
+                lines_out = []
+                try:
+                    import re as _re
+                    rx = _re.compile(pattern, _re.I if ignore_case else 0)
+                except Exception:
+                    rx = None
+                for fpath, fnode in files:
+                    content = fnode.get("content") or ""
+                    for i, line in enumerate(content.splitlines(), 1):
+                        hit = False
+                        if rx is not None:
+                            hit = rx.search(line) is not None
+                        else:
+                            hay = line.lower() if ignore_case else line
+                            needle = pattern.lower() if ignore_case else pattern
+                            hit = needle in hay
+                        if hit:
+                            lines_out.append(f"{fpath}:{i}:{line}")
+                if not lines_out:
+                    out("", done=True, exit_code=1)
+                else:
+                    out("\n".join(lines_out[:200]) + "\n", done=True, exit_code=0)
+    elif lower.startswith("find ") or lower == "find" or lower.startswith("find ."):
+        parts = data.strip().split()
+        path_arg = "."
+        name_pat = None
+        type_f = None
+        i = 1
+        while i < len(parts):
+            p = parts[i]
+            if p == "-name" and i + 1 < len(parts):
+                name_pat = parts[i + 1].strip("'\"")
+                i += 2
+                continue
+            if p == "-type" and i + 1 < len(parts):
+                type_f = parts[i + 1]
+                i += 2
+                continue
+            if not p.startswith("-") and path_arg == ".":
+                path_arg = p
+            i += 1
+        st_f = _session_state(sk)
+        wd = st_f.get("workdir") or "/workspace"
+        if path_arg in {".", "./"}:
+            rel = wd.replace("/workspace", "").lstrip("/")
+        elif path_arg.startswith("/"):
+            rel = path_arg.replace("/workspace", "").lstrip("/")
+        else:
+            base = wd.replace("/workspace", "").lstrip("/")
+            rel = "/".join(p for p in (base + "/" + path_arg).split("/") if p and p != ".")
+        node, cleaned = _ws_resolve(rel)
+        if node is None:
+            out(f"find: '{path_arg}': No such file or directory\n", done=True, exit_code=1)
+        else:
+            results = []
+
+            def walk(n, prefix):
+                if not n:
+                    return
+                typ = n.get("type")
+                if typ == "file":
+                    if type_f in (None, "f"):
+                        base = prefix.split("/")[-1] if prefix else ""
+                        if name_pat is None or _fnmatch(base, name_pat):
+                            results.append(prefix or ".")
+                    return
+                # dir
+                if type_f in (None, "d") and prefix:
+                    base = prefix.split("/")[-1]
+                    if name_pat is None or _fnmatch(base, name_pat):
+                        if type_f == "d" or name_pat:
+                            results.append(prefix)
+                kids = n.get("children") or {}
+                for name, child in sorted(kids.items()):
+                    p = f"{prefix}/{name}" if prefix else name
+                    walk(child, p)
+
+            def _fnmatch(name, pat):
+                import fnmatch
+                return fnmatch.fnmatch(name, pat)
+
+            walk(node, cleaned)
+            if not results and node.get("type") != "file":
+                # always list files if no filter
+                for fpath, _ in _ws_walk_files(node, cleaned):
+                    if name_pat is None or _fnmatch(fpath.split("/")[-1], name_pat):
+                        if type_f in (None, "f"):
+                            results.append(fpath)
+            out(("\n".join(results[:200]) + ("\n" if results else "")), done=True, exit_code=0)
+    elif lower.startswith("seq "):
+        parts = data.strip().split()
+        try:
+            if len(parts) == 2:
+                end = int(parts[1]); start = 1; step = 1
+            elif len(parts) == 3:
+                start = int(parts[1]); end = int(parts[2]); step = 1
+            elif len(parts) >= 4:
+                start = int(parts[1]); step = int(parts[2]); end = int(parts[3])
+            else:
+                raise ValueError("args")
+            if step == 0:
+                raise ValueError("step")
+            vals = []
+            x = start
+            if step > 0:
+                while x <= end and len(vals) < 500:
+                    vals.append(str(x)); x += step
+            else:
+                while x >= end and len(vals) < 500:
+                    vals.append(str(x)); x += step
+            out("\n".join(vals) + ("\n" if vals else ""), done=True, exit_code=0)
+        except Exception:
+            out("seq: invalid arguments\n", done=True, exit_code=1)
 
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)
@@ -1599,7 +1760,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                 {
                     "ok": True,
                     "data": {
-                        "version": "mock-0.1.109",
+                        "version": "mock-0.1.110",
                         "uptime_seconds": int(time.time() - START_TS),
                         "connected_platforms": ["bridge"],
                         "projects_count": len(PROJECTS),

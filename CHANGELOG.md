@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.110
+
+- Status screen Bridge adapters list + copy summary
+- MarkdownLite `<kbd>` keys
+- Mock terminal grep/find/seq over workspace tree
+
 ## 0.1.109
 
 - Chat in-app SnackBar on silent Reconnected

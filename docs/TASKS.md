@@ -506,6 +506,9 @@
 - [x] **P4-4g** Chat Reconnected SnackBar (in-app) (0.1.109)
 - [x] **P4-5n** Workspace code preview via fenced MarkdownLite (0.1.109)
 - [x] **P4-1k** Mock sleep/touch/history; hermes project caps (0.1.109)
+- [x] **P4-3k** Status Bridge adapters UI + copy (0.1.110)
+- [x] **P4-5o** MarkdownLite <kbd> (0.1.110)
+- [x] **P4-1l** Mock terminal grep/find/seq (0.1.110)
 
 ## P4 — 远期
 
