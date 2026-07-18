@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.130
+
+- Audit action chips expand (host/git/settings/terminal/other)
+- MarkdownLite `<bdi>` + `<bdo>`
+- Mock pathchk/mktemp/sync (+ help/which/type lockstep)
+
 ## 0.1.129
 
 - MCP kind filter chips

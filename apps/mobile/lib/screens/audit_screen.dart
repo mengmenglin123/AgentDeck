@@ -92,7 +92,24 @@ class _AuditScreenState extends State<AuditScreen> {
       it = it.where((e) => e.level == _level);
     }
     if (_actionPrefix != 'all') {
-      it = it.where((e) => e.action.startsWith('$_actionPrefix.'));
+      if (_actionPrefix == 'other') {
+        const known = {
+          'bridge',
+          'session',
+          'chat',
+          'permission',
+          'host',
+          'git',
+          'settings',
+          'terminal',
+        };
+        it = it.where((e) {
+          final head = e.action.split('.').first;
+          return !known.contains(head);
+        });
+      } else {
+        it = it.where((e) => e.action.startsWith('$_actionPrefix.'));
+      }
     }
     final rawQ = _query.trim();
     final q = _queryCase ? rawQ : rawQ.toLowerCase();
@@ -402,6 +419,11 @@ class _AuditScreenState extends State<AuditScreen> {
                   ('session', 'session'),
                   ('chat', 'chat'),
                   ('permission', 'permission'),
+                  ('host', 'host'),
+                  ('git', 'git'),
+                  ('settings', 'settings'),
+                  ('terminal', 'terminal'),
+                  ('other', 'other'),
                 ])
                   FilterChip(
                     label: Text(f.$2, style: const TextStyle(fontSize: 12)),

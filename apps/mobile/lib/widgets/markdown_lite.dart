@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings (h1–h6), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5/h6, abbr, mark (== / HTML <mark>), spoiler, kbd, sup/sub, underline, del, ins, s, strike, br, small, cite, q, var, samp, dfn, em, strong, b, code, i, big, tt, time, data, autolink, strike (~~ / <s>/<del>/<strike>), inline code, bold/italic, bold-italic (***).
+/// Covers headings (h1–h6), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5/h6, abbr, mark (== / HTML <mark>), spoiler, kbd, sup/sub, underline, del, ins, s, strike, br, small, cite, q, var, samp, dfn, em, strong, b, code, i, big, tt, time, data, bdi, bdo, autolink, strike (~~ / <s>/<del>/<strike>), inline code, bold/italic, bold-italic (***).
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -602,7 +602,7 @@ class MarkdownLite extends StatelessWidget {
   static TextSpan _inline(String text, TextStyle base) {
     final spans = <InlineSpan>[];
     final re = RegExp(
-          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<mark>[^<]+</mark>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<strike>[^<]+</strike>|<br/>|<br>|<small>[^<]+</small>|<cite>[^<]+</cite>|<q>[^<]+</q>|<var>[^<]+</var>|<samp>[^<]+</samp>|<dfn>[^<]+</dfn>|<em>[^<]+</em>|<strong>[^<]+</strong>|<b>[^<]+</b>|<code>[^<]+</code>|<i>[^<]+</i>|<big>[^<]+</big>|<tt>[^<]+</tt>|<time>[^<]+</time>|<data>[^<]+</data>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
+          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<mark>[^<]+</mark>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<strike>[^<]+</strike>|<br/>|<br>|<small>[^<]+</small>|<cite>[^<]+</cite>|<q>[^<]+</q>|<var>[^<]+</var>|<samp>[^<]+</samp>|<dfn>[^<]+</dfn>|<em>[^<]+</em>|<strong>[^<]+</strong>|<b>[^<]+</b>|<code>[^<]+</code>|<i>[^<]+</i>|<big>[^<]+</big>|<tt>[^<]+</tt>|<time>[^<]+</time>|<data>[^<]+</data>|<bdi>[^<]+</bdi>|<bdo[^>]*>[^<]+</bdo>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
             );
     var i = 0;
     for (final m in re.allMatches(text)) {
@@ -867,6 +867,27 @@ class MarkdownLite extends StatelessWidget {
             fontFamily: 'monospace',
             letterSpacing: 0.4,
             color: base.color?.withOpacity(0.9),
+          ),
+        ));
+      } else if (tok.startsWith('<bdi>') && tok.endsWith('</bdi>')) {
+        // HTML bdi — bidirectional isolate (demo: italic + slight letterSpacing)
+        final body = tok.substring(5, tok.length - 6);
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            fontStyle: FontStyle.italic,
+            letterSpacing: 0.3,
+          ),
+        ));
+      } else if (tok.toLowerCase().startsWith('<bdo')) {
+        // HTML bdo — bidirectional override (may carry dir=); strip tags, show inner text
+        final bodyM = RegExp(r'<bdo[^>]*>([^<]+)</bdo>', caseSensitive: false).firstMatch(tok);
+        final body = bodyM?.group(1) ?? tok;
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            fontFamily: 'monospace',
+            color: base.color?.withOpacity(0.82),
           ),
         ));
       } else if (tok.toLowerCase().startsWith('<abbr')) {

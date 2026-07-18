@@ -834,7 +834,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, locale, umask, readlink, cksum, sum, expand, unexpand, tac, namei, dir, vdir, tsort, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, locale, umask, readlink, cksum, sum, expand, unexpand, tac, namei, dir, vdir, tsort, pathchk, mktemp, sync, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -909,7 +909,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
     elif lower.startswith("which "):
         name = data.strip()[6:].strip()
         known = {
-            "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort",
+            "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1460,7 +1460,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             out("type: missing operand\n", done=True, exit_code=1)
         else:
             builtins = {
-                "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "export", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "base64", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort",
+                "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "export", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "base64", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync",
                             }
             if name.split()[0] in builtins:
                 out(f"{name.split()[0]} is a shell builtin\n", done=True, exit_code=0)
@@ -2516,6 +2516,32 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
                 if tok not in seen:
                     seen.append(tok)
             out("\n".join(seen) + "\n", done=True, exit_code=0)
+
+
+    elif lower.startswith("pathchk ") or lower == "pathchk":
+        # mock pathchk: silent success if path present and len<=4096; else exit 1
+        parts = data.strip().split(maxsplit=1)
+        if len(parts) < 2 or parts[1] == "":
+            out("pathchk: missing operand\n", done=True, exit_code=1)
+        else:
+            p = parts[1]
+            if len(p) > 4096:
+                out("pathchk: path too long\n", done=True, exit_code=1)
+            else:
+                out("", done=True, exit_code=0)
+    elif lower.startswith("mktemp ") or lower == "mktemp":
+        # mock mktemp: fixed /tmp path; optional -t PREFIX
+        parts = data.strip().split()
+        if len(parts) >= 2 and parts[1] == "-t":
+            if len(parts) < 3 or parts[2] == "":
+                out("mktemp: option requires an argument -- t\n", done=True, exit_code=1)
+            else:
+                out(f"/tmp/{parts[2]}.ABCDEF\n", done=True, exit_code=0)
+        else:
+            out("/tmp/tmp.ABCDEF\n", done=True, exit_code=0)
+    elif lower == "sync" or lower.startswith("sync "):
+        # mock sync: flush no-op
+        out("", done=True, exit_code=0)
 
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)
