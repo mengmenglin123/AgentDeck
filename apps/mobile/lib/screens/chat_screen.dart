@@ -41,6 +41,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _searchCtrl = TextEditingController();
   String _searchQ = '';
   bool _showTools = true;
+  String _roleFilter = 'all';
   bool _wrapLines = true;
   bool _stickToBottom = true;
   bool _showJumpBottom = false;
@@ -553,10 +554,20 @@ class _ChatScreenState extends State<ChatScreen> {
 
   List<TranscriptMessage> get _visibleMessages {
     // Keep full transcript order so jump-to-hit can scroll by index.
+    Iterable<TranscriptMessage> msgs = _chat.messages;
     if (!_showTools && _chat.hasCap('tools_visible')) {
-      return _chat.messages.where((m) => m.role != 'tool' && m.role != 'tool_result').toList();
+      msgs = msgs.where((m) => m.role != 'tool' && m.role != 'tool_result');
     }
-    return _chat.messages;
+    if (_roleFilter != 'all') {
+      msgs = msgs.where((m) {
+        final r = m.role;
+        if (_roleFilter == 'tool') {
+          return r == 'tool' || r == 'tool_result';
+        }
+        return r == _roleFilter;
+      });
+    }
+    return msgs.toList();
   }
 
   List<int> get _searchHits {
@@ -861,6 +872,32 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               ),
             ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final f in const [
+                    ('all', 'All'),
+                    ('user', 'User'),
+                    ('assistant', 'Assistant'),
+                    ('system', 'System'),
+                    ('tool', 'Tool'),
+                  ])
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: FilterChip(
+                        visualDensity: VisualDensity.compact,
+                        label: Text(f.$2, style: const TextStyle(fontSize: 11)),
+                        selected: _roleFilter == f.$1,
+                        onSelected: (_) => setState(() => _roleFilter = f.$1),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
           if (_searchOpen)
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),

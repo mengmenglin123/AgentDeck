@@ -32,6 +32,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   /// name ascending when true; dirs always first
   bool _wrapLines = false;
   bool _sortAsc = true;
+  bool _sortBySize = false;
   /// all | dir | file
   String _typeFilter = 'all';
   final _scroll = ScrollController();
@@ -74,6 +75,12 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     list.sort((a, b) {
       final rd = rank(a).compareTo(rank(b));
       if (rd != 0) return rd;
+      if (_sortBySize) {
+        final sa = (a['size'] is num) ? (a['size'] as num).toInt() : -1;
+        final sb = (b['size'] is num) ? (b['size'] as num).toInt() : -1;
+        final c = sa.compareTo(sb);
+        if (c != 0) return _sortAsc ? c : -c;
+      }
       final na = (a['name'] ?? '').toString().toLowerCase();
       final nb = (b['name'] ?? '').toString().toLowerCase();
       final c = na.compareTo(nb);
@@ -289,9 +296,27 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
 
           IconButton(
-            tooltip: _sortAsc ? 'Sort Z→A (dirs first)' : 'Sort A→Z (dirs first)',
-            onPressed: () => setState(() => _sortAsc = !_sortAsc),
-            icon: Icon(_sortAsc ? Icons.arrow_downward : Icons.arrow_upward),
+            tooltip: _sortBySize
+                ? (_sortAsc ? 'Size large→small' : 'Size small→large')
+                : (_sortAsc ? 'Sort Z→A (dirs first)' : 'Sort A→Z (dirs first)'),
+            onPressed: () {
+              setState(() {
+                if (!_sortBySize && _sortAsc) {
+                  _sortAsc = false;
+                } else if (!_sortBySize && !_sortAsc) {
+                  _sortBySize = true;
+                  _sortAsc = true;
+                } else if (_sortBySize && _sortAsc) {
+                  _sortAsc = false;
+                } else {
+                  _sortBySize = false;
+                  _sortAsc = true;
+                }
+              });
+            },
+            icon: Icon(_sortBySize
+                ? Icons.data_usage
+                : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',

@@ -284,6 +284,11 @@
 | P3-215 | Memory 按 type 排序循环 | [x] |
 | P3-216 | Activity 按 summary 排序循环 | [x] |
 
+| P3-217 | Settings 偏好项文本过滤 | [x] |
+| P3-218 | Workspace 按 size 排序 | [x] |
+| P3-219 | Cron 按 kind 排序循环 | [x] |
+| P3-220 | Chat role 过滤 chips | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.61
+
+- Settings: filter preference tiles by text
+- Workspace: sort by size vs name (dirs first)
+- Cron: sort cycle name → schedule → kind
+- Chat: role filter chips (user/assistant/system/tool)
+
 ## 0.1.60
 
 - Skills: sort by source vs name

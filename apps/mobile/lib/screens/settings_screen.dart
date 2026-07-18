@@ -16,11 +16,20 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final _scroll = ScrollController();
   bool _wrapLines = false;
+  String _prefQuery = '';
+  final _prefFilterCtrl = TextEditingController();
 
   @override
   void dispose() {
+    _prefFilterCtrl.dispose();
     _scroll.dispose();
     super.dispose();
+  }
+
+  bool _matchPref(String title, [String subtitle = '']) {
+    final q = _prefQuery.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    return title.toLowerCase().contains(q) || subtitle.toLowerCase().contains(q);
   }
 
   Widget _sub(String text, {bool three = false}) {
@@ -73,8 +82,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
         controller: _scroll,
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
         children: [
-          Text('Appearance', style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 4),
+          TextField(
+            controller: _prefFilterCtrl,
+            decoration: InputDecoration(
+              isDense: true,
+              prefixIcon: const Icon(Icons.search, size: 18),
+              hintText: 'Filter settings',
+              border: const OutlineInputBorder(),
+              suffixIcon: _prefQuery.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: () {
+                        _prefFilterCtrl.clear();
+                        setState(() => _prefQuery = '');
+                      },
+                    ),
+            ),
+            onChanged: (v) => setState(() => _prefQuery = v),
+          ),
+          const SizedBox(height: 12),
+          if (_matchPref('Appearance', 'theme contrast text size compact'))
+            Text('Appearance', style: Theme.of(context).textTheme.titleSmall),
+          if (_matchPref('Appearance', 'theme contrast text size compact'))
+            const SizedBox(height: 4),
+          if (_matchPref('Theme', theme.label))
           ListTile(
             leading: Icon(theme.icon),
             title: const Text('Theme'),
@@ -90,6 +122,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: const ButtonStyle(visualDensity: VisualDensity.compact),
             ),
           ),
+          if (_matchPref('High contrast', 'borders contrast'))
           SwitchListTile(
             secondary: const Icon(Icons.contrast),
             title: const Text('High contrast'),
@@ -97,6 +130,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: settings.highContrast,
             onChanged: settings.setHighContrast,
           ),
+          if (_matchPref('Text size', 'percent'))
           ListTile(
             leading: const Icon(Icons.format_size),
             title: const Text('Text size'),
@@ -116,6 +150,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
+          if (_matchPref('Compact lists', 'dense'))
           SwitchListTile(
             secondary: const Icon(Icons.view_compact_alt_outlined),
             title: const Text('Compact lists'),
@@ -124,7 +159,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: settings.setCompactMode,
           ),
           const Divider(height: 28),
+          if (_matchPref('Sessions', 'sort'))
           Text('Sessions', style: Theme.of(context).textTheme.titleSmall),
+          if (_matchPref('Default sort', 'session sort'))
           ListTile(
             leading: const Icon(Icons.sort),
             title: const Text('Default sort'),
@@ -151,7 +188,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const Divider(height: 28),
+          if (_matchPref('Console', 'tools haptic'))
           Text('Console', style: Theme.of(context).textTheme.titleSmall),
+          if (_matchPref('Dashboard auto-refresh', 'seconds'))
           ListTile(
             leading: const Icon(Icons.timer_outlined),
             title: const Text('Dashboard auto-refresh'),
@@ -175,6 +214,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
+          if (_matchPref('Show tool messages by default', 'tools'))
+          if (_matchPref('Haptic feedback', 'buzz'))
           SwitchListTile(
             secondary: const Icon(Icons.build_circle_outlined),
             title: const Text('Show tool messages by default'),
@@ -182,6 +223,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: settings.showToolsDefault,
             onChanged: settings.setShowToolsDefault,
           ),
+          if (_matchPref('Keep screen on', 'awake'))
           SwitchListTile(
             secondary: const Icon(Icons.vibration),
             title: const Text('Haptic feedback'),
@@ -189,6 +231,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: settings.hapticsEnabled,
             onChanged: settings.setHapticsEnabled,
           ),
+          if (_matchPref('Monospace chat', 'mono'))
           SwitchListTile(
             secondary: const Icon(Icons.smartphone),
             title: const Text('Keep screen on'),
@@ -203,6 +246,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: settings.monoChat,
             onChanged: settings.setMonoChat,
           ),
+          if (_matchPref('Chat text size', 'body scale'))
           ListTile(
             leading: const Icon(Icons.format_size),
             title: const Text('Chat text size'),
@@ -223,7 +267,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const Divider(height: 28),
+          if (_matchPref('Device data', 'prefs reset'))
           Text('Device data', style: Theme.of(context).textTheme.titleSmall),
+          if (_matchPref('Copy local prefs', 'export'))
           ListTile(
             leading: const Icon(Icons.ios_share_outlined),
             title: const Text('Copy local prefs'),
@@ -255,6 +301,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               }
             },
           ),
+          if (_matchPref('Reset console prefs', 'defaults'))
           ListTile(
             leading: const Icon(Icons.restart_alt),
             title: const Text('Reset console prefs'),
@@ -284,6 +331,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
 
           const Divider(height: 28),
+          if (_matchPref('About', 'console only'))
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text('About'),
@@ -294,16 +342,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             isThreeLine: true,
           ),
+          if (_matchPref('App version', 'version'))
           ListTile(
             leading: const Icon(Icons.tag),
             title: const Text('App version'),
-            subtitle: _sub('0.1.60+60 · console only · protocol Mock/self-host'),
+            subtitle: _sub('0.1.61+61 · console only · protocol Mock/self-host'),
             trailing: IconButton(
               tooltip: 'Copy about',
               icon: const Icon(Icons.copy_outlined),
               onPressed: () async {
                 const text =
-                    'HuanHermes App 0.1.60+60\nconsole only · protocol Mock/self-host\nNo agent loop on device · tokens never in about text';
+                    'HuanHermes App 0.1.61+61\nconsole only · protocol Mock/self-host\nNo agent loop on device · tokens never in about text';
                 await Clipboard.setData(const ClipboardData(text: text));
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -313,6 +362,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
           ),
+          if (_matchPref('Privacy notes', 'tokens'))
           ListTile(
             leading: const Icon(Icons.policy_outlined),
             title: const Text('Privacy notes'),
