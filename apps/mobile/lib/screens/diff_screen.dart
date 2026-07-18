@@ -37,6 +37,8 @@ class _DiffScreenState extends State<DiffScreen> {
   final _scroll = ScrollController();
   final _diffFindCtrl = TextEditingController();
   String _diffQuery = '';
+  bool _diffCase = false;
+  bool _diffRegex = false;
   final _fileFilterCtrl = TextEditingController();
   String _fileFilter = '';
   bool _fileCase = false;
@@ -206,10 +208,23 @@ class _DiffScreenState extends State<DiffScreen> {
 
 
   String get _displayDiff {
-    final q = _diffQuery.trim().toLowerCase();
-    if (q.isEmpty) return _diff;
+    final rawQ = _diffQuery.trim();
+    if (rawQ.isEmpty) return _diff;
     final lines = _diff.replaceAll('\r\n', '\n').split('\n');
-    final hit = lines.where((l) => l.toLowerCase().contains(q)).toList();
+    List<String> hit;
+    if (_diffRegex) {
+      try {
+        final re = RegExp(rawQ, caseSensitive: _diffCase);
+        hit = lines.where((l) => re.hasMatch(l)).toList();
+      } catch (_) {
+        return '(invalid regex: $_diffQuery)';
+      }
+    } else {
+      final q = _diffCase ? rawQ : rawQ.toLowerCase();
+      hit = lines
+          .where((l) => (_diffCase ? l : l.toLowerCase()).contains(q))
+          .toList();
+    }
     if (hit.isEmpty) return '(no diff lines match: $_diffQuery)';
     return hit.join('\n');
   }
@@ -464,10 +479,30 @@ class _DiffScreenState extends State<DiffScreen> {
               child: TextField(
                 controller: _diffFindCtrl,
                 decoration: InputDecoration(
-                  hintText: 'Find in diff (local)',
+                  hintText: _diffRegex
+                      ? (_diffCase ? 'Find in diff (regex · case)' : 'Find in diff (regex)')
+                      : (_diffCase
+                          ? 'Find in diff (case-sensitive)'
+                          : 'Find in diff (local)'),
                   isDense: true,
                   border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.search, size: 18),
+                  prefixIcon: IconButton(
+                    tooltip: _diffRegex
+                        ? (_diffCase
+                            ? 'Regex · case on (long-press: plain find)'
+                            : 'Regex · case off (long-press: plain find)')
+                        : (_diffCase
+                            ? 'Case-sensitive (long-press: regex)'
+                            : 'Case-insensitive (long-press: regex)'),
+                    icon: Icon(
+                      _diffRegex
+                          ? Icons.code
+                          : (_diffCase ? Icons.text_fields : Icons.search),
+                      size: 18,
+                    ),
+                    onPressed: () => setState(() => _diffCase = !_diffCase),
+                    onLongPress: () => setState(() => _diffRegex = !_diffRegex),
+                  ),
                   suffixIcon: _diffQuery.isEmpty
                       ? null
                       : IconButton(

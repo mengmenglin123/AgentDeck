@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.77
+
+- Connect profile case-sensitive filter
+- Diff find case + regex (long-press)
+- Audit regex filter (long-press)
+- Activity regex filter (long-press)
+
 ## 0.1.76
 
 - Sessions case-sensitive search

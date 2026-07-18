@@ -33,6 +33,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   List<Map<String, dynamic>> _events = [];
   String _query = '';
   bool _queryCase = false;
+  bool _queryRegex = false;
   String _kind = '';
   bool _wrapLines = false;
   bool _newestFirst = true;
@@ -193,9 +194,16 @@ class _ActivityScreenState extends State<ActivityScreen> {
           return false;
         }
       }
-      if (q.isEmpty) return true;
+      if (rawQ.isEmpty) return true;
       final hayRaw =
           '${e['kind']} ${e['type']} ${e['summary']} ${e['message']} ${e['session_key']} ${e['session_id']} ${e['source']}';
+      if (_queryRegex) {
+        try {
+          return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
+        } catch (_) {
+          return false;
+        }
+      }
       final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
       return hay.contains(q);
     }).toList();
@@ -444,16 +452,27 @@ class _ActivityScreenState extends State<ActivityScreen> {
             child: TextField(
               controller: _q,
               decoration: InputDecoration(
-                hintText: _queryCase ? 'Filter (case-sensitive)' : 'Filter kind / summary / session',
+                hintText: _queryRegex
+                    ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
+                    : (_queryCase ? 'Filter (case-sensitive)' : 'Filter kind / summary / session'),
                 isDense: true,
                 border: const OutlineInputBorder(),
                 prefixIcon: IconButton(
-                  tooltip: _queryCase ? 'Case-sensitive on' : 'Case-insensitive',
+                  tooltip: _queryRegex
+                      ? (_queryCase
+                          ? 'Regex · case on (long-press: plain filter)'
+                          : 'Regex · case off (long-press: plain filter)')
+                      : (_queryCase
+                          ? 'Case-sensitive (long-press: regex)'
+                          : 'Case-insensitive (long-press: regex)'),
                   icon: Icon(
-                    _queryCase ? Icons.text_fields : Icons.search,
+                    _queryRegex
+                        ? Icons.code
+                        : (_queryCase ? Icons.text_fields : Icons.search),
                     size: 18,
                   ),
                   onPressed: () => setState(() => _queryCase = !_queryCase),
+                  onLongPress: () => setState(() => _queryRegex = !_queryRegex),
                 ),
                 suffixIcon: _query.isEmpty
                     ? null

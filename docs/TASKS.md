@@ -364,6 +364,11 @@
 | P3-279 | Logs 正则过滤（长按） | [x] |
 | P3-280 | Sessions 按 session key 排序 | [x] |
 
+| P3-281 | Connect 配置过滤区分大小写 | [x] |
+| P3-282 | Diff 本地查找 case/regex | [x] |
+| P3-283 | Audit 正则过滤（长按） | [x] |
+| P3-284 | Activity 正则过滤（长按） | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

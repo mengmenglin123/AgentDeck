@@ -29,6 +29,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
   /// name | host | updated | port | note
   String _sortMode = 'name';
   String _tlsFilter = 'all'; // all | tls | plain
+  String _profileQuery = '';
+  bool _queryCase = false;
+  final _profileFilterCtrl = TextEditingController();
   final _scroll = ScrollController();
   bool _useTls = false;
 
@@ -55,6 +58,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
     _mgmtPort.dispose();
     _bridgeToken.dispose();
     _mgmtToken.dispose();
+    _profileFilterCtrl.dispose();
     super.dispose();
   }
 
@@ -409,14 +413,49 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 ],
               ),
               const SizedBox(height: 8),
+              TextField(
+                controller: _profileFilterCtrl,
+                decoration: InputDecoration(
+                  isDense: true,
+                  border: const OutlineInputBorder(),
+                  hintText: _queryCase
+                      ? 'Filter profiles (case-sensitive)'
+                      : 'Filter profiles name/host/note',
+                  prefixIcon: IconButton(
+                    tooltip: _queryCase ? 'Case-sensitive on' : 'Case-insensitive',
+                    icon: Icon(
+                      _queryCase ? Icons.text_fields : Icons.search,
+                      size: 18,
+                    ),
+                    onPressed: () => setState(() => _queryCase = !_queryCase),
+                  ),
+                  suffixIcon: _profileQuery.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _profileFilterCtrl.clear();
+                            setState(() => _profileQuery = '');
+                          },
+                        ),
+                ),
+                onChanged: (v) => setState(() => _profileQuery = v),
+              ),
+              const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: (List.of(controller.profiles)
                     .where((p) {
-                      if (_tlsFilter == 'tls') return p.config.useTls;
-                      if (_tlsFilter == 'plain') return !p.config.useTls;
-                      return true;
+                      if (_tlsFilter == 'tls' && !p.config.useTls) return false;
+                      if (_tlsFilter == 'plain' && p.config.useTls) return false;
+                      final rawQ = _profileQuery.trim();
+                      if (rawQ.isEmpty) return true;
+                      final hayRaw =
+                          '${p.name} ${p.config.host} ${p.config.bridgePort} ${p.config.mgmtPort} ${p.note ?? ''}';
+                      final q = _queryCase ? rawQ : rawQ.toLowerCase();
+                      final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
+                      return hay.contains(q);
                     })
                     .toList()
                   ..sort((a, b) {
