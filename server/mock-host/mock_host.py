@@ -783,7 +783,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, mkdir, whoami, which, uname, hostname, id, date, env, cat, head, tail, wc, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, cat, head, tail, wc, df, free, ps, uptime, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -925,6 +925,53 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_g = st_g.get("term_rows") or 24
         # stty size prints rows cols
         out(f"{rows_g} {cols_g}\n", done=True, exit_code=0)
+
+    elif lower in {"tree", "tree -L 2", "tree -L 3"} or lower.startswith("tree "):
+        st_t = _session_state(sk)
+        rel = (st_t.get("workdir") or "/workspace").replace("/workspace", "").lstrip("/")
+        node, _ = _ws_resolve(rel)
+        if node is None or node.get("type") != "dir":
+            out("tree: invalid workdir\n", done=True, exit_code=1)
+        else:
+            lines = ["."]
+            def walk(n, prefix=""):
+                kids = n.get("children") or {}
+                items = sorted(kids.items(), key=lambda x: (x[1].get("type") != "dir", x[0]))
+                for idx, (name, child) in enumerate(items):
+                    last = idx == len(items) - 1
+                    branch = "└── " if last else "├── "
+                    lines.append(prefix + branch + name + ("/" if child.get("type") == "dir" else ""))
+                    if child.get("type") == "dir" and len(prefix) < 12:
+                        walk(child, prefix + ("    " if last else "│   "))
+            walk(node)
+            out("\n".join(lines) + "\n", done=True, exit_code=0)
+    elif lower in {"df", "df -h"}:
+        out(
+            "Filesystem      Size  Used Avail Use% Mounted on\n"
+            "mockfs           8.0G  1.2G  6.8G  15% /workspace\n",
+            done=True,
+            exit_code=0,
+        )
+    elif lower in {"free", "free -h", "free -m"}:
+        out(
+            "              total        used        free\n"
+            "Mem:           5.8G        2.1G        3.7G\n"
+            "Swap:            0B          0B          0B\n",
+            done=True,
+            exit_code=0,
+        )
+    elif lower in {"ps", "ps aux", "ps -ef"}:
+        out(
+            "PID TTY          TIME CMD\n"
+            "  1 ?        00:00:01 mock-host\n"
+            " 42 ?        00:00:00 bridge-ws\n"
+            " 43 ?        00:00:00 mgmt-http\n",
+            done=True,
+            exit_code=0,
+        )
+    elif lower in {"uptime"}:
+        out(" 12:00:00 up 3 days,  4:12,  1 user,  load average: 0.12, 0.08, 0.05\n", done=True, exit_code=0)
+
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)
     elif lower in {"clear", "cls"}:

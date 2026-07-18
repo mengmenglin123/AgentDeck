@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings, lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), strike, inline code, bold/italic.
+/// Covers headings, lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, strike, inline code, bold/italic.
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -141,6 +141,41 @@ class MarkdownLite extends StatelessWidget {
                 ),
               ),
             )
+          else if (b.kind == _BlockKind.callout)
+            Builder(builder: (context) {
+              final tag = (b.marker ?? 'NOTE').toLowerCase();
+              Color edge = Colors.blueGrey;
+              if (tag.contains('warn') || tag.contains('caution')) {
+                edge = Colors.orange;
+              } else if (tag.contains('tip') || tag.contains('success')) {
+                edge = Colors.teal;
+              } else if (tag.contains('important') || tag.contains('error')) {
+                edge = Colors.deepOrange;
+              }
+              return Container(
+                margin: const EdgeInsets.symmetric(vertical: 4),
+                padding: const EdgeInsets.fromLTRB(10, 6, 8, 6),
+                decoration: BoxDecoration(
+                  border: Border(left: BorderSide(color: edge, width: 3)),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.4),
+                ),
+                child: SelectableText.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '${(b.marker ?? 'NOTE').toUpperCase()}  ',
+                        style: base.copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: (base.fontSize ?? 14) * 0.85,
+                          color: edge,
+                        ),
+                      ),
+                      ..._inline(b.text, base).children ?? [TextSpan(text: b.text, style: base)],
+                    ],
+                  ),
+                ),
+              );
+            })
           else if (b.kind == _BlockKind.quote)
             Container(
               margin: const EdgeInsets.symmetric(vertical: 4),
@@ -233,22 +268,36 @@ class MarkdownLite extends StatelessWidget {
       } else if (t.startsWith('# ')) {
         out.add(_Block(_BlockKind.h1, t.substring(2)));
       } else if (t.startsWith('> ') || t.trim() == '>') {
-        final buf = StringBuffer(t.startsWith('> ') ? t.substring(2) : '');
+        final first = t.startsWith('> ') ? t.substring(2) : '';
+        final calloutMatch = RegExp(r'^\[!(NOTE|TIP|WARNING|WARN|IMPORTANT|CAUTION|ERROR)\]\s*(.*)$', caseSensitive: false).firstMatch(first.trim());
+        final buf = StringBuffer();
+        String? calloutTag;
+        if (calloutMatch != null) {
+          calloutTag = calloutMatch.group(1);
+          final rest = (calloutMatch.group(2) ?? '').trim();
+          if (rest.isNotEmpty) buf.write(rest);
+        } else {
+          buf.write(first);
+        }
         i++;
         while (i < lines.length) {
           final n = lines[i].trimRight();
           if (n.startsWith('> ')) {
-            buf.writeln();
+            if (buf.isNotEmpty) buf.writeln();
             buf.write(n.substring(2));
             i++;
           } else if (n.trim() == '>') {
-            buf.writeln();
+            if (buf.isNotEmpty) buf.writeln();
             i++;
           } else {
             break;
           }
         }
-        out.add(_Block(_BlockKind.quote, buf.toString()));
+        if (calloutTag != null) {
+          out.add(_Block(_BlockKind.callout, buf.toString(), marker: calloutTag));
+        } else {
+          out.add(_Block(_BlockKind.quote, buf.toString()));
+        }
         continue;
       } else if (RegExp(r'^[-*+]\s+\[[ xX]\]\s+').hasMatch(t)) {
         final checked = RegExp(r'^[-*+]\s+\[([xX])\]\s+').hasMatch(t);
@@ -560,7 +609,7 @@ class MarkdownLite extends StatelessWidget {
   }
 }
 
-enum _BlockKind { para, h1, h2, h3, list, task, code, quote, blank, hr, table }
+enum _BlockKind { para, h1, h2, h3, list, task, code, quote, callout, blank, hr, table }
 
 class _Block {
   const _Block(this.kind, this.text, {this.lang, this.checked, this.marker});

@@ -23,6 +23,7 @@ class _AuditScreenState extends State<AuditScreen> {
   bool _queryRegex = false;
   /// all | info | warn | error
   String _level = 'all';
+  String _actionPrefix = 'all';
   bool _newestFirst = true;
   bool _sortByAction = false;
   bool _sortByLevel = false;
@@ -89,6 +90,9 @@ class _AuditScreenState extends State<AuditScreen> {
     Iterable<AuditEntry> it = all;
     if (_level != 'all') {
       it = it.where((e) => e.level == _level);
+    }
+    if (_actionPrefix != 'all') {
+      it = it.where((e) => e.action.startsWith('$_actionPrefix.'));
     }
     final rawQ = _query.trim();
     final q = _queryCase ? rawQ : rawQ.toLowerCase();
@@ -382,6 +386,27 @@ class _AuditScreenState extends State<AuditScreen> {
                     label: Text(f.$2, style: const TextStyle(fontSize: 12)),
                     selected: _level == f.$1,
                     onSelected: (_) => setState(() => _level = f.$1),
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                for (final f in const [
+                  ('all', 'any action'),
+                  ('bridge', 'bridge'),
+                  ('session', 'session'),
+                  ('chat', 'chat'),
+                  ('permission', 'permission'),
+                ])
+                  FilterChip(
+                    label: Text(f.$2, style: const TextStyle(fontSize: 12)),
+                    selected: _actionPrefix == f.$1,
+                    onSelected: (_) => setState(() => _actionPrefix = f.$1),
                     visualDensity: VisualDensity.compact,
                   ),
               ],

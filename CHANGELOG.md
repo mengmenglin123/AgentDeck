@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.106
+
+- MarkdownLite GitHub-style callouts (`> [!NOTE]` / TIP / WARN / IMPORTANT)
+- Mock terminal tree/df/free/ps/uptime
+- Audit action-prefix filter chips (bridge/session/chat/permission)
+
 ## 0.1.105
 
 - MarkdownLite image `![alt](url)` console-safe alt chip (no network)
