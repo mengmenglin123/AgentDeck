@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.115
+
+- Memory tag filter chips
+- MarkdownLite footnotes `[^id]` / `[^id]:`
+- Mock tr/rev/cmp terminal builtins
+
 ## 0.1.114
 
 - Logs source filter chips + API `source` query

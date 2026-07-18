@@ -25,6 +25,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
   String? _error;
   String _scope = 'all';
   String _type = 'all';
+  String _tag = 'all';
   String _q = '';
   bool _wrapLines = false;
   bool _queryCase = false;
@@ -76,6 +77,27 @@ class _MemoryScreenState extends State<MemoryScreen> {
               t.contains('doc');
           if (known) return false;
         } else if (!t.contains(_type)) {
+          return false;
+        }
+      }
+      if (_tag != 'all' && _tag.isNotEmpty) {
+        final tags = m['tags'] is List
+            ? (m['tags'] as List).map((e) => e.toString().toLowerCase()).toList()
+            : [(m['tags'] ?? '').toString().toLowerCase()];
+        final joined = tags.join(' ');
+        if (_tag == 'other') {
+          const known = [
+            'preference',
+            'i18n',
+            'architecture',
+            'style',
+            'hermes',
+            'console',
+            'security',
+            'pairing',
+          ];
+          if (known.any((k) => joined.contains(k))) return false;
+        } else if (!joined.contains(_tag.toLowerCase())) {
           return false;
         }
       }
@@ -536,6 +558,32 @@ class _MemoryScreenState extends State<MemoryScreen> {
                     label: Text(f.$2, style: const TextStyle(fontSize: 12)),
                     selected: _type == f.$1,
                     onSelected: (_) => setState(() => _type = f.$1),
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                for (final f in const [
+                  ('all', 'Any tag'),
+                  ('hermes', 'hermes'),
+                  ('architecture', 'architecture'),
+                  ('security', 'security'),
+                  ('preference', 'preference'),
+                  ('style', 'style'),
+                  ('pairing', 'pairing'),
+                  ('console', 'console'),
+                  ('other', 'other'),
+                ])
+                  FilterChip(
+                    label: Text(f.$2, style: const TextStyle(fontSize: 11)),
+                    selected: _tag == f.$1,
+                    onSelected: (_) => setState(() => _tag = f.$1),
                     visualDensity: VisualDensity.compact,
                   ),
               ],

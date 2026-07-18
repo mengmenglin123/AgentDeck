@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings, lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, mark, spoiler, kbd, sup/sub, autolink, strike, inline code, bold/italic.
+/// Covers headings, lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, mark, spoiler, kbd, sup/sub, autolink, strike, inline code, bold/italic.
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -176,6 +176,26 @@ class MarkdownLite extends StatelessWidget {
                 ),
               );
             })
+          else if (b.kind == _BlockKind.footnote)
+            Padding(
+              padding: const EdgeInsets.only(left: 4, top: 4, bottom: 2),
+              child: SelectableText.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: '[${b.marker ?? '?'}] ',
+                      style: base.copyWith(
+                        fontSize: (base.fontSize ?? 14) * 0.85,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.lightBlue,
+                      ),
+                    ),
+                    ..._inline(b.text, base.copyWith(fontSize: (base.fontSize ?? 14) * 0.9)).children ??
+                        [TextSpan(text: b.text, style: base)],
+                  ],
+                ),
+              ),
+            )
           else if (b.kind == _BlockKind.details)
             Builder(builder: (context) {
               final raw = b.text;
@@ -290,6 +310,12 @@ class MarkdownLite extends StatelessWidget {
           out.add(_Block(_BlockKind.table, buf.toString().trimRight()));
           continue;
         }
+      }
+      final fnDef = RegExp(r'^\[\^([^\]]+)\]:\s*(.*)$').firstMatch(t.trim());
+      if (fnDef != null) {
+        out.add(_Block(_BlockKind.footnote, fnDef.group(2) ?? '', marker: fnDef.group(1)));
+        i++;
+        continue;
       }
       if (t.trim().toLowerCase().startsWith('<details')) {
         // <details><summary>…</summary>body</details> — console ExpansionTile
@@ -555,7 +581,7 @@ class MarkdownLite extends StatelessWidget {
   static TextSpan _inline(String text, TextStyle base) {
     final spans = <InlineSpan>[];
     final re = RegExp(
-      r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
+      r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
     );
     var i = 0;
     for (final m in re.allMatches(text)) {
@@ -660,6 +686,16 @@ class MarkdownLite extends StatelessWidget {
             ),
           ));
         }
+      } else if (tok.startsWith('[^') && tok.endsWith(']')) {
+        final id = tok.substring(2, tok.length - 1);
+        spans.add(TextSpan(
+          text: '[$id]',
+          style: base.copyWith(
+            fontSize: (base.fontSize ?? 14) * 0.75,
+            color: Colors.lightBlue,
+            fontWeight: FontWeight.w600,
+          ),
+        ));
       } else if (tok.startsWith('[')) {
         final lm = RegExp(r'\[([^\]]+)\]\(([^)]+)\)').firstMatch(tok);
         final label = lm?.group(1) ?? tok;
@@ -716,7 +752,7 @@ class MarkdownLite extends StatelessWidget {
   }
 }
 
-enum _BlockKind { para, h1, h2, h3, list, task, code, quote, callout, blank, hr, table, details }
+enum _BlockKind { para, h1, h2, h3, list, task, code, quote, callout, blank, hr, table, details, footnote }
 
 class _Block {
   const _Block(this.kind, this.text, {this.lang, this.checked, this.marker});

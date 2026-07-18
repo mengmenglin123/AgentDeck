@@ -810,7 +810,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, hexdump, xxd, jq, md5sum, sha1sum, sha256sum, base64, file, type, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, hexdump, xxd, jq, md5sum, sha1sum, sha256sum, base64, file, type, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -887,7 +887,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         known = {
             "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date",
             "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help",
-            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "hexdump", "xxd", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type",
+            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "hexdump", "xxd", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1713,6 +1713,87 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
                 except Exception as e:
                     out(f"jq: parse error: {e}\n", done=True, exit_code=1)
 
+
+    elif lower.startswith("tr ") or lower == "tr":
+        parts = data.strip().split()
+        delete = False
+        args = []
+        for t in parts[1:]:
+            if t in {"-d", "--delete"}:
+                delete = True
+                continue
+            if t.startswith("-"):
+                continue
+            args.append(t)
+        if len(args) < 1:
+            out("tr: missing operand\n", done=True, exit_code=1)
+        else:
+            if delete:
+                s1 = args[0]
+                text = " ".join(args[1:]) if len(args) > 1 else ""
+                out("".join(ch for ch in text if ch not in s1) + "\n", done=True, exit_code=0)
+            else:
+                if len(args) < 2:
+                    out("tr: missing operand\n", done=True, exit_code=1)
+                else:
+                    s1, s2 = args[0], args[1]
+                    text = " ".join(args[2:]) if len(args) > 2 else ""
+                    table = {}
+                    for i, ch in enumerate(s1):
+                        table[ch] = s2[i] if i < len(s2) else (s2[-1] if s2 else ch)
+                    out("".join(table.get(ch, ch) for ch in text) + "\n", done=True, exit_code=0)
+    elif lower.startswith("rev ") or lower == "rev":
+        arg = data.strip()[3:].strip() if lower.startswith("rev") else ""
+        while arg.startswith("-"):
+            bits = arg.split(None, 1)
+            arg = bits[1] if len(bits) > 1 else ""
+        if not arg:
+            out("rev: missing operand\n", done=True, exit_code=1)
+        else:
+            st_r = _session_state(sk)
+            wd = st_r.get("workdir") or "/workspace"
+            if arg.startswith("/"):
+                rel = arg.replace("/workspace", "").lstrip("/")
+            else:
+                base = wd.replace("/workspace", "").lstrip("/")
+                rel = "/".join(p for p in (base + "/" + arg).split("/") if p and p != ".")
+            node, _ = _ws_resolve(rel)
+            text = (node.get("content") if node and node.get("type") == "file" else arg) or ""
+            out("\n".join(line[::-1] for line in text.splitlines()) + ("\n" if text else ""), done=True, exit_code=0)
+    elif lower.startswith("cmp ") or lower == "cmp":
+        parts = [p for p in data.strip().split()[1:] if not p.startswith("-")]
+        if len(parts) < 2:
+            out("cmp: missing operand\n", done=True, exit_code=1)
+        else:
+            st_c = _session_state(sk)
+            wd = st_c.get("workdir") or "/workspace"
+            contents = []
+            ok = True
+            for path in parts[:2]:
+                if path.startswith("/"):
+                    rel = path.replace("/workspace", "").lstrip("/")
+                else:
+                    base = wd.replace("/workspace", "").lstrip("/")
+                    rel = "/".join(p for p in (base + "/" + path).split("/") if p and p != ".")
+                node, cleaned = _ws_resolve(rel)
+                if node is None or node.get("type") != "file":
+                    out(f"cmp: {path}: No such file or directory\n", done=True, exit_code=2)
+                    ok = False
+                    break
+                contents.append((cleaned or path, node.get("content") or ""))
+            if ok:
+                (n1, c1), (n2, c2) = contents
+                if c1 == c2:
+                    out("", done=True, exit_code=0)
+                else:
+                    lim = min(len(c1), len(c2))
+                    pos = lim
+                    for i in range(lim):
+                        if c1[i] != c2[i]:
+                            pos = i
+                            break
+                    out(f"{n1} {n2} differ: byte {pos + 1}\n", done=True, exit_code=1)
+
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)
     elif lower in {"clear", "cls"}:
@@ -2219,7 +2300,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                 {
                     "ok": True,
                     "data": {
-                        "version": "mock-0.1.114",
+                        "version": "mock-0.1.115",
                         "uptime_seconds": int(time.time() - START_TS),
                         "connected_platforms": ["bridge"],
                         "projects_count": len(PROJECTS),
