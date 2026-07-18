@@ -118,19 +118,51 @@ class _ConnectScreenState extends State<ConnectScreen> {
 
   Future<void> _importPairing() async {
     final ctrl = TextEditingController();
+    // Prefill from clipboard when it looks like a public pairing URI (no camera).
+    try {
+      final clip = await Clipboard.getData(Clipboard.kTextPlain);
+      final t = clip?.text?.trim() ?? '';
+      if (t.contains('huanhermes://') || t.contains('bridge=')) {
+        ctrl.text = t;
+      }
+    } catch (_) {}
+    if (!mounted) {
+      ctrl.dispose();
+      return;
+    }
     final pasted = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Import pairing URI'),
-        content: TextField(
-          controller: ctrl,
-          maxLines: 3,
-          decoration: const InputDecoration(
-            hintText: 'huanhermes://connect?host=…&bridge=…&mgmt=…&tls=0',
-            border: OutlineInputBorder(),
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Paste public URI only (no tokens). Clipboard prefill when available. Camera QR remains P4.',
+              style: TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: ctrl,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                hintText: 'huanhermes://connect?host=…&bridge=…&mgmt=…&tls=0',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
         ),
         actions: [
+          TextButton(
+            onPressed: () async {
+              try {
+                final clip = await Clipboard.getData(Clipboard.kTextPlain);
+                final t = clip?.text?.trim() ?? '';
+                if (t.isNotEmpty) ctrl.text = t;
+              } catch (_) {}
+            },
+            child: const Text('Paste clipboard'),
+          ),
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),

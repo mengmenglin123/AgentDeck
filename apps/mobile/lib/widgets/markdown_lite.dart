@@ -75,12 +75,17 @@ class MarkdownLite extends StatelessWidget {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+                    padding: const EdgeInsets.fromLTRB(6, 0, 10, 10),
                     child: SelectableText.rich(
-                      _highlightCode(b.text, b.lang, codeBase.copyWith(
-                        color: const Color(0xFFB2FF59),
-                        backgroundColor: Colors.transparent,
-                      )),
+                      _withLineNumbers(
+                        b.text,
+                        b.lang,
+                        codeBase.copyWith(
+                          color: const Color(0xFFB2FF59),
+                          backgroundColor: Colors.transparent,
+                          height: 1.35,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -184,6 +189,32 @@ class MarkdownLite extends StatelessWidget {
     return out;
   }
 
+
+  /// Prefix each code line with a dim gutter number (display-only).
+  static TextSpan _withLineNumbers(String text, String? lang, TextStyle base) {
+    final lines = text.replaceAll('\r\n', '\n').split('\n');
+    if (lines.isEmpty) return TextSpan(text: text, style: base);
+    final width = lines.length.toString().length;
+    final gutterStyle = base.copyWith(
+      color: const Color(0xFF6E7681),
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    final out = <InlineSpan>[];
+    for (var i = 0; i < lines.length; i++) {
+      final num = (i + 1).toString().padLeft(width);
+      out.add(TextSpan(text: '$num  ', style: gutterStyle));
+      final hi = _highlightCode(lines[i], lang, base);
+      if (hi.children != null && hi.children!.isNotEmpty) {
+        out.addAll(hi.children!);
+      } else {
+        out.add(TextSpan(text: lines[i], style: base));
+      }
+      if (i < lines.length - 1) {
+        out.add(TextSpan(text: '\n', style: base));
+      }
+    }
+    return TextSpan(style: base, children: out);
+  }
 
   /// Lightweight fenced-code token tint (no external highlighter deps).
   /// Colors comments / strings / keywords for common langs; falls back to plain.

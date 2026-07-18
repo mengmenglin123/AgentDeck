@@ -291,6 +291,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: settings.monoChat,
             onChanged: settings.setMonoChat,
           ),
+          if (_matchPref('Auto-reconnect Bridge', 'reconnect'))
+          SwitchListTile(
+            secondary: const Icon(Icons.wifi_protected_setup),
+            title: const Text('Auto-reconnect Bridge'),
+            subtitle: _sub('Retry when chat WS drops · device-local'),
+            value: settings.autoReconnect,
+            onChanged: settings.setAutoReconnect,
+          ),
+          if (_matchPref('Reconnect attempts', 'max reconnect'))
+          ListTile(
+            leading: const Icon(Icons.repeat),
+            title: const Text('Reconnect attempts'),
+            subtitle: Text('Max ${settings.maxReconnectAttempts} · silent backoff'),
+          ),
+          if (_matchPref('Reconnect attempts', 'max reconnect'))
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                for (final n in const [1, 3, 5, 8, 10])
+                  ChoiceChip(
+                    label: Text('$n'),
+                    selected: settings.maxReconnectAttempts == n,
+                    onSelected: settings.autoReconnect
+                        ? (_) => settings.setMaxReconnectAttempts(n)
+                        : null,
+                  ),
+              ],
+            ),
+          ),
           if (_matchPref('Chat text size', 'body scale'))
           ListTile(
             leading: const Icon(Icons.format_size),
@@ -334,6 +365,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 'haptics: ${settings.hapticsEnabled}',
                 'keep_screen_on: ${settings.keepScreenOn}',
                 'mono_chat: ${settings.monoChat}',
+                'auto_reconnect: ${settings.autoReconnect}',
+                'max_reconnect_attempts: ${settings.maxReconnectAttempts}',
               ].join('\n');
               await Clipboard.setData(ClipboardData(text: text));
               if (context.mounted) {
@@ -391,13 +424,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.tag),
             title: const Text('App version'),
-            subtitle: _sub('0.1.96+96 · console only · protocol Mock/self-host'),
+            subtitle: _sub('0.1.97+97 · console only · protocol Mock/self-host'),
             trailing: IconButton(
               tooltip: 'Copy about',
               icon: const Icon(Icons.copy_outlined),
               onPressed: () async {
                 const text =
-                    'HuanHermes App 0.1.96+96\nconsole only · protocol Mock/self-host\nNo agent loop on device · tokens never in about text';
+                    'HuanHermes App 0.1.97+97\nconsole only · protocol Mock/self-host\nNo agent loop on device · tokens never in about text';
                 await Clipboard.setData(const ClipboardData(text: text));
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(

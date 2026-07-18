@@ -79,6 +79,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       ]);
       _chat.model = 'mock-hermes';
     }
+    try {
+      final s = context.read<AppSettingsController>();
+      _chat.autoReconnect = s.autoReconnect;
+      _chat.maxReconnectAttempts = s.maxReconnectAttempts;
+    } catch (_) {}
     _chat.addListener(_onChat);
     _scroll.addListener(_onScroll);
     _input.addListener(_onDraftChanged);
@@ -148,8 +153,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      // Foreground resume: kick Bridge reconnect when dropped (P4-4 partial).
-      if (!_chat.connected && !_chat.connecting) {
+      // Foreground resume: kick Bridge reconnect when dropped (P4-4).
+      try {
+        final s = context.read<AppSettingsController>();
+        _chat.autoReconnect = s.autoReconnect;
+        _chat.maxReconnectAttempts = s.maxReconnectAttempts;
+      } catch (_) {}
+      if (_chat.autoReconnect && !_chat.connected && !_chat.connecting) {
         _chat.reconnectNow();
       }
     }

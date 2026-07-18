@@ -634,7 +634,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, ls, whoami, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, ls, whoami, uname, date, env, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -648,6 +648,22 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         out("AGENTS.md\nREADME.md\nsrc/\n", done=True, exit_code=0)
     elif lower == "whoami":
         out("huanhermes-mock\n", done=True, exit_code=0)
+    elif lower in {"uname", "uname -a"}:
+        out("HuanHermes-Mock 0.1 kernel mock-arch\n", done=True, exit_code=0)
+    elif lower in {"date", "date -u"}:
+        out(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()) + "\n", done=True, exit_code=0)
+    elif lower in {"env", "printenv"}:
+        st_e = _session_state(sk)
+        out(
+            f"TERM=huanhermes-mock\n"
+            f"USER=huanhermes-mock\n"
+            f"PWD={st_e.get('workdir') or '/workspace'}\n"
+            f"COLUMNS={st_e.get('term_cols') or 80}\n"
+            f"LINES={st_e.get('term_rows') or 24}\n"
+            f"HH_SESSION={sk}\n",
+            done=True,
+            exit_code=0,
+        )
     elif lower in {"stty size", "stty", "tty size", "size"}:
         st_g = _session_state(sk)
         cols_g = st_g.get("term_cols") or 80
@@ -817,17 +833,38 @@ def _handle_message(conn: socket.socket, msg: Dict[str, Any]) -> None:
     st_project = st.get("project") or project
     if st_project == "hermes":
         st["model"] = st.get("model") if st.get("model") not in ("mock-sonnet",) else "mock-hermes"
+        q = (content or "").strip()
+        mem_hits = 0
+        mem_preview = "(no query)"
+        if q:
+            # Fake memory.search over a tiny local store for protocol demos.
+            store = [
+                "user prefers concise ship notes",
+                "app is console-only; agent loop stays on Host",
+                "never embed tokens in pairing URI",
+                "mock hermes project demonstrates ADR-002 shape",
+            ]
+            hits = [m for m in store if any(w in m.lower() for w in q.lower().split() if len(w) > 2)]
+            mem_hits = len(hits)
+            mem_preview = "; ".join(hits[:3]) if hits else "0 hits"
         reply = (
             f"[hermes-mock|model={st.get('model')}|mode={st.get('mode')}]\n"
             f"Hermes-shaped session (ADR-002). User said: {content or '(no text)'}\n"
             f"{attach_note.strip()}\n\n"
-            "Capabilities: stream, tools, cancel, memory-stub.\n"
-            "This is NOT a live Hermes process — Host adapter maps Bridge → Hermes later.\n"
+            "### Hermes mock\n"
+            "- **memory.search** stub over in-process phrases\n"
+            f"- hits={mem_hits}: `{mem_preview}`\n"
+            "- skills: hermes-agent (readonly catalog)\n\n"
+            "```dart\n"
+            "final caps = ['stream','tools','cancel','memory'];\n"
+            "// Host maps Bridge → real Hermes later\n"
+            "```\n\n"
+            "This is NOT a live Hermes process.\n"
             f"workdir={st.get('workdir')}"
         )
         # hermes-flavored tool name
         tool_name = "memory.search"
-        tool_out = "0 memories (mock)"
+        tool_out = f"{mem_hits} memories · {mem_preview}"
     else:
         reply = (
             f"[mock:{st_project}|{st.get('model')}|mode={st.get('mode')}] 收到：{content or '(attachment)'}\n"
@@ -887,8 +924,8 @@ def _handle_message(conn: socket.socket, msg: Dict[str, Any]) -> None:
                     "type": "tool_result",
                     "session_key": sk,
                     "reply_ctx": ctx,
-                    "name": "echo",
-                    "output": "ok",
+                    "name": tool_name,
+                    "output": tool_out,
                 },
                 ensure_ascii=False,
             ),

@@ -53,6 +53,9 @@ class ChatController extends ChangeNotifier {
     'tools_visible',
   ];
   int reconnectAttempts = 0;
+  /// Device-local; mirrored from AppSettings when ChatScreen boots.
+  int maxReconnectAttempts = 5;
+  bool autoReconnect = true;
   Timer? _reconnectTimer;
   bool _disposed = false;
   String? reconnectHint;
@@ -288,11 +291,21 @@ class ChatController extends ChangeNotifier {
 
   void _scheduleReconnect() {
     if (_disposed || connected || connecting) return;
-    if (reconnectAttempts >= 5) return;
+    if (!autoReconnect) {
+      reconnectHint = 'Disconnected · auto-reconnect off';
+      notifyListeners();
+      return;
+    }
+    final maxA = maxReconnectAttempts.clamp(1, 10);
+    if (reconnectAttempts >= maxA) {
+      reconnectHint = 'Reconnect gave up after $maxA attempts';
+      notifyListeners();
+      return;
+    }
     reconnectAttempts += 1;
     final delay = Duration(seconds: reconnectAttempts * 2);
-    audit.add('bridge.reconnect_scheduled', detail: 'attempt=$reconnectAttempts delay=${delay.inSeconds}s');
-    reconnectHint = 'Reconnecting in ${delay.inSeconds}s (attempt $reconnectAttempts/5)…';
+    audit.add('bridge.reconnect_scheduled', detail: 'attempt=$reconnectAttempts/$maxA delay=${delay.inSeconds}s');
+    reconnectHint = 'Reconnecting in ${delay.inSeconds}s (attempt $reconnectAttempts/$maxA)…';
     notifyListeners();
     _reconnectTimer?.cancel();
     _reconnectTimer = Timer(delay, () {

@@ -465,14 +465,19 @@
 - [x] **P4-1a** Terminal layout cols/rows + Mock geometry/stty (0.1.96)
 - [x] **P4-4a** Chat AppLifecycle resume reconnect (0.1.96)
 - [x] **P4-5a** MarkdownLite fenced-code token tint (0.1.96)
+- [x] **P4-4b** Auto-reconnect toggle + max attempts settings (0.1.97)
+- [x] **P4-5b** Code block line-number gutter (0.1.97)
+- [x] **P4-2a** Connect clipboard prefill/paste pairing URI (0.1.97)
+- [x] **P4-3a** Mock Hermes memory.search hits + tool_result name (0.1.97)
+- [x] **P4-1b** Mock terminal uname/date/env (0.1.97)
 
 ## P4 — 远期
 
 | ID | 任务 | 状态 |
 |----|------|------|
 | P4-1 | 真远程 PTY（App 推送 cols/rows + Mock 记忆几何；真 ioctl/shell 仍远期） | [~] |
-| P4-2 | 相机扫码配对 | [ ] |
-| P4-3 | Host 真 Hermes adapter | [ ] |
+| P4-2 | 相机扫码配对（剪贴板 URI 导入已有；真相机仍远期） | [~] |
+| P4-3 | Host 真 Hermes adapter（Mock memory.search/tool 形状已加深；真进程仍远期） | [~] |
 | P4-4 | 通知 / 后台重连（App 前台 resume 重连已有；系统通知仍远期） | [~] |
 | P4-5 | 更完整代码高亮 / 真文件选择器附件（token 着色已有；真 file_picker 仍远期） | [~] |
 

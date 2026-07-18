@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.97
+
+- Auto-reconnect prefs + configurable max attempts (P4-4)
+- MarkdownLite code line-number gutter (P4-5)
+- Connect clipboard prefill / paste for pairing URI (P4-2 path without camera)
+- Mock Hermes memory.search hits + tool_result fix; terminal uname/date/env (P4-1/P4-3 mock)
+
 ## 0.1.96
 
 - MarkdownLite lightweight fenced-code token tint (P4-5 partial)

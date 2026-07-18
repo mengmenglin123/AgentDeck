@@ -14,6 +14,8 @@ class AppSettingsController extends ChangeNotifier {
   static const _kKeepScreen = 'huanhermes.keep_screen_on.v1';
   static const _kMonoChat = 'huanhermes.mono_chat.v1';
   static const _kChatFont = 'huanhermes.chat_font_scale.v1';
+  static const _kAutoReconnect = 'huanhermes.auto_reconnect.v1';
+  static const _kMaxReconnect = 'huanhermes.max_reconnect_attempts.v1';
 
   /// 0.85 | 1.0 | 1.15 | 1.3
   double textScale = 1.0;
@@ -45,6 +47,12 @@ class AppSettingsController extends ChangeNotifier {
   /// Chat message body font scale: 0.9 | 1.0 | 1.15 | 1.3
   double chatFontScale = 1.0;
 
+  /// Auto-reconnect Bridge when dropped (device-local).
+  bool autoReconnect = true;
+
+  /// Max silent reconnect attempts (1–10). Default 5.
+  int maxReconnectAttempts = 5;
+
   Future<void> load() async {
     final p = await SharedPreferences.getInstance();
     textScale = p.getDouble(_kScale) ?? 1.0;
@@ -64,6 +72,11 @@ class AppSettingsController extends ChangeNotifier {
     monoChat = p.getBool(_kMonoChat) ?? false;
     chatFontScale = p.getDouble(_kChatFont) ?? 1.0;
     if (chatFontScale < 0.85 || chatFontScale > 1.5) chatFontScale = 1.0;
+    autoReconnect = p.getBool(_kAutoReconnect) ?? true;
+    maxReconnectAttempts = p.getInt(_kMaxReconnect) ?? 5;
+    if (maxReconnectAttempts < 1 || maxReconnectAttempts > 10) {
+      maxReconnectAttempts = 5;
+    }
     notifyListeners();
   }
 
@@ -137,6 +150,20 @@ class AppSettingsController extends ChangeNotifier {
     await p.setDouble(_kChatFont, v);
   }
 
+  Future<void> setAutoReconnect(bool v) async {
+    autoReconnect = v;
+    notifyListeners();
+    final p = await SharedPreferences.getInstance();
+    await p.setBool(_kAutoReconnect, v);
+  }
+
+  Future<void> setMaxReconnectAttempts(int v) async {
+    maxReconnectAttempts = v.clamp(1, 10);
+    notifyListeners();
+    final p = await SharedPreferences.getInstance();
+    await p.setInt(_kMaxReconnect, maxReconnectAttempts);
+  }
+
   /// Fire a light impact when haptics are enabled.
 
   /// Reset console prefs to defaults (device-local only; does not touch host tokens).
@@ -151,6 +178,8 @@ class AppSettingsController extends ChangeNotifier {
     keepScreenOn = false;
     monoChat = false;
     chatFontScale = 1.0;
+    autoReconnect = true;
+    maxReconnectAttempts = 5;
     notifyListeners();
     final p = await SharedPreferences.getInstance();
     await p.setDouble(_kScale, textScale);
@@ -163,6 +192,8 @@ class AppSettingsController extends ChangeNotifier {
     await p.setBool(_kKeepScreen, keepScreenOn);
     await p.setBool(_kMonoChat, monoChat);
     await p.setDouble(_kChatFont, chatFontScale);
+    await p.setBool(_kAutoReconnect, autoReconnect);
+    await p.setInt(_kMaxReconnect, maxReconnectAttempts);
   }
 
   void buzzLight() {
