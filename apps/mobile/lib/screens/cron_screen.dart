@@ -30,6 +30,7 @@ class _CronScreenState extends State<CronScreen> {
   bool _wrapLines = false;
   bool _sortBySchedule = false;
   bool _sortByKind = false;
+  bool _sortByLastStatus = false;
   bool _sortAsc = true;
   final _scroll = ScrollController();
   Timer? _timer;
@@ -102,7 +103,12 @@ class _CronScreenState extends State<CronScreen> {
     }
     final list = it.toList();
     list.sort((a, b) {
-      if (_sortByKind) {
+      if (_sortByLastStatus) {
+        final sa = (a['last_status'] ?? a['status'] ?? '').toString().toLowerCase();
+        final sb = (b['last_status'] ?? b['status'] ?? '').toString().toLowerCase();
+        final c = sa.compareTo(sb);
+        if (c != 0) return _sortAsc ? c : -c;
+      } else if (_sortByKind) {
         final ka = (a['kind'] ?? '').toString().toLowerCase();
         final kb = (b['kind'] ?? '').toString().toLowerCase();
         final c = ka.compareTo(kb);
@@ -202,39 +208,53 @@ class _CronScreenState extends State<CronScreen> {
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
-            tooltip: _sortByKind
-                ? (_sortAsc ? 'Kind Z→A' : 'Kind A→Z')
-                : (_sortBySchedule
-                    ? (_sortAsc ? 'Schedule Z→A' : 'Schedule A→Z')
-                    : (_sortAsc ? 'Name Z→A' : 'Name A→Z')),
+            tooltip: _sortByLastStatus
+                ? (_sortAsc ? 'Last status Z→A' : 'Last status A→Z')
+                : (_sortByKind
+                    ? (_sortAsc ? 'Kind Z→A' : 'Kind A→Z')
+                    : (_sortBySchedule
+                        ? (_sortAsc ? 'Schedule Z→A' : 'Schedule A→Z')
+                        : (_sortAsc ? 'Name Z→A' : 'Name A→Z'))),
             onPressed: () {
               setState(() {
-                if (!_sortBySchedule && !_sortByKind && _sortAsc) {
+                if (!_sortBySchedule && !_sortByKind && !_sortByLastStatus && _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortBySchedule && !_sortByKind && !_sortAsc) {
+                } else if (!_sortBySchedule && !_sortByKind && !_sortByLastStatus && !_sortAsc) {
                   _sortBySchedule = true;
                   _sortByKind = false;
+                  _sortByLastStatus = false;
                   _sortAsc = true;
                 } else if (_sortBySchedule && _sortAsc) {
                   _sortAsc = false;
                 } else if (_sortBySchedule && !_sortAsc) {
                   _sortBySchedule = false;
                   _sortByKind = true;
+                  _sortByLastStatus = false;
                   _sortAsc = true;
                 } else if (_sortByKind && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortByKind && !_sortAsc) {
+                  _sortBySchedule = false;
+                  _sortByKind = false;
+                  _sortByLastStatus = true;
+                  _sortAsc = true;
+                } else if (_sortByLastStatus && _sortAsc) {
                   _sortAsc = false;
                 } else {
                   _sortBySchedule = false;
                   _sortByKind = false;
+                  _sortByLastStatus = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortByKind
-                ? Icons.category_outlined
-                : (_sortBySchedule
-                    ? Icons.schedule
-                    : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))),
+            icon: Icon(_sortByLastStatus
+                ? Icons.flag_outlined
+                : (_sortByKind
+                    ? Icons.category_outlined
+                    : (_sortBySchedule
+                        ? Icons.schedule
+                        : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',

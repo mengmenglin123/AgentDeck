@@ -36,6 +36,7 @@ class _DiffScreenState extends State<DiffScreen> {
   String _diffQuery = '';
   final _fileFilterCtrl = TextEditingController();
   String _fileFilter = '';
+  bool _fileCase = false;
   String _statusFilter = '';
 
   @override
@@ -86,10 +87,16 @@ class _DiffScreenState extends State<DiffScreen> {
   }
 
   List<Map<String, dynamic>> get _visibleFiles {
-    final q = _fileFilter.trim().toLowerCase();
+    final raw = _fileFilter.trim();
+    final q = _fileCase ? raw : raw.toLowerCase();
     var list = List<Map<String, dynamic>>.from(_files);
     if (q.isNotEmpty) {
-      list = list.where((f) => '${f['path']}'.toLowerCase().contains(q)).toList();
+      list = list
+          .where((f) {
+            final p = '${f['path']}';
+            return (_fileCase ? p : p.toLowerCase()).contains(q);
+          })
+          .toList();
     }
     if (_statusFilter.isNotEmpty) {
       list = list.where((f) => _fileStatus(f) == _statusFilter).toList();
@@ -312,10 +319,19 @@ class _DiffScreenState extends State<DiffScreen> {
               child: TextField(
                 controller: _fileFilterCtrl,
                 decoration: InputDecoration(
-                  hintText: 'Filter changed files',
+                  hintText: _fileCase
+                      ? 'Filter paths (case-sensitive)'
+                      : 'Filter changed files',
                   isDense: true,
                   border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.search, size: 18),
+                  prefixIcon: IconButton(
+                    tooltip: _fileCase ? 'Case-sensitive on' : 'Case-insensitive',
+                    icon: Icon(
+                      _fileCase ? Icons.text_fields : Icons.search,
+                      size: 18,
+                    ),
+                    onPressed: () => setState(() => _fileCase = !_fileCase),
+                  ),
                   suffixIcon: _fileFilter.isEmpty
                       ? null
                       : IconButton(

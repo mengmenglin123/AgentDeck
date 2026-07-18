@@ -32,6 +32,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
   String _statusFilter = '';
   bool _wrapLines = false;
   bool _sortByType = false;
+  bool _sortByModel = false;
   bool _sortAsc = true;
   final _scroll = ScrollController();
   Timer? _timer;
@@ -95,7 +96,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
   String _agentSub(dynamic a) {
     if (a is Map) {
       final parts = <String>[];
-      for (final k in ['type', 'agent_type', 'status', 'description', 'version']) {
+      for (final k in ['type', 'agent_type', 'status', 'model', 'provider', 'description', 'version']) {
         final v = a[k];
         if (v != null && '$v'.isNotEmpty) parts.add('$k=$v');
       }
@@ -138,6 +139,13 @@ class _AgentsScreenState extends State<AgentsScreen> {
     return list;
   }
 
+  String _agentModelKey(dynamic a) {
+    if (a is Map) {
+      return (a['model'] ?? a['provider'] ?? a['llm'] ?? a['engine'] ?? '').toString().toLowerCase();
+    }
+    return '';
+  }
+
   String _agentTypeKey(dynamic a) {
     if (a is Map) {
       return (a['type'] ?? a['agent_type'] ?? a['status'] ?? '').toString().toLowerCase();
@@ -148,7 +156,10 @@ class _AgentsScreenState extends State<AgentsScreen> {
   List<dynamic> get _filteredAgents {
     final list = _agents.where(_matchAgent).toList();
     list.sort((a, b) {
-      if (_sortByType) {
+      if (_sortByModel) {
+        final c = _agentModelKey(a).compareTo(_agentModelKey(b));
+        if (c != 0) return _sortAsc ? c : -c;
+      } else if (_sortByType) {
         final c = _agentTypeKey(a).compareTo(_agentTypeKey(b));
         if (c != 0) return _sortAsc ? c : -c;
       }
@@ -288,27 +299,39 @@ class _AgentsScreenState extends State<AgentsScreen> {
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
-            tooltip: _sortByType
-                ? (_sortAsc ? 'Type Z→A' : 'Type A→Z')
-                : (_sortAsc ? 'Name Z→A' : 'Name A→Z'),
+            tooltip: _sortByModel
+                ? (_sortAsc ? 'Model Z→A' : 'Model A→Z')
+                : (_sortByType
+                    ? (_sortAsc ? 'Type Z→A' : 'Type A→Z')
+                    : (_sortAsc ? 'Name Z→A' : 'Name A→Z')),
             onPressed: () {
               setState(() {
-                if (!_sortByType && _sortAsc) {
+                if (!_sortByType && !_sortByModel && _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortByType && !_sortAsc) {
+                } else if (!_sortByType && !_sortByModel && !_sortAsc) {
                   _sortByType = true;
+                  _sortByModel = false;
                   _sortAsc = true;
                 } else if (_sortByType && _sortAsc) {
                   _sortAsc = false;
+                } else if (_sortByType && !_sortAsc) {
+                  _sortByType = false;
+                  _sortByModel = true;
+                  _sortAsc = true;
+                } else if (_sortByModel && _sortAsc) {
+                  _sortAsc = false;
                 } else {
                   _sortByType = false;
+                  _sortByModel = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortByType
-                ? Icons.category_outlined
-                : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)),
+            icon: Icon(_sortByModel
+                ? Icons.memory
+                : (_sortByType
+                    ? Icons.category_outlined
+                    : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.65
+
+- MCP: sort by endpoint/url/command
+- Cron: sort by last_status
+- Diff: case-sensitive path filter
+- Agents: sort by model/provider
+
 ## 0.1.64
 
 - Activity: sort by session key

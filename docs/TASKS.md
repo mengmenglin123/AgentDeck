@@ -304,6 +304,11 @@
 | P3-231 | Memory 按 content 排序 | [x] |
 | P3-232 | Chat 搜索区分大小写 | [x] |
 
+| P3-233 | MCP 按 endpoint 排序 | [x] |
+| P3-234 | Cron 按 last_status 排序 | [x] |
+| P3-235 | Diff path 过滤区分大小写 | [x] |
+| P3-236 | Agents 按 model 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |
