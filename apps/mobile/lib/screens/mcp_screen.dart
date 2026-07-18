@@ -31,6 +31,8 @@ class _McpScreenState extends State<McpScreen> {
   bool _sortByStatus = false;
   bool _sortByTools = false;
   bool _sortByEndpoint = false;
+  bool _sortByTransport = false;
+  bool _sortById = false;
   bool _sortAsc = true;
   final _scroll = ScrollController();
   Timer? _timer;
@@ -123,7 +125,17 @@ class _McpScreenState extends State<McpScreen> {
           (x['url'] ?? x['command'] ?? x['transport'] ?? x['endpoint'] ?? x['description'] ?? '')
               .toString()
               .toLowerCase();
-      if (_sortByEndpoint) {
+      if (_sortById) {
+        final ia = (a['id'] ?? a['server_id'] ?? a['name'] ?? '').toString().toLowerCase();
+        final ib = (b['id'] ?? b['server_id'] ?? b['name'] ?? '').toString().toLowerCase();
+        final c = ia.compareTo(ib);
+        if (c != 0) return _sortAsc ? c : -c;
+      } else if (_sortByTransport) {
+        final ta = (a['transport'] ?? a['type'] ?? a['kind'] ?? '').toString().toLowerCase();
+        final tb = (b['transport'] ?? b['type'] ?? b['kind'] ?? '').toString().toLowerCase();
+        final c = ta.compareTo(tb);
+        if (c != 0) return _sortAsc ? c : -c;
+      } else if (_sortByEndpoint) {
         final c = endpointOf(a).compareTo(endpointOf(b));
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByTools) {
@@ -230,21 +242,27 @@ class _McpScreenState extends State<McpScreen> {
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
-            tooltip: _sortByEndpoint
-                ? (_sortAsc ? 'Endpoint Z→A' : 'Endpoint A→Z')
-                : (_sortByTools
-                    ? (_sortAsc ? 'Tools many→few' : 'Tools few→many')
-                    : (_sortByStatus
-                        ? (_sortAsc ? 'Status Z→A' : 'Status A→Z')
-                        : (_sortAsc ? 'Name Z→A' : 'Name A→Z'))),
+            tooltip: _sortById
+                ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                : (_sortByTransport
+                    ? (_sortAsc ? 'Transport Z→A' : 'Transport A→Z')
+                    : (_sortByEndpoint
+                        ? (_sortAsc ? 'Endpoint Z→A' : 'Endpoint A→Z')
+                        : (_sortByTools
+                            ? (_sortAsc ? 'Tools many→few' : 'Tools few→many')
+                            : (_sortByStatus
+                                ? (_sortAsc ? 'Status Z→A' : 'Status A→Z')
+                                : (_sortAsc ? 'Name Z→A' : 'Name A→Z'))))),
             onPressed: () {
               setState(() {
-                if (!_sortByStatus && !_sortByTools && !_sortByEndpoint && _sortAsc) {
+                if (!_sortByStatus && !_sortByTools && !_sortByEndpoint && !_sortByTransport && !_sortById && _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortByStatus && !_sortByTools && !_sortByEndpoint && !_sortAsc) {
+                } else if (!_sortByStatus && !_sortByTools && !_sortByEndpoint && !_sortByTransport && !_sortById && !_sortAsc) {
                   _sortByStatus = true;
                   _sortByTools = false;
                   _sortByEndpoint = false;
+                  _sortByTransport = false;
+                  _sortById = false;
                   _sortAsc = true;
                 } else if (_sortByStatus && _sortAsc) {
                   _sortAsc = false;
@@ -252,6 +270,8 @@ class _McpScreenState extends State<McpScreen> {
                   _sortByStatus = false;
                   _sortByTools = true;
                   _sortByEndpoint = false;
+                  _sortByTransport = false;
+                  _sortById = false;
                   _sortAsc = true;
                 } else if (_sortByTools && _sortAsc) {
                   _sortAsc = false;
@@ -259,24 +279,50 @@ class _McpScreenState extends State<McpScreen> {
                   _sortByStatus = false;
                   _sortByTools = false;
                   _sortByEndpoint = true;
+                  _sortByTransport = false;
+                  _sortById = false;
                   _sortAsc = true;
                 } else if (_sortByEndpoint && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortByEndpoint && !_sortAsc) {
+                  _sortByStatus = false;
+                  _sortByTools = false;
+                  _sortByEndpoint = false;
+                  _sortByTransport = true;
+                  _sortById = false;
+                  _sortAsc = true;
+                } else if (_sortByTransport && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortByTransport && !_sortAsc) {
+                  _sortByStatus = false;
+                  _sortByTools = false;
+                  _sortByEndpoint = false;
+                  _sortByTransport = false;
+                  _sortById = true;
+                  _sortAsc = true;
+                } else if (_sortById && _sortAsc) {
                   _sortAsc = false;
                 } else {
                   _sortByStatus = false;
                   _sortByTools = false;
                   _sortByEndpoint = false;
+                  _sortByTransport = false;
+                  _sortById = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortByEndpoint
-                ? Icons.link
-                : (_sortByTools
-                    ? Icons.build_outlined
-                    : (_sortByStatus
-                        ? Icons.health_and_safety_outlined
-                        : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))),
+            icon: Icon(_sortById
+                ? Icons.tag
+                : (_sortByTransport
+                    ? Icons.swap_horiz
+                    : (_sortByEndpoint
+                        ? Icons.link
+                        : (_sortByTools
+                            ? Icons.build_outlined
+                            : (_sortByStatus
+                                ? Icons.health_and_safety_outlined
+                                : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))))),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',

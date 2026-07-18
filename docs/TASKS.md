@@ -394,6 +394,11 @@
 | P3-303 | Workspace 按 type 排序 | [x] |
 | P3-304 | Logs 按 source 排序 | [x] |
 
+| P3-305 | MCP 按 transport / id 排序 | [x] |
+| P3-306 | Agents 按 id 排序 | [x] |
+| P3-307 | Cron 按 enabled 排序 | [x] |
+| P3-308 | Activity 按 level 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

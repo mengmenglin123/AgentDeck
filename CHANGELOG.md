@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.83
+
+- MCP transport + id sort
+- Agents id sort
+- Cron enabled sort
+- Activity level sort
+
 ## 0.1.82
 
 - Memory id sort

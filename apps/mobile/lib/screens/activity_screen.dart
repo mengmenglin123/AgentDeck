@@ -42,6 +42,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   bool _sortBySession = false;
   bool _sortBySource = false;
   bool _sortById = false;
+  bool _sortByLevel = false;
   bool _sortAsc = true;
   bool _relativeTs = false;
   Timer? _timer;
@@ -215,7 +216,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
       return p?.millisecondsSinceEpoch ?? 0;
     }
     list.sort((a, b) {
-      if (_sortById) {
+      if (_sortByLevel) {
+        final la = (a['level'] ?? a['severity'] ?? a['priority'] ?? '').toString().toLowerCase();
+        final lb = (b['level'] ?? b['severity'] ?? b['priority'] ?? '').toString().toLowerCase();
+        final cs = la.compareTo(lb);
+        if (cs != 0) return _sortAsc ? cs : -cs;
+      } else if (_sortById) {
         final ia = (a['id'] ?? a['event_id'] ?? a['uuid'] ?? '').toString().toLowerCase();
         final ib = (b['id'] ?? b['event_id'] ?? b['uuid'] ?? '').toString().toLowerCase();
         final cs = ia.compareTo(ib);
@@ -324,25 +330,28 @@ class _ActivityScreenState extends State<ActivityScreen> {
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
           IconButton(
-            tooltip: _sortById
-                ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
-                : (_sortBySource
-                    ? (_sortAsc ? 'Source Z→A' : 'Source A→Z')
-                    : (_sortBySession
-                        ? (_sortAsc ? 'Session Z→A' : 'Session A→Z')
-                        : (_sortBySummary
-                            ? (_sortAsc ? 'Summary Z→A' : 'Summary A→Z')
-                            : (_sortByKind
-                                ? (_sortAsc ? 'Kinds Z→A' : 'Kinds A→Z')
-                                : 'Sort by kind / summary / session / source / id')))),
+            tooltip: _sortByLevel
+                ? (_sortAsc ? 'Level Z→A' : 'Level A→Z')
+                : (_sortById
+                    ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                    : (_sortBySource
+                        ? (_sortAsc ? 'Source Z→A' : 'Source A→Z')
+                        : (_sortBySession
+                            ? (_sortAsc ? 'Session Z→A' : 'Session A→Z')
+                            : (_sortBySummary
+                                ? (_sortAsc ? 'Summary Z→A' : 'Summary A→Z')
+                                : (_sortByKind
+                                    ? (_sortAsc ? 'Kinds Z→A' : 'Kinds A→Z')
+                                    : 'Sort by kind / summary / session / source / id / level'))))),
             onPressed: () {
               setState(() {
-                if (!_sortByKind && !_sortBySummary && !_sortBySession && !_sortBySource && !_sortById) {
+                if (!_sortByKind && !_sortBySummary && !_sortBySession && !_sortBySource && !_sortById && !_sortByLevel) {
                   _sortByKind = true;
                   _sortBySummary = false;
                   _sortBySession = false;
                   _sortBySource = false;
                   _sortById = false;
+                  _sortByLevel = false;
                   _sortAsc = true;
                 } else if (_sortByKind && _sortAsc) {
                   _sortAsc = false;
@@ -352,6 +361,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   _sortBySession = false;
                   _sortBySource = false;
                   _sortById = false;
+                  _sortByLevel = false;
                   _sortAsc = true;
                 } else if (_sortBySummary && _sortAsc) {
                   _sortAsc = false;
@@ -361,6 +371,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   _sortBySession = true;
                   _sortBySource = false;
                   _sortById = false;
+                  _sortByLevel = false;
                   _sortAsc = true;
                 } else if (_sortBySession && _sortAsc) {
                   _sortAsc = false;
@@ -370,6 +381,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   _sortBySession = false;
                   _sortBySource = true;
                   _sortById = false;
+                  _sortByLevel = false;
                   _sortAsc = true;
                 } else if (_sortBySource && _sortAsc) {
                   _sortAsc = false;
@@ -379,8 +391,19 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   _sortBySession = false;
                   _sortBySource = false;
                   _sortById = true;
+                  _sortByLevel = false;
                   _sortAsc = true;
                 } else if (_sortById && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortById && !_sortAsc) {
+                  _sortByKind = false;
+                  _sortBySummary = false;
+                  _sortBySession = false;
+                  _sortBySource = false;
+                  _sortById = false;
+                  _sortByLevel = true;
+                  _sortAsc = true;
+                } else if (_sortByLevel && _sortAsc) {
                   _sortAsc = false;
                 } else {
                   _sortByKind = false;
@@ -388,19 +411,22 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   _sortBySession = false;
                   _sortBySource = false;
                   _sortById = false;
+                  _sortByLevel = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortById
-                ? Icons.tag
-                : (_sortBySource
-                    ? Icons.source_outlined
-                    : (_sortBySession
-                        ? Icons.vpn_key_outlined
-                        : (_sortBySummary
-                            ? Icons.notes
-                            : (_sortByKind ? Icons.category_outlined : Icons.sort))))),
+            icon: Icon(_sortByLevel
+                ? Icons.low_priority
+                : (_sortById
+                    ? Icons.tag
+                    : (_sortBySource
+                        ? Icons.source_outlined
+                        : (_sortBySession
+                            ? Icons.vpn_key_outlined
+                            : (_sortBySummary
+                                ? Icons.notes
+                                : (_sortByKind ? Icons.category_outlined : Icons.sort)))))),
           ),
 
           IconButton(
