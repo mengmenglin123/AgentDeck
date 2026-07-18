@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings, lists, fenced code (+lang/copy + token tint), inline code, bold/italic.
+/// Covers headings, lists, tables, hr, fenced code (+lang/copy + token tint + line nums), inline code, bold/italic.
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -128,6 +128,13 @@ class MarkdownLite extends StatelessWidget {
               ),
               child: SelectableText.rich(_inline(b.text, base.copyWith(fontStyle: FontStyle.italic))),
             )
+          else if (b.kind == _BlockKind.hr)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Divider(height: 1, color: Theme.of(context).dividerColor.withOpacity(0.6)),
+            )
+          else if (b.kind == _BlockKind.table)
+            _buildTable(context, b.text, base)
           else if (b.kind != _BlockKind.blank)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 2),
@@ -144,7 +151,9 @@ class MarkdownLite extends StatelessWidget {
     final codeBuf = StringBuffer();
     var inCode = false;
     String? lang;
-    for (final line in lines) {
+    var i = 0;
+    while (i < lines.length) {
+      final line = lines[i];
       if (line.trimLeft().startsWith('```')) {
         if (inCode) {
           out.add(_Block(_BlockKind.code, codeBuf.toString().trimRight(), lang: lang));
@@ -156,17 +165,43 @@ class MarkdownLite extends StatelessWidget {
           final fence = line.trimLeft().substring(3).trim();
           lang = fence.isEmpty ? null : fence.split(RegExp(r'\s+')).first;
         }
+        i++;
         continue;
       }
       if (inCode) {
         if (codeBuf.isNotEmpty) codeBuf.writeln();
         codeBuf.write(line);
+        i++;
         continue;
       }
       final t = line.trimRight();
       if (t.isEmpty) {
         out.add(const _Block(_BlockKind.blank, ''));
+        i++;
         continue;
+      }
+      // horizontal rule
+      if (RegExp(r'^(\*\s*){3,}$|^(-\s*){3,}$|^(_{3,})$').hasMatch(t.trim())) {
+        out.add(const _Block(_BlockKind.hr, ''));
+        i++;
+        continue;
+      }
+      // GFM table: header | ... then |---|---|
+      if (t.contains('|') && i + 1 < lines.length) {
+        final sep = lines[i + 1].trim();
+        if (RegExp(r'^\|?[\s:-]+\|[\s|:-]+$').hasMatch(sep) ||
+            RegExp(r'^:?-{3,}:?(\s*\|\s*:?-{3,}:?)+$').hasMatch(sep.replaceAll('|', '|').trim())) {
+          final buf = StringBuffer()..writeln(t)..writeln(lines[i + 1]);
+          i += 2;
+          while (i < lines.length) {
+            final row = lines[i].trimRight();
+            if (!row.contains('|') || row.trim().isEmpty) break;
+            buf.writeln(row);
+            i++;
+          }
+          out.add(_Block(_BlockKind.table, buf.toString().trimRight()));
+          continue;
+        }
       }
       if (t.startsWith('### ')) {
         out.add(_Block(_BlockKind.h3, t.substring(4)));
@@ -182,12 +217,74 @@ class MarkdownLite extends StatelessWidget {
       } else {
         out.add(_Block(_BlockKind.para, t));
       }
+      i++;
     }
     if (inCode && codeBuf.isNotEmpty) {
       out.add(_Block(_BlockKind.code, codeBuf.toString().trimRight(), lang: lang));
     }
     return out;
   }
+
+  static Widget _buildTable(BuildContext context, String raw, TextStyle base) {
+    final rows = raw.split('\n').where((l) => l.trim().isNotEmpty).toList();
+    if (rows.isEmpty) return const SizedBox.shrink();
+    List<String> cells(String line) {
+      var s = line.trim();
+      if (s.startsWith('|')) s = s.substring(1);
+      if (s.endsWith('|')) s = s.substring(0, s.length - 1);
+      return s.split('|').map((c) => c.trim()).toList();
+    }
+    final parsed = <List<String>>[];
+    for (var r = 0; r < rows.length; r++) {
+      if (r == 1 && RegExp(r'^[\s|:-]+$').hasMatch(rows[r].replaceAll(' ', ''))) {
+        continue; // skip separator
+      }
+      // also skip classic ---|---
+      if (r == 1 && RegExp(r'^:?-{3,}:?(\s*\|\s*:?-{3,}:?)+$').hasMatch(rows[r].trim().replaceAll(' ', ''))) {
+        continue;
+      }
+      if (r == 1) {
+        final sepOnly = rows[r].replaceAll(RegExp(r'[\s|:-]'), '');
+        if (sepOnly.isEmpty) continue;
+      }
+      parsed.add(cells(rows[r]));
+    }
+    if (parsed.isEmpty) return const SizedBox.shrink();
+    final cols = parsed.map((r) => r.length).fold<int>(0, (a, b) => a > b ? a : b);
+    final border = Theme.of(context).dividerColor.withOpacity(0.45);
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        border: Border.all(color: border),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Table(
+          defaultColumnWidth: const IntrinsicColumnWidth(),
+          border: TableBorder.symmetric(inside: BorderSide(color: border)),
+          children: [
+            for (var ri = 0; ri < parsed.length; ri++)
+              TableRow(
+                decoration: ri == 0
+                    ? BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.55))
+                    : null,
+                children: [
+                  for (var ci = 0; ci < cols; ci++)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      child: SelectableText.rich(
+                        _inline(ci < parsed[ri].length ? parsed[ri][ci] : '', ri == 0 ? base.copyWith(fontWeight: FontWeight.w700) : base),
+                      ),
+                    ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
 
 
   /// Prefix each code line with a dim gutter number (display-only).
@@ -368,7 +465,7 @@ class MarkdownLite extends StatelessWidget {
   }
 }
 
-enum _BlockKind { para, h1, h2, h3, list, code, quote, blank }
+enum _BlockKind { para, h1, h2, h3, list, code, quote, blank, hr, table }
 
 class _Block {
   const _Block(this.kind, this.text, {this.lang});

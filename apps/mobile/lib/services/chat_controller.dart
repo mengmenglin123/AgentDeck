@@ -85,7 +85,16 @@ class ChatController extends ChangeNotifier {
       await client.connect();
       connected = true;
       reconnectAttempts = 0;
-      reconnectHint = null;
+      reconnectHint = silent ? 'Reconnected' : null;
+      if (silent) {
+        // Clear brief status after a beat so banner does not stick forever.
+        Future<void>.delayed(const Duration(seconds: 2), () {
+          if (!_disposed && reconnectHint == 'Reconnected') {
+            reconnectHint = null;
+            notifyListeners();
+          }
+        });
+      }
       audit.add('bridge.connected', detail: config.bridgeWsUrlRedacted);
     } on AuthError catch (e) {
       error = e.message;

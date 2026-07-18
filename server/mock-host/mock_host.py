@@ -634,7 +634,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, ls, whoami, uname, date, env, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, ls, whoami, uname, hostname, id, date, env, cat, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -650,6 +650,14 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         out("huanhermes-mock\n", done=True, exit_code=0)
     elif lower in {"uname", "uname -a"}:
         out("HuanHermes-Mock 0.1 kernel mock-arch\n", done=True, exit_code=0)
+    elif lower in {"hostname", "hostname -f"}:
+        out("mock-host\n", done=True, exit_code=0)
+    elif lower in {"id", "id -u"}:
+        out("uid=1000(huanhermes-mock) gid=1000(mock) groups=1000(mock)\n", done=True, exit_code=0)
+    elif lower.startswith("cat "):
+        path = data.strip()[4:].strip() or "(empty)"
+        st_c = _session_state(sk)
+        out(f"[mock-cat] {path}\n(workdir={st_c.get('workdir') or '/workspace'})\n", done=True, exit_code=0)
     elif lower in {"date", "date -u"}:
         out(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()) + "\n", done=True, exit_code=0)
     elif lower in {"env", "printenv"}:
@@ -855,6 +863,10 @@ def _handle_message(conn: socket.socket, msg: Dict[str, Any]) -> None:
             "- **memory.search** stub over in-process phrases\n"
             f"- hits={mem_hits}: `{mem_preview}`\n"
             "- skills: hermes-agent (readonly catalog)\n\n"
+            "| Agent | Status |\n"
+            "| --- | --- |\n"
+            "| hermes | mock |\n"
+            "| claude-code | mock |\n\n"
             "```dart\n"
             "final caps = ['stream','tools','cancel','memory'];\n"
             "// Host maps Bridge → real Hermes later\n"
@@ -1259,8 +1271,14 @@ class MgmtHandler(BaseHTTPRequestHandler):
                             {
                                 "id": "hermes",
                                 "name": "Hermes",
-                                "status": "planned",
-                                "description": "Host adapter maps Bridge → Hermes later (ADR-002)",
+                                "status": "mock",
+                                "type": "hermes",
+                                "model": "mock-hermes",
+                                "provider": "mock",
+                                "version": "0.1-mock",
+                                "capabilities": ["stream", "tools", "cancel", "memory"],
+                                "description": "Mock Hermes shape (ADR-002); Host maps Bridge → real process later",
+                                "note": "Not a live Hermes agent loop",
                             },
                             {
                                 "id": "cursor",

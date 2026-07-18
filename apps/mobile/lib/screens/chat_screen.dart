@@ -216,7 +216,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           children: [
             const Text(
               'Sends Bridge message.files / images without native picker. '
-              'Real camera/gallery can be wired later.',
+              'Protocol path without native file_picker. Camera/gallery remain P4.',
               style: TextStyle(fontSize: 12),
             ),
             const SizedBox(height: 8),
@@ -1067,22 +1067,24 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                         children: [
-                          for (final img in _pendingImages)
+                          for (final img in List<Map<String, dynamic>>.from(_pendingImages))
                             Padding(
                               padding: const EdgeInsets.only(right: 6),
-                              child: ActionChip(
+                              child: InputChip(
                                 avatar: const Icon(Icons.image, size: 16),
                                 label: Text((img['name'] ?? 'image').toString(), style: const TextStyle(fontSize: 11)),
                                 onPressed: () => _previewAttachment(img, image: true),
+                                onDeleted: () => setState(() => _pendingImages.remove(img)),
                               ),
                             ),
-                          for (final f in _pendingFiles)
+                          for (final f in List<Map<String, dynamic>>.from(_pendingFiles))
                             Padding(
                               padding: const EdgeInsets.only(right: 6),
-                              child: ActionChip(
+                              child: InputChip(
                                 avatar: const Icon(Icons.insert_drive_file, size: 16),
                                 label: Text((f['name'] ?? 'file').toString(), style: const TextStyle(fontSize: 11)),
                                 onPressed: () => _previewAttachment(f, image: false),
+                                onDeleted: () => setState(() => _pendingFiles.remove(f)),
                               ),
                             ),
                         ],

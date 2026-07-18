@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.98
+
+- MarkdownLite GFM tables + horizontal rules (P4-5)
+- Attach InputChips with per-item remove (P4-5 attach UX)
+- Silent reconnect success banner clears after 2s (P4-4)
+- Mock agents hermes fields + term hostname/id/cat; hermes reply demo table (P4-1/P4-3)
+
 ## 0.1.97
 
 - Auto-reconnect prefs + configurable max attempts (P4-4)

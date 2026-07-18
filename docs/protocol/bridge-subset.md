@@ -51,7 +51,7 @@ Host → App：
 { "type": "terminal_exit", "session_key": "...", "stream_id": "term-1", "exit_code": 0 }
 ```
 
-这是 **协议演示级** 通道；真 Host 可映射到 PTY。Mock 回显内置命令（`help`/`pwd`/`ls`/`whoami`/`uname`/`date`/`env`/`echo`/`stty size`…），并记住最近一次 `terminal_resize` 的 `cols`/`rows`。App 根据布局估算几何后推送 resize（非真 ioctl）。
+这是 **协议演示级** 通道；真 Host 可映射到 PTY。Mock 回显内置命令（`help`/`pwd`/`ls`/`whoami`/`uname`/`hostname`/`id`/`date`/`env`/`cat`/`echo`/`stty size`…），并记住最近一次 `terminal_resize` 的 `cols`/`rows`。App 根据布局估算几何后推送 resize（非真 ioctl）。
 
 ### Host → App 事件
 
