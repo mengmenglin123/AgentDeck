@@ -40,6 +40,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   bool _sortBySession = false;
   bool _sortBySource = false;
   bool _sortAsc = true;
+  bool _relativeTs = false;
   Timer? _timer;
   bool _autoRefresh = false;
   final _scroll = ScrollController();
@@ -98,11 +99,26 @@ class _ActivityScreenState extends State<ActivityScreen> {
   }
 
   String _fmtTs(dynamic v) {
+    DateTime? dt;
     if (v is num) {
-      final dt = DateTime.fromMillisecondsSinceEpoch((v * 1000).round());
-      return dt.toLocal().toIso8601String().replaceFirst('T', ' ').substring(0, 19);
+      final n = v.toDouble();
+      final ms = n > 1e12 ? n.round() : (n * 1000).round();
+      dt = DateTime.fromMillisecondsSinceEpoch(ms).toLocal();
+    } else {
+      dt = DateTime.tryParse(v?.toString() ?? '')?.toLocal();
     }
-    return v?.toString() ?? '—';
+    if (dt == null) return v?.toString() ?? '—';
+    if (!_relativeTs) {
+      return dt.toIso8601String().replaceFirst('T', ' ').substring(0, 19);
+    }
+    final d = DateTime.now().difference(dt);
+    if (d.isNegative) {
+      return dt.toIso8601String().replaceFirst('T', ' ').substring(0, 19);
+    }
+    if (d.inSeconds < 60) return '${d.inSeconds}s ago';
+    if (d.inMinutes < 60) return '${d.inMinutes}m ago';
+    if (d.inHours < 48) return '${d.inHours}h ago';
+    return '${d.inDays}d ago';
   }
 
   IconData _icon(String kind) {
@@ -285,6 +301,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
             tooltip: _newestFirst ? 'Oldest first' : 'Newest first',
             onPressed: () => setState(() => _newestFirst = !_newestFirst),
             icon: Icon(_newestFirst ? Icons.arrow_downward : Icons.arrow_upward),
+          ),
+          IconButton(
+            tooltip: _relativeTs ? 'Absolute timestamps' : 'Relative timestamps',
+            onPressed: () => setState(() => _relativeTs = !_relativeTs),
+            icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
           IconButton(
             tooltip: _sortBySource

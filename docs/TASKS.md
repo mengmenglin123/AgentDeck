@@ -324,6 +324,11 @@
 | P3-247 | MCP transport chips 过滤 | [x] |
 | P3-248 | Diff 按 status 排序 | [x] |
 
+| P3-249 | Audit 相对时间戳 | [x] |
+| P3-250 | Activity 相对时间戳 | [x] |
+| P3-251 | Chat regex 搜索 | [x] |
+| P3-252 | Cron 按 next_run 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

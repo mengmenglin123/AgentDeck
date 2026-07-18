@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.69
+
+- Audit: relative timestamps toggle
+- Activity: relative timestamps toggle
+- Chat: regex transcript search (long-press)
+- Cron: sort by next_run
+
 ## 0.1.68
 
 - Memory: sort by confidence/score

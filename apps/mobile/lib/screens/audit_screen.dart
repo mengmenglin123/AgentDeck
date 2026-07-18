@@ -27,6 +27,7 @@ class _AuditScreenState extends State<AuditScreen> {
   bool _sortByDetail = false;
   bool _sortAsc = true;
   bool _wrapLines = false;
+  bool _relativeTs = false;
   final _scroll = ScrollController();
   Timer? _timer;
   bool _autoRefresh = false;
@@ -91,6 +92,19 @@ class _AuditScreenState extends State<AuditScreen> {
       });
     }
     return it.toList();
+  }
+
+
+  String _fmtAuditTs(DateTime ts) {
+    if (!_relativeTs) {
+      return ts.toLocal().toIso8601String().substring(11, 19);
+    }
+    final d = DateTime.now().difference(ts.toLocal());
+    if (d.isNegative) return ts.toLocal().toIso8601String().substring(11, 19);
+    if (d.inSeconds < 60) return '${d.inSeconds}s ago';
+    if (d.inMinutes < 60) return '${d.inMinutes}m ago';
+    if (d.inHours < 48) return '${d.inHours}h ago';
+    return '${d.inDays}d ago';
   }
 
   @override
@@ -239,6 +253,11 @@ class _AuditScreenState extends State<AuditScreen> {
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
           ),
           IconButton(
+            tooltip: _relativeTs ? 'Absolute timestamps' : 'Relative timestamps',
+            onPressed: () => setState(() => _relativeTs = !_relativeTs),
+            icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
+          ),
+          IconButton(
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
@@ -352,7 +371,7 @@ class _AuditScreenState extends State<AuditScreen> {
                       leading: Icon(Icons.circle, size: 10, color: color ?? Colors.green),
                       title: Text(e.action),
                       subtitle: Text(
-                        '${e.ts.toIso8601String().substring(11, 19)}  ${e.detail}',
+                        '${_fmtAuditTs(e.ts)}  ${e.detail}',
                         maxLines: _wrapLines ? 12 : 3,
                         overflow: _wrapLines ? TextOverflow.visible : TextOverflow.ellipsis,
                       ),

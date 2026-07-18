@@ -41,6 +41,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _searchCtrl = TextEditingController();
   String _searchQ = '';
   bool _searchCase = false;
+  bool _searchRegex = false;
   bool _showTools = true;
   String _roleFilter = 'all';
   bool _wrapLines = true;
@@ -574,9 +575,23 @@ class _ChatScreenState extends State<ChatScreen> {
   List<int> get _searchHits {
     final raw = _searchQ.trim();
     if (raw.isEmpty) return const [];
-    final q = _searchCase ? raw : raw.toLowerCase();
     final hits = <int>[];
     final msgs = _visibleMessages;
+    if (_searchRegex) {
+      try {
+        final re = RegExp(raw, caseSensitive: _searchCase);
+        for (var i = 0; i < msgs.length; i++) {
+          final m = msgs[i];
+          if (re.hasMatch(m.content) || re.hasMatch(m.role)) {
+            hits.add(i);
+          }
+        }
+      } catch (_) {
+        return const [];
+      }
+      return hits;
+    }
+    final q = _searchCase ? raw : raw.toLowerCase();
     for (var i = 0; i < msgs.length; i++) {
       final m = msgs[i];
       final content = _searchCase ? m.content : m.content.toLowerCase();
@@ -911,18 +926,31 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: TextField(
                       controller: _searchCtrl,
                       decoration: InputDecoration(
-                        hintText: _searchCase
-                            ? 'Search (case-sensitive)'
-                            : 'Search in transcript',
+                        hintText: _searchRegex
+                            ? (_searchCase
+                                ? 'Regex search (case-sensitive)'
+                                : 'Regex search in transcript')
+                            : (_searchCase
+                                ? 'Search (case-sensitive)'
+                                : 'Search in transcript'),
                         isDense: true,
                         border: const OutlineInputBorder(),
                         prefixIcon: IconButton(
-                          tooltip: _searchCase ? 'Case-sensitive on' : 'Case-insensitive',
+                          tooltip: _searchRegex
+                              ? (_searchCase
+                                  ? 'Regex · case on (long-press: plain)'
+                                  : 'Regex · case off (long-press: plain)')
+                              : (_searchCase
+                                  ? 'Case-sensitive (long-press: regex)'
+                                  : 'Case-insensitive (long-press: regex)'),
                           icon: Icon(
-                            _searchCase ? Icons.text_fields : Icons.search,
+                            _searchRegex
+                                ? Icons.code
+                                : (_searchCase ? Icons.text_fields : Icons.search),
                             size: 18,
                           ),
                           onPressed: () => setState(() => _searchCase = !_searchCase),
+                          onLongPress: () => setState(() => _searchRegex = !_searchRegex),
                         ),
                         suffixIcon: _searchQ.isEmpty
                             ? null
