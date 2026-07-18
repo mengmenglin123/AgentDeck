@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.147
+
+- Agents view FilterChips (wrap / regex / case)
+- MarkdownLite `<audio>` + `<picture>`
+- Mock script/scriptreplay/infocmp (+ help/which/type lockstep)
+
 ## 0.1.146
 
 - Cron view FilterChips (wrap / regex / case)
