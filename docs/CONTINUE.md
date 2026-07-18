@@ -25,7 +25,7 @@
 | 项 | 值 |
 |----|-----|
 | 功能版本 | **0.1.133+133** |
-| 功能 commit | **(pending push — commit approval blocked)** |
+| 功能 commit | **`f9a312f`** |
 | HEAD 文档 | 含 CONTINUE 松版（见 git log） |
 | 下一功能刀 | **0.1.134** |
 | P3 | 收口 |
