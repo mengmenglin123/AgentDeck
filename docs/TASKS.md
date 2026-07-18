@@ -309,6 +309,11 @@
 | P3-235 | Diff path 过滤区分大小写 | [x] |
 | P3-236 | Agents 按 model 排序 | [x] |
 
+| P3-237 | Sessions notes-only 过滤 | [x] |
+| P3-238 | Skills 按 id/path 排序 | [x] |
+| P3-239 | Pairing payload 区分大小写过滤 | [x] |
+| P3-240 | Connect TLS/Plain chips | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

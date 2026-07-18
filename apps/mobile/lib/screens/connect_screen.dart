@@ -28,6 +28,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
   bool _sortAsc = true;
   /// name | host | updated
   String _sortMode = 'name';
+  String _tlsFilter = 'all'; // all | tls | plain
   final _scroll = ScrollController();
   bool _useTls = false;
 
@@ -374,9 +375,32 @@ class _ConnectScreenState extends State<ConnectScreen> {
               Text('Saved hosts', style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 8),
               Wrap(
+                spacing: 6,
+                children: [
+                  for (final f in [
+                    ('all', 'All TLS'),
+                    ('tls', 'TLS'),
+                    ('plain', 'Plain'),
+                  ])
+                    FilterChip(
+                      label: Text(f.$2, style: const TextStyle(fontSize: 12)),
+                      selected: _tlsFilter == f.$1,
+                      onSelected: (_) => setState(() => _tlsFilter = f.$1),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: (List.of(controller.profiles)
+                    .where((p) {
+                      if (_tlsFilter == 'tls') return p.config.useTls;
+                      if (_tlsFilter == 'plain') return !p.config.useTls;
+                      return true;
+                    })
+                    .toList()
                   ..sort((a, b) {
                     int c;
                     if (_sortMode == 'host') {

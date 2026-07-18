@@ -27,6 +27,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
   bool _wrapLines = false;
   bool _sortBySource = false;
   bool _sortByDesc = false;
+  bool _sortById = false;
   bool _sortAsc = true;
   final _scroll = ScrollController();
   Timer? _timer;
@@ -88,7 +89,12 @@ class _SkillsScreenState extends State<SkillsScreen> {
       return hay.contains(q);
     }).toList();
     list.sort((a, b) {
-      if (_sortByDesc) {
+      if (_sortById) {
+        final ia = (a['id'] ?? a['path'] ?? a['slug'] ?? '').toString().toLowerCase();
+        final ib = (b['id'] ?? b['path'] ?? b['slug'] ?? '').toString().toLowerCase();
+        final c = ia.compareTo(ib);
+        if (c != 0) return _sortAsc ? c : -c;
+      } else if (_sortByDesc) {
         final da = (a['description'] ?? a['summary'] ?? '').toString().toLowerCase();
         final db = (b['description'] ?? b['summary'] ?? '').toString().toLowerCase();
         final c = da.compareTo(db);
@@ -190,39 +196,53 @@ class _SkillsScreenState extends State<SkillsScreen> {
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
-            tooltip: _sortByDesc
-                ? (_sortAsc ? 'Description Z→A' : 'Description A→Z')
-                : (_sortBySource
-                    ? (_sortAsc ? 'Source Z→A' : 'Source A→Z')
-                    : (_sortAsc ? 'Name Z→A' : 'Name A→Z')),
+            tooltip: _sortById
+                ? (_sortAsc ? 'Id/path Z→A' : 'Id/path A→Z')
+                : (_sortByDesc
+                    ? (_sortAsc ? 'Description Z→A' : 'Description A→Z')
+                    : (_sortBySource
+                        ? (_sortAsc ? 'Source Z→A' : 'Source A→Z')
+                        : (_sortAsc ? 'Name Z→A' : 'Name A→Z'))),
             onPressed: () {
               setState(() {
-                if (!_sortBySource && !_sortByDesc && _sortAsc) {
+                if (!_sortBySource && !_sortByDesc && !_sortById && _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortBySource && !_sortByDesc && !_sortAsc) {
+                } else if (!_sortBySource && !_sortByDesc && !_sortById && !_sortAsc) {
                   _sortBySource = true;
                   _sortByDesc = false;
+                  _sortById = false;
                   _sortAsc = true;
                 } else if (_sortBySource && _sortAsc) {
                   _sortAsc = false;
                 } else if (_sortBySource && !_sortAsc) {
                   _sortBySource = false;
                   _sortByDesc = true;
+                  _sortById = false;
                   _sortAsc = true;
                 } else if (_sortByDesc && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortByDesc && !_sortAsc) {
+                  _sortBySource = false;
+                  _sortByDesc = false;
+                  _sortById = true;
+                  _sortAsc = true;
+                } else if (_sortById && _sortAsc) {
                   _sortAsc = false;
                 } else {
                   _sortBySource = false;
                   _sortByDesc = false;
+                  _sortById = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortByDesc
-                ? Icons.notes
-                : (_sortBySource
-                    ? Icons.source_outlined
-                    : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))),
+            icon: Icon(_sortById
+                ? Icons.tag
+                : (_sortByDesc
+                    ? Icons.notes
+                    : (_sortBySource
+                        ? Icons.source_outlined
+                        : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',

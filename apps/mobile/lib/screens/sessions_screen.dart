@@ -357,6 +357,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
         base = base.where((s) => _pinned.contains(s.sessionKey));
       } else if (_filter == 'running') {
         base = base.where((s) => s.running || s.live);
+      } else if (_filter == 'notes') {
+        base = base.where((s) => (_noteMap[s.sessionKey] ?? '').trim().isNotEmpty);
       }
     }
     if (q.isNotEmpty) {
@@ -882,6 +884,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       ('all', 'All'),
                       ('pinned', 'Pinned'),
                       ('running', 'Running'),
+                      ('notes', 'Notes'),
                       ('archived', 'Archived'),
                     ])
                       FilterChip(

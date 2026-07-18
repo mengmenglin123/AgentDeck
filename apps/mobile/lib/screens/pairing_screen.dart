@@ -26,6 +26,7 @@ class _PairingScreenState extends State<PairingScreen> {
   Timer? _timer;
   bool _wrapLines = false;
   String _payloadQuery = '';
+  bool _payloadCase = false;
   final _payloadFilterCtrl = TextEditingController();
   bool _autoRefresh = false;
   final _scroll = ScrollController();
@@ -110,9 +111,13 @@ class _PairingScreenState extends State<PairingScreen> {
 
   String get _payloadText {
     final raw = Security.redactText(data.toString());
-    final q = _payloadQuery.trim().toLowerCase();
-    if (q.isEmpty) return raw;
-    final lines = raw.split('\n').where((l) => l.toLowerCase().contains(q)).toList();
+    final rawQ = _payloadQuery.trim();
+    if (rawQ.isEmpty) return raw;
+    final q = _payloadCase ? rawQ : rawQ.toLowerCase();
+    final lines = raw
+        .split('\n')
+        .where((l) => (_payloadCase ? l : l.toLowerCase()).contains(q))
+        .toList();
     if (lines.isEmpty) return '(no payload lines match: $_payloadQuery)';
     return lines.join('\n');
   }
@@ -318,8 +323,17 @@ class _PairingScreenState extends State<PairingScreen> {
                   controller: _payloadFilterCtrl,
                   decoration: InputDecoration(
                     isDense: true,
-                    prefixIcon: const Icon(Icons.search, size: 18),
-                    hintText: 'Filter payload lines',
+                    prefixIcon: IconButton(
+                      tooltip: _payloadCase ? 'Case-sensitive on' : 'Case-insensitive',
+                      icon: Icon(
+                        _payloadCase ? Icons.text_fields : Icons.search,
+                        size: 18,
+                      ),
+                      onPressed: () => setState(() => _payloadCase = !_payloadCase),
+                    ),
+                    hintText: _payloadCase
+                        ? 'Filter payload (case-sensitive)'
+                        : 'Filter payload lines',
                     border: const OutlineInputBorder(),
                     suffixIcon: _payloadQuery.isEmpty
                         ? null

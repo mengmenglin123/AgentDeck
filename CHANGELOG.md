@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.66
+
+- Sessions: filter sessions that have local notes
+- Skills: sort by id/path
+- Pairing: case-sensitive payload line filter
+- Connect: TLS / plain profile chips
+
 ## 0.1.65
 
 - MCP: sort by endpoint/url/command
