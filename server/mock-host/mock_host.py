@@ -834,7 +834,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, locale, umask, readlink, cksum, sum, expand, unexpand, tac, namei, dir, vdir, tsort, pathchk, mktemp, sync, link, ln, truncate, install, shred, timeout, nice, nohup, watch, stdbuf, flock, ionice, taskset, prlimit, chroot, unshare, nsenter, setpriv, capsh, runcon, ldd, ldconfig, uuidgen, df, free, ps, uptime, true, false, printf, sleep, touch, rmdir, mkfifo, history, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, locale, umask, readlink, cksum, sum, expand, unexpand, tac, namei, dir, vdir, tsort, pathchk, mktemp, sync, link, ln, truncate, install, shred, timeout, nice, nohup, watch, stdbuf, flock, ionice, taskset, prlimit, chroot, unshare, nsenter, setpriv, capsh, runcon, ldd, ldconfig, uuidgen, df, free, ps, uptime, true, false, printf, sleep, touch, rmdir, mkfifo, getopt, strings, csplit, history, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -931,7 +931,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
     elif lower.startswith("which "):
         name = data.strip()[6:].strip()
         known = {
-            "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch", "stdbuf", "flock", "ionice", "taskset", "prlimit", "chroot", "unshare", "nsenter", "setpriv", "capsh", "runcon", "ldd", "ldconfig", "uuidgen", "rmdir", "mkfifo",
+            "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch", "stdbuf", "flock", "ionice", "taskset", "prlimit", "chroot", "unshare", "nsenter", "setpriv", "capsh", "runcon", "ldd", "ldconfig", "uuidgen", "rmdir", "mkfifo", "getopt", "strings", "csplit",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1520,7 +1520,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             out("type: missing operand\n", done=True, exit_code=1)
         else:
             builtins = {
-                "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "export", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "base64", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch", "stdbuf", "flock", "ionice", "taskset", "prlimit", "chroot", "unshare", "nsenter", "setpriv", "capsh", "runcon", "ldd", "ldconfig", "uuidgen", "rmdir", "mkfifo",
+                "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "export", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "base64", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch", "stdbuf", "flock", "ionice", "taskset", "prlimit", "chroot", "unshare", "nsenter", "setpriv", "capsh", "runcon", "ldd", "ldconfig", "uuidgen", "rmdir", "mkfifo", "getopt", "strings", "csplit",
                             }
             if name.split()[0] in builtins:
                 out(f"{name.split()[0]} is a shell builtin\n", done=True, exit_code=0)
@@ -2954,6 +2954,47 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             out("mkfifo: missing operand\n", done=True, exit_code=1)
         else:
             out("", done=True, exit_code=0)
+
+    elif lower.startswith("getopt ") or lower == "getopt":
+        # mock getopt: getopt OPTSTRING [ARGS...] or getopt -o OPTSTRING -- ARGS
+        # need OPTSTRING else 1; no args → "--\n"; else " -- " + remaining + "\n"
+        parts = data.strip().split()
+        if len(parts) < 2:
+            out("getopt: missing operand\n", done=True, exit_code=1)
+        else:
+            args = parts[1:]
+            if args[0] in {"-o", "--options"}:
+                if len(args) < 2:
+                    out("getopt: missing operand\n", done=True, exit_code=1)
+                else:
+                    rest = args[2:]  # skip -o OPTSTRING
+                    if rest and rest[0] == "--":
+                        rest = rest[1:]
+                    if not rest:
+                        out("--\n", done=True, exit_code=0)
+                    else:
+                        out(" -- " + " ".join(rest) + "\n", done=True, exit_code=0)
+            else:
+                # OPTSTRING is args[0]
+                rest = args[1:]
+                if not rest:
+                    out("--\n", done=True, exit_code=0)
+                else:
+                    out(" -- " + " ".join(rest) + "\n", done=True, exit_code=0)
+    elif lower.startswith("strings ") or lower == "strings":
+        # mock strings: strings FILE; need FILE else 1; fixed printable lines
+        parts = data.strip().split()
+        if len(parts) < 2:
+            out("strings: missing operand\n", done=True, exit_code=1)
+        else:
+            out("hello\nworld\n", done=True, exit_code=0)
+    elif lower.startswith("csplit ") or lower == "csplit":
+        # mock csplit: csplit FILE [PATTERN]; need FILE else 1; fixed mock byte count; no tree mutate
+        parts = data.strip().split()
+        if len(parts) < 2:
+            out("csplit: missing operand\n", done=True, exit_code=1)
+        else:
+            out("0\n", done=True, exit_code=0)
 
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)

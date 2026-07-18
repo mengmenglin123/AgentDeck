@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.141
+
+- Sessions view FilterChips (wrap / regex / case)
+- MarkdownLite `<bgsound>` + `<multicol>`
+- Mock getopt/strings/csplit (+ help/which/type lockstep)
+
 ## 0.1.140
 
 - Logs view FilterChips (wrap / regex / case)
