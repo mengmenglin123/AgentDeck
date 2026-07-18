@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.113
+
+- Skills category filter chips
+- MarkdownLite `||spoiler||` (blacked-out text)
+- Mock md5sum/sha1sum/sha256sum, nl, cut
+
 ## 0.1.112
 
 - MCP enabled filter chips + catalog enabled flags

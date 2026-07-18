@@ -805,7 +805,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, base64, file, type, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, md5sum, sha1sum, sha256sum, base64, file, type, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -882,7 +882,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         known = {
             "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date",
             "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help",
-            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "base64", "file", "type",
+            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1444,6 +1444,153 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             else:
                 out(f"type: {name}: not found\n", done=True, exit_code=1)
 
+
+    elif lower.startswith("md5sum") or lower.startswith("sha256sum") or lower.startswith("sha1sum"):
+        import hashlib as _hl
+        parts = data.strip().split()
+        cmd = parts[0].lower() if parts else "md5sum"
+        algo = "md5" if "md5" in cmd else ("sha1" if "sha1" in cmd else "sha256")
+        targets = [p for p in parts[1:] if not p.startswith("-")]
+        if not targets:
+            out(f"{cmd}: missing file operand\n", done=True, exit_code=1)
+        else:
+            lines_out = []
+            st_h = _session_state(sk)
+            wd = st_h.get("workdir") or "/workspace"
+            for path in targets:
+                if path.startswith("/"):
+                    rel = path.replace("/workspace", "").lstrip("/")
+                else:
+                    base = wd.replace("/workspace", "").lstrip("/")
+                    rel = "/".join(p for p in (base + "/" + path).split("/") if p and p != ".")
+                node, cleaned = _ws_resolve(rel)
+                if node is None or node.get("type") != "file":
+                    lines_out.append(f"{cmd}: {path}: No such file or directory")
+                    continue
+                content = (node.get("content") or "").encode("utf-8")
+                h = getattr(_hl, algo)(content).hexdigest()
+                lines_out.append(f"{h}  {cleaned or path}")
+            out("\n".join(lines_out) + "\n", done=True, exit_code=0)
+    elif lower.startswith("nl ") or lower == "nl":
+        arg = data.strip()[2:].strip() if lower.startswith("nl") else ""
+        # strip -ba style flags
+        while arg.startswith("-"):
+            bits = arg.split(None, 1)
+            arg = bits[1] if len(bits) > 1 else ""
+        if not arg:
+            out("nl: missing file operand\n", done=True, exit_code=1)
+        else:
+            st_n = _session_state(sk)
+            wd = st_n.get("workdir") or "/workspace"
+            if arg.startswith("/"):
+                rel = arg.replace("/workspace", "").lstrip("/")
+            else:
+                base = wd.replace("/workspace", "").lstrip("/")
+                rel = "/".join(p for p in (base + "/" + arg).split("/") if p and p != ".")
+            node, cleaned = _ws_resolve(rel)
+            if node is None or node.get("type") != "file":
+                out(f"nl: {arg}: No such file or directory\n", done=True, exit_code=1)
+            else:
+                content = node.get("content") or ""
+                numbered = []
+                for i, line in enumerate(content.splitlines(), 1):
+                    numbered.append(f"{i:6}\t{line}")
+                out("\n".join(numbered) + ("\n" if numbered else ""), done=True, exit_code=0)
+    elif lower.startswith("cut ") or lower == "cut":
+        # cut -dSEP -fN  TEXT  or cut -cN- path
+        parts = data.strip().split()
+        delim = "\t"
+        fields = None
+        chars = None
+        rest = []
+        i = 1
+        while i < len(parts):
+            t = parts[i]
+            if t == "-d" and i + 1 < len(parts):
+                delim = parts[i + 1]
+                i += 2
+                continue
+            if t.startswith("-d") and len(t) > 2:
+                delim = t[2:]
+                i += 1
+                continue
+            if t == "-f" and i + 1 < len(parts):
+                fields = parts[i + 1]
+                i += 2
+                continue
+            if t.startswith("-f") and len(t) > 2:
+                fields = t[2:]
+                i += 1
+                continue
+            if t == "-c" and i + 1 < len(parts):
+                chars = parts[i + 1]
+                i += 2
+                continue
+            if t.startswith("-c") and len(t) > 2:
+                chars = t[2:]
+                i += 1
+                continue
+            if t.startswith("-"):
+                i += 1
+                continue
+            rest.append(t)
+            i += 1
+        payload = " ".join(rest)
+        if not payload:
+            out("cut: missing operand\n", done=True, exit_code=1)
+        else:
+            # try resolve as file else use as text
+            st_c = _session_state(sk)
+            wd = st_c.get("workdir") or "/workspace"
+            path = payload
+            if path.startswith("/"):
+                rel = path.replace("/workspace", "").lstrip("/")
+            else:
+                base = wd.replace("/workspace", "").lstrip("/")
+                rel = "/".join(p for p in (base + "/" + path).split("/") if p and p != ".")
+            node, _ = _ws_resolve(rel)
+            text = (node.get("content") if node and node.get("type") == "file" else payload) or ""
+            out_lines = []
+            for line in text.splitlines() or [text]:
+                if chars:
+                    # simple N or N-M
+                    try:
+                        if "-" in chars:
+                            a, b = chars.split("-", 1)
+                            a_i = int(a) - 1 if a else 0
+                            b_i = int(b) if b else len(line)
+                            out_lines.append(line[max(0, a_i):b_i])
+                        else:
+                            ci = int(chars) - 1
+                            out_lines.append(line[ci] if 0 <= ci < len(line) else "")
+                    except Exception:
+                        out_lines.append(line)
+                elif fields:
+                    cols = line.split(delim)
+                    idxs = []
+                    for part in fields.split(","):
+                        part = part.strip()
+                        if not part:
+                            continue
+                        try:
+                            if "-" in part:
+                                a, b = part.split("-", 1)
+                                a_i = int(a) if a else 1
+                                b_i = int(b) if b else len(cols)
+                                idxs.extend(range(a_i, b_i + 1))
+                            else:
+                                idxs.append(int(part))
+                        except Exception:
+                            continue
+                    picked = []
+                    for ix in idxs:
+                        if 1 <= ix <= len(cols):
+                            picked.append(cols[ix - 1])
+                    out_lines.append(delim.join(picked))
+                else:
+                    out_lines.append(line)
+            out("\n".join(out_lines) + ("\n" if out_lines else ""), done=True, exit_code=0)
+
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)
     elif lower in {"clear", "cls"}:
@@ -1950,7 +2097,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                 {
                     "ok": True,
                     "data": {
-                        "version": "mock-0.1.112",
+                        "version": "mock-0.1.113",
                         "uptime_seconds": int(time.time() - START_TS),
                         "connected_platforms": ["bridge"],
                         "projects_count": len(PROJECTS),

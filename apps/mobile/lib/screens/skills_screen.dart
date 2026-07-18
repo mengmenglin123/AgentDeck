@@ -26,6 +26,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
   bool _queryCase = false;
   bool _queryRegex = false;
   String _source = '';
+  String _category = '';
   bool _wrapLines = false;
   bool _sortBySource = false;
   bool _sortByDesc = false;
@@ -88,6 +89,20 @@ class _SkillsScreenState extends State<SkillsScreen> {
               src.contains('host');
           if (known) return false;
         } else if (!src.contains(_source)) {
+          return false;
+        }
+      }
+      if (_category.isNotEmpty) {
+        final cat = (s['category'] ?? '').toString().toLowerCase();
+        if (_category == 'other') {
+          final known = cat.contains('github') ||
+              cat.contains('software') ||
+              cat.contains('autonomous') ||
+              cat.contains('memory') ||
+              cat.contains('devops') ||
+              cat.contains('research');
+          if (known) return false;
+        } else if (!cat.contains(_category)) {
           return false;
         }
       }
@@ -438,6 +453,31 @@ class _SkillsScreenState extends State<SkillsScreen> {
                               label: Text(f.$2, style: const TextStyle(fontSize: 12)),
                               selected: _source == f.$1,
                               onSelected: (_) => setState(() => _source = f.$1),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          for (final f in const [
+                            ('', 'Any category'),
+                            ('autonomous', 'autonomous'),
+                            ('github', 'github'),
+                            ('software', 'software'),
+                            ('memory', 'memory'),
+                            ('devops', 'devops'),
+                            ('research', 'research'),
+                            ('other', 'other'),
+                          ])
+                            FilterChip(
+                              label: Text(f.$2, style: const TextStyle(fontSize: 11)),
+                              selected: _category == f.$1,
+                              onSelected: (_) => setState(() => _category = f.$1),
                               visualDensity: VisualDensity.compact,
                             ),
                         ],
