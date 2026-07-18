@@ -867,6 +867,10 @@ def _handle_message(conn: socket.socket, msg: Dict[str, Any]) -> None:
             "| --- | --- |\n"
             "| hermes | mock |\n"
             "| claude-code | mock |\n\n"
+            "- [x] memory.search stub\n"
+            "- [ ] real Hermes process (Host adapter)\n"
+            "- [ ] system notifications\n\n"
+            "Docs: [ADR-002](docs/adr/002-hermes-adapter.md)\n\n"
             "```dart\n"
             "final caps = ['stream','tools','cancel','memory'];\n"
             "// Host maps Bridge → real Hermes later\n"
@@ -1335,16 +1339,41 @@ class MgmtHandler(BaseHTTPRequestHandler):
                                 "name": "hermes-agent",
                                 "description": "Configure Hermes Agent (readonly mock)",
                                 "source": "mock",
+                                "category": "autonomous-ai-agents",
+                                "version": "0.1-mock",
+                                "tags": ["hermes", "console"],
                             },
                             {
                                 "name": "github-pr-workflow",
                                 "description": "PR lifecycle helpers (readonly mock)",
                                 "source": "mock",
+                                "category": "github",
+                                "version": "0.1-mock",
+                                "tags": ["git", "pr"],
                             },
                             {
                                 "name": "systematic-debugging",
                                 "description": "4-phase debugging checklist (readonly mock)",
                                 "source": "mock",
+                                "category": "software-development",
+                                "version": "0.1-mock",
+                                "tags": ["debug"],
+                            },
+                            {
+                                "name": "writing-plans",
+                                "description": "Implementation plans (readonly mock)",
+                                "source": "mock",
+                                "category": "software-development",
+                                "version": "0.1-mock",
+                                "tags": ["plan"],
+                            },
+                            {
+                                "name": "memory-management",
+                                "description": "Long-term memory prefs (readonly mock · ADR-002 shape)",
+                                "source": "mock",
+                                "category": "memory-management",
+                                "version": "0.1-mock",
+                                "tags": ["hermes", "memory"],
                             },
                         ]
                     },

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.99
+
+- MarkdownLite task lists + richer link display (P4-5)
+- Terminal AppLifecycle resume reconnect + Reconnect action (P4-4)
+- Pairing “Copy paste card” for Connect import (P4-2)
+- Mock skills category/version/tags + Skills UI meta; hermes reply task/link demo (P4-3)
+
 ## 0.1.98
 
 - MarkdownLite GFM tables + horizontal rules (P4-5)

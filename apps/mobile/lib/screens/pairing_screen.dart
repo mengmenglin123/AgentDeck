@@ -334,6 +334,26 @@ class _PairingScreenState extends State<PairingScreen> {
                       icon: const Icon(Icons.link),
                       label: const Text('Copy public URI'),
                     ),
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          final card = [
+                            'HuanHermes connect card (public · no tokens)',
+                            'host: ${cfg.host}',
+                            'bridge: ${cfg.bridgePort}',
+                            'mgmt: ${cfg.mgmtPort}',
+                            'tls: ${cfg.useTls ? 1 : 0}',
+                            'uri: $publicUri',
+                            'fingerprint: ${_fpHex(publicUri)}',
+                            '',
+                            'Paste the uri line into Connect → Import pairing URI.',
+                            'Camera QR remains a future step.',
+                          ].join('\n');
+                          _copy(card, 'Copied paste card (no tokens)');
+                        },
+                        icon: const Icon(Icons.sticky_note_2_outlined),
+                        label: const Text('Copy paste card'),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -348,7 +368,7 @@ class _PairingScreenState extends State<PairingScreen> {
                         const Text('1. Compare visual fingerprint on both devices'),
                         const Text('2. Match host:ports line and hex tag'),
                         const Text('3. Paste public URI only (never share tokens)'),
-                        const Text('4. Camera QR scan remains P4'),
+                        const Text('4. Camera QR scan remains future P4'),
                       ],
                     ),
                   ),
@@ -406,7 +426,7 @@ class _PairingScreenState extends State<PairingScreen> {
                 const SizedBox(height: 16),
                 Text(
                   data['note']?.toString() ??
-                      'Tokens stay on each device. Camera QR scan is not implemented yet.',
+                      'Tokens stay on each device. Prefer paste card / public URI. Camera QR still future.',
                   style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
                 ),
               ],

@@ -25,7 +25,7 @@ class TerminalScreen extends StatefulWidget {
   State<TerminalScreen> createState() => _TerminalScreenState();
 }
 
-class _TerminalScreenState extends State<TerminalScreen> {
+class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObserver {
   BridgeClient? _bridge;
   final _input = TextEditingController();
   final _scroll = ScrollController();
@@ -53,6 +53,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _buf.writeln('HuanHermes terminal channel (session ${widget.session.sessionKey})');
     _buf.writeln('Type help · protocol demo only');
     _buf.writeln('↑/↓ local history · device only');
@@ -313,6 +314,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _input.dispose();
     _findCtrl.dispose();
     _scroll.dispose();
@@ -363,6 +365,17 @@ class _TerminalScreenState extends State<TerminalScreen> {
       lines = lines.reversed.toList();
     }
     return lines.isEmpty ? '' : (lines.join('\n') + '\n');
+  }
+
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Foreground resume: re-open Bridge when dropped (P4-4 terminal).
+      if (_bridge == null && !_connecting) {
+        _connect();
+      }
+    }
   }
 
   @override

@@ -475,16 +475,20 @@
 - [x] **P4-4c** Silent reconnect success hint (0.1.98)
 - [x] **P4-3b** Mock agents hermes capabilities/version (0.1.98)
 - [x] **P4-1c** Mock terminal hostname/id/cat (0.1.98)
+- [x] **P4-5e** MarkdownLite task lists + richer links (0.1.99)
+- [x] **P4-4d** Terminal resume reconnect + Reconnect action (0.1.99)
+- [x] **P4-2b** Pairing paste card (public, no tokens) (0.1.99)
+- [x] **P4-3c** Mock skills category/version + hermes reply tasks (0.1.99)
 
 ## P4 — 远期
 
 | ID | 任务 | 状态 |
 |----|------|------|
 | P4-1 | 真远程 PTY（App 推送 cols/rows + Mock 记忆几何；真 ioctl/shell 仍远期） | [~] |
-| P4-2 | 相机扫码配对（剪贴板 URI 导入已有；真相机仍远期） | [~] |
+| P4-2 | 相机扫码配对（剪贴板 URI + paste card 已有；真相机仍远期） | [~] |
 | P4-3 | Host 真 Hermes adapter（Mock agents/memory/tool 已加深；真进程仍远期） | [~] |
-| P4-4 | 通知 / 后台重连（resume+prefs+成功提示已有；系统通知仍远期） | [~] |
-| P4-5 | 更完整代码高亮 / 真文件选择器（token 着色+表格/hr/行号/附件 chip 已有；真 file_picker 仍远期） | [~] |
+| P4-4 | 通知 / 后台重连（Chat+Terminal resume/reconnect 已有；系统通知仍远期） | [~] |
+| P4-5 | 更完整代码高亮 / 真文件选择器（着色+表格/任务/链接/行号/附件 chip 已有；真 file_picker 仍远期） | [~] |
 
 ## 验收命令
 

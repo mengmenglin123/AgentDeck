@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings, lists, tables, hr, fenced code (+lang/copy + token tint + line nums), inline code, bold/italic.
+/// Covers headings, lists, task lists, tables, hr, fenced code, links, inline code, bold/italic.
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -105,6 +105,25 @@ class MarkdownLite extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 4, bottom: 2),
               child: SelectableText.rich(_inline(b.text, base.copyWith(fontSize: 15, fontWeight: FontWeight.w600))),
+            )
+          else if (b.kind == _BlockKind.task)
+            Padding(
+              padding: const EdgeInsets.only(left: 2, top: 2, bottom: 2),
+              child: SelectableText.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: (b.checked == true) ? '☑ ' : '☐ ',
+                      style: base.copyWith(
+                        color: (b.checked == true)
+                            ? const Color(0xFF81C784)
+                            : base.color?.withOpacity(0.75),
+                      ),
+                    ),
+                    ..._inline(b.text, base).children ?? [TextSpan(text: b.text, style: base)],
+                  ],
+                ),
+              ),
             )
           else if (b.kind == _BlockKind.list)
             Padding(
@@ -211,6 +230,10 @@ class MarkdownLite extends StatelessWidget {
         out.add(_Block(_BlockKind.h1, t.substring(2)));
       } else if (t.startsWith('> ')) {
         out.add(_Block(_BlockKind.quote, t.substring(2)));
+      } else if (RegExp(r'^[-*+]\s+\[[ xX]\]\s+').hasMatch(t)) {
+        final checked = RegExp(r'^[-*+]\s+\[([xX])\]\s+').hasMatch(t);
+        final body = t.replaceFirst(RegExp(r'^[-*+]\s+\[[ xX]\]\s+'), '');
+        out.add(_Block(_BlockKind.task, body, checked: checked));
       } else if (RegExp(r'^[-*+]\s+').hasMatch(t) || RegExp(r'^\d+\.\s+').hasMatch(t)) {
         final body = t.replaceFirst(RegExp(r'^([-*+]|\d+\.)\s+'), '');
         out.add(_Block(_BlockKind.list, body));
@@ -445,7 +468,9 @@ class MarkdownLite extends StatelessWidget {
           style: base.copyWith(fontStyle: FontStyle.italic),
         ));
       } else if (tok.startsWith('[')) {
-        final label = RegExp(r'\[([^\]]+)\]').firstMatch(tok)?.group(1) ?? tok;
+        final lm = RegExp(r'\[([^\]]+)\]\(([^)]+)\)').firstMatch(tok);
+        final label = lm?.group(1) ?? tok;
+        final url = lm?.group(2) ?? '';
         spans.add(TextSpan(
           text: label,
           style: base.copyWith(
@@ -453,6 +478,21 @@ class MarkdownLite extends StatelessWidget {
             decoration: TextDecoration.underline,
           ),
         ));
+        if (url.isNotEmpty) {
+          spans.add(TextSpan(
+            text: ' ↗',
+            style: base.copyWith(color: Colors.lightBlue.withOpacity(0.7), fontSize: (base.fontSize ?? 14) * 0.85),
+          ));
+          // Keep URL as copyable plain trailing text (console-safe; no url_launcher dep).
+          spans.add(TextSpan(
+            text: ' ($url)',
+            style: base.copyWith(
+              color: base.color?.withOpacity(0.55),
+              fontSize: (base.fontSize ?? 14) * 0.85,
+              fontFamily: 'monospace',
+            ),
+          ));
+        }
       } else {
         spans.add(TextSpan(text: tok, style: base));
       }
@@ -465,11 +505,12 @@ class MarkdownLite extends StatelessWidget {
   }
 }
 
-enum _BlockKind { para, h1, h2, h3, list, code, quote, blank, hr, table }
+enum _BlockKind { para, h1, h2, h3, list, task, code, quote, blank, hr, table }
 
 class _Block {
-  const _Block(this.kind, this.text, {this.lang});
+  const _Block(this.kind, this.text, {this.lang, this.checked});
   final _BlockKind kind;
   final String text;
   final String? lang;
+  final bool? checked;
 }

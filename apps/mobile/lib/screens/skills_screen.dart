@@ -96,7 +96,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
           ? (s['tags'] as List).join(' ')
           : (s['tags'] ?? s['labels'] ?? '');
       final hayRaw =
-          '${s['name']} ${s['description']} ${s['source']} ${s['id']} ${s['path']} $tags';
+          '${s['name']} ${s['description']} ${s['source']} ${s['id']} ${s['path']} ${s['category']} $tags';
       if (_queryRegex) {
         try {
           return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
@@ -222,18 +222,20 @@ class _SkillsScreenState extends State<SkillsScreen> {
                 ? null
                 : () async {
                     final buf = StringBuffer();
-                    buf.writeln('name,source,description');
+                    buf.writeln('name,source,category,version,description');
                     for (final s in items) {
                       if (s is Map) {
                         final name = (s['name'] ?? s['id'] ?? 'skill').toString().replaceAll(',', ';');
                         final source = (s['source'] ?? '').toString().replaceAll(',', ';');
+                        final category = (s['category'] ?? '').toString().replaceAll(',', ';');
+                        final version = (s['version'] ?? '').toString().replaceAll(',', ';');
                         final desc = (s['description'] ?? s['summary'] ?? '')
                             .toString()
                             .replaceAll(',', ';')
                             .replaceAll('\n', ' ');
-                        buf.writeln('$name,$source,$desc');
+                        buf.writeln('$name,$source,$category,$version,$desc');
                       } else {
-                        buf.writeln('${'$s'.replaceAll(',', ';')},,');
+                        buf.writeln('${'$s'.replaceAll(',', ';')},,,,');
                       }
                     }
                     await Clipboard.setData(ClipboardData(text: buf.toString()));
@@ -506,22 +508,32 @@ class _SkillsScreenState extends State<SkillsScreen> {
                                     final name = (s['name'] ?? 'skill').toString();
                                     final desc = (s['description'] ?? '').toString();
                                     final source = (s['source'] ?? '').toString();
+                                    final category = (s['category'] ?? '').toString();
+                                    final version = (s['version'] ?? '').toString();
+                                    final meta = [
+                                      if (category.isNotEmpty) category,
+                                      if (source.isNotEmpty) source,
+                                      if (version.isNotEmpty) version,
+                                    ].join(' · ');
                                     return ListTile(
                                       leading: const Icon(Icons.extension),
                                       title: Text(name),
                                       subtitle: Text(
-                                        [if (desc.isNotEmpty) desc, if (source.isNotEmpty) source].join('\n'),
-                                        maxLines: _wrapLines ? 8 : 2,
+                                        [
+                                          if (desc.isNotEmpty) desc,
+                                          if (meta.isNotEmpty) meta,
+                                        ].join('\n'),
+                                        maxLines: _wrapLines ? 8 : 3,
                                         overflow: TextOverflow.ellipsis,
                                         softWrap: true,
                                       ),
-                                      isThreeLine: desc.isNotEmpty && source.isNotEmpty,
+                                      isThreeLine: desc.isNotEmpty && meta.isNotEmpty,
                                       trailing: IconButton(
                                         tooltip: 'Copy',
                                         icon: const Icon(Icons.copy, size: 18),
                                         onPressed: () async {
                                           await Clipboard.setData(
-                                            ClipboardData(text: '$name\n$desc\n$source'.trim()),
+                                            ClipboardData(text: '$name\n$desc\n$meta'.trim()),
                                           );
                                           if (context.mounted) {
                                             ScaffoldMessenger.of(context).showSnackBar(
