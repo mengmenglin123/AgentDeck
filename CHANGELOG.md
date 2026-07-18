@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.144
+
+- MCP view FilterChips (wrap / regex / case)
+- MarkdownLite `<noframes>` + `<embed>`
+- Mock base32/sha224sum/sha384sum (+ help/which/type lockstep)
+
 ## 0.1.143
 
 - Host dashboard FilterChips (wrap / regex / case)
