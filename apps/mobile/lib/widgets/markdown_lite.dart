@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings (h1–h6), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5/h6, abbr, mark, spoiler, kbd, sup/sub, underline, del, ins, s, autolink, strike, inline code, bold/italic.
+/// Covers headings (h1–h6), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5/h6, abbr, mark, spoiler, kbd, sup/sub, underline, del, ins, s, small, autolink, strike, inline code, bold/italic, bold-italic (***).
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -602,7 +602,7 @@ class MarkdownLite extends StatelessWidget {
   static TextSpan _inline(String text, TextStyle base) {
     final spans = <InlineSpan>[];
     final re = RegExp(
-          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
+          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<small>[^<]+</small>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
             );
     var i = 0;
     for (final m in re.allMatches(text)) {
@@ -707,6 +707,15 @@ class MarkdownLite extends StatelessWidget {
             color: base.color?.withOpacity(0.7),
           ),
         ));
+      } else if (tok.startsWith('<small>') && tok.endsWith('</small>')) {
+        final body = tok.substring(7, tok.length - 8);
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            fontSize: (base.fontSize ?? 14) * 0.85,
+            color: base.color?.withOpacity(0.85),
+          ),
+        ));
       } else if (tok.toLowerCase().startsWith('<abbr')) {
         final titleM = RegExp(r'title="([^"]*)"', caseSensitive: false).firstMatch(tok);
         final titleM2 = RegExp(r"title='([^']*)'", caseSensitive: false).firstMatch(tok);
@@ -730,6 +739,113 @@ class MarkdownLite extends StatelessWidget {
             ),
           ));
         }
+      } else if (tok.startsWith('`') && tok.endsWith('`')) {
+        spans.add(TextSpan(
+          text: tok.substring(1, tok.length - 1),
+          style: base.copyWith(
+            fontFamily: 'monospace',
+            backgroundColor: base.backgroundColor ?? const Color(0x22000000),
+          ),
+        ));
+      } else if (tok.startsWith('***') && tok.endsWith('***') && tok.length > 6) {
+        // bold-italic — must be checked before **
+        spans.add(TextSpan(
+          text: tok.substring(3, tok.length - 3),
+          style: base.copyWith(
+            fontWeight: FontWeight.w700,
+            fontStyle: FontStyle.italic,
+          ),
+        ));
+      } else if ((tok.startsWith('**') && tok.endsWith('**')) || (tok.startsWith('__') && tok.endsWith('__'))) {
+        spans.add(TextSpan(
+          text: tok.substring(2, tok.length - 2),
+          style: base.copyWith(fontWeight: FontWeight.w700),
+        ));
+      } else if ((tok.startsWith('*') && tok.endsWith('*')) || (tok.startsWith('_') && tok.endsWith('_'))) {
+        spans.add(TextSpan(
+          text: tok.substring(1, tok.length - 1),
+          style: base.copyWith(fontStyle: FontStyle.italic),
+        ));
+      } else if (tok.startsWith('![')) {
+        final im = RegExp(r'!\[([^\]]*)\]\(([^)]+)\)').firstMatch(tok);
+        final rawAlt = im?.group(1) ?? '';
+        final alt = rawAlt.isEmpty ? 'image' : rawAlt;
+        final url = im?.group(2) ?? '';
+        // Console-safe: no network fetch / no file_picker; show alt + path only.
+        spans.add(TextSpan(
+          text: '🖼 $alt',
+          style: base.copyWith(
+            color: Colors.tealAccent.shade200,
+            fontFamily: 'monospace',
+            fontSize: (base.fontSize ?? 14) * 0.95,
+          ),
+        ));
+        if (url.isNotEmpty) {
+          spans.add(TextSpan(
+            text: ' ($url)',
+            style: base.copyWith(
+              color: base.color?.withOpacity(0.55),
+              fontSize: (base.fontSize ?? 14) * 0.85,
+              fontFamily: 'monospace',
+            ),
+          ));
+        }
+      } else if (tok.startsWith('[^') && tok.endsWith(']')) {
+        final label = tok.substring(2, tok.length - 1);
+        spans.add(TextSpan(
+          text: '[$label]',
+          style: base.copyWith(
+            fontSize: (base.fontSize ?? 14) * 0.75,
+            color: Colors.lightBlue,
+            fontWeight: FontWeight.w700,
+          ),
+        ));
+      } else if (tok.startsWith('[')) {
+        final lm = RegExp(r'\[([^\]]+)\]\(([^)]+)\)').firstMatch(tok);
+        final label = lm?.group(1) ?? tok;
+        final url = lm?.group(2) ?? '';
+        spans.add(TextSpan(
+          text: label,
+          style: base.copyWith(
+            color: Colors.lightBlue,
+            decoration: TextDecoration.underline,
+          ),
+        ));
+        if (url.isNotEmpty) {
+          spans.add(TextSpan(
+            text: ' ↗',
+            style: base.copyWith(color: Colors.lightBlue.withOpacity(0.7), fontSize: (base.fontSize ?? 14) * 0.85),
+          ));
+          // Keep URL as copyable plain trailing text (console-safe; no url_launcher dep).
+          spans.add(TextSpan(
+            text: ' ($url)',
+            style: base.copyWith(
+              color: base.color?.withOpacity(0.55),
+              fontSize: (base.fontSize ?? 14) * 0.85,
+              fontFamily: 'monospace',
+            ),
+          ));
+        }
+      } else if (tok.startsWith('http://') || tok.startsWith('https://')) {
+        // Bare URL autolink — console-safe (no url_launcher); show + keep copyable.
+        var url = tok;
+        while (url.isNotEmpty && '.,;:!?'.contains(url[url.length - 1])) {
+          url = url.substring(0, url.length - 1);
+        }
+        spans.add(TextSpan(
+          text: url,
+          style: base.copyWith(
+            color: Colors.lightBlue,
+            decoration: TextDecoration.underline,
+            fontFamily: 'monospace',
+            fontSize: (base.fontSize ?? 14) * 0.95,
+          ),
+        ));
+        if (url.length < tok.length) {
+          spans.add(TextSpan(text: tok.substring(url.length), style: base));
+        }
+      } else {
+        spans.add(TextSpan(text: tok, style: base));
       }
       i = m.end;
     }

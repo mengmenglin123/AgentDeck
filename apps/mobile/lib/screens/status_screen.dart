@@ -34,6 +34,7 @@ class _StatusScreenState extends State<StatusScreen> {
   bool _relativeTs = false;
   String _keyQuery = '';
   String _capQuery = '';
+  String _typeFilter = ''; // empty=all
   final _capFilterCtrl = TextEditingController();
   final _keyFilterCtrl = TextEditingController();
   bool _autoRefresh = true;
@@ -642,6 +643,23 @@ class _StatusScreenState extends State<StatusScreen> {
             onChanged: (v) => setState(() => _keyQuery = v),
           ),
           const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final t in const ['', 'string', 'number', 'bool', 'list', 'map', 'null'])
+                FilterChip(
+                  visualDensity: VisualDensity.compact,
+                  label: Text(
+                    t.isEmpty ? 'Any type' : t,
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                  selected: _typeFilter == t,
+                  onSelected: (_) => setState(() => _typeFilter = t),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
           Text('Raw /status keys', style: Theme.of(context).textTheme.titleSmall),
           if (status.isEmpty)
             const Padding(
@@ -653,6 +671,11 @@ class _StatusScreenState extends State<StatusScreen> {
               final rawQ = _keyQuery.trim();
               final q = _queryCase ? rawQ : rawQ.toLowerCase();
               var entries = status.entries.toList();
+              if (_typeFilter.isNotEmpty) {
+                entries = entries
+                    .where((e) => _valueTypeLabel(e.value) == _typeFilter)
+                    .toList();
+              }
               if (rawQ.isNotEmpty) {
                 entries = entries
                     .where((e) {

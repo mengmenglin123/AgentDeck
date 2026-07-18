@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.120
+
+- Status value-type filter chips
+- MarkdownLite `***` bold-italic + `<small>`
+- Mock printenv/logname/groups (+ help/which/type lockstep)
+
 ## 0.1.119
 
 - Agents model filter chips
