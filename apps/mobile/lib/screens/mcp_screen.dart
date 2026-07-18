@@ -24,6 +24,7 @@ class _McpScreenState extends State<McpScreen> {
   final _q = TextEditingController();
   String _query = '';
   bool _queryCase = false;
+  bool _queryRegex = false;
   String _status = '';
   String _transportFilter = ''; // empty=all | stdio | sse | http | ws | other
   bool _wrapLines = false;
@@ -103,10 +104,17 @@ class _McpScreenState extends State<McpScreen> {
           return false;
         }
       }
-      if (q.isEmpty) return true;
+      if (rawQ.isEmpty) return true;
       final tools = s['tools'] is List ? (s['tools'] as List).join(' ') : '';
       final hayRaw =
           '${s['name']} ${s['description']} ${s['status']} ${s['transport']} ${s['url']} ${s['command']} $tools';
+      if (_queryRegex) {
+        try {
+          return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
+        } catch (_) {
+          return false;
+        }
+      }
       final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
       return hay.contains(q);
     }).toList();
@@ -372,16 +380,27 @@ class _McpScreenState extends State<McpScreen> {
                   child: TextField(
                     controller: _q,
                     decoration: InputDecoration(
-                      hintText: _queryCase ? 'Filter (case-sensitive)' : 'Filter name / tools / status',
+                      hintText: _queryRegex
+                          ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
+                          : (_queryCase ? 'Filter (case-sensitive)' : 'Filter name / tools / status'),
                       isDense: true,
                       border: const OutlineInputBorder(),
                       prefixIcon: IconButton(
-                        tooltip: _queryCase ? 'Case-sensitive on' : 'Case-insensitive',
+                        tooltip: _queryRegex
+                            ? (_queryCase
+                                ? 'Regex · case on (long-press: plain filter)'
+                                : 'Regex · case off (long-press: plain filter)')
+                            : (_queryCase
+                                ? 'Case-sensitive (long-press: regex)'
+                                : 'Case-insensitive (long-press: regex)'),
                         icon: Icon(
-                          _queryCase ? Icons.text_fields : Icons.search,
+                          _queryRegex
+                              ? Icons.code
+                              : (_queryCase ? Icons.text_fields : Icons.search),
                           size: 18,
                         ),
                         onPressed: () => setState(() => _queryCase = !_queryCase),
+                        onLongPress: () => setState(() => _queryRegex = !_queryRegex),
                       ),
                       suffixIcon: _query.isEmpty
                           ? null

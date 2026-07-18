@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.78
+
+- MCP regex filter (long-press)
+- Cron regex filter (long-press)
+- Agents regex filter (long-press)
+- Memory regex search (long-press)
+
 ## 0.1.77
 
 - Connect profile case-sensitive filter

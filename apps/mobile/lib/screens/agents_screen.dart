@@ -28,6 +28,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
   final _q = TextEditingController();
   String _query = '';
   bool _queryCase = false;
+  bool _queryRegex = false;
   /// all | agents | platforms | projects
   String _section = 'all';
   String _statusFilter = '';
@@ -115,8 +116,15 @@ class _AgentsScreenState extends State<AgentsScreen> {
     }
     final rawQ = _query.trim();
     final q = _queryCase ? rawQ : rawQ.toLowerCase();
-    if (q.isEmpty) return true;
+    if (rawQ.isEmpty) return true;
     final hayRaw = '${_agentTitle(a)} ${_agentSub(a)}';
+    if (_queryRegex) {
+      try {
+        return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
+      } catch (_) {
+        return false;
+      }
+    }
     final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
     return hay.contains(q);
   }
@@ -124,9 +132,16 @@ class _AgentsScreenState extends State<AgentsScreen> {
   bool _matchProject(Map<String, dynamic> p) {
     final rawQ = _query.trim();
     final q = _queryCase ? rawQ : rawQ.toLowerCase();
-    if (q.isEmpty) return true;
+    if (rawQ.isEmpty) return true;
     final caps = ((p['capabilities'] as List?) ?? const []).join(' ');
     final hayRaw = '${p['name']} ${p['agent_type']} ${p['note']} $caps';
+    if (_queryRegex) {
+      try {
+        return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
+      } catch (_) {
+        return false;
+      }
+    }
     final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
     return hay.contains(q);
   }
@@ -208,8 +223,16 @@ class _AgentsScreenState extends State<AgentsScreen> {
     final rawQ = _query.trim();
     final q = _queryCase ? rawQ : rawQ.toLowerCase();
     final list = _platforms.where((p) {
-      if (q.isEmpty) return true;
-      final hay = _queryCase ? '$p' : '$p'.toLowerCase();
+      if (rawQ.isEmpty) return true;
+      final hayRaw = '$p';
+      if (_queryRegex) {
+        try {
+          return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
+        } catch (_) {
+          return false;
+        }
+      }
+      final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
       return hay.contains(q);
     }).toList();
     list.sort((a, b) {
@@ -495,16 +518,27 @@ class _AgentsScreenState extends State<AgentsScreen> {
             child: TextField(
               controller: _q,
               decoration: InputDecoration(
-                hintText: _queryCase ? 'Filter (case-sensitive)' : 'Filter agents / platforms / projects',
+                hintText: _queryRegex
+                    ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
+                    : (_queryCase ? 'Filter (case-sensitive)' : 'Filter agents / platforms / projects'),
                 isDense: true,
                 border: const OutlineInputBorder(),
                 prefixIcon: IconButton(
-                  tooltip: _queryCase ? 'Case-sensitive on' : 'Case-insensitive',
+                  tooltip: _queryRegex
+                      ? (_queryCase
+                          ? 'Regex · case on (long-press: plain filter)'
+                          : 'Regex · case off (long-press: plain filter)')
+                      : (_queryCase
+                          ? 'Case-sensitive (long-press: regex)'
+                          : 'Case-insensitive (long-press: regex)'),
                   icon: Icon(
-                    _queryCase ? Icons.text_fields : Icons.search,
+                    _queryRegex
+                        ? Icons.code
+                        : (_queryCase ? Icons.text_fields : Icons.search),
                     size: 18,
                   ),
                   onPressed: () => setState(() => _queryCase = !_queryCase),
+                  onLongPress: () => setState(() => _queryRegex = !_queryRegex),
                 ),
                 suffixIcon: _query.isEmpty
                     ? null

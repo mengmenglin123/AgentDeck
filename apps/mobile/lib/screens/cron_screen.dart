@@ -26,6 +26,7 @@ class _CronScreenState extends State<CronScreen> {
   final _q = TextEditingController();
   String _query = '';
   bool _queryCase = false;
+  bool _queryRegex = false;
   /// all | on | off
   String _enabled = 'all';
   bool _wrapLines = false;
@@ -96,10 +97,17 @@ class _CronScreenState extends State<CronScreen> {
     }
     final rawQ = _query.trim();
     final q = _queryCase ? rawQ : rawQ.toLowerCase();
-    if (q.isNotEmpty) {
+    if (rawQ.isNotEmpty) {
       it = it.where((j) {
         final hayRaw =
             '${j['name']} ${j['id']} ${j['kind']} ${j['schedule']} ${j['description']} ${j['last_status']}';
+        if (_queryRegex) {
+          try {
+            return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
+          } catch (_) {
+            return false;
+          }
+        }
         final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
         return hay.contains(q);
       });
@@ -338,16 +346,27 @@ class _CronScreenState extends State<CronScreen> {
             child: TextField(
               controller: _q,
               decoration: InputDecoration(
-                hintText: _queryCase ? 'Filter (case-sensitive)' : 'Filter name / schedule / status',
+                hintText: _queryRegex
+                    ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
+                    : (_queryCase ? 'Filter (case-sensitive)' : 'Filter name / schedule / status'),
                 isDense: true,
                 border: const OutlineInputBorder(),
                 prefixIcon: IconButton(
-                  tooltip: _queryCase ? 'Case-sensitive on' : 'Case-insensitive',
+                  tooltip: _queryRegex
+                      ? (_queryCase
+                          ? 'Regex · case on (long-press: plain filter)'
+                          : 'Regex · case off (long-press: plain filter)')
+                      : (_queryCase
+                          ? 'Case-sensitive (long-press: regex)'
+                          : 'Case-insensitive (long-press: regex)'),
                   icon: Icon(
-                    _queryCase ? Icons.text_fields : Icons.search,
+                    _queryRegex
+                        ? Icons.code
+                        : (_queryCase ? Icons.text_fields : Icons.search),
                     size: 18,
                   ),
                   onPressed: () => setState(() => _queryCase = !_queryCase),
+                  onLongPress: () => setState(() => _queryRegex = !_queryRegex),
                 ),
                 suffixIcon: _query.isEmpty
                     ? null
