@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.163
+
+- Refactor: remove 25 duplicate elif handler blocks (-73 lines)
+- Fix: resolve 8 Dart analyzer warnings (unnecessary type checks/casts/null assertions)
+- Fix: remove unused _copyStatus from _StatChip
+- Fix: dedup known/builtins sets (193 unique entries)
+
+
 ## 0.1.162
 
 - Fix: mock df/free/ps/uptime handlers (were in help but missing)
