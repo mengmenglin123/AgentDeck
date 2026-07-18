@@ -385,10 +385,12 @@ class _SessionsScreenState extends State<SessionsScreen> {
         ? (context.read<AppSettingsController>().sessionSort)
         : 'updated';
     list.sort((a, b) {
-      final ap = _pinned.contains(a.sessionKey) ? 0 : 1;
-      final bp = _pinned.contains(b.sessionKey) ? 0 : 1;
-      if (ap != bp) return ap.compareTo(bp);
       int dir(int c) => _sortAsc ? c : -c;
+      if (sortMode != 'pinned') {
+        final ap = _pinned.contains(a.sessionKey) ? 0 : 1;
+        final bp = _pinned.contains(b.sessionKey) ? 0 : 1;
+        if (ap != bp) return ap.compareTo(bp);
+      }
       switch (sortMode) {
         case 'title':
           return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
@@ -429,6 +431,18 @@ class _SessionsScreenState extends State<SessionsScreen> {
         case 'live':
           final lc = (a.live ? 1 : 0).compareTo(b.live ? 1 : 0);
           if (lc != 0) return dir(-lc); // live first
+          return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
+        case 'last':
+          final la = (a.lastUser ?? '').toLowerCase();
+          final lb = (b.lastUser ?? '').toLowerCase();
+          final lsc = la.compareTo(lb);
+          if (lsc != 0) return dir(lsc);
+          return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
+        case 'pinned':
+          final pa = _pinned.contains(a.sessionKey) ? 1 : 0;
+          final pb = _pinned.contains(b.sessionKey) ? 1 : 0;
+          final pc = pa.compareTo(pb);
+          if (pc != 0) return dir(-pc); // pinned first by default dir
           return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
         case 'recent':
           final ar = _recentRank[a.sessionKey];
@@ -988,6 +1002,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
                             PopupMenuItem(value: 'workdir', child: Text('Sort: Workdir')),
                             PopupMenuItem(value: 'running', child: Text('Sort: Running')),
                             PopupMenuItem(value: 'live', child: Text('Sort: Live')),
+                            PopupMenuItem(value: 'last', child: Text('Sort: Last msg')),
+                            PopupMenuItem(value: 'pinned', child: Text('Sort: Pinned')),
                           ],
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -1007,6 +1023,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                   'workdir': 'Workdir',
                                   'running': 'Running',
                                   'live': 'Live',
+                                  'last': 'Last msg',
+                                  'pinned': 'Pinned',
                                 }[settings.sessionSort] ??
                                     'Updated',
                                 style: const TextStyle(fontSize: 12),

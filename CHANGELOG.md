@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.94
+
+- Sessions last-message and pinned sort modes
+- Connect platform and profile id sort
+
 ## 0.1.93
 
 - Workspace status sort

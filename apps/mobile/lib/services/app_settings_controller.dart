@@ -56,7 +56,7 @@ class AppSettingsController extends ChangeNotifier {
     }
     showToolsDefault = p.getBool(_kShowTools) ?? true;
     sessionSort = p.getString(_kSort) ?? 'updated';
-    const allowed = {'updated', 'title', 'project', 'created', 'recent', 'model', 'key', 'platform', 'agent', 'mode', 'workdir', 'running', 'live'};
+    const allowed = {'updated', 'title', 'project', 'created', 'recent', 'model', 'key', 'platform', 'agent', 'mode', 'workdir', 'running', 'live', 'last', 'pinned'};
     if (!allowed.contains(sessionSort)) sessionSort = 'updated';
     highContrast = p.getBool(_kContrast) ?? false;
     hapticsEnabled = p.getBool(_kHaptics) ?? true;

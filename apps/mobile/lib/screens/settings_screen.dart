@@ -219,6 +219,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ('workdir', 'Workdir'),
                   ('running', 'Running'),
                   ('live', 'Live'),
+                  ('last', 'Last msg'),
+                  ('pinned', 'Pinned'),
                 ])
                   ChoiceChip(
                     label: Text(e.$2),
@@ -443,6 +445,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return 'Running first (then title)';
       case 'live':
         return 'Live first (then title)';
+      case 'last':
+        return 'By last user message then title';
+      case 'pinned':
+        return 'Pinned first (then title; respects direction)';
       case 'recent':
         return 'By recently opened on this device (pins still first)';
       default:

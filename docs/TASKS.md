@@ -450,6 +450,12 @@
 - [x] **P3-347** Agents version sort (0.1.93)
 - [x] **P3-348** Activity priority sort (0.1.93)
 
+
+- [x] **P3-349** Sessions last-message sort (0.1.94)
+- [x] **P3-350** Sessions pinned sort (0.1.94)
+- [x] **P3-351** Connect platform sort (0.1.94)
+- [x] **P3-352** Connect profile id sort (0.1.94)
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

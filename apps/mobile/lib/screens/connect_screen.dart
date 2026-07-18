@@ -288,19 +288,23 @@ class _ConnectScreenState extends State<ConnectScreen> {
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
           IconButton(
-            tooltip: _sortMode == 'tls'
-                ? (_sortAsc ? 'TLS first' : 'Plain first')
-                : (_sortMode == 'bridgePort'
-                    ? (_sortAsc ? 'Bridge port high→low' : 'Bridge port low→high')
-                    : (_sortMode == 'note'
-                        ? (_sortAsc ? 'Note Z→A' : 'Note A→Z')
-                        : (_sortMode == 'port'
-                            ? (_sortAsc ? 'Mgmt port high→low' : 'Mgmt port low→high')
-                            : (_sortMode == 'host'
-                                ? (_sortAsc ? 'Host Z→A' : 'Host A→Z')
-                                : (_sortMode == 'updated'
-                                    ? (_sortAsc ? 'Updated new→old' : 'Updated old→new')
-                                    : (_sortAsc ? 'Profiles Z→A' : 'Profiles A→Z')))))),
+            tooltip: _sortMode == 'id'
+                ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                : (_sortMode == 'platform'
+                    ? (_sortAsc ? 'Platform Z→A' : 'Platform A→Z')
+                    : (_sortMode == 'tls'
+                        ? (_sortAsc ? 'TLS first' : 'Plain first')
+                        : (_sortMode == 'bridgePort'
+                            ? (_sortAsc ? 'Bridge port high→low' : 'Bridge port low→high')
+                            : (_sortMode == 'note'
+                                ? (_sortAsc ? 'Note Z→A' : 'Note A→Z')
+                                : (_sortMode == 'port'
+                                    ? (_sortAsc ? 'Mgmt port high→low' : 'Mgmt port low→high')
+                                    : (_sortMode == 'host'
+                                        ? (_sortAsc ? 'Host Z→A' : 'Host A→Z')
+                                        : (_sortMode == 'updated'
+                                            ? (_sortAsc ? 'Updated new→old' : 'Updated old→new')
+                                            : (_sortAsc ? 'Name Z→A' : 'Name A→Z')))))))),
             onPressed: () {
               setState(() {
                 if (_sortMode == 'name' && _sortAsc) {
@@ -312,28 +316,38 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   _sortAsc = false;
                 } else if (_sortMode == 'host' && !_sortAsc) {
                   _sortMode = 'updated';
+                  _sortAsc = false; // new first
+                } else if (_sortMode == 'updated' && !_sortAsc) {
                   _sortAsc = true;
                 } else if (_sortMode == 'updated' && _sortAsc) {
-                  _sortAsc = false;
-                } else if (_sortMode == 'updated' && !_sortAsc) {
                   _sortMode = 'port';
-                  _sortAsc = true;
-                } else if (_sortMode == 'port' && _sortAsc) {
                   _sortAsc = false;
                 } else if (_sortMode == 'port' && !_sortAsc) {
+                  _sortAsc = true;
+                } else if (_sortMode == 'port' && _sortAsc) {
                   _sortMode = 'note';
                   _sortAsc = true;
                 } else if (_sortMode == 'note' && _sortAsc) {
                   _sortAsc = false;
                 } else if (_sortMode == 'note' && !_sortAsc) {
                   _sortMode = 'bridgePort';
-                  _sortAsc = true;
-                } else if (_sortMode == 'bridgePort' && _sortAsc) {
                   _sortAsc = false;
                 } else if (_sortMode == 'bridgePort' && !_sortAsc) {
+                  _sortAsc = true;
+                } else if (_sortMode == 'bridgePort' && _sortAsc) {
                   _sortMode = 'tls';
                   _sortAsc = true;
                 } else if (_sortMode == 'tls' && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortMode == 'tls' && !_sortAsc) {
+                  _sortMode = 'platform';
+                  _sortAsc = true;
+                } else if (_sortMode == 'platform' && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortMode == 'platform' && !_sortAsc) {
+                  _sortMode = 'id';
+                  _sortAsc = true;
+                } else if (_sortMode == 'id' && _sortAsc) {
                   _sortAsc = false;
                 } else {
                   _sortMode = 'name';
@@ -341,19 +355,23 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 }
               });
             },
-            icon: Icon(_sortMode == 'tls'
-                ? Icons.lock_outline
-                : (_sortMode == 'bridgePort'
-                    ? Icons.settings_ethernet
-                    : (_sortMode == 'note'
-                        ? Icons.sticky_note_2_outlined
-                        : (_sortMode == 'port'
-                            ? Icons.tag
-                            : (_sortMode == 'host'
-                                ? Icons.dns_outlined
-                                : (_sortMode == 'updated'
-                                    ? Icons.schedule
-                                    : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))))))),
+            icon: Icon(_sortMode == 'id'
+                ? Icons.tag
+                : (_sortMode == 'platform'
+                    ? Icons.devices_other_outlined
+                    : (_sortMode == 'tls'
+                        ? Icons.lock_outline
+                        : (_sortMode == 'bridgePort'
+                            ? Icons.cable
+                            : (_sortMode == 'note'
+                                ? Icons.sticky_note_2_outlined
+                                : (_sortMode == 'port'
+                                    ? Icons.numbers
+                                    : (_sortMode == 'host'
+                                        ? Icons.dns_outlined
+                                        : (_sortMode == 'updated'
+                                            ? Icons.schedule
+                                            : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))))))))),
           ),
 
           IconButton(
@@ -534,6 +552,16 @@ class _ConnectScreenState extends State<ConnectScreen> {
                       final ta = a.config.useTls ? 1 : 0;
                       final tb = b.config.useTls ? 1 : 0;
                       c = ta.compareTo(tb);
+                      if (c == 0) {
+                        c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+                      }
+                    } else if (_sortMode == 'platform') {
+                      c = a.config.platformName.toLowerCase().compareTo(b.config.platformName.toLowerCase());
+                      if (c == 0) {
+                        c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+                      }
+                    } else if (_sortMode == 'id') {
+                      c = a.id.toLowerCase().compareTo(b.id.toLowerCase());
                       if (c == 0) {
                         c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
                       }
