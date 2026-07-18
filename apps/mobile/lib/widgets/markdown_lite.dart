@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings, lists, task lists, tables, hr, fenced code, links, strike, inline code, bold/italic.
+/// Covers headings, lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, strike, inline code, bold/italic.
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -131,7 +131,7 @@ class MarkdownLite extends StatelessWidget {
               child: SelectableText.rich(
                 TextSpan(
                   children: [
-                    TextSpan(text: '• ', style: base),
+                    TextSpan(text: b.marker ?? '• ', style: base),
                     ..._inline(b.text, base).children ?? [TextSpan(text: b.text, style: base)],
                   ],
                 ),
@@ -228,15 +228,34 @@ class MarkdownLite extends StatelessWidget {
         out.add(_Block(_BlockKind.h2, t.substring(3)));
       } else if (t.startsWith('# ')) {
         out.add(_Block(_BlockKind.h1, t.substring(2)));
-      } else if (t.startsWith('> ')) {
-        out.add(_Block(_BlockKind.quote, t.substring(2)));
+      } else if (t.startsWith('> ') || t.trim() == '>') {
+        final buf = StringBuffer(t.startsWith('> ') ? t.substring(2) : '');
+        i++;
+        while (i < lines.length) {
+          final n = lines[i].trimRight();
+          if (n.startsWith('> ')) {
+            buf.writeln();
+            buf.write(n.substring(2));
+            i++;
+          } else if (n.trim() == '>') {
+            buf.writeln();
+            i++;
+          } else {
+            break;
+          }
+        }
+        out.add(_Block(_BlockKind.quote, buf.toString()));
+        continue;
       } else if (RegExp(r'^[-*+]\s+\[[ xX]\]\s+').hasMatch(t)) {
         final checked = RegExp(r'^[-*+]\s+\[([xX])\]\s+').hasMatch(t);
         final body = t.replaceFirst(RegExp(r'^[-*+]\s+\[[ xX]\]\s+'), '');
         out.add(_Block(_BlockKind.task, body, checked: checked));
-      } else if (RegExp(r'^[-*+]\s+').hasMatch(t) || RegExp(r'^\d+\.\s+').hasMatch(t)) {
-        final body = t.replaceFirst(RegExp(r'^([-*+]|\d+\.)\s+'), '');
-        out.add(_Block(_BlockKind.list, body));
+      } else if (RegExp(r'^\d+\.\s+').hasMatch(t)) {
+        final m = RegExp(r'^(\d+)\.\s+(.*)$').firstMatch(t)!;
+        out.add(_Block(_BlockKind.list, m.group(2)!, marker: '${m.group(1)}. '));
+      } else if (RegExp(r'^[-*+]\s+').hasMatch(t)) {
+        final body = t.replaceFirst(RegExp(r'^[-*+]\s+'), '');
+        out.add(_Block(_BlockKind.list, body, marker: '• '));
       } else {
         out.add(_Block(_BlockKind.para, t));
       }
@@ -516,9 +535,11 @@ class MarkdownLite extends StatelessWidget {
 enum _BlockKind { para, h1, h2, h3, list, task, code, quote, blank, hr, table }
 
 class _Block {
-  const _Block(this.kind, this.text, {this.lang, this.checked});
+  const _Block(this.kind, this.text, {this.lang, this.checked, this.marker});
   final _BlockKind kind;
   final String text;
   final String? lang;
   final bool? checked;
+  /// Bullet "• " or ordered "1. " etc.
+  final String? marker;
 }

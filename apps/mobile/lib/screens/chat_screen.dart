@@ -222,18 +222,59 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Attach (protocol demo)'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Sends Bridge message.files / images without native picker. '
-              'Protocol path without native file_picker. Camera/gallery remain P4.',
-              style: TextStyle(fontSize: 12),
-            ),
-            const SizedBox(height: 8),
-            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'filename')),
-            TextField(controller: bodyCtrl, decoration: const InputDecoration(labelText: 'text content'), maxLines: 3),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Sends Bridge message.files / images without native picker. '
+                'Protocol path without native file_picker. Camera/gallery remain P4.',
+                style: TextStyle(fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+              const Text('Presets', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  ActionChip(
+                    label: const Text('note.txt'),
+                    onPressed: () {
+                      nameCtrl.text = 'note.txt';
+                      bodyCtrl.text = 'hello from HuanHermes attach demo';
+                    },
+                  ),
+                  ActionChip(
+                    label: const Text('context.md'),
+                    onPressed: () {
+                      nameCtrl.text = 'context.md';
+                      bodyCtrl.text =
+                          '# Context\n\n> App is console-only.\n\n1. Bridge WS\n2. Management REST\n';
+                    },
+                  ),
+                  ActionChip(
+                    label: const Text('payload.json'),
+                    onPressed: () {
+                      nameCtrl.text = 'payload.json';
+                      bodyCtrl.text = '{\n  "source": "huanhermes-app",\n  "demo": true\n}\n';
+                    },
+                  ),
+                  ActionChip(
+                    label: const Text('snippet.log'),
+                    onPressed: () {
+                      nameCtrl.text = 'snippet.log';
+                      bodyCtrl.text = 'INFO mock-host ready\nWARN pairing URI must not embed tokens\n';
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'filename')),
+              TextField(controller: bodyCtrl, decoration: const InputDecoration(labelText: 'text content'), maxLines: 3),
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
@@ -254,9 +295,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           'note': 'demo-meta',
         });
       } else {
+        final lower = name.toLowerCase();
+        final mime = lower.endsWith('.json')
+            ? 'application/json'
+            : lower.endsWith('.md')
+                ? 'text/markdown'
+                : lower.endsWith('.log')
+                    ? 'text/x-log'
+                    : 'text/plain';
         _pendingFiles.add({
           'name': name,
-          'mime': 'text/plain',
+          'mime': mime,
           'data_base64': b64,
         });
       }

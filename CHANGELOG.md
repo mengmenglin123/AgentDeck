@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.102
+
+- MarkdownLite ordered lists + multi-line blockquotes
+- Attach dialog presets (note/md/json/log) + mime by extension
+- Mock hermes cron jobs, host log seed, terminal clear/reset
+- Cron UI shows project/tags when present
+
 ## 0.1.101
 
 - Settings terminal font scale (device-local) wired into Terminal screen

@@ -292,6 +292,32 @@ CRON_JOBS: List[Dict[str, Any]] = [
         "last_status": "skipped",
         "description": "Disabled mock job — Host would run cleanup scripts",
     },
+    {
+        "id": "cron-hermes-memory",
+        "name": "Hermes memory digest",
+        "kind": "prompt",
+        "schedule": "every 12h",
+        "enabled": True,
+        "project": "hermes",
+        "next_run_at": time.time() + 12 * 3600,
+        "last_run_at": time.time() - 12 * 3600,
+        "last_status": "ok",
+        "description": "Mock: summarize hermes project memories (ADR-002 · no real process)",
+        "tags": ["hermes", "memory"],
+    },
+    {
+        "id": "cron-hermes-skills-scan",
+        "name": "Hermes skills catalog scan",
+        "kind": "prompt",
+        "schedule": "0 8 * * 1",
+        "enabled": False,
+        "project": "hermes",
+        "next_run_at": None,
+        "last_run_at": time.time() - 7 * 86400,
+        "last_status": "skipped",
+        "description": "Disabled mock: refresh skills list for Hermes project",
+        "tags": ["hermes", "skills"],
+    },
 ]
 
 MOCK_DIFFS: Dict[str, str] = {
@@ -334,7 +360,7 @@ HOST_LOGS_MAX = 200
 
 def host_log(level: str, message: str, **extra) -> None:
     entry = {
-        "ts": int(time.time()),
+        "ts": int(extra.pop("ts", time.time())),
         "level": level,
         "message": message,
         **extra,
@@ -342,6 +368,26 @@ def host_log(level: str, message: str, **extra) -> None:
     with HOST_LOGS_LOCK:
         HOST_LOGS.append(entry)
         del HOST_LOGS[: max(0, len(HOST_LOGS) - HOST_LOGS_MAX)]
+
+
+def seed_host_logs() -> None:
+    """Idempotent demo log lines for Logs screen."""
+    with HOST_LOGS_LOCK:
+        if HOST_LOGS:
+            return
+    samples = [
+        ("info", "Mock Host listening (bridge+mgmt)"),
+        ("info", "Hermes adapter=mock (ADR-002) — no live process"),
+        ("debug", "Terminal geometry default 80x24"),
+        ("warn", "Pairing URI must never embed tokens"),
+        ("info", "Activity seed events ready"),
+    ]
+    now = int(time.time())
+    for i, (level, msg) in enumerate(samples):
+        host_log(level, msg, source="mock-host", ts=now - (len(samples) - i) * 15)
+
+
+seed_host_logs()
 
 
 def activity_push(kind: str, summary: str, **extra: Any) -> None:
@@ -689,6 +735,8 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         out("AGENTS.md\nREADME.md\nsrc/\n", done=True, exit_code=0)
     elif lower == "whoami":
         out("huanhermes-mock\n", done=True, exit_code=0)
+    elif lower in {"clear", "reset", "cls"}:
+        out("\x1b[2J\x1b[H[mock-clear]\n", done=True, exit_code=0)
     elif lower in {"uname", "uname -a"}:
         out("HuanHermes-Mock 0.1 kernel mock-arch\n", done=True, exit_code=0)
     elif lower in {"hostname", "hostname -f"}:

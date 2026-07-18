@@ -105,7 +105,7 @@ class _CronScreenState extends State<CronScreen> {
     if (rawQ.isNotEmpty) {
       it = it.where((j) {
         final hayRaw =
-            '${j['name']} ${j['id']} ${j['kind']} ${j['schedule']} ${j['description']} ${j['last_status']}';
+            '${j['name']} ${j['id']} ${j['kind']} ${j['schedule']} ${j['description']} ${j['last_status']} ${j['project']} ${j['tags']}';
         if (_queryRegex) {
           try {
             return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
@@ -579,8 +579,12 @@ class _CronScreenState extends State<CronScreen> {
                           final kind = (j['kind'] ?? '').toString();
                           final schedule = (j['schedule'] ?? '').toString();
                           final last = (j['last_status'] ?? '').toString();
+                          final proj = (j['project'] ?? '').toString();
+                          final tags = j['tags'] is List
+                              ? (j['tags'] as List).map((e) => e.toString()).join(', ')
+                              : '';
                           final sub =
-                              '$kind · $schedule\nlast: $last · next: ${_fmtTs(j['next_run_at'])}\n${j['description'] ?? ''}';
+                              '$kind · $schedule${proj.isNotEmpty ? ' · project=$proj' : ''}${tags.isNotEmpty ? ' · $tags' : ''}\nlast: $last · next: ${_fmtTs(j['next_run_at'])}\n${j['description'] ?? ''}';
                           return ListTile(
                             leading: Icon(
                               enabled ? Icons.schedule : Icons.schedule_outlined,
