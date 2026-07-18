@@ -35,8 +35,8 @@ Mock 默认可用环境变量改端口，避免与用户机器上其他服务冲
 
 | 文档 | 用途 |
 |------|------|
-| [`docs/CONTINUE.md`](CONTINUE.md) | 新对话短粘贴块 + 每轮 6 步 + 版本锚点 |
-| [`docs/SUBAGENTS.md`](SUBAGENTS.md) | `delegate_task` 分轨、文件所有权、merge 清单 |
+| [`docs/CONTINUE.md`](CONTINUE.md) | 新对话短粘贴块（偏松）+ 硬限制 + 锚点 |
+| [`docs/SUBAGENTS.md`](SUBAGENTS.md) | 可选并行：`delegate_task` 分轨、merge 清单 |
 | [`docs/TASKS.md`](TASKS.md) | 任务板；已 ship 勿重做 |
 
-P4 已授权；小步 commit + CHANGELOG + push `main`。回报保持短表：版本 · SHA · 切片。
+P4 已授权；小步 commit + CHANGELOG + push `main`。短回报：版本 · SHA · 做了啥。
