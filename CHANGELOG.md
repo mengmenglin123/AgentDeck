@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.85
+
+- Agents provider + sessions_count sort
+- MCP description sort
+- Connect TLS sort
+- Activity type sort
+
 ## 0.1.84
 
 - Skills enabled sort

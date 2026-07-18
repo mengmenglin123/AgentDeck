@@ -404,6 +404,11 @@
 | P3-311 | Logs 按 id 排序 | [x] |
 | P3-312 | Connect 按 bridgePort 排序 | [x] |
 
+| P3-313 | Agents 按 provider / sessions_count 排序 | [x] |
+| P3-314 | MCP 按 description 排序 | [x] |
+| P3-315 | Connect 按 TLS 排序 | [x] |
+| P3-316 | Activity 按 type 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |
