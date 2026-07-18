@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.68
+
+- Memory: sort by confidence/score
+- Activity: sort by source/origin
+- MCP: transport filter chips
+- Diff: sort files by status
+
 ## 0.1.67
 
 - Status / Host: relative timestamps for status values

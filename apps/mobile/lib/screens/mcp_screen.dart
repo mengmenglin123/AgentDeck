@@ -24,6 +24,7 @@ class _McpScreenState extends State<McpScreen> {
   final _q = TextEditingController();
   String _query = '';
   String _status = '';
+  String _transportFilter = ''; // empty=all | stdio | sse | http | ws | other
   bool _wrapLines = false;
   bool _sortByStatus = false;
   bool _sortByTools = false;
@@ -85,9 +86,26 @@ class _McpScreenState extends State<McpScreen> {
           return false;
         }
       }
+      if (_transportFilter.isNotEmpty) {
+        final tr = (s['transport'] ?? s['type'] ?? s['protocol'] ?? s['url'] ?? s['command'] ?? '')
+            .toString()
+            .toLowerCase();
+        if (_transportFilter == 'other') {
+          final known = tr.contains('stdio') ||
+              tr.contains('sse') ||
+              tr.contains('http') ||
+              tr.contains('ws') ||
+              tr.contains('websocket');
+          if (known) return false;
+        } else if (!tr.contains(_transportFilter)) {
+          return false;
+        }
+      }
       if (q.isEmpty) return true;
       final tools = s['tools'] is List ? (s['tools'] as List).join(' ') : '';
-      final hay = '${s['name']} ${s['description']} ${s['status']} $tools'.toLowerCase();
+      final hay =
+          '${s['name']} ${s['description']} ${s['status']} ${s['transport']} ${s['url']} ${s['command']} $tools'
+              .toLowerCase();
       return hay.contains(q);
     }).toList();
     list.sort((a, b) {
@@ -320,6 +338,28 @@ class _McpScreenState extends State<McpScreen> {
                           label: Text(f.$2, style: const TextStyle(fontSize: 12)),
                           selected: _status == f.$1,
                           onSelected: (_) => setState(() => _status = f.$1),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                  child: Wrap(
+                    spacing: 8,
+                    children: [
+                      for (final f in const [
+                        ('', 'All transports'),
+                        ('stdio', 'stdio'),
+                        ('sse', 'SSE'),
+                        ('http', 'HTTP'),
+                        ('ws', 'WS'),
+                        ('other', 'Other'),
+                      ])
+                        FilterChip(
+                          label: Text(f.$2, style: const TextStyle(fontSize: 12)),
+                          selected: _transportFilter == f.$1,
+                          onSelected: (_) => setState(() => _transportFilter = f.$1),
                           visualDensity: VisualDensity.compact,
                         ),
                     ],

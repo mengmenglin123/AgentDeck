@@ -29,6 +29,7 @@ class _DiffScreenState extends State<DiffScreen> {
   bool _lineNums = true;
   bool _wrapLines = false;
   bool _sortAsc = true;
+  bool _sortByStatus = false;
   Timer? _timer;
   bool _autoRefresh = false;
   final _scroll = ScrollController();
@@ -102,6 +103,12 @@ class _DiffScreenState extends State<DiffScreen> {
       list = list.where((f) => _fileStatus(f) == _statusFilter).toList();
     }
     list.sort((a, b) {
+      if (_sortByStatus) {
+        final sa = _fileStatus(a).toLowerCase();
+        final sb = _fileStatus(b).toLowerCase();
+        final c = sa.compareTo(sb);
+        if (c != 0) return _sortAsc ? c : -c;
+      }
       final pa = '${a['path']}'.toLowerCase();
       final pb = '${b['path']}'.toLowerCase();
       final c = pa.compareTo(pb);
@@ -229,9 +236,27 @@ class _DiffScreenState extends State<DiffScreen> {
             icon: Icon(_lineNums ? Icons.format_list_numbered : Icons.format_list_bulleted),
           ),
           IconButton(
-            tooltip: _sortAsc ? 'Sort Z→A' : 'Sort A→Z',
-            onPressed: () => setState(() => _sortAsc = !_sortAsc),
-            icon: Icon(_sortAsc ? Icons.sort_by_alpha : Icons.sort),
+            tooltip: _sortByStatus
+                ? (_sortAsc ? 'Status Z→A' : 'Status A→Z')
+                : (_sortAsc ? 'Path Z→A' : 'Path A→Z'),
+            onPressed: () {
+              setState(() {
+                if (!_sortByStatus && _sortAsc) {
+                  _sortAsc = false;
+                } else if (!_sortByStatus && !_sortAsc) {
+                  _sortByStatus = true;
+                  _sortAsc = true;
+                } else if (_sortByStatus && _sortAsc) {
+                  _sortAsc = false;
+                } else {
+                  _sortByStatus = false;
+                  _sortAsc = true;
+                }
+              });
+            },
+            icon: Icon(_sortByStatus
+                ? Icons.flag_outlined
+                : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)),
           ),
 
           IconButton(

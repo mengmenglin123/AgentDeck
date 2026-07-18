@@ -30,6 +30,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
   bool _sortByTitle = false;
   bool _sortByType = false;
   bool _sortByContent = false;
+  bool _sortByConfidence = false;
   bool _sortAsc = true;
   bool _newestFirst = true;
   final _scroll = ScrollController();
@@ -84,7 +85,19 @@ class _MemoryScreenState extends State<MemoryScreen> {
       return p?.millisecondsSinceEpoch ?? 0;
     }
     list.sort((a, b) {
-      if (_sortByContent) {
+      double confOf(Map x) {
+        final v = x['confidence'] ?? x['score'] ?? x['weight'];
+        if (v is num) return v.toDouble();
+        return double.tryParse(v?.toString() ?? '') ?? -1;
+      }
+      if (_sortByConfidence) {
+        final c = confOf(a).compareTo(confOf(b));
+        if (c != 0) return _sortAsc ? c : -c;
+        final na = (a['title'] ?? a['id'] ?? '').toString().toLowerCase();
+        final nb = (b['title'] ?? b['id'] ?? '').toString().toLowerCase();
+        final cn = na.compareTo(nb);
+        if (cn != 0) return _sortAsc ? cn : -cn;
+      } else if (_sortByContent) {
         final ca = (a['content'] ?? a['text'] ?? a['body'] ?? '').toString().toLowerCase();
         final cb = (b['content'] ?? b['text'] ?? b['body'] ?? '').toString().toLowerCase();
         final c = ca.compareTo(cb);
@@ -227,19 +240,22 @@ class _MemoryScreenState extends State<MemoryScreen> {
             icon: Icon(_newestFirst ? Icons.arrow_downward : Icons.arrow_upward),
           ),
           IconButton(
-            tooltip: _sortByContent
-                ? (_sortAsc ? 'Content Z→A' : 'Content A→Z')
-                : (_sortByType
-                    ? (_sortAsc ? 'Types Z→A' : 'Types A→Z')
-                    : (_sortByTitle
-                        ? (_sortAsc ? 'Titles Z→A' : 'Titles A→Z')
-                        : 'Sort by title / type / content')),
+            tooltip: _sortByConfidence
+                ? (_sortAsc ? 'Confidence high→low' : 'Confidence low→high')
+                : (_sortByContent
+                    ? (_sortAsc ? 'Content Z→A' : 'Content A→Z')
+                    : (_sortByType
+                        ? (_sortAsc ? 'Types Z→A' : 'Types A→Z')
+                        : (_sortByTitle
+                            ? (_sortAsc ? 'Titles Z→A' : 'Titles A→Z')
+                            : 'Sort by title / type / content / confidence'))),
             onPressed: () {
               setState(() {
-                if (!_sortByTitle && !_sortByType && !_sortByContent) {
+                if (!_sortByTitle && !_sortByType && !_sortByContent && !_sortByConfidence) {
                   _sortByTitle = true;
                   _sortByType = false;
                   _sortByContent = false;
+                  _sortByConfidence = false;
                   _sortAsc = true;
                 } else if (_sortByTitle && _sortAsc) {
                   _sortAsc = false;
@@ -247,6 +263,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
                   _sortByTitle = false;
                   _sortByType = true;
                   _sortByContent = false;
+                  _sortByConfidence = false;
                   _sortAsc = true;
                 } else if (_sortByType && _sortAsc) {
                   _sortAsc = false;
@@ -254,22 +271,34 @@ class _MemoryScreenState extends State<MemoryScreen> {
                   _sortByTitle = false;
                   _sortByType = false;
                   _sortByContent = true;
+                  _sortByConfidence = false;
                   _sortAsc = true;
                 } else if (_sortByContent && _sortAsc) {
                   _sortAsc = false;
+                } else if (_sortByContent && !_sortAsc) {
+                  _sortByTitle = false;
+                  _sortByType = false;
+                  _sortByContent = false;
+                  _sortByConfidence = true;
+                  _sortAsc = false; // high first by default
+                } else if (_sortByConfidence && !_sortAsc) {
+                  _sortAsc = true;
                 } else {
                   _sortByTitle = false;
                   _sortByType = false;
                   _sortByContent = false;
+                  _sortByConfidence = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortByContent
-                ? Icons.article_outlined
-                : (_sortByType
-                    ? Icons.category_outlined
-                    : (_sortByTitle ? Icons.sort_by_alpha : Icons.sort))),
+            icon: Icon(_sortByConfidence
+                ? Icons.speed
+                : (_sortByContent
+                    ? Icons.article_outlined
+                    : (_sortByType
+                        ? Icons.category_outlined
+                        : (_sortByTitle ? Icons.sort_by_alpha : Icons.sort)))),
           ),
 
           IconButton(

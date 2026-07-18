@@ -319,6 +319,11 @@
 | P3-243 | Workspace 隐藏空目录 | [x] |
 | P3-244 | Terminal regex find | [x] |
 
+| P3-245 | Memory 按 confidence 排序 | [x] |
+| P3-246 | Activity 按 source 排序 | [x] |
+| P3-247 | MCP transport chips 过滤 | [x] |
+| P3-248 | Diff 按 status 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |
