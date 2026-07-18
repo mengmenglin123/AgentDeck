@@ -30,6 +30,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   final _filterCtrl = TextEditingController();
   String _filter = '';
   bool _queryCase = false;
+  bool _queryRegex = false;
   /// name ascending when true; dirs always first
   bool _wrapLines = false;
   bool _sortAsc = true;
@@ -78,12 +79,21 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
           if (emptyFlag == true) continue;
         }
       }
-      if (q.isNotEmpty) {
+      if (rawQ.isNotEmpty) {
         final nameRaw = (e['name'] ?? '').toString();
         final typeRaw = (e['type'] ?? '').toString();
-        final name = _queryCase ? nameRaw : nameRaw.toLowerCase();
-        final typeHay = _queryCase ? typeRaw : typeRaw.toLowerCase();
-        if (!name.contains(q) && !typeHay.contains(q)) continue;
+        final hayRaw = '$nameRaw $typeRaw';
+        if (_queryRegex) {
+          try {
+            if (!RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw)) continue;
+          } catch (_) {
+            continue;
+          }
+        } else {
+          final name = _queryCase ? nameRaw : nameRaw.toLowerCase();
+          final typeHay = _queryCase ? typeRaw : typeRaw.toLowerCase();
+          if (!name.contains(q) && !typeHay.contains(q)) continue;
+        }
       }
       list.add(e);
     }
@@ -510,16 +520,27 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               child: TextField(
                 controller: _filterCtrl,
                 decoration: InputDecoration(
-                  hintText: _queryCase ? 'Filter (case-sensitive)' : 'Filter files in this folder',
+                  hintText: _queryRegex
+                      ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
+                      : (_queryCase ? 'Filter (case-sensitive)' : 'Filter files in this folder'),
                   isDense: true,
                   border: const OutlineInputBorder(),
                   prefixIcon: IconButton(
-                    tooltip: _queryCase ? 'Case-sensitive on' : 'Case-insensitive',
+                    tooltip: _queryRegex
+                        ? (_queryCase
+                            ? 'Regex · case on (long-press: plain filter)'
+                            : 'Regex · case off (long-press: plain filter)')
+                        : (_queryCase
+                            ? 'Case-sensitive (long-press: regex)'
+                            : 'Case-insensitive (long-press: regex)'),
                     icon: Icon(
-                      _queryCase ? Icons.text_fields : Icons.search,
+                      _queryRegex
+                          ? Icons.code
+                          : (_queryCase ? Icons.text_fields : Icons.search),
                       size: 18,
                     ),
                     onPressed: () => setState(() => _queryCase = !_queryCase),
+                    onLongPress: () => setState(() => _queryRegex = !_queryRegex),
                   ),
                   suffixIcon: _filter.isEmpty
                       ? null

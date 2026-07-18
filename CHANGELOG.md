@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.79
+
+- Skills regex filter (long-press)
+- Sessions regex search (long-press)
+- Workspace regex filter (long-press)
+- Pairing payload regex filter (long-press)
+
 ## 0.1.78
 
 - MCP regex filter (long-press)

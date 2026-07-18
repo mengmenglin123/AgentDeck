@@ -27,6 +27,7 @@ class _PairingScreenState extends State<PairingScreen> {
   bool _wrapLines = false;
   String _payloadQuery = '';
   bool _payloadCase = false;
+  bool _payloadRegex = false;
   bool _payloadSortAsc = true;
   bool _payloadSorted = false;
   final _payloadFilterCtrl = TextEditingController();
@@ -116,10 +117,19 @@ class _PairingScreenState extends State<PairingScreen> {
     final rawQ = _payloadQuery.trim();
     var lines = raw.split('\n');
     if (rawQ.isNotEmpty) {
-      final q = _payloadCase ? rawQ : rawQ.toLowerCase();
-      lines = lines
-          .where((l) => (_payloadCase ? l : l.toLowerCase()).contains(q))
-          .toList();
+      if (_payloadRegex) {
+        try {
+          final re = RegExp(rawQ, caseSensitive: _payloadCase);
+          lines = lines.where((l) => re.hasMatch(l)).toList();
+        } catch (_) {
+          return '(invalid regex: $_payloadQuery)';
+        }
+      } else {
+        final q = _payloadCase ? rawQ : rawQ.toLowerCase();
+        lines = lines
+            .where((l) => (_payloadCase ? l : l.toLowerCase()).contains(q))
+            .toList();
+      }
       if (lines.isEmpty) return '(no payload lines match: $_payloadQuery)';
     }
     if (_payloadSorted) {
@@ -351,16 +361,29 @@ class _PairingScreenState extends State<PairingScreen> {
                   decoration: InputDecoration(
                     isDense: true,
                     prefixIcon: IconButton(
-                      tooltip: _payloadCase ? 'Case-sensitive on' : 'Case-insensitive',
+                      tooltip: _payloadRegex
+                          ? (_payloadCase
+                              ? 'Regex · case on (long-press: plain filter)'
+                              : 'Regex · case off (long-press: plain filter)')
+                          : (_payloadCase
+                              ? 'Case-sensitive (long-press: regex)'
+                              : 'Case-insensitive (long-press: regex)'),
                       icon: Icon(
-                        _payloadCase ? Icons.text_fields : Icons.search,
+                        _payloadRegex
+                            ? Icons.code
+                            : (_payloadCase ? Icons.text_fields : Icons.search),
                         size: 18,
                       ),
                       onPressed: () => setState(() => _payloadCase = !_payloadCase),
+                      onLongPress: () => setState(() => _payloadRegex = !_payloadRegex),
                     ),
-                    hintText: _payloadCase
-                        ? 'Filter payload (case-sensitive)'
-                        : 'Filter payload lines',
+                    hintText: _payloadRegex
+                        ? (_payloadCase
+                            ? 'Filter payload (regex · case)'
+                            : 'Filter payload (regex)')
+                        : (_payloadCase
+                            ? 'Filter payload (case-sensitive)'
+                            : 'Filter payload lines'),
                     border: const OutlineInputBorder(),
                     suffixIcon: _payloadQuery.isEmpty
                         ? null
