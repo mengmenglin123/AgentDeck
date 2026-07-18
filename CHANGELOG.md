@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.107
+
+- MarkdownLite `==mark==` highlight
+- Mock terminal basename/dirname/realpath/stat/du + which/help
+
 ## 0.1.106
 
 - MarkdownLite GitHub-style callouts (`> [!NOTE]` / TIP / WARN / IMPORTANT)

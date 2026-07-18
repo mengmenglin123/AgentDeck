@@ -783,7 +783,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, cat, head, tail, wc, df, free, ps, uptime, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, cat, head, tail, wc, stat, du, basename, dirname, realpath, df, free, ps, uptime, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -860,6 +860,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         known = {
             "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date",
             "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help",
+            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -971,6 +972,89 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         )
     elif lower in {"uptime"}:
         out(" 12:00:00 up 3 days,  4:12,  1 user,  load average: 0.12, 0.08, 0.05\n", done=True, exit_code=0)
+
+
+    elif lower.startswith("basename ") or lower.startswith("dirname ") or lower.startswith("realpath "):
+        parts = data.strip().split(None, 1)
+        cmd = parts[0].lower() if parts else ""
+        arg = parts[1].strip() if len(parts) > 1 else ""
+        st_p = _session_state(sk)
+        wd = st_p.get("workdir") or "/workspace"
+        if not arg:
+            out(f"{cmd}: missing operand\n", done=True, exit_code=1)
+        else:
+            if arg.startswith("/"):
+                path = arg
+            else:
+                path = (wd.rstrip("/") + "/" + arg).replace("//", "/")
+            # normalize ..
+            segs = []
+            for p in path.split("/"):
+                if not p or p == ".":
+                    continue
+                if p == "..":
+                    if segs:
+                        segs.pop()
+                else:
+                    segs.append(p)
+            norm = "/" + "/".join(segs) if segs else "/"
+            if cmd == "basename":
+                out((segs[-1] if segs else "/") + "\n", done=True, exit_code=0)
+            elif cmd == "dirname":
+                out(("/" + "/".join(segs[:-1]) if len(segs) > 1 else "/") + "\n", done=True, exit_code=0)
+            else:
+                # realpath — stay under /workspace when relative
+                if not norm.startswith("/workspace") and not arg.startswith("/"):
+                    norm = "/workspace" + (norm if norm != "/" else "")
+                out(norm + "\n", done=True, exit_code=0)
+    elif lower.startswith("stat ") or lower == "stat":
+        st_s = _session_state(sk)
+        arg = data.strip()[4:].strip() if lower.startswith("stat") else ""
+        if not arg:
+            out("stat: missing operand\n", done=True, exit_code=1)
+        else:
+            wd = st_s.get("workdir") or "/workspace"
+            if arg.startswith("/"):
+                rel = arg.replace("/workspace", "").lstrip("/")
+            else:
+                base = wd.replace("/workspace", "").lstrip("/")
+                rel = "/".join(p for p in (base + "/" + arg).split("/") if p and p != ".")
+            node, cleaned = _ws_resolve(rel)
+            if node is None:
+                out(f"stat: cannot stat '{arg}': No such file or directory\n", done=True, exit_code=1)
+            else:
+                typ = node.get("type") or "?"
+                size = node.get("size")
+                if size is None and typ == "file":
+                    size = len(node.get("content") or "")
+                if size is None:
+                    size = 0
+                out(
+                    f"  File: {cleaned or arg}\n"
+                    f"  Type: {typ}\n"
+                    f"  Size: {size}\n"
+                    f"  Mock: readonly workspace node\n",
+                    done=True,
+                    exit_code=0,
+                )
+    elif lower in {"du", "du -h", "du -sh", "du -s"} or lower.startswith("du "):
+        st_d = _session_state(sk)
+        rel = (st_d.get("workdir") or "/workspace").replace("/workspace", "").lstrip("/")
+        node, cleaned = _ws_resolve(rel)
+
+        def du_size(n):
+            if not n:
+                return 0
+            if n.get("type") == "file":
+                return int(n.get("size") or len(n.get("content") or "") or 0)
+            total = 0
+            for child in (n.get("children") or {}).values():
+                total += du_size(child)
+            return total
+
+        sz = du_size(node)
+        label = cleaned or "."
+        out(f"{sz}\t{label}\n", done=True, exit_code=0)
 
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)

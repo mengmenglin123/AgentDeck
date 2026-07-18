@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings, lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, strike, inline code, bold/italic.
+/// Covers headings, lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, mark, strike, inline code, bold/italic.
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -513,7 +513,7 @@ class MarkdownLite extends StatelessWidget {
   static TextSpan _inline(String text, TextStyle base) {
     final spans = <InlineSpan>[];
     final re = RegExp(
-      r'(~~[^~]+~~|`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\))',
+      r'(~~[^~]+~~|==[^=]+==|`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\))',
     );
     var i = 0;
     for (final m in re.allMatches(text)) {
@@ -527,6 +527,14 @@ class MarkdownLite extends StatelessWidget {
           style: base.copyWith(
             decoration: TextDecoration.lineThrough,
             color: base.color?.withOpacity(0.65),
+          ),
+        ));
+      } else if (tok.startsWith('==') && tok.endsWith('==')) {
+        spans.add(TextSpan(
+          text: tok.substring(2, tok.length - 2),
+          style: base.copyWith(
+            backgroundColor: const Color(0x66FFEB3B),
+            color: base.color,
           ),
         ));
       } else if (tok.startsWith('`') && tok.endsWith('`')) {
