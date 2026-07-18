@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../utils/responsive.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
@@ -950,6 +951,10 @@ class _SessionsScreenState extends State<SessionsScreen> {
           ),
           body: Column(
             children: [
+              // Responsive padding for tablet/desktop
+              if (ResponsiveLayout.isTablet(context) ||
+                  ResponsiveLayout.isDesktop(context))
+                SizedBox(height: ResponsiveLayout.screenPadding(context).top),
               if (conn.saved != null)
                 ListTile(
                   dense: true,

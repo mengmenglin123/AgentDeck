@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.171
+
+- Responsive layout: breakpoints for mobile/tablet/desktop
+- ResponsiveMasterDetail widget for master-detail layouts
+- Responsive padding and grid columns for larger screens
+- ResponsiveLayout helper class with screen detection
+
+
 ## 0.1.170
 
 - Agent event notifications: permission request, task error, disconnect
