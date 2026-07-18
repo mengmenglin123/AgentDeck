@@ -26,6 +26,7 @@ class _LogsScreenState extends State<LogsScreen> {
   String _level = '';
   String _query = '';
   bool _queryCase = false;
+  bool _queryRegex = false;
   bool _wrapLines = true;
   final _scroll = ScrollController();
   Timer? _timer;
@@ -92,8 +93,19 @@ class _LogsScreenState extends State<LogsScreen> {
     final rawQ = _query.trim();
     final q = _queryCase ? rawQ : rawQ.toLowerCase();
     List<Map<String, dynamic>> list;
-    if (q.isEmpty) {
+    if (rawQ.isEmpty) {
       list = List<Map<String, dynamic>>.from(_logs);
+    } else if (_queryRegex) {
+      try {
+        final re = RegExp(rawQ, caseSensitive: _queryCase);
+        list = _logs.where((e) {
+          final hay =
+              '${e['message'] ?? ''} ${e['level'] ?? ''} ${e['ts'] ?? ''} ${e['logger'] ?? e['source'] ?? e['component'] ?? e['module'] ?? ''}';
+          return re.hasMatch(hay);
+        }).toList();
+      } catch (_) {
+        list = [];
+      }
     } else {
       list = _logs.where((e) {
         String norm(Object? v) {
@@ -380,16 +392,27 @@ class _LogsScreenState extends State<LogsScreen> {
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
             child: TextField(
               decoration: InputDecoration(
-                hintText: _queryCase ? 'Filter (case-sensitive)' : 'Filter message / level',
+                hintText: _queryRegex
+                    ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
+                    : (_queryCase ? 'Filter (case-sensitive)' : 'Filter message / level'),
                 isDense: true,
                 border: const OutlineInputBorder(),
                 prefixIcon: IconButton(
-                  tooltip: _queryCase ? 'Case-sensitive on' : 'Case-insensitive',
+                  tooltip: _queryRegex
+                      ? (_queryCase
+                          ? 'Regex · case on (long-press: plain filter)'
+                          : 'Regex · case off (long-press: plain filter)')
+                      : (_queryCase
+                          ? 'Case-sensitive (long-press: regex)'
+                          : 'Case-insensitive (long-press: regex)'),
                   icon: Icon(
-                    _queryCase ? Icons.text_fields : Icons.search,
+                    _queryRegex
+                        ? Icons.code
+                        : (_queryCase ? Icons.text_fields : Icons.search),
                     size: 20,
                   ),
                   onPressed: () => setState(() => _queryCase = !_queryCase),
+                  onLongPress: () => setState(() => _queryRegex = !_queryRegex),
                 ),
                 suffixIcon: _query.isEmpty
                     ? null

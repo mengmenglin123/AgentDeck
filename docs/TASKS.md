@@ -359,6 +359,11 @@
 | P3-275 | Connect 按 note 排序 | [x] |
 | P3-276 | Agents 按 platform 排序 | [x] |
 
+| P3-277 | Sessions 搜索区分大小写 | [x] |
+| P3-278 | Settings 正则过滤（长按） | [x] |
+| P3-279 | Logs 正则过滤（长按） | [x] |
+| P3-280 | Sessions 按 session key 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

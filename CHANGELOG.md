@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.76
+
+- Sessions case-sensitive search
+- Settings regex preference filter (long-press)
+- Logs regex filter (long-press)
+- Sessions sort by session key
+
 ## 0.1.75
 
 - Status/Host case-sensitive capability & key filters

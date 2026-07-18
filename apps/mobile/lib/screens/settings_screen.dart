@@ -18,6 +18,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _wrapLines = false;
   String _prefQuery = '';
   bool _prefCase = false;
+  bool _prefRegex = false;
   final _prefFilterCtrl = TextEditingController();
 
   @override
@@ -30,6 +31,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _matchPref(String title, [String subtitle = '']) {
     final raw = _prefQuery.trim();
     if (raw.isEmpty) return true;
+    final hayRaw = '$title $subtitle';
+    if (_prefRegex) {
+      try {
+        final re = RegExp(raw, caseSensitive: _prefCase);
+        return re.hasMatch(hayRaw);
+      } catch (_) {
+        return false;
+      }
+    }
     if (_prefCase) {
       return title.contains(raw) || subtitle.contains(raw);
     }
@@ -92,14 +102,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
             decoration: InputDecoration(
               isDense: true,
               prefixIcon: IconButton(
-                tooltip: _prefCase ? 'Case-sensitive on' : 'Case-insensitive',
+                tooltip: _prefRegex
+                    ? (_prefCase
+                        ? 'Regex · case on (long-press: plain filter)'
+                        : 'Regex · case off (long-press: plain filter)')
+                    : (_prefCase
+                        ? 'Case-sensitive (long-press: regex)'
+                        : 'Case-insensitive (long-press: regex)'),
                 icon: Icon(
-                  _prefCase ? Icons.text_fields : Icons.search,
+                  _prefRegex
+                      ? Icons.code
+                      : (_prefCase ? Icons.text_fields : Icons.search),
                   size: 18,
                 ),
                 onPressed: () => setState(() => _prefCase = !_prefCase),
+                onLongPress: () => setState(() => _prefRegex = !_prefRegex),
               ),
-              hintText: _prefCase ? 'Filter settings (case-sensitive)' : 'Filter settings',
+              hintText: _prefRegex
+                  ? (_prefCase ? 'Filter settings (regex · case)' : 'Filter settings (regex)')
+                  : (_prefCase ? 'Filter settings (case-sensitive)' : 'Filter settings'),
               border: const OutlineInputBorder(),
               suffixIcon: _prefQuery.isEmpty
                   ? null
@@ -191,6 +212,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ('project', 'Project'),
                   ('created', 'Created'),
                   ('model', 'Model'),
+                  ('key', 'Key'),
                 ])
                   ChoiceChip(
                     label: Text(e.$2),
@@ -359,13 +381,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.tag),
             title: const Text('App version'),
-            subtitle: _sub('0.1.75+75 · console only · protocol Mock/self-host'),
+            subtitle: _sub('0.1.76+76 · console only · protocol Mock/self-host'),
             trailing: IconButton(
               tooltip: 'Copy about',
               icon: const Icon(Icons.copy_outlined),
               onPressed: () async {
                 const text =
-                    'HuanHermes App 0.1.75+75\nconsole only · protocol Mock/self-host\nNo agent loop on device · tokens never in about text';
+                    'HuanHermes App 0.1.76+76\nconsole only · protocol Mock/self-host\nNo agent loop on device · tokens never in about text';
                 await Clipboard.setData(const ClipboardData(text: text));
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -401,6 +423,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return 'By created time (newest first)';
       case 'model':
         return 'By model then title';
+      case 'key':
+        return 'By session key then title';
       case 'recent':
         return 'By recently opened on this device (pins still first)';
       default:

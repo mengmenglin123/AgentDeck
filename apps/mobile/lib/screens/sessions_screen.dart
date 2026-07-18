@@ -49,6 +49,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
   final _archive = SessionArchiveStore();
   final _recents = SessionRecentsStore();
   String _query = '';
+  bool _queryCase = false;
   Set<String> _pinned = {};
   Set<String> _archived = {};
   Map<String, String> _noteMap = {};
@@ -346,7 +347,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
   }
 
   List<SessionInfo> _filtered(List<SessionInfo> all) {
-    final q = _query.trim().toLowerCase();
+    final rawQ = _query.trim();
+    final q = _queryCase ? rawQ : rawQ.toLowerCase();
     Iterable<SessionInfo> base = all;
     if (_filter == 'archived') {
       base = base.where((s) => _archived.contains(s.sessionKey));
@@ -364,8 +366,9 @@ class _SessionsScreenState extends State<SessionsScreen> {
     if (q.isNotEmpty) {
       base = base.where((s) {
         final note = _noteMap[s.sessionKey] ?? '';
-        final hay =
-            '${s.displayTitle} ${s.project} ${s.sessionKey} ${s.model ?? ''} $note'.toLowerCase();
+        final hayRaw =
+            '${s.displayTitle} ${s.project} ${s.sessionKey} ${s.model ?? ''} $note';
+        final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
         return hay.contains(q);
       });
     }
@@ -390,6 +393,10 @@ class _SessionsScreenState extends State<SessionsScreen> {
         case 'model':
           final mc = (a.model ?? '').toLowerCase().compareTo((b.model ?? '').toLowerCase());
           if (mc != 0) return dir(mc);
+          return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
+        case 'key':
+          final kc = a.sessionKey.toLowerCase().compareTo(b.sessionKey.toLowerCase());
+          if (kc != 0) return dir(kc);
           return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
         case 'recent':
           final ar = _recentRank[a.sessionKey];
@@ -856,10 +863,17 @@ class _SessionsScreenState extends State<SessionsScreen> {
                 child: TextField(
                   controller: _searchCtrl,
                   decoration: InputDecoration(
-                    hintText: 'Search sessions / notes',
+                    hintText: _queryCase ? 'Search (case-sensitive)' : 'Search sessions / notes',
                     border: const OutlineInputBorder(),
                     isDense: true,
-                    prefixIcon: const Icon(Icons.search, size: 20),
+                    prefixIcon: IconButton(
+                      tooltip: _queryCase ? 'Case-sensitive on' : 'Case-insensitive',
+                      icon: Icon(
+                        _queryCase ? Icons.text_fields : Icons.search,
+                        size: 20,
+                      ),
+                      onPressed: () => setState(() => _queryCase = !_queryCase),
+                    ),
                     suffixIcon: _query.isEmpty
                         ? null
                         : IconButton(
@@ -924,6 +938,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                             PopupMenuItem(value: 'project', child: Text('Sort: Project')),
                             PopupMenuItem(value: 'created', child: Text('Sort: Created')),
                             PopupMenuItem(value: 'model', child: Text('Sort: Model')),
+                            PopupMenuItem(value: 'key', child: Text('Sort: Key')),
                           ],
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -935,6 +950,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                   'project': 'Project',
                                   'created': 'Created',
                                   'model': 'Model',
+                                  'key': 'Key',
                                   'recent': 'Recent',
                                 }[settings.sessionSort] ??
                                     'Updated',
