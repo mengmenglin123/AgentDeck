@@ -995,6 +995,22 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             done=True,
             exit_code=0,
         )
+    elif lower.startswith("/perm"):
+        # Mock permission request: sends a card with Allow/Deny buttons
+        tool_name = data.strip().split(maxsplit=1)[1] if len(data.strip().split()) > 1 else "file_write"
+        card_msg = {
+            "type": "card",
+            "session_key": sk,
+            "stream_id": stream_id,
+            "text": f"Agent requests permission to use tool: {tool_name}\n\nDetails: The agent wants to {tool_name} a file. This is a mock permission request for testing.",
+            "buttons": [
+                {"text": "Allow", "data": "allow"},
+                {"text": "Allow all", "data": "allow_all"},
+                {"text": "Deny", "data": "deny"},
+            ],
+        }
+        ws_send_text(conn, json.dumps(card_msg))
+        out(f"Permission request sent for tool: {tool_name}\n", done=True, exit_code=0)
     elif lower == "pwd":
         st = _session_state(sk)
         out((st.get("workdir") or "/workspace") + "\n", done=True, exit_code=0)

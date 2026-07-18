@@ -664,6 +664,7 @@
 - [x] **P4-5cc** QR code generation + scanner (qr_flutter + mobile_scanner) (0.1.165)
 - [x] **P4-5cd** Real PTY support (HUAN_REAL_PTY=1) (0.1.166)
 - [x] **P4-5ce** Real Hermes adapter detection + compatibility (0.1.167)
+- [x] **P4-6aa** Permissions screen + auto-approve rules (0.1.168)
 
 ## P4 — 远期
 

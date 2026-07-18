@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.168
+
+- Permissions screen: pending/approved/denied permission management
+- Auto-approve rules: configure tools to skip permission prompts
+- Permission badge on chat AppBar: shows pending count
+- Mock /perm command: sends permission request card with Allow/Deny buttons
+- Competitive gap analysis: 8 features identified vs CodeAgent Mobile/tlbx/codex-tg
+
+
 ## 0.1.167
 
 - Hermes adapter detection: show Mock vs Real Hermes in settings

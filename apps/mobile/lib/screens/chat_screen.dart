@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:flutter/material.dart';
+import 'permissions_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
@@ -926,6 +927,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               }
             }),
             icon: Icon(_searchOpen ? Icons.search_off : Icons.search),
+          ),
+          IconButton(
+            tooltip: 'Permissions',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => PermissionsScreen(chat: _chat)),
+            ),
+            icon: Badge(
+              isLabelVisible: _chat.messages.where((m) => m.role == 'permission' && m.buttons.isNotEmpty).isNotEmpty,
+              child: const Icon(Icons.shield_outlined),
+            ),
           ),
           if (_chat.hasCap('tools_visible'))
             IconButton(
