@@ -590,6 +590,32 @@ class _MemoryScreenState extends State<MemoryScreen> {
             ),
           ),
           Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                FilterChip(
+                  label: const Text('Wrap', style: TextStyle(fontSize: 11)),
+                  selected: _wrapLines,
+                  onSelected: (v) => setState(() => _wrapLines = v),
+                  visualDensity: VisualDensity.compact,
+                ),
+                FilterChip(
+                  label: const Text('Regex', style: TextStyle(fontSize: 11)),
+                  selected: _queryRegex,
+                  onSelected: (v) => setState(() => _queryRegex = v),
+                  visualDensity: VisualDensity.compact,
+                ),
+                FilterChip(
+                  label: const Text('Case', style: TextStyle(fontSize: 11)),
+                  selected: _queryCase,
+                  onSelected: (v) => setState(() => _queryCase = v),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+          ),
+          Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
             child: TextField(
               controller: _search,

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.139
+
+- Memory view FilterChips (wrap / regex / case)
+- MarkdownLite `<isindex>` + `<spacer>`
+- Mock printf/realpath/touch (+ help/which/type lockstep)
+
 ## 0.1.138
 
 - Status view FilterChips (wrap / regex / case)

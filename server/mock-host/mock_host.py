@@ -1069,7 +1069,12 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         out(" 12:00:00 up 3 days,  4:12,  1 user,  load average: 0.12, 0.08, 0.05\n", done=True, exit_code=0)
 
 
-    elif lower.startswith("basename ") or lower.startswith("dirname ") or lower.startswith("realpath "):
+    elif (
+        lower.startswith("basename ")
+        or lower.startswith("dirname ")
+        or lower.startswith("realpath ")
+        or lower == "realpath"
+    ):
         parts = data.strip().split(None, 1)
         cmd = parts[0].lower() if parts else ""
         arg = parts[1].strip() if len(parts) > 1 else ""
@@ -1077,6 +1082,15 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         wd = st_p.get("workdir") or "/workspace"
         if not arg:
             out(f"{cmd}: missing operand\n", done=True, exit_code=1)
+        elif cmd == "realpath":
+            # mock realpath: absolute as-is; relative → /workspace/PATH (strip ./)
+            if arg.startswith("/"):
+                out(arg + "\n", done=True, exit_code=0)
+            else:
+                p = arg
+                while p.startswith("./"):
+                    p = p[2:]
+                out("/workspace/" + p + "\n", done=True, exit_code=0)
         else:
             if arg.startswith("/"):
                 path = arg
@@ -1095,13 +1109,9 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             norm = "/" + "/".join(segs) if segs else "/"
             if cmd == "basename":
                 out((segs[-1] if segs else "/") + "\n", done=True, exit_code=0)
-            elif cmd == "dirname":
-                out(("/" + "/".join(segs[:-1]) if len(segs) > 1 else "/") + "\n", done=True, exit_code=0)
             else:
-                # realpath — stay under /workspace when relative
-                if not norm.startswith("/workspace") and not arg.startswith("/"):
-                    norm = "/workspace" + (norm if norm != "/" else "")
-                out(norm + "\n", done=True, exit_code=0)
+                # dirname
+                out(("/" + "/".join(segs[:-1]) if len(segs) > 1 else "/") + "\n", done=True, exit_code=0)
     elif lower.startswith("stat ") or lower == "stat":
         st_s = _session_state(sk)
         arg = data.strip()[4:].strip() if lower.startswith("stat") else ""
@@ -1156,22 +1166,45 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         out("", done=True, exit_code=0)
     elif lower in {"false"}:
         out("", done=True, exit_code=1)
-    elif lower.startswith("printf "):
-        # minimal printf — no full format parser; strip outer quotes
-        arg = data.strip()[7:].strip()
-        if (arg.startswith('"') and arg.endswith('"')) or (arg.startswith("'") and arg.endswith("'")):
-            arg = arg[1:-1]
-        arg = arg.replace("\\n", "\n").replace("\\t", "\t")
-        out(arg, done=True, exit_code=0)
+    elif lower.startswith("printf ") or lower == "printf":
+        # mock printf: FORMAT [ARGS...]; need FORMAT else 1; basic %s / %% / \n
+        parts = data.strip().split()
+        if len(parts) < 2:
+            out("printf: missing operand\n", done=True, exit_code=1)
+        else:
+            fmt = parts[1]
+            if (fmt.startswith('"') and fmt.endswith('"')) or (fmt.startswith("'") and fmt.endswith("'")):
+                fmt = fmt[1:-1]
+            args = parts[2:]
+            cleaned_args = []
+            for a in args:
+                if (a.startswith('"') and a.endswith('"')) or (a.startswith("'") and a.endswith("'")):
+                    cleaned_args.append(a[1:-1])
+                else:
+                    cleaned_args.append(a)
+            out_s = fmt.replace("\\n", "\n")
+            out_s = out_s.replace("%%", "\0")
+            if "%s" in out_s:
+                repl = cleaned_args[0] if cleaned_args else ""
+                out_s = out_s.replace("%s", repl, 1)
+            out_s = out_s.replace("\0", "%")
+            # no-% formats: ensure trailing newline if not already present
+            if "%" not in fmt.replace("%%", "") and not out_s.endswith("\n"):
+                out_s = out_s + "\n"
+            out(out_s, done=True, exit_code=0)
 
 
     elif lower.startswith("sleep "):
         # Non-blocking mock: report intent only (no real delay — keeps Bridge responsive)
         arg = data.strip()[6:].strip() or "0"
         out(f"[mock-sleep] skipped ({arg}s) — mock does not block\n", done=True, exit_code=0)
-    elif lower.startswith("touch "):
-        name = data.strip()[6:].strip() or "(empty)"
-        out(f"[mock-touch] refused (readonly workspace): {name}\n", done=True, exit_code=1)
+    elif lower.startswith("touch ") or lower == "touch":
+        # mock touch: need ≥1 FILE else 1; silent 0 (do NOT mutate WORKSPACE_TREE)
+        parts = data.strip().split()
+        if len(parts) < 2:
+            out("touch: missing file operand\n", done=True, exit_code=1)
+        else:
+            out("", done=True, exit_code=0)
     elif lower in {"history", "history 10"}:
         out(
             "    1  help\n"
