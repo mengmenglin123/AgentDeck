@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.165
+
+- QR code generation on pairing screen (share connection via QR)
+- QR code scanner on connect screen (scan to import pairing URI)
+- Added qr_flutter + mobile_scanner packages
+- Updated all "future P4" references to live features
+
+
 ## 0.1.164
 
 - System notifications: flutter_local_notifications + Android POST_NOTIFICATIONS permission

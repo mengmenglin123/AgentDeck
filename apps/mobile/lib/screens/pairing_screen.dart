@@ -3,7 +3,9 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../models/connection_config.dart';
 import '../services/app_settings_controller.dart';
@@ -134,9 +136,11 @@ class _PairingScreenState extends State<PairingScreen> {
     }
     if (_payloadSorted) {
       lines = List<String>.from(lines)
-        ..sort((a, b) => _payloadSortAsc
-            ? a.toLowerCase().compareTo(b.toLowerCase())
-            : b.toLowerCase().compareTo(a.toLowerCase()));
+        ..sort(
+          (a, b) => _payloadSortAsc
+              ? a.toLowerCase().compareTo(b.toLowerCase())
+              : b.toLowerCase().compareTo(a.toLowerCase()),
+        );
     }
     return lines.join('\n');
   }
@@ -152,7 +156,8 @@ class _PairingScreenState extends State<PairingScreen> {
         actions: [
           IconButton(
             tooltip: 'Copy public summary',
-            onPressed: () => _copy(cfg.toPublicSummary(), 'Copied public summary'),
+            onPressed: () =>
+                _copy(cfg.toPublicSummary(), 'Copied public summary'),
             icon: const Icon(Icons.notes_outlined),
           ),
           IconButton(
@@ -173,11 +178,16 @@ class _PairingScreenState extends State<PairingScreen> {
                     for (final e in data.entries)
                       if (!'${e.key}'.toLowerCase().contains('token') &&
                           !'${e.key}'.toLowerCase().contains('secret') &&
-                          !'${e.value}'.toString().toLowerCase().contains('token='))
+                          !'${e.value}'.toString().toLowerCase().contains(
+                            'token=',
+                          ))
                         e.key: e.value,
                   },
               };
-              _copy(const JsonEncoder.withIndent('  ').convert(payload), 'Copied public JSON');
+              _copy(
+                const JsonEncoder.withIndent('  ').convert(payload),
+                'Copied public JSON',
+              );
             },
             icon: const Icon(Icons.data_object_outlined),
           ),
@@ -227,9 +237,11 @@ class _PairingScreenState extends State<PairingScreen> {
                 }
               });
             },
-            icon: Icon(!_payloadSorted
-                ? Icons.sort
-                : (_payloadSortAsc ? Icons.sort_by_alpha : Icons.sort)),
+            icon: Icon(
+              !_payloadSorted
+                  ? Icons.sort
+                  : (_payloadSortAsc ? Icons.sort_by_alpha : Icons.sort),
+            ),
           ),
           IconButton(
             tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
@@ -237,13 +249,21 @@ class _PairingScreenState extends State<PairingScreen> {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
             },
-            icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
+            icon: Icon(
+              _autoRefresh
+                  ? Icons.pause_circle_outline
+                  : Icons.play_circle_outline,
+            ),
           ),
           IconButton(
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
-              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+              _scroll.animateTo(
+                0,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
             },
             icon: const Icon(Icons.vertical_align_top),
           ),
@@ -260,7 +280,10 @@ class _PairingScreenState extends State<PairingScreen> {
             icon: const Icon(Icons.vertical_align_bottom),
           ),
 
-          IconButton(onPressed: loading ? null : _load, icon: const Icon(Icons.refresh)),
+          IconButton(
+            onPressed: loading ? null : _load,
+            icon: const Icon(Icons.refresh),
+          ),
         ],
       ),
       body: loading
@@ -268,119 +291,168 @@ class _PairingScreenState extends State<PairingScreen> {
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
-              controller: _scroll,
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(20),
-              children: [
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      for (final item in <(String, bool, void Function(bool))>[
-                        (
-                          'Wrap',
-                          _wrapLines,
-                          (v) => setState(() => _wrapLines = v),
-                        ),
-                        (
-                          'Regex',
-                          _payloadRegex,
-                          (v) => setState(() => _payloadRegex = v),
-                        ),
-                        (
-                          'Case',
-                          _payloadCase,
-                          (v) => setState(() => _payloadCase = v),
-                        ),
-                        (
-                          'Sort',
-                          _payloadSorted,
-                          (v) => setState(() => _payloadSorted = v),
-                        ),
-                        (
-                          'Auto',
-                          _autoRefresh,
-                          (v) {
-                            setState(() => _autoRefresh = v);
-                            _armTimer();
-                          },
-                        ),
-                      ])
-                        Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: FilterChip(
-                            label: Text(item.$1, style: const TextStyle(fontSize: 11)),
-                            selected: item.$2,
-                            visualDensity: VisualDensity.compact,
-                            onSelected: item.$3,
+                controller: _scroll,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(20),
+                children: [
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        for (final item
+                            in <(String, bool, void Function(bool))>[
+                              (
+                                'Wrap',
+                                _wrapLines,
+                                (v) => setState(() => _wrapLines = v),
+                              ),
+                              (
+                                'Regex',
+                                _payloadRegex,
+                                (v) => setState(() => _payloadRegex = v),
+                              ),
+                              (
+                                'Case',
+                                _payloadCase,
+                                (v) => setState(() => _payloadCase = v),
+                              ),
+                              (
+                                'Sort',
+                                _payloadSorted,
+                                (v) => setState(() => _payloadSorted = v),
+                              ),
+                              (
+                                'Auto',
+                                _autoRefresh,
+                                (v) {
+                                  setState(() => _autoRefresh = v);
+                                  _armTimer();
+                                },
+                              ),
+                            ])
+                          Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: FilterChip(
+                              label: Text(
+                                item.$1,
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                              selected: item.$2,
+                              visualDensity: VisualDensity.compact,
+                              onSelected: item.$3,
+                            ),
                           ),
+                      ],
+                    ),
+                  ),
+                  if (error != null)
+                    Text(error!, style: TextStyle(color: cs.error)),
+                  Text(
+                    'Share connection stub without tokens. Paste into Connect on another device. '
+                    'Visual fingerprint for human verification. QR code for easy scanning.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: ConnectionFingerprint(
+                      seed: publicUri,
+                      size: 220,
+                      cells: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: QrImageView(
+                      data: publicUri,
+                      size: 180,
+                      backgroundColor: Colors.white,
+                      padding: const EdgeInsets.all(8),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Center(
+                    child: Text(
+                      'Scan with another device to connect',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text(
+                      'fingerprint · ${cfg.host}:${cfg.bridgePort}/${cfg.mgmtPort}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: cs.onSurfaceVariant,
+                        fontFamily: 'monospace',
+                      ),
+                      maxLines: _wrapLines ? 3 : 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: true,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Center(
+                    child: SelectableText(
+                      'hex ${_fpHex(publicUri)}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: cs.onSurfaceVariant,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ),
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: () =>
+                          _copy(_fpHex(publicUri), 'Fingerprint hex copied'),
+                      icon: const Icon(Icons.tag, size: 16),
+                      label: const Text('Copy fingerprint hex'),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: cs.outlineVariant),
+                      borderRadius: BorderRadius.circular(12),
+                      color: cs.surfaceContainerLow,
+                    ),
+                    child: SelectableText(
+                      code,
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: () => _copy(code, 'Copied pairing text'),
+                        icon: const Icon(Icons.copy),
+                        label: const Text('Copy URI'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () => _copy(
+                          cfg.toPublicSummary(),
+                          'Copied public summary',
                         ),
-                    ],
-                  ),
-                ),
-                if (error != null) Text(error!, style: TextStyle(color: cs.error)),
-                Text(
-                  'Share connection stub without tokens. Paste into Connect on another device. '
-                  'Visual fingerprint is for human verification only — not a camera QR (P4).',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 16),
-                Center(child: ConnectionFingerprint(seed: publicUri, size: 220, cells: 13)),
-                const SizedBox(height: 8),
-                Center(
-                  child: Text(
-                    'fingerprint · ${cfg.host}:${cfg.bridgePort}/${cfg.mgmtPort}',
-                    style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant, fontFamily: 'monospace'),
-                    maxLines: _wrapLines ? 3 : 1,
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: true,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Center(
-                  child: SelectableText(
-                    'hex ${_fpHex(publicUri)}',
-                    style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant, fontFamily: 'monospace'),
-                  ),
-                ),
-                Center(
-                  child: TextButton.icon(
-                    onPressed: () => _copy(_fpHex(publicUri), 'Fingerprint hex copied'),
-                    icon: const Icon(Icons.tag, size: 16),
-                    label: const Text('Copy fingerprint hex'),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: cs.outlineVariant),
-                    borderRadius: BorderRadius.circular(12),
-                    color: cs.surfaceContainerLow,
-                  ),
-                  child: SelectableText(code, style: const TextStyle(fontFamily: 'monospace', fontSize: 13)),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: () => _copy(code, 'Copied pairing text'),
-                      icon: const Icon(Icons.copy),
-                      label: const Text('Copy URI'),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () => _copy(cfg.toPublicSummary(), 'Copied public summary'),
-                      icon: const Icon(Icons.notes_outlined),
-                      label: const Text('Copy summary'),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () => _copy(publicUri, 'Copied public pairing URI'),
-                      icon: const Icon(Icons.link),
-                      label: const Text('Copy public URI'),
-                    ),
+                        icon: const Icon(Icons.notes_outlined),
+                        label: const Text('Copy summary'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () =>
+                            _copy(publicUri, 'Copied public pairing URI'),
+                        icon: const Icon(Icons.link),
+                        label: const Text('Copy public URI'),
+                      ),
                       const SizedBox(height: 8),
                       OutlinedButton.icon(
                         onPressed: () {
@@ -394,91 +466,110 @@ class _PairingScreenState extends State<PairingScreen> {
                             'fingerprint: ${_fpHex(publicUri)}',
                             '',
                             'Paste the uri line into Connect → Import pairing URI.',
-                            'Camera QR remains a future step.',
+                            'Or scan the QR code from another device.',
                           ].join('\n');
                           _copy(card, 'Copied paste card (no tokens)');
                         },
                         icon: const Icon(Icons.sticky_note_2_outlined),
                         label: const Text('Copy paste card'),
                       ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Verify checklist', style: Theme.of(context).textTheme.titleSmall),
-                        const SizedBox(height: 6),
-                        const Text('1. Compare visual fingerprint on both devices'),
-                        const Text('2. Match host:ports line and hex tag'),
-                        const Text('3. Paste public URI only (never share tokens)'),
-                        const Text('4. Camera QR scan remains future P4'),
-                      ],
-                    ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 16),
-                Text('Host payload (redacted)', style: Theme.of(context).textTheme.titleSmall),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _payloadFilterCtrl,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    prefixIcon: IconButton(
-                      tooltip: _payloadRegex
-                          ? (_payloadCase
-                              ? 'Regex · case on (long-press: plain filter)'
-                              : 'Regex · case off (long-press: plain filter)')
-                          : (_payloadCase
-                              ? 'Case-sensitive (long-press: regex)'
-                              : 'Case-insensitive (long-press: regex)'),
-                      icon: Icon(
-                        _payloadRegex
-                            ? Icons.code
-                            : (_payloadCase ? Icons.text_fields : Icons.search),
-                        size: 18,
-                      ),
-                      onPressed: () => setState(() => _payloadCase = !_payloadCase),
-                      onLongPress: () => setState(() => _payloadRegex = !_payloadRegex),
-                    ),
-                    hintText: _payloadRegex
-                        ? (_payloadCase
-                            ? 'Filter payload (regex · case)'
-                            : 'Filter payload (regex)')
-                        : (_payloadCase
-                            ? 'Filter payload (case-sensitive)'
-                            : 'Filter payload lines'),
-                    border: const OutlineInputBorder(),
-                    suffixIcon: _payloadQuery.isEmpty
-                        ? null
-                        : IconButton(
-                            icon: const Icon(Icons.clear, size: 18),
-                            onPressed: () {
-                              _payloadFilterCtrl.clear();
-                              setState(() => _payloadQuery = '');
-                            },
+                  const SizedBox(height: 24),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Verify checklist',
+                            style: Theme.of(context).textTheme.titleSmall,
                           ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            '1. Compare visual fingerprint on both devices',
+                          ),
+                          const Text('2. Match host:ports line and hex tag'),
+                          const Text(
+                            '3. Paste public URI only (never share tokens)',
+                          ),
+                          const Text(
+                            '4. Scan QR code on another device to import connection',
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  onChanged: (v) => setState(() => _payloadQuery = v),
-                ),
-                const SizedBox(height: 8),
-                SelectableText(
-                  _payloadText,
-                  style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
-                  maxLines: _wrapLines ? null : 8,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  data['note']?.toString() ??
-                      'Tokens stay on each device. Prefer paste card / public URI. Camera QR still future.',
-                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Text(
+                    'Host payload (redacted)',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _payloadFilterCtrl,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      prefixIcon: IconButton(
+                        tooltip: _payloadRegex
+                            ? (_payloadCase
+                                  ? 'Regex · case on (long-press: plain filter)'
+                                  : 'Regex · case off (long-press: plain filter)')
+                            : (_payloadCase
+                                  ? 'Case-sensitive (long-press: regex)'
+                                  : 'Case-insensitive (long-press: regex)'),
+                        icon: Icon(
+                          _payloadRegex
+                              ? Icons.code
+                              : (_payloadCase
+                                    ? Icons.text_fields
+                                    : Icons.search),
+                          size: 18,
+                        ),
+                        onPressed: () =>
+                            setState(() => _payloadCase = !_payloadCase),
+                        onLongPress: () =>
+                            setState(() => _payloadRegex = !_payloadRegex),
+                      ),
+                      hintText: _payloadRegex
+                          ? (_payloadCase
+                                ? 'Filter payload (regex · case)'
+                                : 'Filter payload (regex)')
+                          : (_payloadCase
+                                ? 'Filter payload (case-sensitive)'
+                                : 'Filter payload lines'),
+                      border: const OutlineInputBorder(),
+                      suffixIcon: _payloadQuery.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                _payloadFilterCtrl.clear();
+                                setState(() => _payloadQuery = '');
+                              },
+                            ),
+                    ),
+                    onChanged: (v) => setState(() => _payloadQuery = v),
+                  ),
+                  const SizedBox(height: 8),
+                  SelectableText(
+                    _payloadText,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontFamily: 'monospace',
+                    ),
+                    maxLines: _wrapLines ? null : 8,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    data['note']?.toString() ??
+                        'Tokens stay on each device. Share public URI or QR code only.',
+                    style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+                  ),
+                ],
+              ),
             ),
-          ),
     );
   }
 }

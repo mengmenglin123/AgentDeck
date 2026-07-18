@@ -1,7 +1,7 @@
 name: huanhermes_app
 description: HuanHermes remote console for Claude Code / Codex / Hermes hosts.
 publish_to: "none"
-version: 0.1.164+164
+version: 0.1.165+165
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -19,6 +19,8 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   file_picker: ^8.1.2
   image_picker: ^1.1.2
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^5.2.3
 
 dev_dependencies:
   flutter_test:

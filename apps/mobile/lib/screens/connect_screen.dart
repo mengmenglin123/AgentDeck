@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 
 import '../models/connection_config.dart';
@@ -26,6 +27,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
   bool _obscureMgmt = true;
   bool _wrapLines = false;
   bool _sortAsc = true;
+
   /// name | host | updated | port | note
   String _sortMode = 'name';
   String _tlsFilter = 'all'; // all | tls | plain
@@ -74,7 +76,6 @@ class _ConnectScreenState extends State<ConnectScreen> {
     _useTls = d.useTls;
   }
 
-
   static String _fpHex(String seed) {
     final bytes = utf8.encode(seed);
     var state = 2166136261;
@@ -109,7 +110,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
     final ok = await controller.testAndSave();
     if (!mounted) return;
     if (!ok) {
-      final err = Security.redactText(controller.lastError ?? 'Connection failed');
+      final err = Security.redactText(
+        controller.lastError ?? 'Connection failed',
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(err), backgroundColor: Colors.red.shade700),
       );
@@ -138,7 +141,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              'Paste public URI only (no tokens). Clipboard prefill when available. Camera QR remains P4.',
+              'Paste public URI or scan QR code. Clipboard prefill when available.',
               style: TextStyle(fontSize: 12),
             ),
             const SizedBox(height: 8),
@@ -153,6 +156,39 @@ class _ConnectScreenState extends State<ConnectScreen> {
           ],
         ),
         actions: [
+          TextButton.icon(
+            onPressed: () async {
+              Navigator.pop(ctx); // Close dialog first
+              final scanned = await _scanQrCode();
+              if (scanned != null && scanned.isNotEmpty && mounted) {
+                ctrl.text = scanned;
+                // Re-process
+                final overlay = ConnectionConfig.tryParsePairingUri(scanned);
+                if (overlay != null) {
+                  final controller = context.read<ConnectionController>();
+                  final merged = _readForm(
+                    controller.draft,
+                  ).mergePairing(overlay);
+                  controller.updateDraft(merged);
+                  _syncControllersFrom(controller);
+                  setState(() {});
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('QR code imported successfully'),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Could not parse QR code')),
+                  );
+                }
+              }
+              ctrl.dispose();
+              return;
+            },
+            icon: const Icon(Icons.qr_code_scanner),
+            label: const Text('Scan QR'),
+          ),
           TextButton(
             onPressed: () async {
               try {
@@ -163,7 +199,10 @@ class _ConnectScreenState extends State<ConnectScreen> {
             },
             child: const Text('Paste clipboard'),
           ),
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
             child: const Text('Apply'),
@@ -197,6 +236,40 @@ class _ConnectScreenState extends State<ConnectScreen> {
     );
   }
 
+  /// Open camera to scan a QR code containing a pairing URI.
+  /// Returns the scanned string, or null if cancelled.
+  Future<String?> _scanQrCode() async {
+    String? result;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (ctx) => Scaffold(
+          appBar: AppBar(
+            title: const Text('Scan QR Code'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.pop(ctx),
+              ),
+            ],
+          ),
+          body: MobileScanner(
+            onDetect: (capture) {
+              final barcodes = capture.barcodes;
+              if (barcodes.isNotEmpty) {
+                final value = barcodes.first.rawValue;
+                if (value != null && value.isNotEmpty) {
+                  result = value;
+                  Navigator.pop(ctx);
+                }
+              }
+            },
+          ),
+        ),
+      ),
+    );
+    return result;
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<ConnectionController>();
@@ -214,7 +287,10 @@ class _ConnectScreenState extends State<ConnectScreen> {
               final host = _host.text.trim();
               if (host.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Enter host first'), duration: Duration(seconds: 1)),
+                  const SnackBar(
+                    content: Text('Enter host first'),
+                    duration: Duration(seconds: 1),
+                  ),
                 );
                 return;
               }
@@ -228,10 +304,15 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 mgmtToken: '',
                 useTls: _useTls,
               );
-              await Clipboard.setData(ClipboardData(text: cfg.toPublicSummary()));
+              await Clipboard.setData(
+                ClipboardData(text: cfg.toPublicSummary()),
+              );
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Public summary copied (no tokens)'), duration: Duration(seconds: 1)),
+                const SnackBar(
+                  content: Text('Public summary copied (no tokens)'),
+                  duration: Duration(seconds: 1),
+                ),
               );
             },
             icon: const Icon(Icons.ios_share_outlined),
@@ -242,7 +323,10 @@ class _ConnectScreenState extends State<ConnectScreen> {
               final host = _host.text.trim();
               if (host.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Enter host first'), duration: Duration(seconds: 1)),
+                  const SnackBar(
+                    content: Text('Enter host first'),
+                    duration: Duration(seconds: 1),
+                  ),
                 );
                 return;
               }
@@ -257,7 +341,10 @@ class _ConnectScreenState extends State<ConnectScreen> {
               await Clipboard.setData(ClipboardData(text: hex));
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Fingerprint $hex'), duration: const Duration(seconds: 1)),
+                SnackBar(
+                  content: Text('Fingerprint $hex'),
+                  duration: const Duration(seconds: 1),
+                ),
               );
             },
             icon: const Icon(Icons.fingerprint),
@@ -268,7 +355,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
             onPressed: controller.profiles.isEmpty
                 ? null
                 : () async {
-                    final list = controller.profiles.map((p) => p.toPublicJson()).toList();
+                    final list = controller.profiles
+                        .map((p) => p.toPublicJson())
+                        .toList();
                     final text = const JsonEncoder.withIndent('  ').convert({
                       'huanhermes.profiles_public.v1': true,
                       'count': list.length,
@@ -278,7 +367,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Copied ${list.length} public profile(s)'),
+                          content: Text(
+                            'Copied ${list.length} public profile(s)',
+                          ),
                           duration: const Duration(seconds: 1),
                         ),
                       );
@@ -292,7 +383,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 ? null
                 : () async {
                     final buf = StringBuffer();
-                    buf.writeln('id,name,host,bridge_port,mgmt_port,use_tls,note');
+                    buf.writeln(
+                      'id,name,host,bridge_port,mgmt_port,use_tls,note',
+                    );
                     for (final p in controller.profiles) {
                       final id = p.id.replaceAll('"', '""');
                       final name = p.name.replaceAll('"', '""');
@@ -302,11 +395,15 @@ class _ConnectScreenState extends State<ConnectScreen> {
                         '"$id","$name","$host",${p.config.bridgePort},${p.config.mgmtPort},${p.config.useTls},"$note"',
                       );
                     }
-                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    await Clipboard.setData(
+                      ClipboardData(text: buf.toString()),
+                    );
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Copied profiles CSV (${controller.profiles.length})'),
+                          content: Text(
+                            'Copied profiles CSV (${controller.profiles.length})',
+                          ),
                           duration: const Duration(seconds: 1),
                         ),
                       );
@@ -323,22 +420,35 @@ class _ConnectScreenState extends State<ConnectScreen> {
             tooltip: _sortMode == 'deviceId'
                 ? (_sortAsc ? 'Device id Z→A' : 'Device id A→Z')
                 : (_sortMode == 'id'
-                    ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
-                    : (_sortMode == 'platform'
-                    ? (_sortAsc ? 'Platform Z→A' : 'Platform A→Z')
-                    : (_sortMode == 'tls'
-                        ? (_sortAsc ? 'TLS first' : 'Plain first')
-                        : (_sortMode == 'bridgePort'
-                            ? (_sortAsc ? 'Bridge port high→low' : 'Bridge port low→high')
-                            : (_sortMode == 'note'
-                                ? (_sortAsc ? 'Note Z→A' : 'Note A→Z')
-                                : (_sortMode == 'port'
-                                    ? (_sortAsc ? 'Mgmt port high→low' : 'Mgmt port low→high')
-                                    : (_sortMode == 'host'
-                                        ? (_sortAsc ? 'Host Z→A' : 'Host A→Z')
-                                        : (_sortMode == 'updated'
-                                            ? (_sortAsc ? 'Updated new→old' : 'Updated old→new')
-                                            : (_sortAsc ? 'Name Z→A' : 'Name A→Z'))))))))),
+                      ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                      : (_sortMode == 'platform'
+                            ? (_sortAsc ? 'Platform Z→A' : 'Platform A→Z')
+                            : (_sortMode == 'tls'
+                                  ? (_sortAsc ? 'TLS first' : 'Plain first')
+                                  : (_sortMode == 'bridgePort'
+                                        ? (_sortAsc
+                                              ? 'Bridge port high→low'
+                                              : 'Bridge port low→high')
+                                        : (_sortMode == 'note'
+                                              ? (_sortAsc
+                                                    ? 'Note Z→A'
+                                                    : 'Note A→Z')
+                                              : (_sortMode == 'port'
+                                                    ? (_sortAsc
+                                                          ? 'Mgmt port high→low'
+                                                          : 'Mgmt port low→high')
+                                                    : (_sortMode == 'host'
+                                                          ? (_sortAsc
+                                                                ? 'Host Z→A'
+                                                                : 'Host A→Z')
+                                                          : (_sortMode ==
+                                                                    'updated'
+                                                                ? (_sortAsc
+                                                                      ? 'Updated new→old'
+                                                                      : 'Updated old→new')
+                                                                : (_sortAsc
+                                                                      ? 'Name Z→A'
+                                                                      : 'Name A→Z'))))))))),
             onPressed: () {
               setState(() {
                 if (_sortMode == 'name' && _sortAsc) {
@@ -394,32 +504,44 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 }
               });
             },
-            icon: Icon(_sortMode == 'deviceId'
-                ? Icons.phonelink_setup
-                : (_sortMode == 'id'
-                    ? Icons.tag
-                    : (_sortMode == 'platform'
-                    ? Icons.devices_other_outlined
-                    : (_sortMode == 'tls'
-                        ? Icons.lock_outline
-                        : (_sortMode == 'bridgePort'
-                            ? Icons.cable
-                            : (_sortMode == 'note'
-                                ? Icons.sticky_note_2_outlined
-                                : (_sortMode == 'port'
-                                    ? Icons.numbers
-                                    : (_sortMode == 'host'
-                                        ? Icons.dns_outlined
-                                        : (_sortMode == 'updated'
-                                            ? Icons.schedule
-                                            : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))))))))),
+            icon: Icon(
+              _sortMode == 'deviceId'
+                  ? Icons.phonelink_setup
+                  : (_sortMode == 'id'
+                        ? Icons.tag
+                        : (_sortMode == 'platform'
+                              ? Icons.devices_other_outlined
+                              : (_sortMode == 'tls'
+                                    ? Icons.lock_outline
+                                    : (_sortMode == 'bridgePort'
+                                          ? Icons.cable
+                                          : (_sortMode == 'note'
+                                                ? Icons.sticky_note_2_outlined
+                                                : (_sortMode == 'port'
+                                                      ? Icons.numbers
+                                                      : (_sortMode == 'host'
+                                                            ? Icons.dns_outlined
+                                                            : (_sortMode ==
+                                                                      'updated'
+                                                                  ? Icons
+                                                                        .schedule
+                                                                  : (_sortAsc
+                                                                        ? Icons
+                                                                              .sort_by_alpha
+                                                                        : Icons
+                                                                              .sort))))))))),
+            ),
           ),
 
           IconButton(
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
-              _scroll.animateTo(0, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+              _scroll.animateTo(
+                0,
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOut,
+              );
             },
             icon: const Icon(Icons.vertical_align_top),
           ),
@@ -436,9 +558,6 @@ class _ConnectScreenState extends State<ConnectScreen> {
             },
             icon: const Icon(Icons.vertical_align_bottom),
           ),
-
-
-
 
           IconButton(
             tooltip: 'Import pairing URI',
@@ -472,7 +591,10 @@ class _ConnectScreenState extends State<ConnectScreen> {
             _ConnectionStatusBanner(controller: controller),
             if (controller.profiles.isNotEmpty) ...[
               const SizedBox(height: 16),
-              Text('Saved hosts', style: Theme.of(context).textTheme.titleSmall),
+              Text(
+                'Saved hosts',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 6,
@@ -522,19 +644,19 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   border: const OutlineInputBorder(),
                   hintText: _queryRegex
                       ? (_queryCase
-                          ? 'Filter profiles (regex · case)'
-                          : 'Filter profiles (regex)')
+                            ? 'Filter profiles (regex · case)'
+                            : 'Filter profiles (regex)')
                       : (_queryCase
-                          ? 'Filter profiles (case-sensitive)'
-                          : 'Filter profiles name/host/note'),
+                            ? 'Filter profiles (case-sensitive)'
+                            : 'Filter profiles name/host/note'),
                   prefixIcon: IconButton(
                     tooltip: _queryRegex
                         ? (_queryCase
-                            ? 'Regex · case on (long-press: plain filter)'
-                            : 'Regex · case off (long-press: plain filter)')
+                              ? 'Regex · case on (long-press: plain filter)'
+                              : 'Regex · case off (long-press: plain filter)')
                         : (_queryCase
-                            ? 'Case-sensitive (long-press: regex)'
-                            : 'Case-insensitive (long-press: regex)'),
+                              ? 'Case-sensitive (long-press: regex)'
+                              : 'Case-insensitive (long-press: regex)'),
                     icon: Icon(
                       _queryRegex
                           ? Icons.code
@@ -542,7 +664,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
                       size: 18,
                     ),
                     onPressed: () => setState(() => _queryCase = !_queryCase),
-                    onLongPress: () => setState(() => _queryRegex = !_queryRegex),
+                    onLongPress: () =>
+                        setState(() => _queryRegex = !_queryRegex),
                   ),
                   suffixIcon: _profileQuery.isEmpty
                       ? null
@@ -560,104 +683,146 @@ class _ConnectScreenState extends State<ConnectScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: (List.of(controller.profiles)
-                    .where((p) {
-                      if (_tlsFilter == 'tls' && !p.config.useTls) return false;
-                      if (_tlsFilter == 'plain' && p.config.useTls) return false;
-                      final rawQ = _profileQuery.trim();
-                      if (rawQ.isEmpty) return true;
-                      final hayRaw =
-                          '${p.name} ${p.config.host} ${p.config.bridgePort} ${p.config.mgmtPort} ${p.note ?? ''}';
-                      if (_queryRegex) {
-                        try {
-                          return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
-                        } catch (_) {
-                          return false;
-                        }
-                      }
-                      final q = _queryCase ? rawQ : rawQ.toLowerCase();
-                      final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
-                      return hay.contains(q);
-                    })
-                    .toList()
-                  ..sort((a, b) {
-                    int c;
-                    if (_sortMode == 'host') {
-                      c = a.config.host.toLowerCase().compareTo(b.config.host.toLowerCase());
-                      if (c == 0) {
-                        c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                      }
-                    } else if (_sortMode == 'updated') {
-                      c = a.updatedAt.compareTo(b.updatedAt);
-                      if (c == 0) {
-                        c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                      }
-                    } else if (_sortMode == 'port') {
-                      c = a.config.mgmtPort.compareTo(b.config.mgmtPort);
-                      if (c == 0) {
-                        c = a.config.bridgePort.compareTo(b.config.bridgePort);
-                      }
-                      if (c == 0) {
-                        c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                      }
-                    } else if (_sortMode == 'note') {
-                      c = (a.note ?? '').toLowerCase().compareTo((b.note ?? '').toLowerCase());
-                      if (c == 0) {
-                        c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                      }
-                    } else if (_sortMode == 'bridgePort') {
-                      c = a.config.bridgePort.compareTo(b.config.bridgePort);
-                      if (c == 0) {
-                        c = a.config.mgmtPort.compareTo(b.config.mgmtPort);
-                      }
-                      if (c == 0) {
-                        c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                      }
-                    } else if (_sortMode == 'tls') {
-                      final ta = a.config.useTls ? 1 : 0;
-                      final tb = b.config.useTls ? 1 : 0;
-                      c = ta.compareTo(tb);
-                      if (c == 0) {
-                        c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                      }
-                    } else if (_sortMode == 'platform') {
-                      c = a.config.platformName.toLowerCase().compareTo(b.config.platformName.toLowerCase());
-                      if (c == 0) {
-                        c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                      }
-                    } else if (_sortMode == 'id') {
-                      c = a.id.toLowerCase().compareTo(b.id.toLowerCase());
-                      if (c == 0) {
-                        c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                      }
-                    } else if (_sortMode == 'deviceId') {
-                      c = a.config.deviceId.toLowerCase().compareTo(b.config.deviceId.toLowerCase());
-                      if (c == 0) {
-                        c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                      }
-                    } else {
-                      c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                    }
-                    return _sortAsc ? c : -c;
-                  }))
-                  .map((p) {
-                  final selected = p.id == controller.activeProfileId;
-                  return FilterChip(
-                    label: Text(
-                      p.name,
-                      maxLines: _wrapLines ? 2 : 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    selected: selected,
-                    onSelected: busy
-                        ? null
-                        : (_) async {
-                            await controller.selectProfile(p.id);
-                            _syncControllersFrom(controller);
-                            setState(() {});
-                          },
-                  );
-                }).toList(),
+                children:
+                    (List.of(controller.profiles).where((p) {
+                          if (_tlsFilter == 'tls' && !p.config.useTls)
+                            return false;
+                          if (_tlsFilter == 'plain' && p.config.useTls)
+                            return false;
+                          final rawQ = _profileQuery.trim();
+                          if (rawQ.isEmpty) return true;
+                          final hayRaw =
+                              '${p.name} ${p.config.host} ${p.config.bridgePort} ${p.config.mgmtPort} ${p.note ?? ''}';
+                          if (_queryRegex) {
+                            try {
+                              return RegExp(
+                                rawQ,
+                                caseSensitive: _queryCase,
+                              ).hasMatch(hayRaw);
+                            } catch (_) {
+                              return false;
+                            }
+                          }
+                          final q = _queryCase ? rawQ : rawQ.toLowerCase();
+                          final hay = _queryCase
+                              ? hayRaw
+                              : hayRaw.toLowerCase();
+                          return hay.contains(q);
+                        }).toList()..sort((a, b) {
+                          int c;
+                          if (_sortMode == 'host') {
+                            c = a.config.host.toLowerCase().compareTo(
+                              b.config.host.toLowerCase(),
+                            );
+                            if (c == 0) {
+                              c = a.name.toLowerCase().compareTo(
+                                b.name.toLowerCase(),
+                              );
+                            }
+                          } else if (_sortMode == 'updated') {
+                            c = a.updatedAt.compareTo(b.updatedAt);
+                            if (c == 0) {
+                              c = a.name.toLowerCase().compareTo(
+                                b.name.toLowerCase(),
+                              );
+                            }
+                          } else if (_sortMode == 'port') {
+                            c = a.config.mgmtPort.compareTo(b.config.mgmtPort);
+                            if (c == 0) {
+                              c = a.config.bridgePort.compareTo(
+                                b.config.bridgePort,
+                              );
+                            }
+                            if (c == 0) {
+                              c = a.name.toLowerCase().compareTo(
+                                b.name.toLowerCase(),
+                              );
+                            }
+                          } else if (_sortMode == 'note') {
+                            c = (a.note ?? '').toLowerCase().compareTo(
+                              (b.note ?? '').toLowerCase(),
+                            );
+                            if (c == 0) {
+                              c = a.name.toLowerCase().compareTo(
+                                b.name.toLowerCase(),
+                              );
+                            }
+                          } else if (_sortMode == 'bridgePort') {
+                            c = a.config.bridgePort.compareTo(
+                              b.config.bridgePort,
+                            );
+                            if (c == 0) {
+                              c = a.config.mgmtPort.compareTo(
+                                b.config.mgmtPort,
+                              );
+                            }
+                            if (c == 0) {
+                              c = a.name.toLowerCase().compareTo(
+                                b.name.toLowerCase(),
+                              );
+                            }
+                          } else if (_sortMode == 'tls') {
+                            final ta = a.config.useTls ? 1 : 0;
+                            final tb = b.config.useTls ? 1 : 0;
+                            c = ta.compareTo(tb);
+                            if (c == 0) {
+                              c = a.name.toLowerCase().compareTo(
+                                b.name.toLowerCase(),
+                              );
+                            }
+                          } else if (_sortMode == 'platform') {
+                            c = a.config.platformName.toLowerCase().compareTo(
+                              b.config.platformName.toLowerCase(),
+                            );
+                            if (c == 0) {
+                              c = a.name.toLowerCase().compareTo(
+                                b.name.toLowerCase(),
+                              );
+                            }
+                          } else if (_sortMode == 'id') {
+                            c = a.id.toLowerCase().compareTo(
+                              b.id.toLowerCase(),
+                            );
+                            if (c == 0) {
+                              c = a.name.toLowerCase().compareTo(
+                                b.name.toLowerCase(),
+                              );
+                            }
+                          } else if (_sortMode == 'deviceId') {
+                            c = a.config.deviceId.toLowerCase().compareTo(
+                              b.config.deviceId.toLowerCase(),
+                            );
+                            if (c == 0) {
+                              c = a.name.toLowerCase().compareTo(
+                                b.name.toLowerCase(),
+                              );
+                            }
+                          } else {
+                            c = a.name.toLowerCase().compareTo(
+                              b.name.toLowerCase(),
+                            );
+                          }
+                          return _sortAsc ? c : -c;
+                        }))
+                        .map((p) {
+                          final selected = p.id == controller.activeProfileId;
+                          return FilterChip(
+                            label: Text(
+                              p.name,
+                              maxLines: _wrapLines ? 2 : 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            selected: selected,
+                            onSelected: busy
+                                ? null
+                                : (_) async {
+                                    await controller.selectProfile(p.id);
+                                    _syncControllersFrom(controller);
+                                    setState(() {});
+                                  },
+                          );
+                        })
+                        .toList(),
               ),
             ],
             const SizedBox(height: 16),
@@ -736,8 +901,11 @@ class _ConnectScreenState extends State<ConnectScreen> {
               decoration: InputDecoration(
                 labelText: 'Bridge token',
                 suffixIcon: IconButton(
-                  icon: Icon(_obscureBridge ? Icons.visibility : Icons.visibility_off),
-                  onPressed: () => setState(() => _obscureBridge = !_obscureBridge),
+                  icon: Icon(
+                    _obscureBridge ? Icons.visibility : Icons.visibility_off,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscureBridge = !_obscureBridge),
                 ),
               ),
               enabled: !busy,
@@ -749,7 +917,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
               decoration: InputDecoration(
                 labelText: 'Management token',
                 suffixIcon: IconButton(
-                  icon: Icon(_obscureMgmt ? Icons.visibility : Icons.visibility_off),
+                  icon: Icon(
+                    _obscureMgmt ? Icons.visibility : Icons.visibility_off,
+                  ),
                   onPressed: () => setState(() => _obscureMgmt = !_obscureMgmt),
                 ),
               ),
@@ -869,7 +1039,10 @@ class _ConnectionStatusBanner extends StatelessWidget {
       child: ListTile(
         dense: true,
         leading: Icon(icon, color: color),
-        title: Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: color)),
+        title: Text(
+          title,
+          style: TextStyle(fontWeight: FontWeight.w600, color: color),
+        ),
         subtitle: Text(
           subtitle,
           maxLines: _wrapLines ? 8 : 3,
