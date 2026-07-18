@@ -591,6 +591,12 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                       ),
                     if ((_status['capabilities'] as List? ?? const []).isEmpty)
                       const Text('—', style: TextStyle(fontSize: 12)),
+                    FilterChip(
+                      visualDensity: VisualDensity.compact,
+                      label: const Text('Auto', style: TextStyle(fontSize: 11)),
+                      selected: _autoRefresh,
+                      onSelected: (v) => setState(() => _autoRefresh = v),
+                    ),
                   ],
                 ),
                 if (_capFilter.isNotEmpty)

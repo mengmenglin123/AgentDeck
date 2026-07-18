@@ -640,6 +640,9 @@
 - [x] **P4-3bc** Auto refresh chips: activity/agents/audit/cron (0.1.154)
 - [x] **P4-5bf** MarkdownLite `<figcaption>` + `<map>` (0.1.154)
 - [x] **P4-1bd** Mock history/alias/unalias (0.1.154)
+- [x] **P4-3bd** Auto refresh chips: diff/host_dashboard/logs (0.1.155)
+- [x] **P4-5bg** MarkdownLite `<main>` + `<aside>` + `<nav>` (0.1.155)
+- [x] **P4-1be** Mock lastb/faillog/chage (0.1.155)
 
 ## P4 — 远期
 

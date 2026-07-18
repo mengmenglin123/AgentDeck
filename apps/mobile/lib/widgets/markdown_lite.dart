@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings (h1–h6), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5/h6, abbr, mark (== / HTML <mark>), spoiler, kbd, sup/sub, underline, del, ins, s, strike, br, small, cite, q, var, samp, dfn, em, strong, b, code, i, big, tt, time, data, bdi, bdo, ruby, rt, rp, wbr, font, center, acronym, nobr, blink, marquee, xmp, listing, plaintext, basefont, dir, menu, isindex, spacer, nextid, keygen, bgsound, multicol, frame, frameset, applet, noembed, noframes, embed, object, param, track, video, audio, picture, canvas, svg, math, area, iframe, portal, dialog, template, slot, meter, progress, figure, figcaption, map, autolink, strike (~~ / <s>/<del>/<strike>), inline code, bold/italic, bold-italic (***).
+/// Covers headings (h1–h6), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5/h6, abbr, mark (== / HTML <mark>), spoiler, kbd, sup/sub, underline, del, ins, s, strike, br, small, cite, q, var, samp, dfn, em, strong, b, code, i, big, tt, time, data, bdi, bdo, ruby, rt, rp, wbr, font, center, acronym, nobr, blink, marquee, xmp, listing, plaintext, basefont, dir, menu, isindex, spacer, nextid, keygen, bgsound, multicol, frame, frameset, applet, noembed, noframes, embed, object, param, track, video, audio, picture, canvas, svg, math, area, iframe, portal, dialog, template, slot, meter, progress, figure, figcaption, map, main, aside, nav, autolink, strike (~~ / <s>/<del>/<strike>), inline code, bold/italic, bold-italic (***).
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -602,7 +602,7 @@ class MarkdownLite extends StatelessWidget {
   static TextSpan _inline(String text, TextStyle base) {
     final spans = <InlineSpan>[];
     final re = RegExp(
-          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<mark>[^<]+</mark>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<strike>[^<]+</strike>|<br/>|<br>|<wbr/>|<wbr>|<small>[^<]+</small>|<cite>[^<]+</cite>|<q>[^<]+</q>|<var>[^<]+</var>|<samp>[^<]+</samp>|<dfn>[^<]+</dfn>|<em>[^<]+</em>|<strong>[^<]+</strong>|<b>[^<]+</b>|<code>[^<]+</code>|<i>[^<]+</i>|<big>[^<]+</big>|<tt>[^<]+</tt>|<time>[^<]+</time>|<data>[^<]+</data>|<bdi>[^<]+</bdi>|<bdo[^>]*>[^<]+</bdo>|<ruby>[^<]+<rt>[^<]+</rt></ruby>|<ruby>[^<]+</ruby>|<rt>[^<]+</rt>|<rp>[^<]*</rp>|<font[^>]*>[^<]+</font>|<center>[^<]+</center>|<acronym[^>]*>[^<]+</acronym>|<nobr>[^<]+</nobr>|<blink>[^<]+</blink>|<marquee[^>]*>[^<]+</marquee>|<xmp>[^<]+</xmp>|<listing>[^<]+</listing>|<plaintext>[^<]+</plaintext>|<dir>[^<]+</dir>|<menu>[^<]+</menu>|<basefont[^>]*/?>|<isindex[^>]*/?>|<spacer[^>]*>[^<]*</spacer>|<spacer[^>]*/?>|<nextid[^>]*/?>|<keygen[^>]*/?>|<bgsound[^>]*/?>|<multicol[^>]*>[^<]*</multicol>|<multicol[^>]*/?>|<frame[^>]*/?>|<frameset[^>]*>[^<]*</frameset>|<frameset[^>]*/?>|<applet[^>]*>[^<]*</applet>|<applet[^>]*/?>|<noembed[^>]*>[^<]+</noembed>|<noembed[^>]*/?>|<noframes[^>]*>[^<]*</noframes>|<noframes[^>]*/?>|<embed[^>]*/?>|<object[^>]*>[^<]*</object>|<object[^>]*/?>|<param[^>]*/?>|<track[^>]*/?>|<video[^>]*>[^<]*</video>|<video[^>]*/?>|<audio[^>]*>[^<]*</audio>|<audio[^>]*/?>|<picture[^>]*>[^<]*</picture>|<picture[^>]*/?>|<canvas[^>]*>[^<]*</canvas>|<canvas[^>]*/?>|<svg[^>]*>[^<]*</svg>|<svg[^>]*/?>|<math[^>]*>[^<]*</math>|<math[^>]*/?>|<area[^>]*/?>|<iframe[^>]*>[^<]*</iframe>|<iframe[^>]*/?>|<portal[^>]*>[^<]*</portal>|<portal[^>]*/?>|<dialog[^>]*>[^<]*</dialog>|<dialog[^>]*/?>|<template[^>]*>[^<]*</template>|<template[^>]*/?>|<slot[^>]*>[^<]*</slot>|<slot[^>]*/?>|<meter[^>]*>[^<]*</meter>|<meter[^>]*/?>|<progress[^>]*>[^<]*</progress>|<progress[^>]*/?>|<figure[^>]*>[^<]*</figure>|<figure[^>]*/?>|<figcaption[^>]*>[^<]*</figcaption>|<figcaption[^>]*/?>|<map[^>]*>[^<]*</map>|<map[^>]*/?>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
+          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<mark>[^<]+</mark>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<strike>[^<]+</strike>|<br/>|<br>|<wbr/>|<wbr>|<small>[^<]+</small>|<cite>[^<]+</cite>|<q>[^<]+</q>|<var>[^<]+</var>|<samp>[^<]+</samp>|<dfn>[^<]+</dfn>|<em>[^<]+</em>|<strong>[^<]+</strong>|<b>[^<]+</b>|<code>[^<]+</code>|<i>[^<]+</i>|<big>[^<]+</big>|<tt>[^<]+</tt>|<time>[^<]+</time>|<data>[^<]+</data>|<bdi>[^<]+</bdi>|<bdo[^>]*>[^<]+</bdo>|<ruby>[^<]+<rt>[^<]+</rt></ruby>|<ruby>[^<]+</ruby>|<rt>[^<]+</rt>|<rp>[^<]*</rp>|<font[^>]*>[^<]+</font>|<center>[^<]+</center>|<acronym[^>]*>[^<]+</acronym>|<nobr>[^<]+</nobr>|<blink>[^<]+</blink>|<marquee[^>]*>[^<]+</marquee>|<xmp>[^<]+</xmp>|<listing>[^<]+</listing>|<plaintext>[^<]+</plaintext>|<dir>[^<]+</dir>|<menu>[^<]+</menu>|<basefont[^>]*/?>|<isindex[^>]*/?>|<spacer[^>]*>[^<]*</spacer>|<spacer[^>]*/?>|<nextid[^>]*/?>|<keygen[^>]*/?>|<bgsound[^>]*/?>|<multicol[^>]*>[^<]*</multicol>|<multicol[^>]*/?>|<frame[^>]*/?>|<frameset[^>]*>[^<]*</frameset>|<frameset[^>]*/?>|<applet[^>]*>[^<]*</applet>|<applet[^>]*/?>|<noembed[^>]*>[^<]+</noembed>|<noembed[^>]*/?>|<noframes[^>]*>[^<]*</noframes>|<noframes[^>]*/?>|<embed[^>]*/?>|<object[^>]*>[^<]*</object>|<object[^>]*/?>|<param[^>]*/?>|<track[^>]*/?>|<video[^>]*>[^<]*</video>|<video[^>]*/?>|<audio[^>]*>[^<]*</audio>|<audio[^>]*/?>|<picture[^>]*>[^<]*</picture>|<picture[^>]*/?>|<canvas[^>]*>[^<]*</canvas>|<canvas[^>]*/?>|<svg[^>]*>[^<]*</svg>|<svg[^>]*/?>|<math[^>]*>[^<]*</math>|<math[^>]*/?>|<area[^>]*/?>|<iframe[^>]*>[^<]*</iframe>|<iframe[^>]*/?>|<portal[^>]*>[^<]*</portal>|<portal[^>]*/?>|<dialog[^>]*>[^<]*</dialog>|<dialog[^>]*/?>|<template[^>]*>[^<]*</template>|<template[^>]*/?>|<slot[^>]*>[^<]*</slot>|<slot[^>]*/?>|<meter[^>]*>[^<]*</meter>|<meter[^>]*/?>|<progress[^>]*>[^<]*</progress>|<progress[^>]*/?>|<figure[^>]*>[^<]*</figure>|<figure[^>]*/?>|<figcaption[^>]*>[^<]*</figcaption>|<figcaption[^>]*/?>|<map[^>]*>[^<]*</map>|<map[^>]*/?>|<main[^>]*>[^<]*</main>|<main[^>]*/?>|<aside[^>]*>[^<]*</aside>|<aside[^>]*/?>|<nav[^>]*>[^<]*</nav>|<nav[^>]*/?>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
             );
     var i = 0;
     for (final m in re.allMatches(text)) {
@@ -1393,6 +1393,33 @@ class MarkdownLite extends StatelessWidget {
         // HTML map — monospace muted demo label
         spans.add(TextSpan(
           text: '[map]',
+          style: base.copyWith(
+            fontFamily: 'monospace',
+            color: base.color?.withOpacity(0.55),
+          ),
+        ));
+      } else if (tok.toLowerCase().startsWith('<main')) {
+        // HTML main — monospace muted demo label
+        spans.add(TextSpan(
+          text: '[main]',
+          style: base.copyWith(
+            fontFamily: 'monospace',
+            color: base.color?.withOpacity(0.55),
+          ),
+        ));
+      } else if (tok.toLowerCase().startsWith('<aside')) {
+        // HTML aside — monospace muted demo label
+        spans.add(TextSpan(
+          text: '[aside]',
+          style: base.copyWith(
+            fontFamily: 'monospace',
+            color: base.color?.withOpacity(0.55),
+          ),
+        ));
+      } else if (tok.toLowerCase().startsWith('<nav')) {
+        // HTML nav — monospace muted demo label
+        spans.add(TextSpan(
+          text: '[nav]',
           style: base.copyWith(
             fontFamily: 'monospace',
             color: base.color?.withOpacity(0.55),

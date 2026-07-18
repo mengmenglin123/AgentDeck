@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.155
+
+- Auto refresh FilterChips on diff/host_dashboard/logs screens
+- MarkdownLite `<main>` + `<aside>` + `<nav>`
+- Mock lastb/faillog/chage (+ help/which/type lockstep)
+
 ## 0.1.154
 
 - Auto refresh FilterChips on activity/agents/audit/cron screens

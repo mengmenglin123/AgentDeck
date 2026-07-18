@@ -834,7 +834,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, locale, umask, readlink, cksum, sum, expand, unexpand, tac, namei, dir, vdir, tsort, pathchk, mktemp, sync, link, ln, truncate, install, shred, timeout, nice, nohup, watch, stdbuf, flock, ionice, taskset, prlimit, chroot, unshare, nsenter, setpriv, capsh, runcon, ldd, ldconfig, uuidgen, df, free, ps, uptime, true, false, printf, sleep, touch, rmdir, mkfifo, getopt, strings, csplit, diff, patch, sdiff, diff3, pr, sha512sum, base32, sha224sum, sha384sum, dircolors, tput, tset, tabs, script, scriptreplay, infocmp, toe, reset, resize, login, mesg, write, wall, newgrp, su, sudo, chfn, chsh, passwd, lastlog, history, alias, unalias, echo <text>, stty, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, locale, umask, readlink, cksum, sum, expand, unexpand, tac, namei, dir, vdir, tsort, pathchk, mktemp, sync, link, ln, truncate, install, shred, timeout, nice, nohup, watch, stdbuf, flock, ionice, taskset, prlimit, chroot, unshare, nsenter, setpriv, capsh, runcon, ldd, ldconfig, uuidgen, df, free, ps, uptime, true, false, printf, sleep, touch, rmdir, mkfifo, getopt, strings, csplit, diff, patch, sdiff, diff3, pr, sha512sum, base32, sha224sum, sha384sum, dircolors, tput, tset, tabs, script, scriptreplay, infocmp, toe, reset, resize, login, mesg, write, wall, newgrp, su, sudo, chfn, chsh, passwd, lastlog, lastb, faillog, chage, history, alias, unalias, echo <text>, stty, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -931,7 +931,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
     elif lower.startswith("which "):
         name = data.strip()[6:].strip()
         known = {
-            "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch", "stdbuf", "flock", "ionice", "taskset", "prlimit", "chroot", "unshare", "nsenter", "setpriv", "capsh", "runcon", "ldd", "ldconfig", "uuidgen", "rmdir", "mkfifo", "getopt", "strings", "csplit", "diff", "patch", "sdiff", "diff3", "pr", "sha512sum", "base32", "sha224sum", "sha384sum", "dircolors", "tput", "tset", "tabs", "script", "scriptreplay", "infocmp", "toe", "reset", "resize", "login", "mesg", "write", "wall", "newgrp", "su", "sudo", "chfn", "chsh", "passwd", "lastlog", "alias", "unalias"
+            "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch", "stdbuf", "flock", "ionice", "taskset", "prlimit", "chroot", "unshare", "nsenter", "setpriv", "capsh", "runcon", "ldd", "ldconfig", "uuidgen", "rmdir", "mkfifo", "getopt", "strings", "csplit", "diff", "patch", "sdiff", "diff3", "pr", "sha512sum", "base32", "sha224sum", "sha384sum", "dircolors", "tput", "tset", "tabs", "script", "scriptreplay", "infocmp", "toe", "reset", "resize", "login", "mesg", "write", "wall", "newgrp", "su", "sudo", "chfn", "chsh", "passwd", "lastlog", "lastb", "faillog", "chage", "alias", "unalias"
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1549,7 +1549,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             out("type: missing operand\n", done=True, exit_code=1)
         else:
             builtins = {
-                "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "export", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "base64", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch", "stdbuf", "flock", "ionice", "taskset", "prlimit", "chroot", "unshare", "nsenter", "setpriv", "capsh", "runcon", "ldd", "ldconfig", "uuidgen", "rmdir", "mkfifo", "getopt", "strings", "csplit", "diff", "patch", "sdiff", "diff3", "pr", "sha512sum", "base32", "sha224sum", "sha384sum", "dircolors", "tput", "tset", "tabs", "script", "scriptreplay", "infocmp", "toe", "reset", "resize", "login", "mesg", "write", "wall", "newgrp", "su", "sudo", "chfn", "chsh", "passwd", "lastlog", "alias", "unalias"
+                "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "export", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "base64", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch", "stdbuf", "flock", "ionice", "taskset", "prlimit", "chroot", "unshare", "nsenter", "setpriv", "capsh", "runcon", "ldd", "ldconfig", "uuidgen", "rmdir", "mkfifo", "getopt", "strings", "csplit", "diff", "patch", "sdiff", "diff3", "pr", "sha512sum", "base32", "sha224sum", "sha384sum", "dircolors", "tput", "tset", "tabs", "script", "scriptreplay", "infocmp", "toe", "reset", "resize", "login", "mesg", "write", "wall", "newgrp", "su", "sudo", "chfn", "chsh", "passwd", "lastlog", "lastb", "faillog", "chage", "alias", "unalias"
                             }
             if name.split()[0] in builtins:
                 out(f"{name.split()[0]} is a shell builtin\n", done=True, exit_code=0)
@@ -3176,15 +3176,36 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
     elif lower.startswith("lastlog"):
         # mock lastlog: demo only — fixed output
         out("Username         Port     From             Latest\nmock             pts/0    127.0.0.1        Fri Jul 18 00:00:00 +0000 2026\n", done=True, exit_code=0)
-    elif lower == "history" or lower.startswith("history "):
-        # mock history: demo only — fixed output
-        out("    1  ls\n    2  cd /home\n    3  cat README.md\n    4  pwd\n    5  history\n", done=True, exit_code=0)
-    elif lower == "alias" or lower.startswith("alias "):
-        # mock alias: demo only — fixed output
-        out("alias ll='ls -alF'\nalias la='ls -A'\nalias l='ls -CF'\n", done=True, exit_code=0)
-    elif lower == "unalias" or lower.startswith("unalias "):
-        # mock unalias: demo only — no real state
-        pass
+    elif lower == "lastb" or lower.startswith("lastb "):
+        # mock lastb: demo only — fixed failed-login output
+        out(
+            "mock     pts/0                         Fri Jul 18 00:00 - 00:01  (00:01)\n"
+            "\n"
+            "btmp begins Fri Jul 18 00:00:00 2026\n",
+            done=True,
+            exit_code=0,
+        )
+    elif lower == "faillog" or lower.startswith("faillog "):
+        # mock faillog: demo only — fixed failure log output
+        out(
+            "Login               Failures    Maximum    Latest\n"
+            "mock                     0        0\n",
+            done=True,
+            exit_code=0,
+        )
+    elif lower.startswith("chage") or lower == "chage":
+        # mock chage: demo only — permission denied
+        out("chage: (mock) permission denied\n", done=True, exit_code=1)
+    elif lower.startswith("alias ") or lower == "alias":
+        # mock alias: bare prints fixed aliases; with args — empty exit 0
+        args_al = data.strip().split()[1:] if lower.startswith("alias ") else []
+        if args_al:
+            out("", done=True, exit_code=0)
+        else:
+            out("alias ll='ls -alF'\nalias la='ls -A'\nalias l='ls -CF'\n", done=True, exit_code=0)
+    elif lower.startswith("unalias ") or lower == "unalias":
+        # mock unalias: bare or with args — empty exit 0 (no real state)
+        out("", done=True, exit_code=0)
 
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)

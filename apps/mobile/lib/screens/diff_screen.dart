@@ -614,6 +614,12 @@ class _DiffScreenState extends State<DiffScreen> {
                     selected: _lineNums,
                     onSelected: (v) => setState(() => _lineNums = v),
                   ),
+                  FilterChip(
+                    visualDensity: VisualDensity.compact,
+                    label: const Text('Auto', style: TextStyle(fontSize: 11)),
+                    selected: _autoRefresh,
+                    onSelected: (v) => setState(() => _autoRefresh = v),
+                  ),
                 ],
               ),
             ),
