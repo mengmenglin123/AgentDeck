@@ -3308,29 +3308,16 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
     # --- file operations (demo only) ---
     elif lower == "cp" or lower == "cp ":
         out("cp: missing file operand\n", done=True, exit_code=1)
-    elif lower.startswith("cp ") or lower.startswith("cp\t"):
-        out("", done=True, exit_code=0)  # demo: no real copy
     elif lower == "mv" or lower == "mv ":
         out("mv: missing file operand\n", done=True, exit_code=1)
-    elif lower.startswith("mv ") or lower.startswith("mv\t"):
-        out("", done=True, exit_code=0)  # demo: no real move
     elif lower == "rm" or lower == "rm ":
         out("rm: missing operand\n", done=True, exit_code=1)
-    elif lower.startswith("rm "):
-        out("", done=True, exit_code=0)  # demo: no real delete
     elif lower == "chmod" or lower == "chmod ":
         out("chmod: missing operand\n", done=True, exit_code=1)
-    elif lower.startswith("chmod "):
-        out("", done=True, exit_code=0)  # demo: no real permission change
     elif lower == "chown" or lower == "chown ":
         out("chown: missing operand\n", done=True, exit_code=1)
-    elif lower.startswith("chown "):
-        out("", done=True, exit_code=0)  # demo: no real ownership change
     elif lower == "chgrp" or lower == "chgrp ":
         out("chgrp: missing operand\n", done=True, exit_code=1)
-    elif lower.startswith("chgrp "):
-        out("", done=True, exit_code=0)  # demo: no real group change
-    # --- job control (demo only) ---
     elif lower.startswith("kill ") or lower == "kill":
         if lower == "kill" or lower == "kill ":
             out("kill: usage: kill [-s sigspec | -n signum | -sigspec] pid | jobspec ... or kill -l [sigspec]\n", done=True, exit_code=1)
@@ -3344,23 +3331,6 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         out("[1]+ sleep 100\n", done=True, exit_code=0)
 
 
-    elif lower == "kill" or lower.startswith("kill "):
-        # mock kill: with args — print nothing, exit 0 (demo; no real signal). Bare — print usage, exit 1.
-        parts = data.strip().split()
-        if len(parts) < 2:
-            out("kill: usage: kill [-s sigspec | -n signum | -sigspec] pid | jobspec ... or kill -l [sigspec]\n", done=True, exit_code=1)
-        else:
-            out("", done=True, exit_code=0)
-    elif lower == "jobs" or lower.startswith("jobs "):
-        # mock jobs: bare or with args — print fixed job list, exit 0
-        out("[1]+ Stopped                 vim\n[2]- Running                 sleep 100 &\n", done=True, exit_code=0)
-    elif lower == "bg" or lower.startswith("bg "):
-        # mock bg: bare or with args — print resumed job, exit 0 (demo)
-        out("[1]+ sleep 100 &\n", done=True, exit_code=0)
-    elif lower == "fg" or lower.startswith("fg "):
-        # mock fg: bare or with args — print foreground job, exit 0 (demo)
-        out("[1]+ sleep 100\n", done=True, exit_code=0)
-    # --- shell/session (demo only) ---
     elif lower == "bash" or lower.startswith("bash "):
         pass  # demo: no real shell
     elif lower == "sh" or lower.startswith("sh "):
@@ -3371,8 +3341,6 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         out("logout\n", done=True, exit_code=0)
     elif lower.startswith("source "):
         pass  # demo: no real sourcing
-    elif lower == "source":
-        out("source: filename argument required\n", done=True, exit_code=1)
     elif lower == "set" or lower.startswith("set "):
         out("BASH=/bin/bash\nBASHOPTS=cmdhist:complete_fullquote\nHOME=/home/mock\nHOSTNAME=mock-host\nLANG=en_US.UTF-8\nPATH=/usr/local/bin:/usr/bin:/bin\nPWD=/home/mock\nSHELL=/bin/bash\nUSER=mock\n", done=True, exit_code=0)
     # --- archive/compression (demo only) ---
@@ -3404,24 +3372,14 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
     # --- network (demo only) ---
     elif lower.startswith("curl "):
         out("", done=True, exit_code=0)  # demo: no real HTTP
-    elif lower == "curl":
-        out("curl: try \'curl --help\' for more information\n", done=True, exit_code=2)
     elif lower.startswith("wget "):
         out("", done=True, exit_code=0)  # demo: no real download
-    elif lower == "wget":
-        out("wget: missing URL\n", done=True, exit_code=1)
     elif lower.startswith("ssh "):
         out("ssh: connect to host mock-host port 22: Connection refused\n", done=True, exit_code=255)
-    elif lower == "ssh":
-        out("usage: ssh [-46AaCfGgKkMNnqsTtVvXxYy] destination [command]\n", done=True, exit_code=255)
     elif lower.startswith("scp "):
         out("", done=True, exit_code=0)  # demo
-    elif lower == "scp":
-        out("usage: scp [-346BCpqrTv] [-c cipher] [-F ssh_config] source target\n", done=True, exit_code=1)
     elif lower.startswith("rsync "):
         out("", done=True, exit_code=0)  # demo
-    elif lower == "rsync":
-        out("rsync: missing operand\n", done=True, exit_code=1)
     elif lower.startswith("ping ") or lower == "ping":
         if lower == "ping" or lower == "ping ":
             out("ping: usage error: Destination address required\n", done=True, exit_code=1)
@@ -3461,8 +3419,6 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             pass
     elif lower.startswith("dd "):
         pass
-    elif lower == "dd":
-        out("dd: missing operand\nTry \'dd --help\' for more information.\n", done=True, exit_code=1)
     elif lower.startswith("service ") or lower == "service":
         if lower == "service" or lower == "service ":
             out("Usage: service < option > | --status-all | service name [ action | ... ]\n", done=True, exit_code=1)
@@ -3523,35 +3479,6 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
 
 
     # --- shell builtins (demo only) ---
-    elif lower == "bash" or lower.startswith("bash "):
-        out("", done=True, exit_code=0)
-    elif lower == "sh" or lower.startswith("sh "):
-        out("", done=True, exit_code=0)
-    elif lower == "exit" or lower.startswith("exit "):
-        out("exit\n", done=True, exit_code=0)
-    elif lower == "logout" or lower.startswith("logout "):
-        out("logout\n", done=True, exit_code=0)
-    elif lower.startswith("source "):
-        out("", done=True, exit_code=0)
-    elif lower == "source":
-        out("source: filename argument required\n", done=True, exit_code=1)
-    elif lower == "set":
-        out(
-            "BASH=/bin/bash\n"
-            "BASHOPTS=cmdhist:complete_fullquote\n"
-            "HOME=/home/mock\n"
-            "HOSTNAME=mock-host\n"
-            "LANG=en_US.UTF-8\n"
-            "PATH=/usr/local/bin:/usr/bin:/bin\n"
-            "PWD=/home/mock\n"
-            "SHELL=/bin/bash\n"
-            "USER=mock\n",
-            done=True,
-            exit_code=0,
-        )
-    elif lower.startswith("set "):
-        out("", done=True, exit_code=0)
-
     elif lower.startswith("ip ") or lower == "ip":
         if lower == "ip" or lower == "ip ":
             out("Usage: ip [ OPTIONS ] OBJECT { COMMAND | help }\n", done=True, exit_code=0)
