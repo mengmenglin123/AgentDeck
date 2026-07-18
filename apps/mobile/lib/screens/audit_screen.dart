@@ -19,6 +19,7 @@ class AuditScreen extends StatefulWidget {
 class _AuditScreenState extends State<AuditScreen> {
   final _q = TextEditingController();
   String _query = '';
+  bool _queryCase = false;
   /// all | info | warn | error
   String _level = 'all';
   bool _newestFirst = true;
@@ -84,10 +85,12 @@ class _AuditScreenState extends State<AuditScreen> {
     if (_level != 'all') {
       it = it.where((e) => e.level == _level);
     }
-    final q = _query.trim().toLowerCase();
+    final rawQ = _query.trim();
+    final q = _queryCase ? rawQ : rawQ.toLowerCase();
     if (q.isNotEmpty) {
       it = it.where((e) {
-        final hay = '${e.action} ${e.detail} ${e.level}'.toLowerCase();
+        final hayRaw = '${e.action} ${e.detail} ${e.level}';
+        final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
         return hay.contains(q);
       });
     }
@@ -301,10 +304,17 @@ class _AuditScreenState extends State<AuditScreen> {
             child: TextField(
               controller: _q,
               decoration: InputDecoration(
-                hintText: 'Filter action / detail',
+                hintText: _queryCase ? 'Filter (case-sensitive)' : 'Filter action / detail',
                 isDense: true,
                 border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.search, size: 20),
+                prefixIcon: IconButton(
+                  tooltip: _queryCase ? 'Case-sensitive on' : 'Case-insensitive',
+                  icon: Icon(
+                    _queryCase ? Icons.text_fields : Icons.search,
+                    size: 20,
+                  ),
+                  onPressed: () => setState(() => _queryCase = !_queryCase),
+                ),
                 suffixIcon: _query.isEmpty
                     ? null
                     : IconButton(

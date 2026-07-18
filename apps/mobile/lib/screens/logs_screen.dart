@@ -25,6 +25,7 @@ class _LogsScreenState extends State<LogsScreen> {
   List<Map<String, dynamic>> _logs = [];
   String _level = '';
   String _query = '';
+  bool _queryCase = false;
   bool _wrapLines = true;
   final _scroll = ScrollController();
   Timer? _timer;
@@ -88,17 +89,21 @@ class _LogsScreenState extends State<LogsScreen> {
   }
 
   List<Map<String, dynamic>> get _visible {
-    final q = _query.trim().toLowerCase();
+    final rawQ = _query.trim();
+    final q = _queryCase ? rawQ : rawQ.toLowerCase();
     List<Map<String, dynamic>> list;
     if (q.isEmpty) {
       list = List<Map<String, dynamic>>.from(_logs);
     } else {
       list = _logs.where((e) {
-        final msg = '${e['message'] ?? ''}'.toLowerCase();
-        final level = '${e['level'] ?? ''}'.toLowerCase();
-        final ts = '${e['ts'] ?? ''}'.toLowerCase();
-        final logger =
-            '${e['logger'] ?? e['source'] ?? e['component'] ?? e['module'] ?? ''}'.toLowerCase();
+        String norm(Object? v) {
+          final s = '${v ?? ''}';
+          return _queryCase ? s : s.toLowerCase();
+        }
+        final msg = norm(e['message']);
+        final level = norm(e['level']);
+        final ts = norm(e['ts']);
+        final logger = norm(e['logger'] ?? e['source'] ?? e['component'] ?? e['module']);
         return msg.contains(q) || level.contains(q) || logger.contains(q) || ts.contains(q);
       }).toList();
     }
@@ -375,10 +380,17 @@ class _LogsScreenState extends State<LogsScreen> {
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
             child: TextField(
               decoration: InputDecoration(
-                hintText: 'Filter message / level',
+                hintText: _queryCase ? 'Filter (case-sensitive)' : 'Filter message / level',
                 isDense: true,
                 border: const OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.search, size: 20),
+                prefixIcon: IconButton(
+                  tooltip: _queryCase ? 'Case-sensitive on' : 'Case-insensitive',
+                  icon: Icon(
+                    _queryCase ? Icons.text_fields : Icons.search,
+                    size: 20,
+                  ),
+                  onPressed: () => setState(() => _queryCase = !_queryCase),
+                ),
                 suffixIcon: _query.isEmpty
                     ? null
                     : IconButton(

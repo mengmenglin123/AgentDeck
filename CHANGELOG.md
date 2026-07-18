@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.73
+
+- Audit case-sensitive filter
+- Logs case-sensitive filter
+- Workspace case-sensitive filter
+- Skills case-sensitive filter
+
 ## 0.1.72
 
 - MCP case-sensitive filter

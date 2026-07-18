@@ -29,6 +29,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   bool _loading = true;
   final _filterCtrl = TextEditingController();
   String _filter = '';
+  bool _queryCase = false;
   /// name ascending when true; dirs always first
   bool _wrapLines = false;
   bool _sortAsc = true;
@@ -61,7 +62,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   List<Map> get _visibleEntries {
     final node = _node;
     final raw = (node?['entries'] as List?) ?? const [];
-    final q = _filter.trim().toLowerCase();
+    final rawQ = _filter.trim();
+    final q = _queryCase ? rawQ : rawQ.toLowerCase();
     final list = <Map>[];
     for (final e in raw.whereType<Map>()) {
       final type = (e['type'] ?? '').toString().toLowerCase();
@@ -77,8 +79,11 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         }
       }
       if (q.isNotEmpty) {
-        final name = (e['name'] ?? '').toString().toLowerCase();
-        if (!name.contains(q) && !type.contains(q)) continue;
+        final nameRaw = (e['name'] ?? '').toString();
+        final typeRaw = (e['type'] ?? '').toString();
+        final name = _queryCase ? nameRaw : nameRaw.toLowerCase();
+        final typeHay = _queryCase ? typeRaw : typeRaw.toLowerCase();
+        if (!name.contains(q) && !typeHay.contains(q)) continue;
       }
       list.add(e);
     }
@@ -505,10 +510,17 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               child: TextField(
                 controller: _filterCtrl,
                 decoration: InputDecoration(
-                  hintText: 'Filter files in this folder',
+                  hintText: _queryCase ? 'Filter (case-sensitive)' : 'Filter files in this folder',
                   isDense: true,
                   border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.search, size: 18),
+                  prefixIcon: IconButton(
+                    tooltip: _queryCase ? 'Case-sensitive on' : 'Case-insensitive',
+                    icon: Icon(
+                      _queryCase ? Icons.text_fields : Icons.search,
+                      size: 18,
+                    ),
+                    onPressed: () => setState(() => _queryCase = !_queryCase),
+                  ),
                   suffixIcon: _filter.isEmpty
                       ? null
                       : IconButton(
