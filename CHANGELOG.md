@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.104
+
+- Mock terminal cd/mkdir (readonly tree) + help; workdir-aware ls
+- Terminal input hint shows local workdir track
+- Activity list level/source + seed levels; filter includes them
+
 ## 0.1.103
 
 - Mock workspace hermes/ + docs/protocol; git status + diffs

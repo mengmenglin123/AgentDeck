@@ -474,14 +474,14 @@ def seed_demo_activity() -> None:
         if ACTIVITY_EVENTS:
             return
     samples = [
-        ("host.started", "Mock Host ready"),
-        ("hermes.adapter.mock", "Hermes project uses mock adapter (ADR-002)"),
-        ("bridge.listening", "Bridge WebSocket accepting console clients"),
-        ("terminal.geometry", "Default geometry 80x24 (client may resize)"),
-        ("security.pairing", "Pairing URI must never embed tokens"),
+        ("host.started", "Mock Host ready", "info"),
+        ("hermes.adapter.mock", "Hermes project uses mock adapter (ADR-002)", "info"),
+        ("bridge.listening", "Bridge WebSocket accepting console clients", "info"),
+        ("terminal.geometry", "Default geometry 80x24 (client may resize)", "debug"),
+        ("security.pairing", "Pairing URI must never embed tokens", "warn"),
     ]
-    for kind, summary in samples:
-        activity_push(kind, summary, source="mock-host", level="info")
+    for kind, summary, level in samples:
+        activity_push(kind, summary, source="mock-host", level=level)
 
 
 seed_demo_activity()
@@ -783,7 +783,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, ls, whoami, uname, hostname, id, date, env, cat, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, mkdir, whoami, uname, hostname, id, date, env, cat, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -793,6 +793,54 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
     elif lower == "pwd":
         st = _session_state(sk)
         out((st.get("workdir") or "/workspace") + "\n", done=True, exit_code=0)
+    elif lower == "cd" or lower.startswith("cd "):
+        st = _session_state(sk)
+        cur = st.get("workdir") or "/workspace"
+        arg = data.strip()[2:].strip() if lower.startswith("cd") else ""
+        if not arg or arg == "~":
+            target = "/workspace"
+        elif arg == "-":
+            target = st.get("prev_workdir") or "/workspace"
+        elif arg.startswith("/"):
+            target = arg.rstrip("/") or "/"
+            if not target.startswith("/workspace"):
+                # allow absolute under /workspace only
+                if target == "/":
+                    target = "/workspace"
+                else:
+                    out(f"cd: {arg}: permission denied (mock stays under /workspace)\n", done=True, exit_code=1)
+                    return
+        else:
+            # relative
+            base = cur.rstrip("/")
+            parts = [p for p in (base + "/" + arg).split("/") if p and p != "."]
+            stack = []
+            for p in parts:
+                if p == "..":
+                    if stack:
+                        stack.pop()
+                else:
+                    stack.append(p)
+            target = "/" + "/".join(stack) if stack else "/workspace"
+            if not target.startswith("/workspace"):
+                target = "/workspace"
+        rel = target.replace("/workspace", "").lstrip("/")
+        node, cleaned = _ws_resolve(rel)
+        if target != "/workspace" and (node is None or node.get("type") != "dir"):
+            out(f"cd: {arg}: No such directory\n", done=True, exit_code=1)
+        else:
+            st["prev_workdir"] = cur
+            st["workdir"] = target if target.startswith("/workspace") else "/workspace"
+            if target == "/workspace" or (node and node.get("type") == "dir"):
+                if target != "/workspace" and cleaned:
+                    st["workdir"] = "/workspace/" + cleaned
+                out("", done=True, exit_code=0)
+            else:
+                out(f"cd: {arg}: No such directory\n", done=True, exit_code=1)
+    elif lower.startswith("mkdir "):
+        # Readonly mock tree — report intent only
+        name = data.strip()[6:].strip() or "(empty)"
+        out(f"[mock-mkdir] refused (readonly workspace): {name}\n", done=True, exit_code=1)
     elif lower in {"ls", "ls -la"} or lower.startswith("ls "):
         st_ls = _session_state(sk)
         rel = (st_ls.get("workdir") or "/workspace").replace("/workspace", "").lstrip("/")

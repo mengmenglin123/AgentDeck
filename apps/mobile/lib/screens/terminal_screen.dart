@@ -41,6 +41,7 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
   int _histIndex = -1; // -1 = drafting new
   String _draftBeforeHist = '';
   double _termScale = 1.0; // local terminal font multiplier
+  String _workdir = '/workspace'; // best-effort local track (Mock cd/pwd)
   bool _newestFirst = false;
   bool _wrapLines = true;
   bool _showFind = false;
@@ -211,6 +212,38 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
     }
   }
 
+
+  void _noteWorkdirFromCommand(String text) {
+    final t = text.trim();
+    if (t == 'cd' || t == 'cd ~') {
+      _workdir = '/workspace';
+      return;
+    }
+    if (t.startsWith('cd ')) {
+      final arg = t.substring(3).trim();
+      if (arg.isEmpty || arg == '~') {
+        _workdir = '/workspace';
+      } else if (arg == '-') {
+        // prev unknown client-side
+      } else if (arg.startsWith('/')) {
+        if (arg == '/') {
+          _workdir = '/workspace';
+        } else if (arg.startsWith('/workspace')) {
+          var w = arg;
+          while (w.length > 1 && w.endsWith('/')) {
+            w = w.substring(0, w.length - 1);
+          }
+          _workdir = w;
+        }
+      } else if (!arg.contains('..')) {
+        final base = _workdir.endsWith('/')
+            ? _workdir.substring(0, _workdir.length - 1)
+            : _workdir;
+        _workdir = '$base/$arg';
+      }
+    }
+  }
+
   void _send() {
     final text = _input.text;
     if (text.trim().isEmpty || _bridge == null || _busy) return;
@@ -223,6 +256,7 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
     _histIndex = -1;
     _draftBeforeHist = '';
     _input.clear();
+    _noteWorkdirFromCommand(text);
     _sendRaw(text);
   }
 
@@ -709,9 +743,9 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                       controller: _input,
                       enabled: !_connecting && _bridge != null,
                       style: const TextStyle(fontFamily: 'monospace'),
-                      decoration: const InputDecoration(
-                        hintText: 'command…',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        hintText: '$_workdir › command…',
+                        border: const OutlineInputBorder(),
                         isDense: true,
                       ),
                       textInputAction: TextInputAction.send,

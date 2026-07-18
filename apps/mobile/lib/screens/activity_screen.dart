@@ -202,7 +202,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       }
       if (rawQ.isEmpty) return true;
       final hayRaw =
-          '${e['kind']} ${e['type']} ${e['summary']} ${e['message']} ${e['session_key']} ${e['session_id']} ${e['source']}';
+          '${e['kind']} ${e['type']} ${e['summary']} ${e['message']} ${e['session_key']} ${e['session_id']} ${e['source']} ${e['level']}';
       if (_queryRegex) {
         try {
           return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
@@ -693,6 +693,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
                         subtitle: Text(
                           [
                             kind,
+                            if ((e['level'] ?? '').toString().isNotEmpty) (e['level']).toString(),
+                            if ((e['source'] ?? '').toString().isNotEmpty) (e['source']).toString(),
                             _fmtTs(e['ts']),
                             if (ref != null) ref,
                           ].join(' · '),

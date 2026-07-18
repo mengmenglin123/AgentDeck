@@ -490,12 +490,14 @@
 - [x] **P4-1e** Mock terminal clear/reset (0.1.102)
 - [x] **P4-3g** Mock workspace hermes tree + git/diff + dynamic ls (0.1.103)
 - [x] **P4-5i** Code block header line count; Logs source label (0.1.103)
+- [x] **P4-1f** Mock terminal cd/mkdir + workdir hint (0.1.104)
+- [x] **P4-3h** Activity level/source labels + seed levels (0.1.104)
 
 ## P4 — 远期
 
 | ID | 任务 | 状态 |
 |----|------|------|
-| P4-1 | 真远程 PTY（cols/rows + 终端字号偏好；真 ioctl/shell 仍远期） | [~] |
+| P4-1 | 真远程 PTY（cols/rows + 字号 + mock cd/ls/workdir；真 ioctl/shell 仍远期） | [~] |
 | P4-2 | 相机扫码配对（剪贴板 URI + paste card 已有；真相机仍远期） | [~] |
 | P4-3 | Host 真 Hermes adapter（Mock workspace/git/diff/memory/MCP/status 已加深；真进程仍远期） | [~] |
 | P4-4 | 通知 / 后台重连（resume/reconnect + 应用内 permission snack 已有；系统通知仍远期） | [~] |
