@@ -406,6 +406,14 @@ class _SessionsScreenState extends State<SessionsScreen> {
           final kc = a.sessionKey.toLowerCase().compareTo(b.sessionKey.toLowerCase());
           if (kc != 0) return dir(kc);
           return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
+        case 'platform':
+          final pc = (a.platform ?? '').toLowerCase().compareTo((b.platform ?? '').toLowerCase());
+          if (pc != 0) return dir(pc);
+          return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
+        case 'agent':
+          final ac = (a.agentType ?? '').toLowerCase().compareTo((b.agentType ?? '').toLowerCase());
+          if (ac != 0) return dir(ac);
+          return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
         case 'recent':
           final ar = _recentRank[a.sessionKey];
           final br = _recentRank[b.sessionKey];
@@ -958,6 +966,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
                             PopupMenuItem(value: 'created', child: Text('Sort: Created')),
                             PopupMenuItem(value: 'model', child: Text('Sort: Model')),
                             PopupMenuItem(value: 'key', child: Text('Sort: Key')),
+                            PopupMenuItem(value: 'platform', child: Text('Sort: Platform')),
+                            PopupMenuItem(value: 'agent', child: Text('Sort: Agent')),
                           ],
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -971,6 +981,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                   'model': 'Model',
                                   'key': 'Key',
                                   'recent': 'Recent',
+                                  'platform': 'Platform',
+                                  'agent': 'Agent',
                                 }[settings.sessionSort] ??
                                     'Updated',
                                 style: const TextStyle(fontSize: 12),

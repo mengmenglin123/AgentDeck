@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.90
+
+- Workspace dirty / branch sort
+- Cron last_run sort
+- Sessions sort by platform / agent
+
 ## 0.1.89
 
 - Memory explicit time/ts sort

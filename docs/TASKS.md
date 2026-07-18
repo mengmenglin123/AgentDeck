@@ -429,6 +429,11 @@
 | P3-331 | Audit 按 time/ts 排序 | [x] |
 | P3-332 | Cron 按 description 排序 | [x] |
 
+| P3-333 | Workspace 按 dirty 排序 | [x] |
+| P3-334 | Workspace 按 branch 排序 | [x] |
+| P3-335 | Cron 按 last_run 排序 | [x] |
+| P3-336 | Sessions 按 platform / agent 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |
