@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.137
+
+- Chat search/tools FilterChips (regex / case / tools)
+- MarkdownLite `<plaintext>` + `<basefont>`
+- Mock capsh/runcon/ldd (+ help/which/type lockstep)
+
 ## 0.1.136
 
 - Audit view FilterChips (wrap / regex / case / newest)

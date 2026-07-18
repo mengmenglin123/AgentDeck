@@ -1014,6 +1014,33 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         onSelected: (_) => setState(() => _roleFilter = f.$1),
                       ),
                     ),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      visualDensity: VisualDensity.compact,
+                      label: const Text('Regex', style: TextStyle(fontSize: 11)),
+                      selected: _searchRegex,
+                      onSelected: (v) => setState(() => _searchRegex = v),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      visualDensity: VisualDensity.compact,
+                      label: const Text('Case', style: TextStyle(fontSize: 11)),
+                      selected: _searchCase,
+                      onSelected: (v) => setState(() => _searchCase = v),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      visualDensity: VisualDensity.compact,
+                      label: const Text('Tools', style: TextStyle(fontSize: 11)),
+                      selected: _showTools,
+                      onSelected: (v) => setState(() => _showTools = v),
+                    ),
+                  ),
                 ],
               ),
             ),
