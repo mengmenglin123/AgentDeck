@@ -31,6 +31,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
   bool _sortByDesc = false;
   bool _sortById = false;
   bool _sortByTags = false;
+  bool _sortByPath = false;
   bool _sortAsc = true;
   final _scroll = ScrollController();
   Timer? _timer;
@@ -110,12 +111,17 @@ class _SkillsScreenState extends State<SkillsScreen> {
         if (t is List) return t.map((e) => '$e').join(' ').toLowerCase();
         return (t ?? '').toString().toLowerCase();
       }
-      if (_sortByTags) {
+      if (_sortByPath) {
+        final pa = (a['path'] ?? a['file'] ?? a['slug'] ?? '').toString().toLowerCase();
+        final pb = (b['path'] ?? b['file'] ?? b['slug'] ?? '').toString().toLowerCase();
+        final c = pa.compareTo(pb);
+        if (c != 0) return _sortAsc ? c : -c;
+      } else if (_sortByTags) {
         final c = tagsOf(a).compareTo(tagsOf(b));
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortById) {
-        final ia = (a['id'] ?? a['path'] ?? a['slug'] ?? '').toString().toLowerCase();
-        final ib = (b['id'] ?? b['path'] ?? b['slug'] ?? '').toString().toLowerCase();
+        final ia = (a['id'] ?? a['slug'] ?? a['name'] ?? '').toString().toLowerCase();
+        final ib = (b['id'] ?? b['slug'] ?? b['name'] ?? '').toString().toLowerCase();
         final c = ia.compareTo(ib);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByDesc) {
@@ -220,24 +226,27 @@ class _SkillsScreenState extends State<SkillsScreen> {
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
-            tooltip: _sortByTags
-                ? (_sortAsc ? 'Tags Z→A' : 'Tags A→Z')
-                : (_sortById
-                    ? (_sortAsc ? 'Id/path Z→A' : 'Id/path A→Z')
-                    : (_sortByDesc
-                        ? (_sortAsc ? 'Description Z→A' : 'Description A→Z')
-                        : (_sortBySource
-                            ? (_sortAsc ? 'Source Z→A' : 'Source A→Z')
-                            : (_sortAsc ? 'Name Z→A' : 'Name A→Z')))),
+            tooltip: _sortByPath
+                ? (_sortAsc ? 'Path Z→A' : 'Path A→Z')
+                : (_sortByTags
+                    ? (_sortAsc ? 'Tags Z→A' : 'Tags A→Z')
+                    : (_sortById
+                        ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                        : (_sortByDesc
+                            ? (_sortAsc ? 'Description Z→A' : 'Description A→Z')
+                            : (_sortBySource
+                                ? (_sortAsc ? 'Source Z→A' : 'Source A→Z')
+                                : (_sortAsc ? 'Name Z→A' : 'Name A→Z'))))),
             onPressed: () {
               setState(() {
-                if (!_sortBySource && !_sortByDesc && !_sortById && !_sortByTags && _sortAsc) {
+                if (!_sortBySource && !_sortByDesc && !_sortById && !_sortByTags && !_sortByPath && _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortBySource && !_sortByDesc && !_sortById && !_sortByTags && !_sortAsc) {
+                } else if (!_sortBySource && !_sortByDesc && !_sortById && !_sortByTags && !_sortByPath && !_sortAsc) {
                   _sortBySource = true;
                   _sortByDesc = false;
                   _sortById = false;
                   _sortByTags = false;
+                  _sortByPath = false;
                   _sortAsc = true;
                 } else if (_sortBySource && _sortAsc) {
                   _sortAsc = false;
@@ -246,6 +255,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
                   _sortByDesc = true;
                   _sortById = false;
                   _sortByTags = false;
+                  _sortByPath = false;
                   _sortAsc = true;
                 } else if (_sortByDesc && _sortAsc) {
                   _sortAsc = false;
@@ -254,6 +264,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
                   _sortByDesc = false;
                   _sortById = true;
                   _sortByTags = false;
+                  _sortByPath = false;
                   _sortAsc = true;
                 } else if (_sortById && _sortAsc) {
                   _sortAsc = false;
@@ -262,27 +273,40 @@ class _SkillsScreenState extends State<SkillsScreen> {
                   _sortByDesc = false;
                   _sortById = false;
                   _sortByTags = true;
+                  _sortByPath = false;
                   _sortAsc = true;
                 } else if (_sortByTags && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortByTags && !_sortAsc) {
+                  _sortBySource = false;
+                  _sortByDesc = false;
+                  _sortById = false;
+                  _sortByTags = false;
+                  _sortByPath = true;
+                  _sortAsc = true;
+                } else if (_sortByPath && _sortAsc) {
                   _sortAsc = false;
                 } else {
                   _sortBySource = false;
                   _sortByDesc = false;
                   _sortById = false;
                   _sortByTags = false;
+                  _sortByPath = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortByTags
-                ? Icons.sell_outlined
-                : (_sortById
-                    ? Icons.tag
-                    : (_sortByDesc
-                        ? Icons.notes
-                        : (_sortBySource
-                            ? Icons.source_outlined
-                            : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))))),
+            icon: Icon(_sortByPath
+                ? Icons.folder_open
+                : (_sortByTags
+                    ? Icons.sell_outlined
+                    : (_sortById
+                        ? Icons.tag
+                        : (_sortByDesc
+                            ? Icons.notes
+                            : (_sortBySource
+                                ? Icons.source_outlined
+                                : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))))),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',

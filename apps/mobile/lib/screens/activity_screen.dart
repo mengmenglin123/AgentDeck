@@ -41,6 +41,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   bool _sortBySummary = false;
   bool _sortBySession = false;
   bool _sortBySource = false;
+  bool _sortById = false;
   bool _sortAsc = true;
   bool _relativeTs = false;
   Timer? _timer;
@@ -214,7 +215,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
       return p?.millisecondsSinceEpoch ?? 0;
     }
     list.sort((a, b) {
-      if (_sortBySource) {
+      if (_sortById) {
+        final ia = (a['id'] ?? a['event_id'] ?? a['uuid'] ?? '').toString().toLowerCase();
+        final ib = (b['id'] ?? b['event_id'] ?? b['uuid'] ?? '').toString().toLowerCase();
+        final cs = ia.compareTo(ib);
+        if (cs != 0) return _sortAsc ? cs : -cs;
+      } else if (_sortBySource) {
         final sa = (a['source'] ?? a['origin'] ?? a['channel'] ?? a['provider'] ?? '').toString().toLowerCase();
         final sb = (b['source'] ?? b['origin'] ?? b['channel'] ?? b['provider'] ?? '').toString().toLowerCase();
         final cs = sa.compareTo(sb);
@@ -318,22 +324,25 @@ class _ActivityScreenState extends State<ActivityScreen> {
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
           IconButton(
-            tooltip: _sortBySource
-                ? (_sortAsc ? 'Source Z→A' : 'Source A→Z')
-                : (_sortBySession
-                    ? (_sortAsc ? 'Session Z→A' : 'Session A→Z')
-                    : (_sortBySummary
-                        ? (_sortAsc ? 'Summary Z→A' : 'Summary A→Z')
-                        : (_sortByKind
-                            ? (_sortAsc ? 'Kinds Z→A' : 'Kinds A→Z')
-                            : 'Sort by kind / summary / session / source'))),
+            tooltip: _sortById
+                ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                : (_sortBySource
+                    ? (_sortAsc ? 'Source Z→A' : 'Source A→Z')
+                    : (_sortBySession
+                        ? (_sortAsc ? 'Session Z→A' : 'Session A→Z')
+                        : (_sortBySummary
+                            ? (_sortAsc ? 'Summary Z→A' : 'Summary A→Z')
+                            : (_sortByKind
+                                ? (_sortAsc ? 'Kinds Z→A' : 'Kinds A→Z')
+                                : 'Sort by kind / summary / session / source / id')))),
             onPressed: () {
               setState(() {
-                if (!_sortByKind && !_sortBySummary && !_sortBySession && !_sortBySource) {
+                if (!_sortByKind && !_sortBySummary && !_sortBySession && !_sortBySource && !_sortById) {
                   _sortByKind = true;
                   _sortBySummary = false;
                   _sortBySession = false;
                   _sortBySource = false;
+                  _sortById = false;
                   _sortAsc = true;
                 } else if (_sortByKind && _sortAsc) {
                   _sortAsc = false;
@@ -342,6 +351,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   _sortBySummary = true;
                   _sortBySession = false;
                   _sortBySource = false;
+                  _sortById = false;
                   _sortAsc = true;
                 } else if (_sortBySummary && _sortAsc) {
                   _sortAsc = false;
@@ -350,6 +360,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   _sortBySummary = false;
                   _sortBySession = true;
                   _sortBySource = false;
+                  _sortById = false;
                   _sortAsc = true;
                 } else if (_sortBySession && _sortAsc) {
                   _sortAsc = false;
@@ -358,25 +369,38 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   _sortBySummary = false;
                   _sortBySession = false;
                   _sortBySource = true;
+                  _sortById = false;
                   _sortAsc = true;
                 } else if (_sortBySource && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortBySource && !_sortAsc) {
+                  _sortByKind = false;
+                  _sortBySummary = false;
+                  _sortBySession = false;
+                  _sortBySource = false;
+                  _sortById = true;
+                  _sortAsc = true;
+                } else if (_sortById && _sortAsc) {
                   _sortAsc = false;
                 } else {
                   _sortByKind = false;
                   _sortBySummary = false;
                   _sortBySession = false;
                   _sortBySource = false;
+                  _sortById = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortBySource
-                ? Icons.source_outlined
-                : (_sortBySession
-                    ? Icons.vpn_key_outlined
-                    : (_sortBySummary
-                        ? Icons.notes
-                        : (_sortByKind ? Icons.category_outlined : Icons.sort)))),
+            icon: Icon(_sortById
+                ? Icons.tag
+                : (_sortBySource
+                    ? Icons.source_outlined
+                    : (_sortBySession
+                        ? Icons.vpn_key_outlined
+                        : (_sortBySummary
+                            ? Icons.notes
+                            : (_sortByKind ? Icons.category_outlined : Icons.sort))))),
           ),
 
           IconButton(

@@ -384,6 +384,11 @@
 | P3-295 | Connect 配置正则过滤（长按） | [x] |
 | P3-296 | Diff 路径正则过滤（长按） | [x] |
 
+| P3-297 | Workspace 按 path 排序 | [x] |
+| P3-298 | Skills 按 path 排序 | [x] |
+| P3-299 | Cron 按 id 排序 | [x] |
+| P3-300 | Activity 按 id 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

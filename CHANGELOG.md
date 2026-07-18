@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.81
+
+- Workspace path sort
+- Skills path sort
+- Cron id sort
+- Activity id sort
+
 ## 0.1.80
 
 - Status regex filter (long-press)
