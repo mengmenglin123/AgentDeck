@@ -354,6 +354,11 @@
 | P3-271 | Connect 按 port 排序 | [x] |
 | P3-272 | Diff 按 deletions 排序 | [x] |
 
+| P3-273 | Status 过滤区分大小写 | [x] |
+| P3-274 | Host Dashboard 过滤区分大小写 | [x] |
+| P3-275 | Connect 按 note 排序 | [x] |
+| P3-276 | Agents 按 platform 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

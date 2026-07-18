@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.75
+
+- Status/Host case-sensitive capability & key filters
+- Connect profile sort by note
+- Agents sort by platform
+
 ## 0.1.74
 
 - Agents case-sensitive filter

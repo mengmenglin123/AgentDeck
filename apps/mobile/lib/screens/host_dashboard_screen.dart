@@ -34,6 +34,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
   bool _wrapLines = false;
   bool _sortAsc = true;
   bool _sortByValue = false;
+  bool _queryCase = false;
   bool _relativeTs = false;
   String _keyQuery = '';
   final _keyFilterCtrl = TextEditingController();
@@ -446,8 +447,15 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                     controller: _capQueryCtrl,
                     decoration: InputDecoration(
                       isDense: true,
-                      prefixIcon: const Icon(Icons.search, size: 18),
-                      hintText: 'Filter capabilities',
+                      prefixIcon: IconButton(
+                        tooltip: _queryCase ? 'Case-sensitive on' : 'Case-insensitive',
+                        icon: Icon(
+                          _queryCase ? Icons.text_fields : Icons.search,
+                          size: 18,
+                        ),
+                        onPressed: () => setState(() => _queryCase = !_queryCase),
+                      ),
+                      hintText: _queryCase ? 'Filter (case-sensitive)' : 'Filter capabilities',
                       border: const OutlineInputBorder(),
                       suffixIcon: _capQuery.isEmpty
                           ? null
@@ -474,8 +482,13 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                       onSelected: (_) => setState(() => _capFilter = ''),
                     ),
                     for (final c in (_status['capabilities'] as List? ?? const []))
-                      if (_capQuery.trim().isEmpty ||
-                          '$c'.toLowerCase().contains(_capQuery.trim().toLowerCase()))
+                      if (() {
+                            final rawCq = _capQuery.trim();
+                            if (rawCq.isEmpty) return true;
+                            final cq = _queryCase ? rawCq : rawCq.toLowerCase();
+                            final hay = _queryCase ? '$c' : '$c'.toLowerCase();
+                            return hay.contains(cq);
+                          }())
                       FilterChip(
                         visualDensity: VisualDensity.compact,
                         avatar: Icon(_capIcon('$c'), size: 14),
@@ -588,8 +601,15 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                         controller: _keyFilterCtrl,
                         decoration: InputDecoration(
                           isDense: true,
-                          prefixIcon: const Icon(Icons.search, size: 18),
-                          hintText: 'Filter keys / values',
+                          prefixIcon: IconButton(
+                            tooltip: _queryCase ? 'Case-sensitive on' : 'Case-insensitive',
+                            icon: Icon(
+                              _queryCase ? Icons.text_fields : Icons.search,
+                              size: 18,
+                            ),
+                            onPressed: () => setState(() => _queryCase = !_queryCase),
+                          ),
+                          hintText: _queryCase ? 'Filter (case-sensitive)' : 'Filter keys / values',
                           border: const OutlineInputBorder(),
                           suffixIcon: _keyQuery.isEmpty
                               ? null
@@ -605,13 +625,16 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                       ),
                     ),
                     for (final e in (() {
-                      final q = _keyQuery.trim().toLowerCase();
+                      final rawQ = _keyQuery.trim();
+                          final q = _queryCase ? rawQ : rawQ.toLowerCase();
                       var entries = _status.entries.toList();
                       if (q.isNotEmpty) {
                         entries = entries
-                            .where((e) =>
-                                e.key.toLowerCase().contains(q) ||
-                                '${e.value}'.toLowerCase().contains(q))
+                            .where((e) {
+                              final k = _queryCase ? e.key : e.key.toLowerCase();
+                              final v = _queryCase ? '${e.value}' : '${e.value}'.toLowerCase();
+                              return k.contains(q) || v.contains(q);
+                            })
                             .toList();
                       }
                       entries.sort((a, b) {
