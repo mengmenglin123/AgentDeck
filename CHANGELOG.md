@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.109
+
+- Chat in-app SnackBar on silent Reconnected
+- Workspace source files preview via MarkdownLite fenced highlight
+- Mock sleep/touch/history + hermes project caps deepen
+
 ## 0.1.108
 
 - MarkdownLite bare URL autolink (console-safe)

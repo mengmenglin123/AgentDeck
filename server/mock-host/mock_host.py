@@ -78,8 +78,13 @@ PROJECTS = [
             "mode",
             "model",
             "tools_visible",
+            "memory_readonly",
+            "skills_catalog",
+            "mcp_catalog",
         ],
         "note": "Mock Hermes — real adapter is ADR-002; not a live Hermes process",
+        "adapter": "mock",
+        "process": False,
     },
 ]
 
@@ -783,7 +788,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, cat, head, tail, wc, stat, du, basename, dirname, realpath, df, free, ps, uptime, true, false, printf, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, cat, head, tail, wc, stat, du, basename, dirname, realpath, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -860,7 +865,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         known = {
             "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date",
             "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help",
-            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf",
+            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1068,6 +1073,25 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             arg = arg[1:-1]
         arg = arg.replace("\\n", "\n").replace("\\t", "\t")
         out(arg, done=True, exit_code=0)
+
+
+    elif lower.startswith("sleep "):
+        # Non-blocking mock: report intent only (no real delay — keeps Bridge responsive)
+        arg = data.strip()[6:].strip() or "0"
+        out(f"[mock-sleep] skipped ({arg}s) — mock does not block\n", done=True, exit_code=0)
+    elif lower.startswith("touch "):
+        name = data.strip()[6:].strip() or "(empty)"
+        out(f"[mock-touch] refused (readonly workspace): {name}\n", done=True, exit_code=1)
+    elif lower in {"history", "history 10"}:
+        out(
+            "    1  help\n"
+            "    2  pwd\n"
+            "    3  ls\n"
+            "    4  tree\n"
+            "    5  cat hermes/README.md\n",
+            done=True,
+            exit_code=0,
+        )
 
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)
@@ -1575,7 +1599,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                 {
                     "ok": True,
                     "data": {
-                        "version": "mock-0.1.100",
+                        "version": "mock-0.1.109",
                         "uptime_seconds": int(time.time() - START_TS),
                         "connected_platforms": ["bridge"],
                         "projects_count": len(PROJECTS),

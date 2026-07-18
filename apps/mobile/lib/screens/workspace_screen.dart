@@ -757,9 +757,14 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.all(16),
                     children: [
-                      if ((_path.endsWith('.md') || (_path.endsWith('.markdown'))) &&
-                          (node?['content']?.toString() ?? '').isNotEmpty)
+                      if ((node?['content']?.toString() ?? '').isNotEmpty &&
+                          (_path.endsWith('.md') || _path.endsWith('.markdown')))
                         MarkdownLite(data: node?['content']?.toString() ?? '')
+                      else if ((node?['content']?.toString() ?? '').isNotEmpty &&
+                          _codeLangFor(_path) != null)
+                        MarkdownLite(
+                          data: '```${_codeLangFor(_path)}\n${node?['content']?.toString() ?? ''}\n```',
+                        )
                       else
                         SelectableText(
                           node?['content']?.toString() ?? '',

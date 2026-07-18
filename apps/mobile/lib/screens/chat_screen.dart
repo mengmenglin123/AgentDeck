@@ -38,6 +38,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   final List<Map<String, dynamic>> _pendingImages = [];
   final List<Map<String, dynamic>> _pendingFiles = [];
   int _permMsgCount = 0;
+  String? _lastReconnectHintSeen;
+  DateTime? _lastReconnectedSnackAt;
   DateTime? _lastPermissionSnackAt;
   bool _searchOpen = false;
   final _searchCtrl = TextEditingController();
@@ -140,6 +142,22 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   void _onChat() {
     if (!mounted) return;
+    final hint = _chat.reconnectHint;
+    if (hint == 'Reconnected' && _lastReconnectHintSeen != 'Reconnected') {
+      final now = DateTime.now();
+      final last = _lastReconnectedSnackAt;
+      if (last == null || now.difference(last).inSeconds >= 3) {
+        _lastReconnectedSnackAt = now;
+        // In-app only (system notifications remain P4).
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          const SnackBar(
+            content: Text('Reconnected to Host'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+    _lastReconnectHintSeen = hint;
     final permN = _chat.messages.where((m) => m.role == 'permission').length;
     if (permN > _permMsgCount) {
       _permMsgCount = permN;
