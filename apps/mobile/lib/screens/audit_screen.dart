@@ -27,6 +27,7 @@ class _AuditScreenState extends State<AuditScreen> {
   bool _sortByAction = false;
   bool _sortByLevel = false;
   bool _sortByDetail = false;
+  bool _sortByTs = false;
   bool _sortAsc = true;
   bool _wrapLines = false;
   bool _relativeTs = false;
@@ -61,7 +62,10 @@ class _AuditScreenState extends State<AuditScreen> {
   List<AuditEntry> _ordered(List<AuditEntry> all) {
     final items = List<AuditEntry>.from(all);
 .sort((a, b) {
-      if (_sortByDetail) {
+      if (_sortByTs) {
+        final c = a.ts.compareTo(b.ts);
+        if (c != 0) return _sortAsc ? c : -c;
+      } else if (_sortByDetail) {
         final c = a.detail.toLowerCase().compareTo(b.detail.toLowerCase());
         if (c != 0) return _sortAsc ? c : -c;
         final ca = a.action.toLowerCase().compareTo(b.action.toLowerCase());
@@ -213,19 +217,22 @@ class _AuditScreenState extends State<AuditScreen> {
             icon: Icon(_newestFirst ? Icons.south : Icons.north),
           ),
           IconButton(
-            tooltip: _sortByDetail
-                ? (_sortAsc ? 'Details Z→A' : 'Details A→Z')
-                : (_sortByLevel
-                    ? (_sortAsc ? 'Levels Z→A' : 'Levels A→Z')
-                    : (_sortByAction
-                        ? (_sortAsc ? 'Actions Z→A' : 'Actions A→Z')
-                        : 'Sort by action / level / detail')),
+            tooltip: _sortByTs
+                ? (_sortAsc ? 'Time old→new' : 'Time new→old')
+                : (_sortByDetail
+                    ? (_sortAsc ? 'Details Z→A' : 'Details A→Z')
+                    : (_sortByLevel
+                        ? (_sortAsc ? 'Levels Z→A' : 'Levels A→Z')
+                        : (_sortByAction
+                            ? (_sortAsc ? 'Actions Z→A' : 'Actions A→Z')
+                            : 'Sort by action / level / detail / time'))),
             onPressed: () {
               setState(() {
-                if (!_sortByAction && !_sortByLevel && !_sortByDetail) {
+                if (!_sortByAction && !_sortByLevel && !_sortByDetail && !_sortByTs) {
                   _sortByAction = true;
                   _sortByLevel = false;
                   _sortByDetail = false;
+                  _sortByTs = false;
                   _sortAsc = true;
                 } else if (_sortByAction && _sortAsc) {
                   _sortAsc = false;
@@ -233,6 +240,7 @@ class _AuditScreenState extends State<AuditScreen> {
                   _sortByAction = false;
                   _sortByLevel = true;
                   _sortByDetail = false;
+                  _sortByTs = false;
                   _sortAsc = true;
                 } else if (_sortByLevel && _sortAsc) {
                   _sortAsc = false;
@@ -240,22 +248,34 @@ class _AuditScreenState extends State<AuditScreen> {
                   _sortByAction = false;
                   _sortByLevel = false;
                   _sortByDetail = true;
+                  _sortByTs = false;
                   _sortAsc = true;
                 } else if (_sortByDetail && _sortAsc) {
                   _sortAsc = false;
+                } else if (_sortByDetail && !_sortAsc) {
+                  _sortByAction = false;
+                  _sortByLevel = false;
+                  _sortByDetail = false;
+                  _sortByTs = true;
+                  _sortAsc = false; // new first
+                } else if (_sortByTs && !_sortAsc) {
+                  _sortAsc = true;
                 } else {
                   _sortByAction = false;
                   _sortByLevel = false;
                   _sortByDetail = false;
+                  _sortByTs = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortByDetail
-                ? Icons.notes
-                : (_sortByLevel
-                    ? Icons.low_priority
-                    : (_sortByAction ? Icons.sort_by_alpha : Icons.sort))),
+            icon: Icon(_sortByTs
+                ? Icons.schedule
+                : (_sortByDetail
+                    ? Icons.notes
+                    : (_sortByLevel
+                        ? Icons.low_priority
+                        : (_sortByAction ? Icons.sort_by_alpha : Icons.sort)))),
           ),
 
           IconButton(

@@ -424,6 +424,11 @@
 | P3-327 | Logs 按 time/ts 排序 | [x] |
 | P3-328 | Skills 显式 name 排序 | [x] |
 
+| P3-329 | Memory 按 time/ts 排序 | [x] |
+| P3-330 | Activity 按 time/ts 排序 | [x] |
+| P3-331 | Audit 按 time/ts 排序 | [x] |
+| P3-332 | Cron 按 description 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.89
+
+- Memory explicit time/ts sort
+- Activity explicit time/ts sort
+- Audit explicit time/ts sort
+- Cron description sort
+
 ## 0.1.88
 
 - Cron explicit name sort
