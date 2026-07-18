@@ -419,6 +419,11 @@
 | P3-323 | Agents 按 note 排序 | [x] |
 | P3-324 | Workspace 显式 name 排序 | [x] |
 
+| P3-325 | Cron 显式 name 排序 | [x] |
+| P3-326 | MCP 按 kind 排序 | [x] |
+| P3-327 | Logs 按 time/ts 排序 | [x] |
+| P3-328 | Skills 显式 name 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

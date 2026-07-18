@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.88
+
+- Cron explicit name sort
+- MCP kind sort
+- Logs time (ts) sort
+- Skills explicit name sort
+
 ## 0.1.87
 
 - MCP command sort

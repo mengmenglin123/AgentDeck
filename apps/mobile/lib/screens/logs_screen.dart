@@ -36,6 +36,7 @@ class _LogsScreenState extends State<LogsScreen> {
   bool _sortByLogger = false;
   bool _sortBySource = false;
   bool _sortById = false;
+  bool _sortByTs = false;
   bool _sortAsc = true;
   bool _autoRefresh = false;
   bool _relativeTs = false;
@@ -126,7 +127,19 @@ class _LogsScreenState extends State<LogsScreen> {
           (x['logger'] ?? x['source'] ?? x['component'] ?? x['module'] ?? x['name'] ?? '')
               .toString()
               .toLowerCase();
-      if (_sortById) {
+      if (_sortByTs) {
+        int tsOf(Map e) {
+          final v = e['ts'] ?? e['timestamp'] ?? e['time'] ?? e['created_at'];
+          if (v is num) {
+            final n = v.toDouble();
+            return n > 1e12 ? n.round() : (n * 1000).round();
+          }
+          final p = DateTime.tryParse(v?.toString() ?? '');
+          return p?.millisecondsSinceEpoch ?? 0;
+        }
+        final c = tsOf(a).compareTo(tsOf(b));
+        if (c != 0) return _sortAsc ? c : -c;
+      } else if (_sortById) {
         final ia = (a['id'] ?? a['log_id'] ?? a['uuid'] ?? a['request_id'] ?? '').toString().toLowerCase();
         final ib = (b['id'] ?? b['log_id'] ?? b['uuid'] ?? b['request_id'] ?? '').toString().toLowerCase();
         final c = ia.compareTo(ib);
@@ -289,25 +302,28 @@ class _LogsScreenState extends State<LogsScreen> {
             icon: Icon(_newestFirst ? Icons.arrow_downward : Icons.arrow_upward),
           ),
           IconButton(
-            tooltip: _sortById
-                ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
-                : (_sortBySource
-                    ? (_sortAsc ? 'Source Z→A' : 'Source A→Z')
-                    : (_sortByLogger
-                        ? (_sortAsc ? 'Logger Z→A' : 'Logger A→Z')
-                        : (_sortByLevel
-                            ? (_sortAsc ? 'Levels Z→A' : 'Levels A→Z')
-                            : (_sortByMsg
-                                ? (_sortAsc ? 'Messages Z→A' : 'Messages A→Z')
-                                : 'Sort by message / level / logger / source / id')))),
+            tooltip: _sortByTs
+                ? (_sortAsc ? 'Time old→new' : 'Time new→old')
+                : (_sortById
+                    ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                    : (_sortBySource
+                        ? (_sortAsc ? 'Source Z→A' : 'Source A→Z')
+                        : (_sortByLogger
+                            ? (_sortAsc ? 'Logger Z→A' : 'Logger A→Z')
+                            : (_sortByLevel
+                                ? (_sortAsc ? 'Levels Z→A' : 'Levels A→Z')
+                                : (_sortByMsg
+                                    ? (_sortAsc ? 'Messages Z→A' : 'Messages A→Z')
+                                    : 'Sort by message / level / logger / source / id / time'))))),
             onPressed: () {
               setState(() {
-                if (!_sortByMsg && !_sortByLevel && !_sortByLogger && !_sortBySource && !_sortById) {
+                if (!_sortByMsg && !_sortByLevel && !_sortByLogger && !_sortBySource && !_sortById && !_sortByTs) {
                   _sortByMsg = true;
                   _sortByLevel = false;
                   _sortByLogger = false;
                   _sortBySource = false;
                   _sortById = false;
+                  _sortByTs = false;
                   _sortAsc = true;
                 } else if (_sortByMsg && _sortAsc) {
                   _sortAsc = false;
@@ -317,6 +333,7 @@ class _LogsScreenState extends State<LogsScreen> {
                   _sortByLogger = false;
                   _sortBySource = false;
                   _sortById = false;
+                  _sortByTs = false;
                   _sortAsc = true;
                 } else if (_sortByLevel && _sortAsc) {
                   _sortAsc = false;
@@ -326,6 +343,7 @@ class _LogsScreenState extends State<LogsScreen> {
                   _sortByLogger = true;
                   _sortBySource = false;
                   _sortById = false;
+                  _sortByTs = false;
                   _sortAsc = true;
                 } else if (_sortByLogger && _sortAsc) {
                   _sortAsc = false;
@@ -335,6 +353,7 @@ class _LogsScreenState extends State<LogsScreen> {
                   _sortByLogger = false;
                   _sortBySource = true;
                   _sortById = false;
+                  _sortByTs = false;
                   _sortAsc = true;
                 } else if (_sortBySource && _sortAsc) {
                   _sortAsc = false;
@@ -344,28 +363,42 @@ class _LogsScreenState extends State<LogsScreen> {
                   _sortByLogger = false;
                   _sortBySource = false;
                   _sortById = true;
+                  _sortByTs = false;
                   _sortAsc = true;
                 } else if (_sortById && _sortAsc) {
                   _sortAsc = false;
+                } else if (_sortById && !_sortAsc) {
+                  _sortByMsg = false;
+                  _sortByLevel = false;
+                  _sortByLogger = false;
+                  _sortBySource = false;
+                  _sortById = false;
+                  _sortByTs = true;
+                  _sortAsc = false; // new first
+                } else if (_sortByTs && !_sortAsc) {
+                  _sortAsc = true;
                 } else {
                   _sortByMsg = false;
                   _sortByLevel = false;
                   _sortByLogger = false;
                   _sortBySource = false;
                   _sortById = false;
+                  _sortByTs = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortById
-                ? Icons.tag
-                : (_sortBySource
-                    ? Icons.source_outlined
-                    : (_sortByLogger
-                        ? Icons.account_tree_outlined
-                        : (_sortByLevel
-                            ? Icons.low_priority
-                            : (_sortByMsg ? Icons.sort_by_alpha : Icons.sort))))),
+            icon: Icon(_sortByTs
+                ? Icons.schedule
+                : (_sortById
+                    ? Icons.tag
+                    : (_sortBySource
+                        ? Icons.source_outlined
+                        : (_sortByLogger
+                            ? Icons.account_tree_outlined
+                            : (_sortByLevel
+                                ? Icons.low_priority
+                                : (_sortByMsg ? Icons.sort_by_alpha : Icons.sort)))))),
           ),
 
 
