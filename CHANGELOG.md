@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.145
+
+- Workspace view FilterChips (wrap / regex / case)
+- MarkdownLite `<object>` + `<param>`
+- Mock base64/md5sum/dircolors (+ help/which/type lockstep)
+
 ## 0.1.144
 
 - MCP view FilterChips (wrap / regex / case)
