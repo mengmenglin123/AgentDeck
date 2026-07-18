@@ -577,6 +577,9 @@
 - [x] **P4-3ah** Pairing view FilterChips wrap/regex/case/sort/auto (0.1.133)
 - [x] **P4-5ak** MarkdownLite `<wbr>` + `<rp>` (0.1.133)
 - [x] **P4-1ai** Mock nice/nohup/watch (0.1.133)
+- [x] **P4-3ai** Settings pref FilterChips wrap/regex/case (0.1.134)
+- [x] **P4-5al** MarkdownLite `<acronym>` + `<nobr>` (0.1.134)
+- [x] **P4-1aj** Mock stdbuf/flock/ionice (0.1.134)
 
 ## P4 — 远期
 
@@ -586,7 +589,7 @@
 | P4-2 | 相机扫码配对（剪贴板 URI + paste card 已有；真相机仍远期） | [~] |
 | P4-3 | Host 真 Hermes adapter（Mock workspace/git/diff/memory/MCP/status/activity/agents 已加深；真进程仍远期） | [~] |
 | P4-4 | 通知 / 后台重连（resume/reconnect + permission/reconnected snack 已有；系统通知仍远期） | [~] |
-| P4-5 | 更完整代码高亮 / 真文件选择器（着色+表格/任务/有序/引用/链接/autolink/图alt/callout/details/footnotes/h4/h5/h6/abbr/mark/spoiler/kbd/sup/sub/u/del/ins/s/small/***/cite/q/var/samp/dfn/em/strong/b/code/i/big/tt/HTML mark/br/strike/time/data/bdi/bdo/ruby/rt/font/center/wbr/rp/删除线/行号/附件 preset 已有；真 file_picker 仍远期） | [~] |
+| P4-5 | 更完整代码高亮 / 真文件选择器（着色+表格/任务/有序/引用/链接/autolink/图alt/callout/details/footnotes/h4/h5/h6/abbr/mark/spoiler/kbd/sup/sub/u/del/ins/s/small/***/cite/q/var/samp/dfn/em/strong/b/code/i/big/tt/HTML mark/br/strike/time/data/bdi/bdo/ruby/rt/font/center/wbr/rp/acronym/nobr/删除线/行号/附件 preset 已有；真 file_picker 仍远期） | [~] |
 
 ## 验收命令
 

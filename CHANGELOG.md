@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.134
+
+- Settings pref FilterChips (wrap / regex / case)
+- MarkdownLite `<acronym>` + `<nobr>`
+- Mock stdbuf/flock/ionice (+ help/which/type lockstep)
+
 ## 0.1.133
 
 - Pairing view FilterChips (wrap / regex / case / sort / auto)

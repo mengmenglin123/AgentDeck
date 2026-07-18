@@ -134,6 +134,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             onChanged: (v) => setState(() => _prefQuery = v),
           ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: FilterChip(
+                    label: const Text('Wrap', style: TextStyle(fontSize: 11)),
+                    selected: _wrapLines,
+                    onSelected: (v) => setState(() => _wrapLines = v),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: FilterChip(
+                    label: const Text('Regex', style: TextStyle(fontSize: 11)),
+                    selected: _prefRegex,
+                    onSelected: (v) => setState(() => _prefRegex = v),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: FilterChip(
+                    label: const Text('Case', style: TextStyle(fontSize: 11)),
+                    selected: _prefCase,
+                    onSelected: (v) => setState(() => _prefCase = v),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 12),
           if (_matchPref('Appearance', 'theme contrast text size compact'))
             Text('Appearance', style: Theme.of(context).textTheme.titleSmall),
@@ -446,13 +481,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.tag),
             title: const Text('App version'),
-            subtitle: _sub('0.1.133+133 · console only · protocol Mock/self-host'),
+            subtitle: _sub('0.1.134+134 · console only · protocol Mock/self-host'),
             trailing: IconButton(
               tooltip: 'Copy about',
               icon: const Icon(Icons.copy_outlined),
               onPressed: () async {
                 const text =
-                    'HuanHermes App 0.1.133+133\nconsole only · protocol Mock/self-host\nNo agent loop on device · tokens never in about text';
+                    'HuanHermes App 0.1.134+134\nconsole only · protocol Mock/self-host\nNo agent loop on device · tokens never in about text';
                 await Clipboard.setData(const ClipboardData(text: text));
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
