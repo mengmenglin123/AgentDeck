@@ -834,7 +834,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, locale, umask, readlink, cksum, sum, expand, unexpand, tac, namei, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, locale, umask, readlink, cksum, sum, expand, unexpand, tac, namei, dir, vdir, tsort, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -909,7 +909,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
     elif lower.startswith("which "):
         name = data.strip()[6:].strip()
         known = {
-            "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei",
+            "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1460,7 +1460,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             out("type: missing operand\n", done=True, exit_code=1)
         else:
             builtins = {
-                "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "export", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "base64", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei",
+                "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "export", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "base64", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort",
                             }
             if name.split()[0] in builtins:
                 out(f"{name.split()[0]} is a shell builtin\n", done=True, exit_code=0)
@@ -2476,6 +2476,46 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
                 kind = "f" if i == len(segs) - 1 else "d"
                 lines.append(f" {kind} {seg}")
             out("\n".join(lines) + "\n", done=True, exit_code=0)
+
+    elif lower in {"dir", "dir -a"} or lower.startswith("dir "):
+        # mock dir: alias of ls — list mock workspace entries
+        st_dir = _session_state(sk)
+        rel = (st_dir.get("workdir") or "/workspace").replace("/workspace", "").lstrip("/")
+        node, _ = _ws_resolve(rel)
+        if node is None or node.get("type") == "file":
+            # fixed demo listing fallback
+            out("AGENTS.md\nCHANGELOG.md\napps/\ndocs/\nserver/\n", done=True, exit_code=0)
+        else:
+            kids = node.get("children") or {}
+            names = []
+            for name, child in sorted(kids.items(), key=lambda x: (x[1].get("type") != "dir", x[0])):
+                names.append(name + ("/" if child.get("type") == "dir" else ""))
+            if names:
+                out(("\n".join(names) + "\n"), done=True, exit_code=0)
+            else:
+                out("AGENTS.md\nCHANGELOG.md\napps/\ndocs/\nserver/\n", done=True, exit_code=0)
+    elif lower.startswith("vdir ") or lower == "vdir":
+        # mock vdir: long listing demo (fixed)
+        out(
+            "drwxr-xr-x 2 mock mock 4096 Jul 18 12:00 apps\n"
+            "drwxr-xr-x 2 mock mock 4096 Jul 18 12:00 docs\n"
+            "drwxr-xr-x 2 mock mock 4096 Jul 18 12:00 server\n"
+            "-rw-r--r-- 1 mock mock  128 Jul 18 12:00 AGENTS.md\n"
+            "-rw-r--r-- 1 mock mock  256 Jul 18 12:00 CHANGELOG.md\n",
+            done=True,
+            exit_code=0,
+        )
+    elif lower.startswith("tsort ") or lower == "tsort":
+        # mock tsort: print unique tokens preserving first-occurrence order
+        parts = data.strip().split()
+        if len(parts) < 2:
+            out("tsort: missing operand\n", done=True, exit_code=1)
+        else:
+            seen = []
+            for tok in parts[1:]:
+                if tok not in seen:
+                    seen.append(tok)
+            out("\n".join(seen) + "\n", done=True, exit_code=0)
 
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)

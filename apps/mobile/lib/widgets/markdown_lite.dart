@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings (h1–h6), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5/h6, abbr, mark (== / HTML <mark>), spoiler, kbd, sup/sub, underline, del, ins, s, strike, br, small, cite, q, var, samp, dfn, em, strong, b, code, i, big, tt, autolink, strike (~~ / <s>/<del>/<strike>), inline code, bold/italic, bold-italic (***).
+/// Covers headings (h1–h6), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5/h6, abbr, mark (== / HTML <mark>), spoiler, kbd, sup/sub, underline, del, ins, s, strike, br, small, cite, q, var, samp, dfn, em, strong, b, code, i, big, tt, time, data, autolink, strike (~~ / <s>/<del>/<strike>), inline code, bold/italic, bold-italic (***).
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -602,7 +602,7 @@ class MarkdownLite extends StatelessWidget {
   static TextSpan _inline(String text, TextStyle base) {
     final spans = <InlineSpan>[];
     final re = RegExp(
-          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<mark>[^<]+</mark>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<strike>[^<]+</strike>|<br/>|<br>|<small>[^<]+</small>|<cite>[^<]+</cite>|<q>[^<]+</q>|<var>[^<]+</var>|<samp>[^<]+</samp>|<dfn>[^<]+</dfn>|<em>[^<]+</em>|<strong>[^<]+</strong>|<b>[^<]+</b>|<code>[^<]+</code>|<i>[^<]+</i>|<big>[^<]+</big>|<tt>[^<]+</tt>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
+          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<mark>[^<]+</mark>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<strike>[^<]+</strike>|<br/>|<br>|<small>[^<]+</small>|<cite>[^<]+</cite>|<q>[^<]+</q>|<var>[^<]+</var>|<samp>[^<]+</samp>|<dfn>[^<]+</dfn>|<em>[^<]+</em>|<strong>[^<]+</strong>|<b>[^<]+</b>|<code>[^<]+</code>|<i>[^<]+</i>|<big>[^<]+</big>|<tt>[^<]+</tt>|<time>[^<]+</time>|<data>[^<]+</data>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
             );
     var i = 0;
     for (final m in re.allMatches(text)) {
@@ -846,6 +846,27 @@ class MarkdownLite extends StatelessWidget {
           text: body,
           style: base.copyWith(
             fontFamily: 'monospace',
+          ),
+        ));
+      } else if (tok.startsWith('<time>') && tok.endsWith('</time>')) {
+        // HTML time — semantic datetime display (muted / slightly smaller)
+        final body = tok.substring(6, tok.length - 7);
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            fontSize: (base.fontSize ?? 14) * 0.92,
+            color: base.color?.withOpacity(0.75),
+          ),
+        ));
+      } else if (tok.startsWith('<data>') && tok.endsWith('</data>')) {
+        // HTML data — machine-readable value (monospace + slight letterSpacing)
+        final body = tok.substring(6, tok.length - 7);
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            fontFamily: 'monospace',
+            letterSpacing: 0.4,
+            color: base.color?.withOpacity(0.9),
           ),
         ));
       } else if (tok.toLowerCase().startsWith('<abbr')) {

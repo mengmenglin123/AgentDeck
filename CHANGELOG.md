@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.129
+
+- MCP kind filter chips
+- MarkdownLite `<time>` + `<data>`
+- Mock dir/vdir/tsort (+ help/which/type lockstep)
+
 ## 0.1.128
 
 - Logs logger filter chips

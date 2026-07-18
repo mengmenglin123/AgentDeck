@@ -28,6 +28,7 @@ class _McpScreenState extends State<McpScreen> {
   String _status = '';
   String _enabled = '';
   String _transportFilter = ''; // empty=all | stdio | sse | http | ws | other
+  String _kind = ''; // empty=all | inprocess | stdio | sse | http | other
   bool _wrapLines = false;
   bool _sortByStatus = false;
   bool _sortByTools = false;
@@ -121,6 +122,21 @@ class _McpScreenState extends State<McpScreen> {
               tr.contains('websocket');
           if (known) return false;
         } else if (!tr.contains(_transportFilter)) {
+          return false;
+        }
+      }
+      if (_kind.isNotEmpty) {
+        final kd = (s['kind'] ?? s['type'] ?? s['category'] ?? '')
+            .toString()
+            .toLowerCase();
+        if (_kind == 'other') {
+          final known = kd.contains('inprocess') ||
+              kd.contains('stdio') ||
+              kd.contains('sse') ||
+              kd.contains('http') ||
+              kd.contains('ws');
+          if (known) return false;
+        } else if (!kd.contains(_kind)) {
           return false;
         }
       }
@@ -566,6 +582,28 @@ class _McpScreenState extends State<McpScreen> {
                           label: Text(f.$2, style: const TextStyle(fontSize: 12)),
                           selected: _transportFilter == f.$1,
                           onSelected: (_) => setState(() => _transportFilter = f.$1),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                  child: Wrap(
+                    spacing: 8,
+                    children: [
+                      for (final f in const [
+                        ('', 'Any kind'),
+                        ('inprocess', 'inprocess'),
+                        ('stdio', 'stdio'),
+                        ('sse', 'sse'),
+                        ('http', 'http'),
+                        ('other', 'other'),
+                      ])
+                        FilterChip(
+                          label: Text(f.$2, style: const TextStyle(fontSize: 11)),
+                          selected: _kind == f.$1,
+                          onSelected: (_) => setState(() => _kind = f.$1),
                           visualDensity: VisualDensity.compact,
                         ),
                     ],
