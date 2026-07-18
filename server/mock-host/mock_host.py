@@ -805,7 +805,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, base64, file, type, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -882,7 +882,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         known = {
             "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date",
             "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help",
-            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export",
+            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "base64", "file", "type",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1332,6 +1332,117 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
                 st_x["env"] = env
             env[name] = val
             out("", done=True, exit_code=0)
+
+
+    elif lower.startswith("base64 ") or lower in {"base64", "base64 --help"}:
+        import base64 as _b64
+        parts = data.strip().split(None, 1)
+        args = parts[1] if len(parts) > 1 else ""
+        decode = "-d" in lower or "--decode" in lower or "-D" in lower
+        # strip flags
+        tokens = args.split()
+        path = None
+        raw_bits = []
+        for t in tokens:
+            if t.startswith("-"):
+                continue
+            if path is None:
+                path = t
+            else:
+                raw_bits.append(t)
+        if path is None and not raw_bits:
+            out("base64: missing input (mock: path or literal)\n", done=True, exit_code=1)
+        else:
+            content = None
+            if path:
+                st_b = _session_state(sk)
+                wd = st_b.get("workdir") or "/workspace"
+                if path.startswith("/"):
+                    rel = path.replace("/workspace", "").lstrip("/")
+                else:
+                    base = wd.replace("/workspace", "").lstrip("/")
+                    rel = "/".join(p for p in (base + "/" + path).split("/") if p and p != ".")
+                node, _ = _ws_resolve(rel)
+                if node and node.get("type") == "file":
+                    content = node.get("content") or ""
+                elif raw_bits:
+                    content = " ".join([path] + raw_bits)
+                else:
+                    # treat path as literal string
+                    content = path
+            else:
+                content = " ".join(raw_bits)
+            try:
+                if decode:
+                    pad = (-len(content.strip())) % 4
+                    raw = _b64.b64decode(content.strip() + ("=" * pad))
+                    out(raw.decode("utf-8", errors="replace"), done=True, exit_code=0)
+                else:
+                    out(_b64.b64encode(content.encode("utf-8")).decode("ascii") + "\n", done=True, exit_code=0)
+            except Exception as e:
+                out(f"base64: {e}\n", done=True, exit_code=1)
+    elif lower.startswith("file ") or lower == "file":
+        arg = data.strip()[4:].strip() if lower.startswith("file") else ""
+        if not arg:
+            out("file: missing operand\n", done=True, exit_code=1)
+        else:
+            st_f = _session_state(sk)
+            wd = st_f.get("workdir") or "/workspace"
+            if arg.startswith("/"):
+                rel = arg.replace("/workspace", "").lstrip("/")
+            else:
+                base = wd.replace("/workspace", "").lstrip("/")
+                rel = "/".join(p for p in (base + "/" + arg).split("/") if p and p != ".")
+            node, cleaned = _ws_resolve(rel)
+            if node is None:
+                out(f"{arg}: cannot open (No such file or directory)\n", done=True, exit_code=1)
+            elif node.get("type") == "dir":
+                out(f"{cleaned or arg}: directory\n", done=True, exit_code=0)
+            else:
+                name = cleaned or arg
+                content = node.get("content") or ""
+                if name.endswith((".py",)):
+                    kind = "Python script text"
+                elif name.endswith((".md", ".markdown")):
+                    kind = "Markdown text"
+                elif name.endswith((".json",)):
+                    kind = "JSON text"
+                elif name.endswith((".sh", ".bash")):
+                    kind = "Bourne-Again shell script text"
+                else:
+                    kind = "ASCII text" if content.isascii() else "UTF-8 text"
+                out(f"{name}: {kind}\n", done=True, exit_code=0)
+    elif lower.startswith("uniq") or lower == "uniq":
+        args = data.strip().split(None, 1)
+        payload = args[1] if len(args) > 1 else ""
+        if not payload:
+            out("uniq: (mock) pass tokens/lines to dedupe\n", done=True, exit_code=0)
+        else:
+            lines = payload.splitlines() if "\n" in payload else payload.split()
+            out_lines = []
+            prev = object()
+            for ln in lines:
+                if ln != prev:
+                    out_lines.append(ln)
+                    prev = ln
+            out("\n".join(out_lines) + ("\n" if out_lines else ""), done=True, exit_code=0)
+    elif lower.startswith("type ") or lower == "type":
+        # bash type/command -v style
+        name = data.strip()[4:].strip() if lower.startswith("type") else ""
+        if not name:
+            out("type: missing operand\n", done=True, exit_code=1)
+        else:
+            builtins = {
+                "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "export", "date",
+                "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree",
+                "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath",
+                "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find",
+                "seq", "sort", "base64", "file", "uniq", "type",
+            }
+            if name.split()[0] in builtins:
+                out(f"{name.split()[0]} is a shell builtin\n", done=True, exit_code=0)
+            else:
+                out(f"type: {name}: not found\n", done=True, exit_code=1)
 
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)
@@ -1839,7 +1950,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                 {
                     "ok": True,
                     "data": {
-                        "version": "mock-0.1.111",
+                        "version": "mock-0.1.112",
                         "uptime_seconds": int(time.time() - START_TS),
                         "connected_platforms": ["bridge"],
                         "projects_count": len(PROJECTS),
@@ -1995,6 +2106,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                                 "name": "filesystem",
                                 "status": "mock",
                                 "kind": "stdio",
+                                "enabled": True,
                                 "tools": ["read_file", "list_dir"],
                                 "description": "Readonly MCP catalog demo",
                             },
@@ -2002,6 +2114,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                                 "name": "git",
                                 "status": "mock",
                                 "kind": "stdio",
+                                "enabled": True,
                                 "tools": ["status", "log"],
                                 "description": "Readonly MCP catalog demo",
                             },
@@ -2009,6 +2122,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                                 "name": "hermes-memory",
                                 "status": "mock",
                                 "kind": "inprocess",
+                                "enabled": True,
                                 "tools": ["memory.search", "memory.list"],
                                 "description": "Mock Hermes memory tools (ADR-002 shape · not live process)",
                                 "note": "Host maps to real Hermes memory later",
@@ -2017,8 +2131,18 @@ class MgmtHandler(BaseHTTPRequestHandler):
                                 "name": "hermes-skills",
                                 "status": "mock",
                                 "kind": "inprocess",
+                                "enabled": True,
                                 "tools": ["skills.list", "skills.view"],
                                 "description": "Readonly skills catalog surface for Hermes project",
+                            },
+                            {
+                                "name": "offline-demo",
+                                "status": "disabled",
+                                "kind": "stdio",
+                                "enabled": False,
+                                "tools": [],
+                                "description": "Sample disabled MCP server (catalog only)",
+                                "note": "Not started by App",
                             },
                         ]
                     },

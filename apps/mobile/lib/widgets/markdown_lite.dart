@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings, lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, mark, kbd, autolink, strike, inline code, bold/italic.
+/// Covers headings, lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, mark, kbd, autolink, strike, inline code, bold/italic.
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -176,6 +176,36 @@ class MarkdownLite extends StatelessWidget {
                 ),
               );
             })
+          else if (b.kind == _BlockKind.details)
+            Builder(builder: (context) {
+              final raw = b.text;
+              var summary = 'Details';
+              var body = raw;
+              final sm = RegExp(r'<summary[^>]*>([\s\S]*?)</summary>', caseSensitive: false).firstMatch(raw);
+              if (sm != null) {
+                summary = (sm.group(1) ?? 'Details').replaceAll(RegExp(r'<[^>]+>'), '').trim();
+                if (summary.isEmpty) summary = 'Details';
+                body = raw.replaceFirst(sm.group(0)!, '');
+              }
+              body = body
+                  .replaceAll(RegExp(r'</?details[^>]*>', caseSensitive: false), '')
+                  .trim();
+              return Theme(
+                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  tilePadding: const EdgeInsets.symmetric(horizontal: 8),
+                  childrenPadding: const EdgeInsets.fromLTRB(12, 0, 8, 8),
+                  title: SelectableText.rich(_inline(summary, base.copyWith(fontWeight: FontWeight.w600))),
+                  children: [
+                    if (body.isNotEmpty)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: SelectableText.rich(_inline(body, base)),
+                      ),
+                  ],
+                ),
+              );
+            })
           else if (b.kind == _BlockKind.quote)
             Container(
               margin: const EdgeInsets.symmetric(vertical: 4),
@@ -261,7 +291,19 @@ class MarkdownLite extends StatelessWidget {
           continue;
         }
       }
-      if (t.startsWith('### ')) {
+      if (t.trim().toLowerCase().startsWith('<details')) {
+        // <details><summary>…</summary>body</details> — console ExpansionTile
+        final buf = StringBuffer()..writeln(t);
+        i++;
+        while (i < lines.length) {
+          final n = lines[i];
+          buf.writeln(n);
+          i++;
+          if (n.toLowerCase().contains('</details>')) break;
+        }
+        out.add(_Block(_BlockKind.details, buf.toString()));
+        continue;
+      } else if (t.startsWith('### ')) {
         out.add(_Block(_BlockKind.h3, t.substring(4)));
       } else if (t.startsWith('## ')) {
         out.add(_Block(_BlockKind.h2, t.substring(3)));
@@ -646,7 +688,7 @@ class MarkdownLite extends StatelessWidget {
   }
 }
 
-enum _BlockKind { para, h1, h2, h3, list, task, code, quote, callout, blank, hr, table }
+enum _BlockKind { para, h1, h2, h3, list, task, code, quote, callout, blank, hr, table, details }
 
 class _Block {
   const _Block(this.kind, this.text, {this.lang, this.checked, this.marker});

@@ -511,6 +511,9 @@
 - [x] **P4-1l** Mock terminal grep/find/seq (0.1.110)
 - [x] **P4-3l** Activity level chips; agents adapter/process fields (0.1.111)
 - [x] **P4-1m** Mock date+FMT, sort/export/env, head/tail -n (0.1.111)
+- [x] **P4-3m** MCP enabled filter + catalog flags (0.1.112)
+- [x] **P4-5p** MarkdownLite details/summary (0.1.112)
+- [x] **P4-1n** Mock base64/file/uniq/type (0.1.112)
 
 ## P4 — 远期
 
@@ -520,7 +523,7 @@
 | P4-2 | 相机扫码配对（剪贴板 URI + paste card 已有；真相机仍远期） | [~] |
 | P4-3 | Host 真 Hermes adapter（Mock workspace/git/diff/memory/MCP/status 已加深；真进程仍远期） | [~] |
 | P4-4 | 通知 / 后台重连（resume/reconnect + permission/reconnected snack 已有；系统通知仍远期） | [~] |
-| P4-5 | 更完整代码高亮 / 真文件选择器（着色+表格/任务/有序/引用/链接/autolink/图alt/callout/mark/删除线/行号/附件 preset 已有；真 file_picker 仍远期） | [~] |
+| P4-5 | 更完整代码高亮 / 真文件选择器（着色+表格/任务/有序/引用/链接/autolink/图alt/callout/details/mark/kbd/删除线/行号/附件 preset 已有；真 file_picker 仍远期） | [~] |
 
 ## 验收命令
 

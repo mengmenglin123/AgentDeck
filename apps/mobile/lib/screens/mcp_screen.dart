@@ -26,6 +26,7 @@ class _McpScreenState extends State<McpScreen> {
   bool _queryCase = false;
   bool _queryRegex = false;
   String _status = '';
+  String _enabled = '';
   String _transportFilter = ''; // empty=all | stdio | sse | http | ws | other
   bool _wrapLines = false;
   bool _sortByStatus = false;
@@ -95,6 +96,19 @@ class _McpScreenState extends State<McpScreen> {
           return false;
         }
       }
+      if (_enabled.isNotEmpty) {
+        final en = s['enabled'];
+        final bool? isOn = en is bool
+            ? en
+            : (en == null
+                ? null
+                : ('$en'.toLowerCase() == 'true' ||
+                    '$en' == '1' ||
+                    '$en'.toLowerCase() == 'yes'));
+        if (_enabled == 'on' && isOn != true) return false;
+        if (_enabled == 'off' && isOn != false) return false;
+        if (_enabled == 'unknown' && isOn != null) return false;
+      }
       if (_transportFilter.isNotEmpty) {
         final tr = (s['transport'] ?? s['type'] ?? s['protocol'] ?? s['url'] ?? s['command'] ?? '')
             .toString()
@@ -113,7 +127,7 @@ class _McpScreenState extends State<McpScreen> {
       if (rawQ.isEmpty) return true;
       final tools = s['tools'] is List ? (s['tools'] as List).join(' ') : '';
       final hayRaw =
-          '${s['name']} ${s['description']} ${s['status']} ${s['kind']} ${s['note']} ${s['transport']} ${s['url']} ${s['command']} $tools';
+          '${s['name']} ${s['description']} ${s['status']} ${s['kind']} ${s['note']} ${s['transport']} ${s['url']} ${s['command']} ${s['enabled']} $tools';
       if (_queryRegex) {
         try {
           return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
@@ -516,6 +530,26 @@ class _McpScreenState extends State<McpScreen> {
                   ),
                 ),
                 Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+                  child: Wrap(
+                    spacing: 8,
+                    children: [
+                      for (final f in const [
+                        ('', 'Any enabled'),
+                        ('on', 'enabled'),
+                        ('off', 'disabled'),
+                        ('unknown', 'enabled?'),
+                      ])
+                        FilterChip(
+                          label: Text(f.$2, style: const TextStyle(fontSize: 11)),
+                          selected: _enabled == f.$1,
+                          onSelected: (_) => setState(() => _enabled = f.$1),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                    ],
+                  ),
+                ),
+                Padding(
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
                   child: Wrap(
                     spacing: 8,
@@ -604,6 +638,7 @@ class _McpScreenState extends State<McpScreen> {
                                   if (s['description'] != null) s['description'].toString(),
                                   if (s['kind'] != null) 'kind: ${s['kind']}',
                                   if (s['status'] != null) 'status: ${s['status']}',
+                                  if (s['enabled'] != null) 'enabled: ${s['enabled']}',
                                   if (s['note'] != null) 'note: ${s['note']}',
                                   if (tools.isNotEmpty) 'tools: $tools',
                                 ].where((e) => e.isNotEmpty).join('\n');

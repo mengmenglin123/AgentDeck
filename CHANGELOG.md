@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.112
+
+- MCP enabled filter chips + catalog enabled flags
+- MarkdownLite `<details>/<summary>` ExpansionTile
+- Mock base64/file/uniq/type terminal builtins
+
 ## 0.1.111
 
 - Activity level filter chips (info/warn/error/debug)
