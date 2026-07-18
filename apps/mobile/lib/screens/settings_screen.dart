@@ -15,11 +15,21 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _scroll = ScrollController();
+  bool _wrapLines = false;
 
   @override
   void dispose() {
     _scroll.dispose();
     super.dispose();
+  }
+
+  Widget _sub(String text, {bool three = false}) {
+    return Text(
+      text,
+      maxLines: _wrapLines ? (three ? 12 : 6) : (three ? 3 : 2),
+      overflow: TextOverflow.ellipsis,
+      softWrap: true,
+    );
   }
 
   @override
@@ -51,6 +61,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
             icon: const Icon(Icons.vertical_align_bottom),
           ),
+          IconButton(
+            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            onPressed: () => setState(() => _wrapLines = !_wrapLines),
+            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
+          ),
+
         ],
       ),
       body: ListView(
@@ -77,7 +93,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SwitchListTile(
             secondary: const Icon(Icons.contrast),
             title: const Text('High contrast'),
-            subtitle: const Text('Stronger borders and higher contrast surfaces'),
+            subtitle: _sub('Stronger borders and higher contrast surfaces'),
             value: settings.highContrast,
             onChanged: settings.setHighContrast,
           ),
@@ -103,7 +119,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SwitchListTile(
             secondary: const Icon(Icons.view_compact_alt_outlined),
             title: const Text('Compact lists'),
-            subtitle: const Text('Denser session tiles and menus'),
+            subtitle: _sub('Denser session tiles and menus'),
             value: settings.compactMode,
             onChanged: settings.setCompactMode,
           ),
@@ -162,28 +178,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SwitchListTile(
             secondary: const Icon(Icons.build_circle_outlined),
             title: const Text('Show tool messages by default'),
-            subtitle: const Text('Chat can still toggle tools if Host exposes them'),
+            subtitle: _sub('Chat can still toggle tools if Host exposes them'),
             value: settings.showToolsDefault,
             onChanged: settings.setShowToolsDefault,
           ),
           SwitchListTile(
             secondary: const Icon(Icons.vibration),
             title: const Text('Haptic feedback'),
-            subtitle: const Text('Light buzz on pin / send / copy'),
+            subtitle: _sub('Light buzz on pin / send / copy'),
             value: settings.hapticsEnabled,
             onChanged: settings.setHapticsEnabled,
           ),
           SwitchListTile(
             secondary: const Icon(Icons.smartphone),
             title: const Text('Keep screen on'),
-            subtitle: const Text('Device-local preference while using the console'),
+            subtitle: _sub('Device-local preference while using the console'),
             value: settings.keepScreenOn,
             onChanged: settings.setKeepScreenOn,
           ),
           SwitchListTile(
             secondary: const Icon(Icons.font_download_outlined),
             title: const Text('Monospace chat'),
-            subtitle: const Text('Use mono font for message bodies'),
+            subtitle: _sub('Use mono font for message bodies'),
             value: settings.monoChat,
             onChanged: settings.setMonoChat,
           ),
@@ -211,7 +227,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.ios_share_outlined),
             title: const Text('Copy local prefs'),
-            subtitle: const Text('Theme + console prefs only · no tokens / host secrets'),
+            subtitle: _sub('Theme + console prefs only · no tokens / host secrets'),
             trailing: const Icon(Icons.copy_all_outlined),
             onTap: () async {
               final text = [
@@ -242,7 +258,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.restart_alt),
             title: const Text('Reset console prefs'),
-            subtitle: const Text('Defaults for theme-adjacent console options · no host tokens'),
+            subtitle: _sub('Defaults for theme-adjacent console options · no host tokens'),
             trailing: const Icon(Icons.restore_outlined),
             onTap: () async {
               final ok = await showDialog<bool>(
@@ -271,22 +287,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text('About'),
-            subtitle: const Text(
+            subtitle: _sub(
               'HuanHermes is a remote console only. Settings stay on this device. '
               'No agent loop runs on the phone. Multi-host profiles live on Connect.',
+              three: true,
             ),
             isThreeLine: true,
           ),
           ListTile(
             leading: const Icon(Icons.tag),
             title: const Text('App version'),
-            subtitle: const Text('0.1.56+56 · console only · protocol Mock/self-host'),
+            subtitle: _sub('0.1.57+57 · console only · protocol Mock/self-host'),
             trailing: IconButton(
               tooltip: 'Copy about',
               icon: const Icon(Icons.copy_outlined),
               onPressed: () async {
                 const text =
-                    'HuanHermes App 0.1.56+56\nconsole only · protocol Mock/self-host\nNo agent loop on device · tokens never in about text';
+                    'HuanHermes App 0.1.57+57\nconsole only · protocol Mock/self-host\nNo agent loop on device · tokens never in about text';
                 await Clipboard.setData(const ClipboardData(text: text));
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -299,9 +316,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.policy_outlined),
             title: const Text('Privacy notes'),
-            subtitle: const Text(
+            subtitle: _sub(
               'Tokens stay in secure storage. Pairing URI / exports never include tokens. '
               'Pins, notes, drafts, recents, audit are device-local.',
+              three: true,
             ),
             isThreeLine: true,
           ),

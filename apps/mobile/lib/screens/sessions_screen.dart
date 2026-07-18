@@ -42,6 +42,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
   final _scroll = ScrollController();
   Timer? _timer;
   bool _wrapLines = false;
+  bool _sortAsc = true;
   bool _autoRefresh = false;
   final _pins = SessionPinsStore();
   final _notes = SessionNotesStore();
@@ -374,27 +375,28 @@ class _SessionsScreenState extends State<SessionsScreen> {
       final ap = _pinned.contains(a.sessionKey) ? 0 : 1;
       final bp = _pinned.contains(b.sessionKey) ? 0 : 1;
       if (ap != bp) return ap.compareTo(bp);
+      int dir(int c) => _sortAsc ? c : -c;
       switch (sortMode) {
         case 'title':
-          return a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase());
+          return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
         case 'project':
           final pc = a.project.toLowerCase().compareTo(b.project.toLowerCase());
-          if (pc != 0) return pc;
-          return a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase());
+          if (pc != 0) return dir(pc);
+          return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
         case 'created':
-          return (b.createdAt ?? b.updatedAt ?? 0).compareTo(a.createdAt ?? a.updatedAt ?? 0);
+          return dir((b.createdAt ?? b.updatedAt ?? 0).compareTo(a.createdAt ?? a.updatedAt ?? 0));
         case 'recent':
           final ar = _recentRank[a.sessionKey];
           final br = _recentRank[b.sessionKey];
           if (ar == null && br == null) {
-            return (b.updatedAt ?? 0).compareTo(a.updatedAt ?? 0);
+            return dir((b.updatedAt ?? 0).compareTo(a.updatedAt ?? 0));
           }
-          if (ar == null) return 1;
-          if (br == null) return -1;
-          return ar.compareTo(br);
+          if (ar == null) return dir(1);
+          if (br == null) return dir(-1);
+          return dir(ar.compareTo(br));
         case 'updated':
         default:
-          return (b.updatedAt ?? 0).compareTo(a.updatedAt ?? 0);
+          return dir((b.updatedAt ?? 0).compareTo(a.updatedAt ?? 0));
       }
     });
     return list;
@@ -596,6 +598,12 @@ class _SessionsScreenState extends State<SessionsScreen> {
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
+          IconButton(
+            tooltip: _sortAsc ? 'Sort direction Z→A / oldest' : 'Sort direction A→Z / newest',
+            onPressed: () => setState(() => _sortAsc = !_sortAsc),
+            icon: Icon(_sortAsc ? Icons.south : Icons.north),
+          ),
+
 
 
 

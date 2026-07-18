@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.57
+
+- Terminal: newest/oldest line order toggle
+- Settings: wrap/clamp long preference subtitles
+- Sessions: reverse sort direction (A→Z/Z→A, newest/oldest)
+- Status: filter capability chips
+
 ## 0.1.56
 
 - Audit: sort by action A→Z / Z→A

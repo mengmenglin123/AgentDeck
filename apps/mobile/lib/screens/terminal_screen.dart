@@ -39,6 +39,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
   int _histIndex = -1; // -1 = drafting new
   String _draftBeforeHist = '';
   double _termScale = 1.0; // local terminal font multiplier
+  bool _newestFirst = false;
   bool _wrapLines = true;
   bool _showFind = false;
   bool _showTs = false;
@@ -307,6 +308,9 @@ class _TerminalScreenState extends State<TerminalScreen> {
       }
       lines = stamped;
     }
+    if (_newestFirst) {
+      lines = lines.reversed.toList();
+    }
     return lines.isEmpty ? '' : (lines.join('\n') + '\n');
   }
 
@@ -354,6 +358,12 @@ class _TerminalScreenState extends State<TerminalScreen> {
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
           ),
+          IconButton(
+            tooltip: _newestFirst ? 'Oldest lines first' : 'Newest lines first',
+            onPressed: () => setState(() => _newestFirst = !_newestFirst),
+            icon: Icon(_newestFirst ? Icons.south : Icons.north),
+          ),
+
           IconButton(
             tooltip: _showTs ? 'Hide timestamps' : 'Show timestamps',
             onPressed: () => setState(() => _showTs = !_showTs),

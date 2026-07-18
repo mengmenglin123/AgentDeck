@@ -27,6 +27,8 @@ class _StatusScreenState extends State<StatusScreen> {
   bool _wrapLines = false;
   bool _sortAsc = true;
   String _keyQuery = '';
+  String _capQuery = '';
+  final _capFilterCtrl = TextEditingController();
   final _keyFilterCtrl = TextEditingController();
   bool _autoRefresh = true;
   final _scroll = ScrollController();
@@ -43,6 +45,7 @@ class _StatusScreenState extends State<StatusScreen> {
   @override
   void dispose() {
     _keyFilterCtrl.dispose();
+    _capFilterCtrl.dispose();
     _timer?.cancel();
     _scroll.dispose();
     super.dispose();
@@ -394,10 +397,35 @@ class _StatusScreenState extends State<StatusScreen> {
             const SizedBox(height: 12),
             Text('Capabilities', style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 6),
+            TextField(
+              controller: _capFilterCtrl,
+              decoration: InputDecoration(
+                isDense: true,
+                prefixIcon: const Icon(Icons.search, size: 18),
+                hintText: 'Filter capabilities',
+                border: const OutlineInputBorder(),
+                suffixIcon: _capQuery.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: () {
+                          _capFilterCtrl.clear();
+                          setState(() => _capQuery = '');
+                        },
+                      ),
+              ),
+              onChanged: (v) => setState(() => _capQuery = v),
+            ),
+            const SizedBox(height: 6),
             Wrap(
               spacing: 6,
               runSpacing: 6,
-              children: [for (final cap in caps) Chip(label: Text('$cap', style: const TextStyle(fontSize: 11)))],
+              children: [
+                for (final cap in caps)
+                  if (_capQuery.trim().isEmpty ||
+                      '$cap'.toLowerCase().contains(_capQuery.trim().toLowerCase()))
+                    Chip(label: Text('$cap', style: const TextStyle(fontSize: 11))),
+              ],
             ),
           ],
           const SizedBox(height: 16),

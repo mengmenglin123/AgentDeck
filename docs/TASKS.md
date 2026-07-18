@@ -264,6 +264,11 @@
 | P3-199 | Connect 跳顶/底 | [x] |
 | P3-200 | Settings 跳顶/底 | [x] |
 
+| P3-201 | Terminal 最新/最旧行序 | [x] |
+| P3-202 | Settings 详情换行/截断 | [x] |
+| P3-203 | Sessions 排序方向反转 | [x] |
+| P3-204 | Status capabilities 过滤 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |
