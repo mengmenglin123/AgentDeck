@@ -62,6 +62,23 @@ class _ConnectScreenState extends State<ConnectScreen> {
     _useTls = d.useTls;
   }
 
+
+  static String _fpHex(String seed) {
+    final bytes = utf8.encode(seed);
+    var state = 2166136261;
+    for (final b in bytes) {
+      state = (state ^ b) * 16777619;
+      state &= 0xFFFFFFFF;
+    }
+    var s2 = state;
+    final parts = <String>[];
+    for (var i = 0; i < 4; i++) {
+      s2 = (1103515245 * s2 + 12345) & 0x7FFFFFFF;
+      parts.add((s2 & 0xFFFF).toRadixString(16).padLeft(4, '0'));
+    }
+    return parts.join();
+  }
+
   ConnectionConfig _readForm(ConnectionConfig base) {
     return base.copyWith(
       host: _host.text.trim(),
@@ -175,6 +192,33 @@ class _ConnectScreenState extends State<ConnectScreen> {
             },
             icon: const Icon(Icons.ios_share_outlined),
           ),
+          IconButton(
+            tooltip: 'Copy fingerprint hex',
+            onPressed: () async {
+              final host = _host.text.trim();
+              if (host.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Enter host first'), duration: Duration(seconds: 1)),
+                );
+                return;
+              }
+              final bridge = int.tryParse(_bridgePort.text.trim()) ?? 19810;
+              final mgmt = int.tryParse(_mgmtPort.text.trim()) ?? 19820;
+              final cfg = ConnectionConfig(
+                host: host,
+                bridgePort: bridge,
+                mgmtPort: mgmt,
+              );
+              final hex = _fpHex(cfg.toPairingUri());
+              await Clipboard.setData(ClipboardData(text: hex));
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Fingerprint $hex'), duration: const Duration(seconds: 1)),
+              );
+            },
+            icon: const Icon(Icons.fingerprint),
+          ),
+
           IconButton(
             tooltip: 'Copy profiles (no tokens)',
             onPressed: controller.profiles.isEmpty

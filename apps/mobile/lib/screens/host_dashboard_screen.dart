@@ -90,6 +90,39 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
   }
 
 
+
+  Future<void> _copyCsv() async {
+    final conn = context.read<ConnectionController>();
+    final cfg = conn.saved;
+    final buf = StringBuffer();
+    buf.writeln('key,value');
+    void row(String k, Object? v) {
+      final raw = v == null ? '' : '$v'.replaceAll('"', '""');
+      buf.writeln('$k,"$raw"');
+    }
+    if (cfg != null) {
+      row('host', cfg.host);
+      row('mgmt', cfg.mgmtBaseUrl);
+      row('bridge', cfg.bridgeWsUrlRedacted);
+    }
+    for (final e in _status.entries) {
+      final v = e.value;
+      if (v is List) {
+        row(e.key, v.join('|'));
+      } else if (v is Map) {
+        row(e.key, v.toString());
+      } else {
+        row(e.key, v);
+      }
+    }
+    if (_error != null) row('error', _error);
+    await Clipboard.setData(ClipboardData(text: buf.toString()));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Copied status CSV'), duration: Duration(seconds: 1)),
+    );
+  }
+
   Future<void> _copyCapabilities() async {
     final caps = (_status['capabilities'] as List? ?? const []).map((e) => '$e').toList();
     final text = caps.isEmpty ? '(no capabilities)' : caps.join('\n');
@@ -156,6 +189,12 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
             onPressed: _status.isEmpty ? null : _copyCapabilities,
             icon: const Icon(Icons.extension_outlined),
           ),
+          IconButton(
+            tooltip: 'Copy CSV',
+            onPressed: _status.isEmpty && _error == null ? null : _copyCsv,
+            icon: const Icon(Icons.table_chart_outlined),
+          ),
+
 
           IconButton(
             tooltip: 'Refresh',

@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import '../models/connection_config.dart';
+import '../services/app_settings_controller.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 import '../widgets/connection_fingerprint.dart';
@@ -20,11 +23,31 @@ class _PairingScreenState extends State<PairingScreen> {
   bool loading = true;
   String? error;
   Map<String, dynamic> data = {};
+  Timer? _timer;
+  bool _autoRefresh = false;
 
   @override
   void initState() {
     super.initState();
     _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _armTimer() {
+    _timer?.cancel();
+    if (!_autoRefresh || !mounted) return;
+    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
+    if (sec <= 0) return;
+    _timer = Timer.periodic(Duration(seconds: sec), (_) {
+      if (!mounted || loading) return;
+      _load();
+    });
   }
 
   Future<void> _load() async {
@@ -86,7 +109,7 @@ class _PairingScreenState extends State<PairingScreen> {
     final publicUri = cfg.toPairingUri();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Device pairing'),
+        title: Text(_autoRefresh ? 'Device pairing · auto' : 'Device pairing'),
         actions: [
           IconButton(
             tooltip: 'Copy public summary',
@@ -120,6 +143,14 @@ class _PairingScreenState extends State<PairingScreen> {
             icon: const Icon(Icons.data_object_outlined),
           ),
 
+          IconButton(
+            tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
+            onPressed: () {
+              setState(() => _autoRefresh = !_autoRefresh);
+              _armTimer();
+            },
+            icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
+          ),
           IconButton(onPressed: loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
       ),

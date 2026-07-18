@@ -209,6 +209,11 @@
 | P3-155 | Memory 自动刷新（可暂停） | [x] |
 | P3-156 | Workspace 自动刷新（可暂停） | [x] |
 
+| P3-157 | Pairing 自动刷新（可暂停） | [x] |
+| P3-158 | Connect 复制 fingerprint hex（无 token） | [x] |
+| P3-159 | Sessions 跳到顶部/底部 | [x] |
+| P3-160 | Host Dashboard 导出 status CSV | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

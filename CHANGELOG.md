@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.46
+
+- Pairing: auto-refresh toggle (dashboard interval)
+- Connect: copy fingerprint hex (no tokens)
+- Sessions: jump to top / end
+- Host Dashboard: copy status CSV
+
 ## 0.1.45
 
 - Skills: auto-refresh toggle (dashboard interval)

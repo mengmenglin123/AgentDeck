@@ -39,6 +39,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
   SessionController? _sessions;
   final _titleCtrl = TextEditingController();
   final _searchCtrl = TextEditingController();
+  final _scroll = ScrollController();
   final _pins = SessionPinsStore();
   final _notes = SessionNotesStore();
   final _archive = SessionArchiveStore();
@@ -297,6 +298,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
 
   @override
   void dispose() {
+    _scroll.dispose();
     _searchDebounce?.cancel();
     _titleCtrl.dispose();
     _searchCtrl.dispose();
@@ -514,6 +516,27 @@ class _SessionsScreenState extends State<SessionsScreen> {
                 onPressed: sessions.loading ? null : sessions.refresh,
                 icon: const Icon(Icons.refresh),
               ),
+              IconButton(
+                tooltip: 'Jump to top',
+                onPressed: () {
+                  if (!_scroll.hasClients) return;
+                  _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+                },
+                icon: const Icon(Icons.vertical_align_top),
+              ),
+              IconButton(
+                tooltip: 'Jump to end',
+                onPressed: () {
+                  if (!_scroll.hasClients) return;
+                  _scroll.animateTo(
+                    _scroll.position.maxScrollExtent,
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOut,
+                  );
+                },
+                icon: const Icon(Icons.vertical_align_bottom),
+              ),
+
               PopupMenuButton<String>(
                 tooltip: 'More',
                 onSelected: (v) {
@@ -965,6 +988,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                         ],
                                       )
                                     : ListView.separated(
+                                        controller: _scroll,
                                         itemCount: _visibleRows(visible).length,
                                         separatorBuilder: (_, __) => const Divider(height: 1),
                                         itemBuilder: (context, i) {
