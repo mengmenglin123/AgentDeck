@@ -249,6 +249,11 @@
 | P3-187 | Sessions 标题/副标题换行/截断 | [x] |
 | P3-188 | Diff 文件列表 A→Z/Z→A 排序 | [x] |
 
+| P3-189 | Status keys A→Z/Z→A 排序 | [x] |
+| P3-190 | Host Dashboard keys A→Z/Z→A 排序 | [x] |
+| P3-191 | Memory 标题 A→Z/Z→A 排序 | [x] |
+| P3-192 | Chat 长消息 clamp/expand | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

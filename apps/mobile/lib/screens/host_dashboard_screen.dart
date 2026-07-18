@@ -32,6 +32,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
   bool _loading = true;
   Timer? _timer;
   bool _wrapLines = false;
+  bool _sortAsc = true;
   bool _autoRefresh = true;
   final _scroll = ScrollController();
   DateTime? _lastOk;
@@ -109,7 +110,11 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
       row('mgmt', cfg.mgmtBaseUrl);
       row('bridge', cfg.bridgeWsUrlRedacted);
     }
-    for (final e in _status.entries) {
+    for (final e in (_status.entries.toList()
+                        ..sort((a, b) {
+                          final c = a.key.toLowerCase().compareTo(b.key.toLowerCase());
+                          return _sortAsc ? c : -c;
+                        }))) {
       final v = e.value;
       if (v is List) {
         row(e.key, v.join('|'));
@@ -203,6 +208,12 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
+          IconButton(
+            tooltip: _sortAsc ? 'Sort keys Z→A' : 'Sort keys A→Z',
+            onPressed: () => setState(() => _sortAsc = !_sortAsc),
+            icon: Icon(_sortAsc ? Icons.sort_by_alpha : Icons.sort),
+          ),
+
 
           IconButton(
             tooltip: 'Jump to top',
@@ -487,7 +498,11 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                 ExpansionTile(
                   title: const Text('Raw /status'),
                   children: [
-                    for (final e in _status.entries)
+                    for (final e in (_status.entries.toList()
+                        ..sort((a, b) {
+                          final c = a.key.toLowerCase().compareTo(b.key.toLowerCase());
+                          return _sortAsc ? c : -c;
+                        })))
                       ListTile(
                         dense: true,
                         title: Text(e.key),

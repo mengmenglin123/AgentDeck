@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.54
+
+- Status: sort keys A→Z / Z→A
+- Host Dashboard: sort keys A→Z / Z→A
+- Memory: sort by title A→Z / Z→A (toggle with time order)
+- Chat: clamp / expand long messages
+
 ## 0.1.53
 
 - Pairing: wrap/clamp payload and host line

@@ -27,6 +27,8 @@ class _MemoryScreenState extends State<MemoryScreen> {
   String _type = 'all';
   String _q = '';
   bool _wrapLines = false;
+  bool _sortByTitle = false;
+  bool _sortAsc = true;
   bool _newestFirst = true;
   final _scroll = ScrollController();
   Timer? _timer;
@@ -80,6 +82,12 @@ class _MemoryScreenState extends State<MemoryScreen> {
       return p?.millisecondsSinceEpoch ?? 0;
     }
     list.sort((a, b) {
+      if (_sortByTitle) {
+        final ta = (a['title'] ?? a['id'] ?? '').toString().toLowerCase();
+        final tb = (b['title'] ?? b['id'] ?? '').toString().toLowerCase();
+        final c = ta.compareTo(tb);
+        return _sortAsc ? c : -c;
+      }
       final c = tsOf(a).compareTo(tsOf(b));
       return _newestFirst ? -c : c;
     });
@@ -198,6 +206,26 @@ class _MemoryScreenState extends State<MemoryScreen> {
             onPressed: () => setState(() => _newestFirst = !_newestFirst),
             icon: Icon(_newestFirst ? Icons.arrow_downward : Icons.arrow_upward),
           ),
+          IconButton(
+            tooltip: _sortByTitle
+                ? (_sortAsc ? 'Titles Z→A' : 'Titles A→Z')
+                : 'Sort by title',
+            onPressed: () {
+              setState(() {
+                if (!_sortByTitle) {
+                  _sortByTitle = true;
+                  _sortAsc = true;
+                } else if (_sortAsc) {
+                  _sortAsc = false;
+                } else {
+                  _sortByTitle = false;
+                  _sortAsc = true;
+                }
+              });
+            },
+            icon: Icon(_sortByTitle ? Icons.sort_by_alpha : Icons.sort),
+          ),
+
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),

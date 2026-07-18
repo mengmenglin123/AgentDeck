@@ -25,6 +25,7 @@ class _StatusScreenState extends State<StatusScreen> {
   Map<String, dynamic> _status = const {};
   Timer? _timer;
   bool _wrapLines = false;
+  bool _sortAsc = true;
   bool _autoRefresh = true;
   final _scroll = ScrollController();
 
@@ -216,6 +217,12 @@ class _StatusScreenState extends State<StatusScreen> {
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
+          IconButton(
+            tooltip: _sortAsc ? 'Sort keys Z→A' : 'Sort keys A→Z',
+            onPressed: () => setState(() => _sortAsc = !_sortAsc),
+            icon: Icon(_sortAsc ? Icons.sort_by_alpha : Icons.sort),
+          ),
+
 
           IconButton(
             tooltip: 'Jump to top',
@@ -398,7 +405,14 @@ class _StatusScreenState extends State<StatusScreen> {
               child: Text('No status payload yet.'),
             )
           else
-            ...status.entries.map(
+            ...(() {
+              final entries = status.entries.toList()
+                ..sort((a, b) {
+                  final c = a.key.toLowerCase().compareTo(b.key.toLowerCase());
+                  return _sortAsc ? c : -c;
+                });
+              return entries;
+            })().map(
               (e) => ListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,

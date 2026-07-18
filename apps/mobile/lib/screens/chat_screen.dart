@@ -41,6 +41,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _searchCtrl = TextEditingController();
   String _searchQ = '';
   bool _showTools = true;
+  bool _wrapLines = true;
   bool _stickToBottom = true;
   bool _showJumpBottom = false;
   bool _showJumpTop = false;
@@ -788,6 +789,12 @@ class _ChatScreenState extends State<ChatScreen> {
             onPressed: _chat.messages.isEmpty ? null : _copyAllMessages,
             icon: const Icon(Icons.copy_all_outlined),
           ),
+          IconButton(
+            tooltip: _wrapLines ? 'Clamp messages' : 'Expand messages',
+            onPressed: () => setState(() => _wrapLines = !_wrapLines),
+            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
+          ),
+
 
           IconButton(
             tooltip: 'Clear local view',
@@ -1020,6 +1027,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               compact: settings.compactMode,
                               mono: settings.monoChat,
                               fontScale: settings.chatFontScale,
+                              wrapLines: _wrapLines,
                               onQuote: () {
                                 final clip = m.content.trim();
                                 if (clip.isEmpty) return;
@@ -1310,6 +1318,7 @@ class _MessageBubble extends StatelessWidget {
     this.compact = false,
     this.mono = false,
     this.fontScale = 1.0,
+    this.wrapLines = true,
   });
 
   final TranscriptMessage message;
@@ -1322,6 +1331,7 @@ class _MessageBubble extends StatelessWidget {
   final bool compact;
   final bool mono;
   final double fontScale;
+  final bool wrapLines;
 
   List<Map<String, dynamic>> get _buttons {
     final raw = message.meta['buttons'];
@@ -1435,18 +1445,32 @@ class _MessageBubble extends StatelessWidget {
               ),
               SizedBox(height: compact ? 2 : 4),
               if (useMd)
-                 mono
-                     ? DefaultTextStyle.merge(
-                         style: TextStyle(
-                           fontFamily: 'monospace',
-                           fontSize: 14 * fontScale,
-                         ),
-                         child: MarkdownLite(message.content),
-                       )
-                     : DefaultTextStyle.merge(
-                         style: TextStyle(fontSize: 14 * fontScale),
-                         child: MarkdownLite(message.content),
-                       )
+                Builder(
+                  builder: (context) {
+                    final child = mono
+                        ? DefaultTextStyle.merge(
+                            style: TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 14 * fontScale,
+                            ),
+                            child: MarkdownLite(message.content),
+                          )
+                        : DefaultTextStyle.merge(
+                            style: TextStyle(fontSize: 14 * fontScale),
+                            child: MarkdownLite(message.content),
+                          );
+                    if (wrapLines) return child;
+                    return ClipRect(
+                      child: SizedBox(
+                        height: 14 * fontScale * 12 * 1.35,
+                        child: SingleChildScrollView(
+                          physics: const NeverScrollableScrollPhysics(),
+                          child: child,
+                        ),
+                      ),
+                    );
+                  },
+                )
               else
                 SelectableText(
                   message.content,
@@ -1454,6 +1478,7 @@ class _MessageBubble extends StatelessWidget {
                     fontFamily: mono ? 'monospace' : null,
                     fontSize: 14 * fontScale,
                   ),
+                  maxLines: wrapLines ? null : 12,
                 ),
               if (buttons.isNotEmpty) ...[
                 const SizedBox(height: 8),
