@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.170
+
+- Agent event notifications: permission request, task error, disconnect
+- Permission request notification when agent needs approval
+- Task error notification on agent failure
+- Bridge disconnect notification with reconnect hint
+- NotificationService integration in ChatController
+
+
 ## 0.1.169
 
 - Git actions: commit/push/pull from workspace screen

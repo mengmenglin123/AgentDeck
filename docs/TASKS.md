@@ -666,6 +666,7 @@
 - [x] **P4-5ce** Real Hermes adapter detection + compatibility (0.1.167)
 - [x] **P4-6aa** Permissions screen + auto-approve rules (0.1.168)
 - [x] **P4-6ab** Git actions: commit/push/pull from workspace (0.1.169)
+- [x] **P4-6ac** Agent event notifications: permission/error/disconnect (0.1.170)
 
 ## P4 — 远期
 

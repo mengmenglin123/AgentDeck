@@ -374,6 +374,30 @@ class ChatController extends ChangeNotifier {
         summary: summary,
       );
     }
+    if (type == 'card') {
+      // Permission request from agent — show notification
+      final text = payload['text']?.toString() ?? 'Agent needs permission';
+      final buttons = payload['buttons'] as List? ?? [];
+      if (buttons.isNotEmpty) {
+        NotificationService.instance.show(
+          id: 'perm_${session.name}'.hashCode & 0x7FFFFFFF,
+          title: 'Permission Required: ${session.name}',
+          body: text.length > 100 ? '${text.substring(0, 100)}...' : text,
+          payload: 'permission:${session.sessionKey}',
+        );
+      }
+    }
+    if (type == 'error' || (payload['error'] != null)) {
+      // Task error — show notification
+      final errorMsg =
+          payload['error']?.toString() ??
+          payload['message']?.toString() ??
+          'Unknown error';
+      NotificationService.instance.showError(
+        title: 'Error: ${session.name}',
+        message: errorMsg,
+      );
+    }
     reducer.applyBridgePayload(payload);
     notifyListeners();
   }
@@ -386,6 +410,12 @@ class ChatController extends ChangeNotifier {
 
   void _onBridgeClose() {
     connected = false;
+    // Notify user about disconnection
+    NotificationService.instance.show(
+      id: 'disconnect_${session.name}'.hashCode & 0x7FFFFFFF,
+      title: 'Disconnected: ${session.name}',
+      body: 'Bridge connection lost. Attempting to reconnect...',
+    );
     typing = false;
     runActive = false;
     error = error ?? 'Bridge connection closed';
