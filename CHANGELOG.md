@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.84
+
+- Skills enabled sort
+- Memory path sort
+- Logs id sort
+- Connect bridgePort sort
+
 ## 0.1.83
 
 - MCP transport + id sort

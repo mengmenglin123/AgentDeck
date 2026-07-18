@@ -399,6 +399,11 @@
 | P3-307 | Cron 按 enabled 排序 | [x] |
 | P3-308 | Activity 按 level 排序 | [x] |
 
+| P3-309 | Skills 按 enabled 排序 | [x] |
+| P3-310 | Memory 按 path 排序 | [x] |
+| P3-311 | Logs 按 id 排序 | [x] |
+| P3-312 | Connect 按 bridgePort 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

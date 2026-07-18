@@ -35,6 +35,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
   bool _sortByConfidence = false;
   bool _sortByScope = false;
   bool _sortById = false;
+  bool _sortByPath = false;
   bool _sortAsc = true;
   bool _relativeTs = false;
   bool _newestFirst = true;
@@ -104,7 +105,12 @@ class _MemoryScreenState extends State<MemoryScreen> {
         if (v is num) return v.toDouble();
         return double.tryParse(v?.toString() ?? '') ?? -1;
       }
-      if (_sortById) {
+      if (_sortByPath) {
+        final pa = (a['path'] ?? a['file'] ?? a['source_path'] ?? a['uri'] ?? '').toString().toLowerCase();
+        final pb = (b['path'] ?? b['file'] ?? b['source_path'] ?? b['uri'] ?? '').toString().toLowerCase();
+        final c = pa.compareTo(pb);
+        if (c != 0) return _sortAsc ? c : -c;
+      } else if (_sortById) {
         final ia = (a['id'] ?? a['memory_id'] ?? a['uuid'] ?? a['key'] ?? '').toString().toLowerCase();
         final ib = (b['id'] ?? b['memory_id'] ?? b['uuid'] ?? b['key'] ?? '').toString().toLowerCase();
         final c = ia.compareTo(ib);
@@ -298,28 +304,31 @@ class _MemoryScreenState extends State<MemoryScreen> {
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
           IconButton(
-            tooltip: _sortById
-                ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
-                : (_sortByScope
-                    ? (_sortAsc ? 'Scope Z→A' : 'Scope A→Z')
-                    : (_sortByConfidence
-                        ? (_sortAsc ? 'Confidence high→low' : 'Confidence low→high')
-                        : (_sortByContent
-                            ? (_sortAsc ? 'Content Z→A' : 'Content A→Z')
-                            : (_sortByType
-                                ? (_sortAsc ? 'Types Z→A' : 'Types A→Z')
-                                : (_sortByTitle
-                                    ? (_sortAsc ? 'Titles Z→A' : 'Titles A→Z')
-                                    : 'Sort by title / type / content / confidence / scope / id'))))),
+            tooltip: _sortByPath
+                ? (_sortAsc ? 'Path Z→A' : 'Path A→Z')
+                : (_sortById
+                    ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                    : (_sortByScope
+                        ? (_sortAsc ? 'Scope Z→A' : 'Scope A→Z')
+                        : (_sortByConfidence
+                            ? (_sortAsc ? 'Confidence high→low' : 'Confidence low→high')
+                            : (_sortByContent
+                                ? (_sortAsc ? 'Content Z→A' : 'Content A→Z')
+                                : (_sortByType
+                                    ? (_sortAsc ? 'Types Z→A' : 'Types A→Z')
+                                    : (_sortByTitle
+                                        ? (_sortAsc ? 'Titles Z→A' : 'Titles A→Z')
+                                        : 'Sort by title / type / content / confidence / scope / id / path')))))),
             onPressed: () {
               setState(() {
-                if (!_sortByTitle && !_sortByType && !_sortByContent && !_sortByConfidence && !_sortByScope && !_sortById) {
+                if (!_sortByTitle && !_sortByType && !_sortByContent && !_sortByConfidence && !_sortByScope && !_sortById && !_sortByPath) {
                   _sortByTitle = true;
                   _sortByType = false;
                   _sortByContent = false;
                   _sortByConfidence = false;
                   _sortByScope = false;
                   _sortById = false;
+                  _sortByPath = false;
                   _sortAsc = true;
                 } else if (_sortByTitle && _sortAsc) {
                   _sortAsc = false;
@@ -330,6 +339,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
                   _sortByConfidence = false;
                   _sortByScope = false;
                   _sortById = false;
+                  _sortByPath = false;
                   _sortAsc = true;
                 } else if (_sortByType && _sortAsc) {
                   _sortAsc = false;
@@ -340,6 +350,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
                   _sortByConfidence = false;
                   _sortByScope = false;
                   _sortById = false;
+                  _sortByPath = false;
                   _sortAsc = true;
                 } else if (_sortByContent && _sortAsc) {
                   _sortAsc = false;
@@ -350,6 +361,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
                   _sortByConfidence = true;
                   _sortByScope = false;
                   _sortById = false;
+                  _sortByPath = false;
                   _sortAsc = false; // high first by default
                 } else if (_sortByConfidence && !_sortAsc) {
                   _sortAsc = true;
@@ -360,6 +372,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
                   _sortByConfidence = false;
                   _sortByScope = true;
                   _sortById = false;
+                  _sortByPath = false;
                   _sortAsc = true;
                 } else if (_sortByScope && _sortAsc) {
                   _sortAsc = false;
@@ -370,8 +383,20 @@ class _MemoryScreenState extends State<MemoryScreen> {
                   _sortByConfidence = false;
                   _sortByScope = false;
                   _sortById = true;
+                  _sortByPath = false;
                   _sortAsc = true;
                 } else if (_sortById && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortById && !_sortAsc) {
+                  _sortByTitle = false;
+                  _sortByType = false;
+                  _sortByContent = false;
+                  _sortByConfidence = false;
+                  _sortByScope = false;
+                  _sortById = false;
+                  _sortByPath = true;
+                  _sortAsc = true;
+                } else if (_sortByPath && _sortAsc) {
                   _sortAsc = false;
                 } else {
                   _sortByTitle = false;
@@ -380,21 +405,24 @@ class _MemoryScreenState extends State<MemoryScreen> {
                   _sortByConfidence = false;
                   _sortByScope = false;
                   _sortById = false;
+                  _sortByPath = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortById
-                ? Icons.tag
-                : (_sortByScope
-                    ? Icons.folder_outlined
-                    : (_sortByConfidence
-                        ? Icons.speed
-                        : (_sortByContent
-                            ? Icons.article_outlined
-                            : (_sortByType
-                                ? Icons.category_outlined
-                                : (_sortByTitle ? Icons.sort_by_alpha : Icons.sort)))))),
+            icon: Icon(_sortByPath
+                ? Icons.folder_open
+                : (_sortById
+                    ? Icons.tag
+                    : (_sortByScope
+                        ? Icons.folder_outlined
+                        : (_sortByConfidence
+                            ? Icons.speed
+                            : (_sortByContent
+                                ? Icons.article_outlined
+                                : (_sortByType
+                                    ? Icons.category_outlined
+                                    : (_sortByTitle ? Icons.sort_by_alpha : Icons.sort))))))),
           ),
 
           IconButton(

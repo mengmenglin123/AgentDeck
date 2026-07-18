@@ -35,6 +35,7 @@ class _LogsScreenState extends State<LogsScreen> {
   bool _sortByLevel = false;
   bool _sortByLogger = false;
   bool _sortBySource = false;
+  bool _sortById = false;
   bool _sortAsc = true;
   bool _autoRefresh = false;
   bool _relativeTs = false;
@@ -125,7 +126,12 @@ class _LogsScreenState extends State<LogsScreen> {
           (x['logger'] ?? x['source'] ?? x['component'] ?? x['module'] ?? x['name'] ?? '')
               .toString()
               .toLowerCase();
-      if (_sortBySource) {
+      if (_sortById) {
+        final ia = (a['id'] ?? a['log_id'] ?? a['uuid'] ?? a['request_id'] ?? '').toString().toLowerCase();
+        final ib = (b['id'] ?? b['log_id'] ?? b['uuid'] ?? b['request_id'] ?? '').toString().toLowerCase();
+        final c = ia.compareTo(ib);
+        if (c != 0) return _sortAsc ? c : -c;
+      } else if (_sortBySource) {
         final sa = (a['source'] ?? a['origin'] ?? a['channel'] ?? a['provider'] ?? '').toString().toLowerCase();
         final sb = (b['source'] ?? b['origin'] ?? b['channel'] ?? b['provider'] ?? '').toString().toLowerCase();
         final c = sa.compareTo(sb);
@@ -283,22 +289,25 @@ class _LogsScreenState extends State<LogsScreen> {
             icon: Icon(_newestFirst ? Icons.arrow_downward : Icons.arrow_upward),
           ),
           IconButton(
-            tooltip: _sortBySource
-                ? (_sortAsc ? 'Source Z→A' : 'Source A→Z')
-                : (_sortByLogger
-                    ? (_sortAsc ? 'Logger Z→A' : 'Logger A→Z')
-                    : (_sortByLevel
-                        ? (_sortAsc ? 'Levels Z→A' : 'Levels A→Z')
-                        : (_sortByMsg
-                            ? (_sortAsc ? 'Messages Z→A' : 'Messages A→Z')
-                            : 'Sort by message / level / logger / source'))),
+            tooltip: _sortById
+                ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                : (_sortBySource
+                    ? (_sortAsc ? 'Source Z→A' : 'Source A→Z')
+                    : (_sortByLogger
+                        ? (_sortAsc ? 'Logger Z→A' : 'Logger A→Z')
+                        : (_sortByLevel
+                            ? (_sortAsc ? 'Levels Z→A' : 'Levels A→Z')
+                            : (_sortByMsg
+                                ? (_sortAsc ? 'Messages Z→A' : 'Messages A→Z')
+                                : 'Sort by message / level / logger / source / id')))),
             onPressed: () {
               setState(() {
-                if (!_sortByMsg && !_sortByLevel && !_sortByLogger && !_sortBySource) {
+                if (!_sortByMsg && !_sortByLevel && !_sortByLogger && !_sortBySource && !_sortById) {
                   _sortByMsg = true;
                   _sortByLevel = false;
                   _sortByLogger = false;
                   _sortBySource = false;
+                  _sortById = false;
                   _sortAsc = true;
                 } else if (_sortByMsg && _sortAsc) {
                   _sortAsc = false;
@@ -307,6 +316,7 @@ class _LogsScreenState extends State<LogsScreen> {
                   _sortByLevel = true;
                   _sortByLogger = false;
                   _sortBySource = false;
+                  _sortById = false;
                   _sortAsc = true;
                 } else if (_sortByLevel && _sortAsc) {
                   _sortAsc = false;
@@ -315,6 +325,7 @@ class _LogsScreenState extends State<LogsScreen> {
                   _sortByLevel = false;
                   _sortByLogger = true;
                   _sortBySource = false;
+                  _sortById = false;
                   _sortAsc = true;
                 } else if (_sortByLogger && _sortAsc) {
                   _sortAsc = false;
@@ -323,25 +334,38 @@ class _LogsScreenState extends State<LogsScreen> {
                   _sortByLevel = false;
                   _sortByLogger = false;
                   _sortBySource = true;
+                  _sortById = false;
                   _sortAsc = true;
                 } else if (_sortBySource && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortBySource && !_sortAsc) {
+                  _sortByMsg = false;
+                  _sortByLevel = false;
+                  _sortByLogger = false;
+                  _sortBySource = false;
+                  _sortById = true;
+                  _sortAsc = true;
+                } else if (_sortById && _sortAsc) {
                   _sortAsc = false;
                 } else {
                   _sortByMsg = false;
                   _sortByLevel = false;
                   _sortByLogger = false;
                   _sortBySource = false;
+                  _sortById = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortBySource
-                ? Icons.source_outlined
-                : (_sortByLogger
-                    ? Icons.account_tree_outlined
-                    : (_sortByLevel
-                        ? Icons.low_priority
-                        : (_sortByMsg ? Icons.sort_by_alpha : Icons.sort)))),
+            icon: Icon(_sortById
+                ? Icons.tag
+                : (_sortBySource
+                    ? Icons.source_outlined
+                    : (_sortByLogger
+                        ? Icons.account_tree_outlined
+                        : (_sortByLevel
+                            ? Icons.low_priority
+                            : (_sortByMsg ? Icons.sort_by_alpha : Icons.sort))))),
           ),
 
 
