@@ -37,6 +37,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
   bool _sortByModel = false;
   bool _sortByStatus = false;
   bool _sortByPlatform = false;
+  bool _sortByProject = false;
   bool _sortAsc = true;
   final _scroll = ScrollController();
   Timer? _timer;
@@ -189,7 +190,12 @@ class _AgentsScreenState extends State<AgentsScreen> {
   List<dynamic> get _filteredAgents {
     final list = _agents.where(_matchAgent).toList();
     list.sort((a, b) {
-      if (_sortByPlatform) {
+      if (_sortByProject) {
+        final pa = (a['project'] ?? a['project_id'] ?? a['cwd'] ?? a['workspace'] ?? '').toString().toLowerCase();
+        final pb = (b['project'] ?? b['project_id'] ?? b['cwd'] ?? b['workspace'] ?? '').toString().toLowerCase();
+        final c = pa.compareTo(pb);
+        if (c != 0) return _sortAsc ? c : -c;
+      } else if (_sortByPlatform) {
         final c = _agentPlatformKey(a).compareTo(_agentPlatformKey(b));
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByStatus) {
@@ -351,24 +357,27 @@ class _AgentsScreenState extends State<AgentsScreen> {
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
-            tooltip: _sortByPlatform
-                ? (_sortAsc ? 'Platform Z→A' : 'Platform A→Z')
-                : (_sortByStatus
-                    ? (_sortAsc ? 'Status Z→A' : 'Status A→Z')
-                    : (_sortByModel
-                        ? (_sortAsc ? 'Model Z→A' : 'Model A→Z')
-                        : (_sortByType
-                            ? (_sortAsc ? 'Type Z→A' : 'Type A→Z')
-                            : (_sortAsc ? 'Name Z→A' : 'Name A→Z')))),
+            tooltip: _sortByProject
+                ? (_sortAsc ? 'Project Z→A' : 'Project A→Z')
+                : (_sortByPlatform
+                    ? (_sortAsc ? 'Platform Z→A' : 'Platform A→Z')
+                    : (_sortByStatus
+                        ? (_sortAsc ? 'Status Z→A' : 'Status A→Z')
+                        : (_sortByModel
+                            ? (_sortAsc ? 'Model Z→A' : 'Model A→Z')
+                            : (_sortByType
+                                ? (_sortAsc ? 'Type Z→A' : 'Type A→Z')
+                                : (_sortAsc ? 'Name Z→A' : 'Name A→Z'))))),
             onPressed: () {
               setState(() {
-                if (!_sortByType && !_sortByModel && !_sortByStatus && !_sortByPlatform && _sortAsc) {
+                if (!_sortByType && !_sortByModel && !_sortByStatus && !_sortByPlatform && !_sortByProject && _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortByType && !_sortByModel && !_sortByStatus && !_sortByPlatform && !_sortAsc) {
+                } else if (!_sortByType && !_sortByModel && !_sortByStatus && !_sortByPlatform && !_sortByProject && !_sortAsc) {
                   _sortByType = true;
                   _sortByModel = false;
                   _sortByStatus = false;
                   _sortByPlatform = false;
+                  _sortByProject = false;
                   _sortAsc = true;
                 } else if (_sortByType && _sortAsc) {
                   _sortAsc = false;
@@ -377,6 +386,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortByModel = true;
                   _sortByStatus = false;
                   _sortByPlatform = false;
+                  _sortByProject = false;
                   _sortAsc = true;
                 } else if (_sortByModel && _sortAsc) {
                   _sortAsc = false;
@@ -385,6 +395,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortByModel = false;
                   _sortByStatus = true;
                   _sortByPlatform = false;
+                  _sortByProject = false;
                   _sortAsc = true;
                 } else if (_sortByStatus && _sortAsc) {
                   _sortAsc = false;
@@ -393,27 +404,40 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortByModel = false;
                   _sortByStatus = false;
                   _sortByPlatform = true;
+                  _sortByProject = false;
                   _sortAsc = true;
                 } else if (_sortByPlatform && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortByPlatform && !_sortAsc) {
+                  _sortByType = false;
+                  _sortByModel = false;
+                  _sortByStatus = false;
+                  _sortByPlatform = false;
+                  _sortByProject = true;
+                  _sortAsc = true;
+                } else if (_sortByProject && _sortAsc) {
                   _sortAsc = false;
                 } else {
                   _sortByType = false;
                   _sortByModel = false;
                   _sortByStatus = false;
                   _sortByPlatform = false;
+                  _sortByProject = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortByPlatform
-                ? Icons.devices_other_outlined
-                : (_sortByStatus
-                    ? Icons.flag_outlined
-                    : (_sortByModel
-                        ? Icons.memory_outlined
-                        : (_sortByType
-                            ? Icons.category_outlined
-                            : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))))),
+            icon: Icon(_sortByProject
+                ? Icons.folder_special_outlined
+                : (_sortByPlatform
+                    ? Icons.devices_other_outlined
+                    : (_sortByStatus
+                        ? Icons.flag_outlined
+                        : (_sortByModel
+                            ? Icons.memory_outlined
+                            : (_sortByType
+                                ? Icons.category_outlined
+                                : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))))),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',

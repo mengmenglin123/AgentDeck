@@ -37,6 +37,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   bool _sortBySize = false;
   bool _sortByMtime = false;
   bool _sortByPath = false;
+  bool _sortByType = false;
   /// all | dir | file
   String _typeFilter = 'all';
   bool _hideEmpty = false;
@@ -111,7 +112,12 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         final p = DateTime.tryParse(v?.toString() ?? '');
         return p?.millisecondsSinceEpoch ?? 0;
       }
-      if (_sortByPath) {
+      if (_sortByType) {
+        final ta = (a['type'] ?? a['kind'] ?? a['mime'] ?? a['extension'] ?? '').toString().toLowerCase();
+        final tb = (b['type'] ?? b['kind'] ?? b['mime'] ?? b['extension'] ?? '').toString().toLowerCase();
+        final c = ta.compareTo(tb);
+        if (c != 0) return _sortAsc ? c : -c;
+      } else if (_sortByPath) {
         final pa = (a['path'] ?? a['full_path'] ?? a['name'] ?? '').toString().toLowerCase();
         final pb = (b['path'] ?? b['full_path'] ?? b['name'] ?? '').toString().toLowerCase();
         final c = pa.compareTo(pb);
@@ -340,21 +346,24 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
 
           IconButton(
-            tooltip: _sortByPath
-                ? (_sortAsc ? 'Path Z→A (dirs first)' : 'Path A→Z (dirs first)')
-                : (_sortByMtime
-                    ? (_sortAsc ? 'Mtime new→old' : 'Mtime old→new')
-                    : (_sortBySize
-                        ? (_sortAsc ? 'Size large→small' : 'Size small→large')
-                        : (_sortAsc ? 'Sort Z→A (dirs first)' : 'Sort A→Z (dirs first)'))),
+            tooltip: _sortByType
+                ? (_sortAsc ? 'Type Z→A (dirs first)' : 'Type A→Z (dirs first)')
+                : (_sortByPath
+                    ? (_sortAsc ? 'Path Z→A (dirs first)' : 'Path A→Z (dirs first)')
+                    : (_sortByMtime
+                        ? (_sortAsc ? 'Mtime new→old' : 'Mtime old→new')
+                        : (_sortBySize
+                            ? (_sortAsc ? 'Size large→small' : 'Size small→large')
+                            : (_sortAsc ? 'Sort Z→A (dirs first)' : 'Sort A→Z (dirs first)')))),
             onPressed: () {
               setState(() {
-                if (!_sortBySize && !_sortByMtime && !_sortByPath && _sortAsc) {
+                if (!_sortBySize && !_sortByMtime && !_sortByPath && !_sortByType && _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortBySize && !_sortByMtime && !_sortByPath && !_sortAsc) {
+                } else if (!_sortBySize && !_sortByMtime && !_sortByPath && !_sortByType && !_sortAsc) {
                   _sortBySize = true;
                   _sortByMtime = false;
                   _sortByPath = false;
+                  _sortByType = false;
                   _sortAsc = true;
                 } else if (_sortBySize && _sortAsc) {
                   _sortAsc = false;
@@ -362,6 +371,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   _sortBySize = false;
                   _sortByMtime = true;
                   _sortByPath = false;
+                  _sortByType = false;
                   _sortAsc = true;
                 } else if (_sortByMtime && _sortAsc) {
                   _sortAsc = false;
@@ -369,24 +379,36 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   _sortBySize = false;
                   _sortByMtime = false;
                   _sortByPath = true;
+                  _sortByType = false;
                   _sortAsc = true;
                 } else if (_sortByPath && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortByPath && !_sortAsc) {
+                  _sortBySize = false;
+                  _sortByMtime = false;
+                  _sortByPath = false;
+                  _sortByType = true;
+                  _sortAsc = true;
+                } else if (_sortByType && _sortAsc) {
                   _sortAsc = false;
                 } else {
                   _sortBySize = false;
                   _sortByMtime = false;
                   _sortByPath = false;
+                  _sortByType = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortByPath
-                ? Icons.route
-                : (_sortByMtime
-                    ? Icons.schedule
-                    : (_sortBySize
-                        ? Icons.data_usage
-                        : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))),
+            icon: Icon(_sortByType
+                ? Icons.category_outlined
+                : (_sortByPath
+                    ? Icons.route
+                    : (_sortByMtime
+                        ? Icons.schedule
+                        : (_sortBySize
+                            ? Icons.data_usage
+                            : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))))),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',

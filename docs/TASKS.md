@@ -389,6 +389,11 @@
 | P3-299 | Cron 按 id 排序 | [x] |
 | P3-300 | Activity 按 id 排序 | [x] |
 
+| P3-301 | Memory 按 id 排序 | [x] |
+| P3-302 | Agents 按 project 排序 | [x] |
+| P3-303 | Workspace 按 type 排序 | [x] |
+| P3-304 | Logs 按 source 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

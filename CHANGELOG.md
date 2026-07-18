@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.82
+
+- Memory id sort
+- Agents project sort
+- Workspace type sort
+- Logs source sort
+
 ## 0.1.81
 
 - Workspace path sort
