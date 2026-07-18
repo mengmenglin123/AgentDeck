@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.142
+
+- Activity view FilterChips (wrap / regex / case)
+- MarkdownLite `<frame>` + `<frameset>`
+- Mock diff/patch/sdiff (+ help/which/type lockstep)
+
 ## 0.1.141
 
 - Sessions view FilterChips (wrap / regex / case)

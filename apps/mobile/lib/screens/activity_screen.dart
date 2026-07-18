@@ -688,6 +688,32 @@ class _ActivityScreenState extends State<ActivityScreen> {
             ),
           ),
           Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                FilterChip(
+                  label: Text('Wrap', style: const TextStyle(fontSize: 11)),
+                  selected: _wrapLines,
+                  onSelected: (v) => setState(() => _wrapLines = v),
+                  visualDensity: VisualDensity.compact,
+                ),
+                FilterChip(
+                  label: Text('Regex', style: const TextStyle(fontSize: 11)),
+                  selected: _queryRegex,
+                  onSelected: (v) => setState(() => _queryRegex = v),
+                  visualDensity: VisualDensity.compact,
+                ),
+                FilterChip(
+                  label: Text('Case', style: const TextStyle(fontSize: 11)),
+                  selected: _queryCase,
+                  onSelected: (v) => setState(() => _queryCase = v),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+          ),
+          Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
             child: TextField(
               controller: _q,

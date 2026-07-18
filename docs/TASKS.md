@@ -601,6 +601,9 @@
 - [x] **P4-3ap** Sessions view FilterChips wrap/regex/case (0.1.141)
 - [x] **P4-5as** MarkdownLite `<bgsound>` + `<multicol>` (0.1.141)
 - [x] **P4-1aq** Mock getopt/strings/csplit (0.1.141)
+- [x] **P4-3aq** Activity view FilterChips wrap/regex/case (0.1.142)
+- [x] **P4-5at** MarkdownLite `<frame>` + `<frameset>` (0.1.142)
+- [x] **P4-1ar** Mock diff/patch/sdiff (0.1.142)
 
 ## P4 — 远期
 
@@ -610,7 +613,7 @@
 | P4-2 | 相机扫码配对（剪贴板 URI + paste card 已有；真相机仍远期） | [~] |
 | P4-3 | Host 真 Hermes adapter（Mock workspace/git/diff/memory/MCP/status/activity/agents 已加深；真进程仍远期） | [~] |
 | P4-4 | 通知 / 后台重连（resume/reconnect + permission/reconnected snack 已有；系统通知仍远期） | [~] |
-| P4-5 | 更完整代码高亮 / 真文件选择器（着色+表格/任务/有序/引用/链接/autolink/图alt/callout/details/footnotes/h4/h5/h6/abbr/mark/spoiler/kbd/sup/sub/u/del/ins/s/small/***/cite/q/var/samp/dfn/em/strong/b/code/i/big/tt/HTML mark/br/strike/time/data/bdi/bdo/ruby/rt/font/center/wbr/rp/acronym/nobr/blink/marquee/xmp/listing/plaintext/basefont/dir/menu/isindex/spacer/nextid/keygen/bgsound/multicol/删除线/行号/附件 preset 已有；真 file_picker 仍远期） | [~] |
+| P4-5 | 更完整代码高亮 / 真文件选择器（着色+表格/任务/有序/引用/链接/autolink/图alt/callout/details/footnotes/h4/h5/h6/abbr/mark/spoiler/kbd/sup/sub/u/del/ins/s/small/***/cite/q/var/samp/dfn/em/strong/b/code/i/big/tt/HTML mark/br/strike/time/data/bdi/bdo/ruby/rt/font/center/wbr/rp/acronym/nobr/blink/marquee/xmp/listing/plaintext/basefont/dir/menu/isindex/spacer/nextid/keygen/bgsound/multicol/frame/frameset/删除线/行号/附件 preset 已有；真 file_picker 仍远期） | [~] |
 
 ## 验收命令
 
