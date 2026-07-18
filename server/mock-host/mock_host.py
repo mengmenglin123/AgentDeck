@@ -834,7 +834,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, locale, umask, readlink, cksum, sum, expand, unexpand, tac, namei, dir, vdir, tsort, pathchk, mktemp, sync, link, ln, truncate, install, shred, timeout, nice, nohup, watch, stdbuf, flock, ionice, taskset, prlimit, chroot, unshare, nsenter, setpriv, capsh, runcon, ldd, ldconfig, uuidgen, df, free, ps, uptime, true, false, printf, sleep, touch, rmdir, mkfifo, getopt, strings, csplit, diff, patch, sdiff, diff3, pr, sha512sum, base32, sha224sum, sha384sum, dircolors, tput, tset, tabs, script, scriptreplay, infocmp, toe, reset, resize, history, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, locale, umask, readlink, cksum, sum, expand, unexpand, tac, namei, dir, vdir, tsort, pathchk, mktemp, sync, link, ln, truncate, install, shred, timeout, nice, nohup, watch, stdbuf, flock, ionice, taskset, prlimit, chroot, unshare, nsenter, setpriv, capsh, runcon, ldd, ldconfig, uuidgen, df, free, ps, uptime, true, false, printf, sleep, touch, rmdir, mkfifo, getopt, strings, csplit, diff, patch, sdiff, diff3, pr, sha512sum, base32, sha224sum, sha384sum, dircolors, tput, tset, tabs, script, scriptreplay, infocmp, toe, reset, resize, history, echo <text>, stty, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -939,10 +939,27 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             out(f"which: no {name} in mock PATH\n", done=True, exit_code=1)
     elif lower in {"clear", "cls"}:
         out("\x1b[2J\x1b[H[mock-clear]\n", done=True, exit_code=0)
-    elif lower in {"uname", "uname -a"}:
-        out("HuanHermes-Mock 0.1 kernel mock-arch\n", done=True, exit_code=0)
-    elif lower in {"hostname", "hostname -f"}:
-        out("mock-host\n", done=True, exit_code=0)
+    elif lower.startswith("uname ") or lower == "uname":
+        # mock uname: fixed Linux demo (not real kernel)
+        parts = data.strip().split()
+        flag = parts[1] if len(parts) > 1 else ""
+        if flag in {"-a", "--all"}:
+            out("Linux mock-host 6.1.0-mock #1 SMP x86_64 GNU/Linux\n", done=True, exit_code=0)
+        elif flag == "-n":
+            out("mock-host\n", done=True, exit_code=0)
+        elif flag == "-r":
+            out("6.1.0-mock\n", done=True, exit_code=0)
+        else:
+            # bare, -s, or other → Linux
+            out("Linux\n", done=True, exit_code=0)
+    elif lower.startswith("hostname ") or lower == "hostname":
+        # mock hostname: fixed demo host
+        parts = data.strip().split()
+        flag = parts[1] if len(parts) > 1 else ""
+        if flag in {"-f", "--fqdn"}:
+            out("mock-host.local\n", done=True, exit_code=0)
+        else:
+            out("mock-host\n", done=True, exit_code=0)
     elif lower in {"id", "id -u"}:
         out("uid=1000(huanhermes-mock) gid=1000(mock) groups=1000(mock)\n", done=True, exit_code=0)
     elif lower.startswith("cat ") or lower.startswith("head ") or lower.startswith("tail ") or lower.startswith("wc "):
@@ -1037,12 +1054,9 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         for k in sorted(extra.keys()):
             lines.append(f"{k}={extra[k]}")
         out("\n".join(lines) + "\n", done=True, exit_code=0)
-    elif lower in {"stty size", "stty", "tty size", "size"}:
-        st_g = _session_state(sk)
-        cols_g = st_g.get("term_cols") or 80
-        rows_g = st_g.get("term_rows") or 24
-        # stty size prints rows cols
-        out(f"{rows_g} {cols_g}\n", done=True, exit_code=0)
+    elif lower.startswith("stty ") or lower == "stty" or lower in {"tty size", "size"}:
+        # mock stty: fixed baud/geometry demo (not real PTY/ioctl)
+        out("speed 38400 baud; rows 24; columns 80; line = 0;\n", done=True, exit_code=0)
 
     elif lower in {"tree", "tree -L 2", "tree -L 3"} or lower.startswith("tree "):
         st_t = _session_state(sk)

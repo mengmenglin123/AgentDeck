@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.149
+
+- Chat view FilterChips (wrap / regex / case)
+- MarkdownLite `<math>` + `<area>`
+- Mock stty/uname/hostname (+ help/which/type lockstep)
+
 ## 0.1.148
 
 - Skills view FilterChips (wrap / regex / case)

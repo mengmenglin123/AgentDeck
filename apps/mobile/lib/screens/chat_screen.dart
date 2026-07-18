@@ -1018,6 +1018,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     padding: const EdgeInsets.only(right: 6),
                     child: FilterChip(
                       visualDensity: VisualDensity.compact,
+                      label: const Text('Wrap', style: TextStyle(fontSize: 11)),
+                      selected: _wrapLines,
+                      onSelected: (v) => setState(() => _wrapLines = v),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      visualDensity: VisualDensity.compact,
                       label: const Text('Regex', style: TextStyle(fontSize: 11)),
                       selected: _searchRegex,
                       onSelected: (v) => setState(() => _searchRegex = v),
