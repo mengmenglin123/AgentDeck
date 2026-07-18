@@ -37,6 +37,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   bool _newestFirst = true;
   bool _sortByKind = false;
   bool _sortBySummary = false;
+  bool _sortBySession = false;
   bool _sortAsc = true;
   Timer? _timer;
   bool _autoRefresh = false;
@@ -186,7 +187,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
       return p?.millisecondsSinceEpoch ?? 0;
     }
     list.sort((a, b) {
-      if (_sortBySummary) {
+      if (_sortBySession) {
+        final sa = (a['session_key'] ?? a['session_id'] ?? a['session'] ?? '').toString().toLowerCase();
+        final sb = (b['session_key'] ?? b['session_id'] ?? b['session'] ?? '').toString().toLowerCase();
+        final cs = sa.compareTo(sb);
+        if (cs != 0) return _sortAsc ? cs : -cs;
+      } else if (_sortBySummary) {
         final sa = (a['summary'] ?? a['message'] ?? a['detail'] ?? a['title'] ?? '').toString().toLowerCase();
         final sb = (b['summary'] ?? b['message'] ?? b['detail'] ?? b['title'] ?? '').toString().toLowerCase();
         final cs = sa.compareTo(sb);
@@ -275,35 +281,49 @@ class _ActivityScreenState extends State<ActivityScreen> {
             icon: Icon(_newestFirst ? Icons.arrow_downward : Icons.arrow_upward),
           ),
           IconButton(
-            tooltip: _sortBySummary
-                ? (_sortAsc ? 'Summary Z→A' : 'Summary A→Z')
-                : (_sortByKind
-                    ? (_sortAsc ? 'Kinds Z→A' : 'Kinds A→Z')
-                    : 'Sort by kind / summary'),
+            tooltip: _sortBySession
+                ? (_sortAsc ? 'Session Z→A' : 'Session A→Z')
+                : (_sortBySummary
+                    ? (_sortAsc ? 'Summary Z→A' : 'Summary A→Z')
+                    : (_sortByKind
+                        ? (_sortAsc ? 'Kinds Z→A' : 'Kinds A→Z')
+                        : 'Sort by kind / summary / session')),
             onPressed: () {
               setState(() {
-                if (!_sortByKind && !_sortBySummary) {
+                if (!_sortByKind && !_sortBySummary && !_sortBySession) {
                   _sortByKind = true;
                   _sortBySummary = false;
+                  _sortBySession = false;
                   _sortAsc = true;
                 } else if (_sortByKind && _sortAsc) {
                   _sortAsc = false;
                 } else if (_sortByKind && !_sortAsc) {
                   _sortByKind = false;
                   _sortBySummary = true;
+                  _sortBySession = false;
                   _sortAsc = true;
                 } else if (_sortBySummary && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortBySummary && !_sortAsc) {
+                  _sortByKind = false;
+                  _sortBySummary = false;
+                  _sortBySession = true;
+                  _sortAsc = true;
+                } else if (_sortBySession && _sortAsc) {
                   _sortAsc = false;
                 } else {
                   _sortByKind = false;
                   _sortBySummary = false;
+                  _sortBySession = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortBySummary
-                ? Icons.short_text
-                : (_sortByKind ? Icons.sort_by_alpha : Icons.category_outlined)),
+            icon: Icon(_sortBySession
+                ? Icons.vpn_key_outlined
+                : (_sortBySummary
+                    ? Icons.notes
+                    : (_sortByKind ? Icons.category_outlined : Icons.sort))),
           ),
 
           IconButton(

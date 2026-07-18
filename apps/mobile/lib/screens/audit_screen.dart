@@ -24,6 +24,7 @@ class _AuditScreenState extends State<AuditScreen> {
   bool _newestFirst = true;
   bool _sortByAction = false;
   bool _sortByLevel = false;
+  bool _sortByDetail = false;
   bool _sortAsc = true;
   bool _wrapLines = false;
   final _scroll = ScrollController();
@@ -56,8 +57,13 @@ class _AuditScreenState extends State<AuditScreen> {
 
   List<AuditEntry> _ordered(List<AuditEntry> all) {
     final items = List<AuditEntry>.from(all);
-    items.sort((a, b) {
-      if (_sortByLevel) {
+.sort((a, b) {
+      if (_sortByDetail) {
+        final c = a.detail.toLowerCase().compareTo(b.detail.toLowerCase());
+        if (c != 0) return _sortAsc ? c : -c;
+        final ca = a.action.toLowerCase().compareTo(b.action.toLowerCase());
+        if (ca != 0) return _sortAsc ? ca : -ca;
+      } else if (_sortByLevel) {
         final c = a.level.toLowerCase().compareTo(b.level.toLowerCase());
         if (c != 0) return _sortAsc ? c : -c;
         final ca = a.action.toLowerCase().compareTo(b.action.toLowerCase());
@@ -182,35 +188,49 @@ class _AuditScreenState extends State<AuditScreen> {
             icon: Icon(_newestFirst ? Icons.south : Icons.north),
           ),
           IconButton(
-            tooltip: _sortByLevel
-                ? (_sortAsc ? 'Levels Z→A' : 'Levels A→Z')
-                : (_sortByAction
-                    ? (_sortAsc ? 'Actions Z→A' : 'Actions A→Z')
-                    : 'Sort by action / level'),
+            tooltip: _sortByDetail
+                ? (_sortAsc ? 'Details Z→A' : 'Details A→Z')
+                : (_sortByLevel
+                    ? (_sortAsc ? 'Levels Z→A' : 'Levels A→Z')
+                    : (_sortByAction
+                        ? (_sortAsc ? 'Actions Z→A' : 'Actions A→Z')
+                        : 'Sort by action / level / detail')),
             onPressed: () {
               setState(() {
-                if (!_sortByAction && !_sortByLevel) {
+                if (!_sortByAction && !_sortByLevel && !_sortByDetail) {
                   _sortByAction = true;
                   _sortByLevel = false;
+                  _sortByDetail = false;
                   _sortAsc = true;
                 } else if (_sortByAction && _sortAsc) {
                   _sortAsc = false;
                 } else if (_sortByAction && !_sortAsc) {
                   _sortByAction = false;
                   _sortByLevel = true;
+                  _sortByDetail = false;
                   _sortAsc = true;
                 } else if (_sortByLevel && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortByLevel && !_sortAsc) {
+                  _sortByAction = false;
+                  _sortByLevel = false;
+                  _sortByDetail = true;
+                  _sortAsc = true;
+                } else if (_sortByDetail && _sortAsc) {
                   _sortAsc = false;
                 } else {
                   _sortByAction = false;
                   _sortByLevel = false;
+                  _sortByDetail = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortByLevel
-                ? Icons.low_priority
-                : (_sortByAction ? Icons.sort_by_alpha : Icons.sort)),
+            icon: Icon(_sortByDetail
+                ? Icons.notes
+                : (_sortByLevel
+                    ? Icons.low_priority
+                    : (_sortByAction ? Icons.sort_by_alpha : Icons.sort))),
           ),
 
           IconButton(

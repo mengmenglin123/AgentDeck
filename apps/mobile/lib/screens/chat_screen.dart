@@ -40,6 +40,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _searchOpen = false;
   final _searchCtrl = TextEditingController();
   String _searchQ = '';
+  bool _searchCase = false;
   bool _showTools = true;
   String _roleFilter = 'all';
   bool _wrapLines = true;
@@ -571,13 +572,16 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   List<int> get _searchHits {
-    final q = _searchQ.trim().toLowerCase();
-    if (q.isEmpty) return const [];
+    final raw = _searchQ.trim();
+    if (raw.isEmpty) return const [];
+    final q = _searchCase ? raw : raw.toLowerCase();
     final hits = <int>[];
     final msgs = _visibleMessages;
     for (var i = 0; i < msgs.length; i++) {
       final m = msgs[i];
-      if (m.content.toLowerCase().contains(q) || m.role.toLowerCase().contains(q)) {
+      final content = _searchCase ? m.content : m.content.toLowerCase();
+      final role = _searchCase ? m.role : m.role.toLowerCase();
+      if (content.contains(q) || role.contains(q)) {
         hits.add(i);
       }
     }
@@ -907,10 +911,19 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: TextField(
                       controller: _searchCtrl,
                       decoration: InputDecoration(
-                        hintText: 'Search in transcript',
+                        hintText: _searchCase
+                            ? 'Search (case-sensitive)'
+                            : 'Search in transcript',
                         isDense: true,
                         border: const OutlineInputBorder(),
-                        prefixIcon: const Icon(Icons.search, size: 18),
+                        prefixIcon: IconButton(
+                          tooltip: _searchCase ? 'Case-sensitive on' : 'Case-insensitive',
+                          icon: Icon(
+                            _searchCase ? Icons.text_fields : Icons.search,
+                            size: 18,
+                          ),
+                          onPressed: () => setState(() => _searchCase = !_searchCase),
+                        ),
                         suffixIcon: _searchQ.isEmpty
                             ? null
                             : IconButton(

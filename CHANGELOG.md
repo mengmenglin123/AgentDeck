@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.64
+
+- Activity: sort by session key
+- Audit: sort by detail
+- Memory: sort by content
+- Chat: case-sensitive transcript search
+
 ## 0.1.63
 
 - Workspace: sort by mtime (name → size → mtime)

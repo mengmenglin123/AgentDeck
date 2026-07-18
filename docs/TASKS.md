@@ -299,6 +299,11 @@
 | P3-227 | Agents status chips 过滤 | [x] |
 | P3-228 | Skills 按 description 排序 | [x] |
 
+| P3-229 | Activity 按 session 排序 | [x] |
+| P3-230 | Audit 按 detail 排序 | [x] |
+| P3-231 | Memory 按 content 排序 | [x] |
+| P3-232 | Chat 搜索区分大小写 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |
