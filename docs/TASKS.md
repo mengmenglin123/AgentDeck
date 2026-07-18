@@ -259,6 +259,11 @@
 | P3-195 | Connect 健康/档案文案换行截断 | [x] |
 | P3-196 | Activity 按 kind A→Z/Z→A 排序 | [x] |
 
+| P3-197 | Audit 按 action A→Z/Z→A 排序 | [x] |
+| P3-198 | Logs 按 message A→Z/Z→A 排序 | [x] |
+| P3-199 | Connect 跳顶/底 | [x] |
+| P3-200 | Settings 跳顶/底 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

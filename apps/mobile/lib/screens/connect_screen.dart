@@ -25,6 +25,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
   bool _obscureBridge = true;
   bool _obscureMgmt = true;
   bool _wrapLines = false;
+  final _scroll = ScrollController();
   bool _useTls = false;
 
   @override
@@ -43,6 +44,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
 
   @override
   void dispose() {
+    _scroll.dispose();
     _name.dispose();
     _host.dispose();
     _bridgePort.dispose();
@@ -276,6 +278,28 @@ class _ConnectScreenState extends State<ConnectScreen> {
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
+          IconButton(
+            tooltip: 'Jump to top',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(0, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+            },
+            icon: const Icon(Icons.vertical_align_top),
+          ),
+
+          IconButton(
+            tooltip: 'Jump to end',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(
+                _scroll.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOut,
+              );
+            },
+            icon: const Icon(Icons.vertical_align_bottom),
+          ),
+
 
 
 
@@ -299,6 +323,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
       ),
       body: SafeArea(
         child: ListView(
+          controller: _scroll,
           padding: const EdgeInsets.all(20),
           children: [
             Text(

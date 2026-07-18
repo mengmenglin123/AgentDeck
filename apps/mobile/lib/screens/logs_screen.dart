@@ -29,6 +29,8 @@ class _LogsScreenState extends State<LogsScreen> {
   final _scroll = ScrollController();
   Timer? _timer;
   bool _newestFirst = true;
+  bool _sortByMsg = false;
+  bool _sortAsc = true;
   bool _autoRefresh = false;
 
   @override
@@ -95,9 +97,29 @@ class _LogsScreenState extends State<LogsScreen> {
         return msg.contains(q) || level.contains(q) || ts.contains(q);
       }).toList();
     }
-    if (!_newestFirst) {
-      return list.reversed.toList();
-    }
+    list.sort((a, b) {
+      if (_sortByMsg) {
+        final ma = '${a['message'] ?? ''}'.toLowerCase();
+        final mb = '${b['message'] ?? ''}'.toLowerCase();
+        final c = ma.compareTo(mb);
+        if (c != 0) return _sortAsc ? c : -c;
+        final la = '${a['level'] ?? ''}'.toLowerCase();
+        final lb = '${b['level'] ?? ''}'.toLowerCase();
+        final cl = la.compareTo(lb);
+        if (cl != 0) return _sortAsc ? cl : -cl;
+      }
+      int tsOf(Map<String, dynamic> e) {
+        final v = e['ts'];
+        if (v is num) {
+          final n = v.toDouble();
+          return n > 1e12 ? n.round() : (n * 1000).round();
+        }
+        final p = DateTime.tryParse(v?.toString() ?? '');
+        return p?.millisecondsSinceEpoch ?? 0;
+      }
+      final c = tsOf(a).compareTo(tsOf(b));
+      return _newestFirst ? -c : c;
+    });
     return list;
   }
 
@@ -187,6 +209,26 @@ class _LogsScreenState extends State<LogsScreen> {
             onPressed: () => setState(() => _newestFirst = !_newestFirst),
             icon: Icon(_newestFirst ? Icons.arrow_downward : Icons.arrow_upward),
           ),
+          IconButton(
+            tooltip: _sortByMsg
+                ? (_sortAsc ? 'Messages Z→A' : 'Messages A→Z')
+                : 'Sort by message',
+            onPressed: () {
+              setState(() {
+                if (!_sortByMsg) {
+                  _sortByMsg = true;
+                  _sortAsc = true;
+                } else if (_sortAsc) {
+                  _sortAsc = false;
+                } else {
+                  _sortByMsg = false;
+                  _sortAsc = true;
+                }
+              });
+            },
+            icon: Icon(_sortByMsg ? Icons.sort_by_alpha : Icons.sort),
+          ),
+
 
           IconButton(
             tooltip: 'Jump to top',

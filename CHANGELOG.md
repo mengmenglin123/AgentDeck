@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.56
+
+- Audit: sort by action A→Z / Z→A
+- Logs: sort by message A→Z / Z→A
+- Connect: jump to top / end
+- Settings: jump to top / end (Stateful)
+
 ## 0.1.55
 
 - Status: filter raw keys / values
