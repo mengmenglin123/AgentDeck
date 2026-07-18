@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.152
+
+- Diff view Line# FilterChip
+- MarkdownLite `<slot>` + `<meter>`
+- Mock su/sudo/chfn (+ help/which/type lockstep; demo-only auth failure)
+
 ## 0.1.151
 
 - Terminal view FilterChips (regex / case; wrap already present)

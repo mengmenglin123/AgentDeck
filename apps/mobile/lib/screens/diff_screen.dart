@@ -608,6 +608,12 @@ class _DiffScreenState extends State<DiffScreen> {
                     selected: _diffCase,
                     onSelected: (v) => setState(() => _diffCase = v),
                   ),
+                  FilterChip(
+                    visualDensity: VisualDensity.compact,
+                    label: const Text('Line#', style: TextStyle(fontSize: 11)),
+                    selected: _lineNums,
+                    onSelected: (v) => setState(() => _lineNums = v),
+                  ),
                 ],
               ),
             ),
