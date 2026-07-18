@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.160
+
+- Mock ip/netstat/traceroute (+ help/which/type lockstep)
+- Handler cleanup (subagent refactored to compact form)
+
+
 ## 0.1.159
 
 - Mock 22 commands: shell/archive/network + editors/system/admin
