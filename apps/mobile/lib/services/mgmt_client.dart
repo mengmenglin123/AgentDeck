@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -7,12 +6,13 @@ import '../errors/app_errors.dart';
 import '../models/connection_config.dart';
 import '../models/session_info.dart';
 
-typedef HttpSender = Future<http.Response> Function(
-  String method,
-  Uri url, {
-  Map<String, String>? headers,
-  Object? body,
-});
+typedef HttpSender =
+    Future<http.Response> Function(
+      String method,
+      Uri url, {
+      Map<String, String>? headers,
+      Object? body,
+    });
 
 /// Management REST client.
 ///
@@ -25,29 +25,32 @@ class MgmtClient {
   MgmtClient({
     required this.config,
     HttpSender? sender,
-    Future<http.Response> Function(Uri url, {Map<String, String>? headers})? get,
-  })  : _send = sender ??
-            ((method, url, {headers, body}) async {
-              switch (method) {
-                case 'GET':
-                  return http.get(url, headers: headers);
-                case 'POST':
-                  return http.post(url, headers: headers, body: body);
-                case 'PATCH':
-                  return http.patch(url, headers: headers, body: body);
-                case 'PUT':
-                  return http.put(url, headers: headers, body: body);
-                case 'DELETE':
-                  return http.delete(url, headers: headers);
-                default:
-                  throw ProtocolError('unsupported method $method');
-              }
-            }),
-        _legacyGet = get;
+    Future<http.Response> Function(Uri url, {Map<String, String>? headers})?
+    get,
+  }) : _send =
+           sender ??
+           ((method, url, {headers, body}) async {
+             switch (method) {
+               case 'GET':
+                 return http.get(url, headers: headers);
+               case 'POST':
+                 return http.post(url, headers: headers, body: body);
+               case 'PATCH':
+                 return http.patch(url, headers: headers, body: body);
+               case 'PUT':
+                 return http.put(url, headers: headers, body: body);
+               case 'DELETE':
+                 return http.delete(url, headers: headers);
+               default:
+                 throw ProtocolError('unsupported method $method');
+             }
+           }),
+       _legacyGet = get;
 
   final ConnectionConfig config;
   final HttpSender _send;
-  final Future<http.Response> Function(Uri url, {Map<String, String>? headers})? _legacyGet;
+  final Future<http.Response> Function(Uri url, {Map<String, String>? headers})?
+  _legacyGet;
 
   /// Detected host dialect after first successful call: `flat` | `project` | null.
   String? dialect;
@@ -204,17 +207,25 @@ class MgmtClient {
   }
 
   Future<List<SessionInfo>> _sessionsFlat({String? project}) async {
-    final q = (project == null || project.isEmpty) ? '' : '?project=${Uri.encodeComponent(project)}';
+    final q = (project == null || project.isEmpty)
+        ? ''
+        : '?project=${Uri.encodeComponent(project)}';
     final data = await _request('GET', '/sessions$q');
     return _parseSessions(data, project: project);
   }
 
   Future<List<SessionInfo>> _sessionsProjectScoped(String project) async {
-    final data = await _request('GET', '/projects/${Uri.encodeComponent(project)}/sessions');
+    final data = await _request(
+      'GET',
+      '/projects/${Uri.encodeComponent(project)}/sessions',
+    );
     return _parseSessions(data, project: project);
   }
 
-  List<SessionInfo> _parseSessions(Map<String, dynamic> data, {String? project}) {
+  List<SessionInfo> _parseSessions(
+    Map<String, dynamic> data, {
+    String? project,
+  }) {
     final list = data['sessions'];
     if (list is! List) return const [];
     return list.whereType<Map>().map((e) {
@@ -282,7 +293,10 @@ class MgmtClient {
     return SessionInfo.fromJson(data);
   }
 
-  Future<SessionInfo> _createProjectScoped(String project, Map<String, dynamic> body) async {
+  Future<SessionInfo> _createProjectScoped(
+    String project,
+    Map<String, dynamic> body,
+  ) async {
     // Ensure session_key present for strict hosts
     body = Map<String, dynamic>.from(body);
     body.putIfAbsent('session_key', () => _genSessionKey(project));
@@ -300,7 +314,6 @@ class MgmtClient {
     // platform:scope:user  — App is bridge platform adapter
     return 'huanhermes-app:$project:$id';
   }
-
 
   Future<SessionInfo> renameSession(
     String sessionId, {
@@ -337,10 +350,16 @@ class MgmtClient {
     }
   }
 
-  Future<Map<String, dynamic>> logs({int limit = 80, String? level, String? source}) async {
+  Future<Map<String, dynamic>> logs({
+    int limit = 80,
+    String? level,
+    String? source,
+  }) async {
     final q = StringBuffer('?limit=$limit');
-    if (level != null && level.isNotEmpty) q.write('&level=${Uri.encodeQueryComponent(level)}');
-    if (source != null && source.isNotEmpty) q.write('&source=${Uri.encodeQueryComponent(source)}');
+    if (level != null && level.isNotEmpty)
+      q.write('&level=${Uri.encodeQueryComponent(level)}');
+    if (source != null && source.isNotEmpty)
+      q.write('&source=${Uri.encodeQueryComponent(source)}');
     return _request('GET', '/logs$q');
   }
 
@@ -368,9 +387,15 @@ class MgmtClient {
     }
   }
 
-  Future<Map<String, dynamic>> sessionDetail(String sessionId, {String? project}) async {
+  Future<Map<String, dynamic>> sessionDetail(
+    String sessionId, {
+    String? project,
+  }) async {
     try {
-      return await _request('GET', '/sessions/${Uri.encodeComponent(sessionId)}');
+      return await _request(
+        'GET',
+        '/sessions/${Uri.encodeComponent(sessionId)}',
+      );
     } on ProtocolError catch (e) {
       if (project != null && project.isNotEmpty && _looksMissing(e.message)) {
         return await _request(
@@ -409,10 +434,17 @@ class MgmtClient {
     late http.Response resp;
     try {
       if (method == 'GET' && _legacyGet != null) {
-        resp = await _legacyGet(url, headers: headers).timeout(const Duration(seconds: 12));
+        resp = await _legacyGet(
+          url,
+          headers: headers,
+        ).timeout(const Duration(seconds: 12));
       } else {
-        resp = await _send(method, url, headers: headers, body: rawBody)
-            .timeout(const Duration(seconds: 12));
+        resp = await _send(
+          method,
+          url,
+          headers: headers,
+          body: rawBody,
+        ).timeout(const Duration(seconds: 12));
       }
     } on Exception catch (e) {
       throw DisconnectedError(e.toString());
@@ -422,7 +454,9 @@ class MgmtClient {
       throw AuthError(_extractError(resp.body) ?? 'unauthorized');
     }
     if (resp.statusCode < 200 || resp.statusCode >= 300) {
-      throw ProtocolError(_extractError(resp.body) ?? 'HTTP ${resp.statusCode}');
+      throw ProtocolError(
+        _extractError(resp.body) ?? 'HTTP ${resp.statusCode}',
+      );
     }
 
     final payload = _decode(resp.body);

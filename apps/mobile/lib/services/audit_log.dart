@@ -11,12 +11,14 @@ class AuditLog extends ChangeNotifier {
 
   void add(String action, {String? detail, String level = 'info'}) {
     final redacted = _redact(detail ?? '');
-    _entries.add(AuditEntry(
-      ts: DateTime.now(),
-      action: action,
-      detail: redacted,
-      level: level,
-    ));
+    _entries.add(
+      AuditEntry(
+        ts: DateTime.now(),
+        action: action,
+        detail: redacted,
+        level: level,
+      ),
+    );
     if (_entries.length > capacity) {
       _entries.removeRange(0, _entries.length - capacity);
     }
@@ -30,10 +32,19 @@ class AuditLog extends ChangeNotifier {
 
   static String _redact(String s) {
     var out = s;
-    out = out.replaceAll(RegExp(r'token=[^&\s]+', caseSensitive: false), 'token=***');
-    out = out.replaceAll(RegExp(r'Bearer\s+\S+', caseSensitive: false), 'Bearer ***');
     out = out.replaceAll(
-      RegExp(r'(bridgeToken|mgmtToken|api_key|apiKey)\s*[:=]\s*\S+', caseSensitive: false),
+      RegExp(r'token=[^&\s]+', caseSensitive: false),
+      'token=***',
+    );
+    out = out.replaceAll(
+      RegExp(r'Bearer\s+\S+', caseSensitive: false),
+      'Bearer ***',
+    );
+    out = out.replaceAll(
+      RegExp(
+        r'(bridgeToken|mgmtToken|api_key|apiKey)\s*[:=]\s*\S+',
+        caseSensitive: false,
+      ),
       r'$1=***',
     );
     return out;

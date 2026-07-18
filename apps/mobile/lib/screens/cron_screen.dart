@@ -27,6 +27,7 @@ class _CronScreenState extends State<CronScreen> {
   String _query = '';
   bool _queryCase = false;
   bool _queryRegex = false;
+
   /// all | on | off
   String _enabled = 'all';
   String _kind = 'all';
@@ -50,8 +51,8 @@ class _CronScreenState extends State<CronScreen> {
   void initState() {
     super.initState();
     _load();
-      WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
-}
+    WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
+  }
 
   @override
   void dispose() {
@@ -90,7 +91,11 @@ class _CronScreenState extends State<CronScreen> {
   String _fmtTs(dynamic v) {
     if (v is num) {
       final dt = DateTime.fromMillisecondsSinceEpoch((v * 1000).round());
-      return dt.toLocal().toIso8601String().replaceFirst('T', ' ').substring(0, 19);
+      return dt
+          .toLocal()
+          .toIso8601String()
+          .replaceFirst('T', ' ')
+          .substring(0, 19);
     }
     return v?.toString() ?? '—';
   }
@@ -106,7 +111,11 @@ class _CronScreenState extends State<CronScreen> {
       it = it.where((j) {
         final k = (j['kind'] ?? '').toString().toLowerCase();
         if (_kind == 'other') {
-          return k.isNotEmpty && k != 'prompt' && k != 'http' && k != 'bash' && k != 'script';
+          return k.isNotEmpty &&
+              k != 'prompt' &&
+              k != 'http' &&
+              k != 'bash' &&
+              k != 'script';
         }
         return k.contains(_kind);
       });
@@ -154,6 +163,7 @@ class _CronScreenState extends State<CronScreen> {
         final p = DateTime.tryParse(v?.toString() ?? '');
         return p?.millisecondsSinceEpoch ?? 0;
       }
+
       if (_sortByLastRun) {
         int lastOf(Map x) {
           final v = x['last_run'];
@@ -164,11 +174,16 @@ class _CronScreenState extends State<CronScreen> {
           final p = DateTime.tryParse(v?.toString() ?? '');
           return p?.millisecondsSinceEpoch ?? 0;
         }
+
         final c = lastOf(a).compareTo(lastOf(b));
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByDesc) {
-        final da = (a['description'] ?? a['summary'] ?? a['note'] ?? '').toString().toLowerCase();
-        final db = (b['description'] ?? b['summary'] ?? b['note'] ?? '').toString().toLowerCase();
+        final da = (a['description'] ?? a['summary'] ?? a['note'] ?? '')
+            .toString()
+            .toLowerCase();
+        final db = (b['description'] ?? b['summary'] ?? b['note'] ?? '')
+            .toString()
+            .toLowerCase();
         final c = da.compareTo(db);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByName) {
@@ -181,29 +196,50 @@ class _CronScreenState extends State<CronScreen> {
           final v = x['enabled'] ?? x['active'] ?? x['paused'];
           if (v is bool) {
             // paused inverted
-            if (x.containsKey('paused') && !x.containsKey('enabled') && !x.containsKey('active')) {
+            if (x.containsKey('paused') &&
+                !x.containsKey('enabled') &&
+                !x.containsKey('active')) {
               return v ? 0 : 1;
             }
             return v ? 1 : 0;
           }
           final s = (v ?? '').toString().toLowerCase();
-          if (s == 'true' || s == '1' || s == 'yes' || s == 'enabled' || s == 'active') return 1;
-          if (s == 'false' || s == '0' || s == 'no' || s == 'disabled' || s == 'paused') return 0;
+          if (s == 'true' ||
+              s == '1' ||
+              s == 'yes' ||
+              s == 'enabled' ||
+              s == 'active')
+            return 1;
+          if (s == 'false' ||
+              s == '0' ||
+              s == 'no' ||
+              s == 'disabled' ||
+              s == 'paused')
+            return 0;
           return -1;
         }
+
         final c = enOf(a).compareTo(enOf(b));
         if (c != 0) return _sortAsc ? -c : c; // asc => enabled first
       } else if (_sortById) {
-        final ia = (a['id'] ?? a['job_id'] ?? a['name'] ?? '').toString().toLowerCase();
-        final ib = (b['id'] ?? b['job_id'] ?? b['name'] ?? '').toString().toLowerCase();
+        final ia = (a['id'] ?? a['job_id'] ?? a['name'] ?? '')
+            .toString()
+            .toLowerCase();
+        final ib = (b['id'] ?? b['job_id'] ?? b['name'] ?? '')
+            .toString()
+            .toLowerCase();
         final c = ia.compareTo(ib);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByNext) {
         final c = nextOf(a).compareTo(nextOf(b));
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByLastStatus) {
-        final sa = (a['last_status'] ?? a['status'] ?? '').toString().toLowerCase();
-        final sb = (b['last_status'] ?? b['status'] ?? '').toString().toLowerCase();
+        final sa = (a['last_status'] ?? a['status'] ?? '')
+            .toString()
+            .toLowerCase();
+        final sb = (b['last_status'] ?? b['status'] ?? '')
+            .toString()
+            .toLowerCase();
         final c = sa.compareTo(sb);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByKind) {
@@ -245,8 +281,8 @@ class _CronScreenState extends State<CronScreen> {
           items.isEmpty
               ? 'Host schedules'
               : (items.length == _jobs.length
-                  ? 'Host schedules (${items.length})'
-                  : 'Host schedules (${items.length}/${_jobs.length})'),
+                    ? 'Host schedules (${items.length})'
+                    : 'Host schedules (${items.length}/${_jobs.length})'),
         ),
         actions: [
           IconButton(
@@ -267,10 +303,15 @@ class _CronScreenState extends State<CronScreen> {
                       if (desc.isNotEmpty) buf.writeln(desc);
                       buf.writeln();
                     }
-                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    await Clipboard.setData(
+                      ClipboardData(text: buf.toString()),
+                    );
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Copied ${items.length} jobs'), duration: const Duration(seconds: 1)),
+                        SnackBar(
+                          content: Text('Copied ${items.length} jobs'),
+                          duration: const Duration(seconds: 1),
+                        ),
                       );
                     }
                   },
@@ -282,18 +323,30 @@ class _CronScreenState extends State<CronScreen> {
                 ? null
                 : () async {
                     final buf = StringBuffer();
-                    buf.writeln('id,name,enabled,schedule,kind,last_status,last_run');
+                    buf.writeln(
+                      'id,name,enabled,schedule,kind,last_status,last_run',
+                    );
                     for (final j in items) {
                       final id = '${j['id'] ?? ''}'.replaceAll(',', ';');
                       final name = '${j['name'] ?? ''}'.replaceAll(',', ';');
                       final en = '${j['enabled'] ?? ''}';
-                      final schedule = '${j['schedule'] ?? ''}'.replaceAll(',', ';');
+                      final schedule = '${j['schedule'] ?? ''}'.replaceAll(
+                        ',',
+                        ';',
+                      );
                       final kind = '${j['kind'] ?? ''}'.replaceAll(',', ';');
-                      final status = '${j['last_status'] ?? ''}'.replaceAll(',', ';');
+                      final status = '${j['last_status'] ?? ''}'.replaceAll(
+                        ',',
+                        ';',
+                      );
                       final last = _fmtTs(j['last_run']).replaceAll(',', ';');
-                      buf.writeln('$id,$name,$en,$schedule,$kind,$status,$last');
+                      buf.writeln(
+                        '$id,$name,$en,$schedule,$kind,$status,$last',
+                      );
                     }
-                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    await Clipboard.setData(
+                      ClipboardData(text: buf.toString()),
+                    );
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -309,27 +362,57 @@ class _CronScreenState extends State<CronScreen> {
             tooltip: _sortByLastRun
                 ? (_sortAsc ? 'Last run old→new' : 'Last run new→old')
                 : (_sortByDesc
-                    ? (_sortAsc ? 'Description Z→A' : 'Description A→Z')
-                    : (_sortByName
-                        ? (_sortAsc ? 'Name Z→A' : 'Name A→Z')
-                        : (_sortByEnabled
-                            ? (_sortAsc ? 'Enabled first' : 'Disabled first')
-                            : (_sortById
-                                ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
-                                : (_sortByNext
-                                    ? (_sortAsc ? 'Next run late→soon' : 'Next run soon→late')
-                                    : (_sortByLastStatus
-                                        ? (_sortAsc ? 'Last status Z→A' : 'Last status A→Z')
-                                        : (_sortByKind
-                                            ? (_sortAsc ? 'Kind Z→A' : 'Kind A→Z')
-                                            : (_sortBySchedule
-                                                ? (_sortAsc ? 'Schedule Z→A' : 'Schedule A→Z')
-                                                : (_sortAsc ? 'Name Z→A' : 'Name A→Z'))))))))),
+                      ? (_sortAsc ? 'Description Z→A' : 'Description A→Z')
+                      : (_sortByName
+                            ? (_sortAsc ? 'Name Z→A' : 'Name A→Z')
+                            : (_sortByEnabled
+                                  ? (_sortAsc
+                                        ? 'Enabled first'
+                                        : 'Disabled first')
+                                  : (_sortById
+                                        ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                                        : (_sortByNext
+                                              ? (_sortAsc
+                                                    ? 'Next run late→soon'
+                                                    : 'Next run soon→late')
+                                              : (_sortByLastStatus
+                                                    ? (_sortAsc
+                                                          ? 'Last status Z→A'
+                                                          : 'Last status A→Z')
+                                                    : (_sortByKind
+                                                          ? (_sortAsc
+                                                                ? 'Kind Z→A'
+                                                                : 'Kind A→Z')
+                                                          : (_sortBySchedule
+                                                                ? (_sortAsc
+                                                                      ? 'Schedule Z→A'
+                                                                      : 'Schedule A→Z')
+                                                                : (_sortAsc
+                                                                      ? 'Name Z→A'
+                                                                      : 'Name A→Z'))))))))),
             onPressed: () {
               setState(() {
-                if (!_sortBySchedule && !_sortByKind && !_sortByLastStatus && !_sortByNext && !_sortById && !_sortByEnabled && !_sortByName && !_sortByDesc && !_sortByLastRun && _sortAsc) {
+                if (!_sortBySchedule &&
+                    !_sortByKind &&
+                    !_sortByLastStatus &&
+                    !_sortByNext &&
+                    !_sortById &&
+                    !_sortByEnabled &&
+                    !_sortByName &&
+                    !_sortByDesc &&
+                    !_sortByLastRun &&
+                    _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortBySchedule && !_sortByKind && !_sortByLastStatus && !_sortByNext && !_sortById && !_sortByEnabled && !_sortByName && !_sortByDesc && !_sortByLastRun && !_sortAsc) {
+                } else if (!_sortBySchedule &&
+                    !_sortByKind &&
+                    !_sortByLastStatus &&
+                    !_sortByNext &&
+                    !_sortById &&
+                    !_sortByEnabled &&
+                    !_sortByName &&
+                    !_sortByDesc &&
+                    !_sortByLastRun &&
+                    !_sortAsc) {
                   _sortBySchedule = true;
                   _sortByKind = false;
                   _sortByLastStatus = false;
@@ -460,25 +543,33 @@ class _CronScreenState extends State<CronScreen> {
                 }
               });
             },
-            icon: Icon(_sortByLastRun
-                ? Icons.history
-                : (_sortByDesc
-                    ? Icons.notes
-                    : (_sortByName
-                        ? Icons.sort_by_alpha
-                        : (_sortByEnabled
-                            ? Icons.toggle_on_outlined
-                            : (_sortById
-                                ? Icons.tag
-                                : (_sortByNext
-                                    ? Icons.event
-                                    : (_sortByLastStatus
-                                        ? Icons.flag_outlined
-                                        : (_sortByKind
-                                            ? Icons.category_outlined
-                                            : (_sortBySchedule
-                                                ? Icons.schedule
-                                                : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))))))))),
+            icon: Icon(
+              _sortByLastRun
+                  ? Icons.history
+                  : (_sortByDesc
+                        ? Icons.notes
+                        : (_sortByName
+                              ? Icons.sort_by_alpha
+                              : (_sortByEnabled
+                                    ? Icons.toggle_on_outlined
+                                    : (_sortById
+                                          ? Icons.tag
+                                          : (_sortByNext
+                                                ? Icons.event
+                                                : (_sortByLastStatus
+                                                      ? Icons.flag_outlined
+                                                      : (_sortByKind
+                                                            ? Icons
+                                                                  .category_outlined
+                                                            : (_sortBySchedule
+                                                                  ? Icons
+                                                                        .schedule
+                                                                  : (_sortAsc
+                                                                        ? Icons
+                                                                              .sort_by_alpha
+                                                                        : Icons
+                                                                              .sort))))))))),
+            ),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
@@ -490,7 +581,11 @@ class _CronScreenState extends State<CronScreen> {
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
-              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+              _scroll.animateTo(
+                0,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
             },
             icon: const Icon(Icons.vertical_align_top),
           ),
@@ -512,11 +607,17 @@ class _CronScreenState extends State<CronScreen> {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
             },
-            icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
+            icon: Icon(
+              _autoRefresh
+                  ? Icons.pause_circle_outline
+                  : Icons.play_circle_outline,
+            ),
           ),
 
-
-          IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
+          IconButton(
+            onPressed: _loading ? null : _load,
+            icon: const Icon(Icons.refresh),
+          ),
         ],
       ),
       body: Column(
@@ -524,7 +625,10 @@ class _CronScreenState extends State<CronScreen> {
           if (_error != null)
             Padding(
               padding: const EdgeInsets.all(12),
-              child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              child: Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
             ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
@@ -533,17 +637,19 @@ class _CronScreenState extends State<CronScreen> {
               decoration: InputDecoration(
                 hintText: _queryRegex
                     ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
-                    : (_queryCase ? 'Filter (case-sensitive)' : 'Filter name / schedule / status'),
+                    : (_queryCase
+                          ? 'Filter (case-sensitive)'
+                          : 'Filter name / schedule / status'),
                 isDense: true,
                 border: const OutlineInputBorder(),
                 prefixIcon: IconButton(
                   tooltip: _queryRegex
                       ? (_queryCase
-                          ? 'Regex · case on (long-press: plain filter)'
-                          : 'Regex · case off (long-press: plain filter)')
+                            ? 'Regex · case on (long-press: plain filter)'
+                            : 'Regex · case off (long-press: plain filter)')
                       : (_queryCase
-                          ? 'Case-sensitive (long-press: regex)'
-                          : 'Case-insensitive (long-press: regex)'),
+                            ? 'Case-sensitive (long-press: regex)'
+                            : 'Case-insensitive (long-press: regex)'),
                   icon: Icon(
                     _queryRegex
                         ? Icons.code
@@ -665,54 +771,64 @@ class _CronScreenState extends State<CronScreen> {
           if (_loading) const LinearProgressIndicator(minHeight: 2),
           Expanded(
             child: _jobs.isEmpty && !_loading
-                ? const Center(child: Text('No cron jobs (Host may not expose /cron)'))
+                ? const Center(
+                    child: Text('No cron jobs (Host may not expose /cron)'),
+                  )
                 : items.isEmpty
-                    ? const Center(child: Text('No jobs match filter'))
-                    : RefreshIndicator(
+                ? const Center(child: Text('No jobs match filter'))
+                : RefreshIndicator(
                     onRefresh: _load,
                     child: ListView.separated(
                       physics: const AlwaysScrollableScrollPhysics(),
                       controller: _scroll,
-                        itemCount: items.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
-                        itemBuilder: (ctx, i) {
-                          final j = items[i];
-                          final enabled = j['enabled'] == true;
-                          final name = (j['name'] ?? j['id'] ?? 'job').toString();
-                          final kind = (j['kind'] ?? '').toString();
-                          final schedule = (j['schedule'] ?? '').toString();
-                          final last = (j['last_status'] ?? '').toString();
-                          final proj = (j['project'] ?? '').toString();
-                          final tags = j['tags'] is List
-                              ? (j['tags'] as List).map((e) => e.toString()).join(', ')
-                              : '';
-                          final sub =
-                              '$kind · $schedule${proj.isNotEmpty ? ' · project=$proj' : ''}${tags.isNotEmpty ? ' · $tags' : ''}\nlast: $last · next: ${_fmtTs(j['next_run_at'])}\n${j['description'] ?? ''}';
-                          return ListTile(
-                            leading: Icon(
-                              enabled ? Icons.schedule : Icons.schedule_outlined,
-                              color: enabled ? Colors.green : Colors.grey,
-                            ),
-                            title: Text(name),
-                            subtitle: Text(
-                              sub,
-                              maxLines: _wrapLines ? 8 : 2,
-                              overflow: TextOverflow.ellipsis,
-                              softWrap: true,
-                            ),
-                            isThreeLine: true,
-                            trailing: Text(enabled ? 'on' : 'off'),
-                            onLongPress: () async {
-                              await Clipboard.setData(ClipboardData(text: '$name\n$sub'));
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Job copied'), duration: Duration(seconds: 1)),
-                                );
-                              }
-                            },
-                          );
-                        },
-                      )),
+                      itemCount: items.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (ctx, i) {
+                        final j = items[i];
+                        final enabled = j['enabled'] == true;
+                        final name = (j['name'] ?? j['id'] ?? 'job').toString();
+                        final kind = (j['kind'] ?? '').toString();
+                        final schedule = (j['schedule'] ?? '').toString();
+                        final last = (j['last_status'] ?? '').toString();
+                        final proj = (j['project'] ?? '').toString();
+                        final tags = j['tags'] is List
+                            ? (j['tags'] as List)
+                                  .map((e) => e.toString())
+                                  .join(', ')
+                            : '';
+                        final sub =
+                            '$kind · $schedule${proj.isNotEmpty ? ' · project=$proj' : ''}${tags.isNotEmpty ? ' · $tags' : ''}\nlast: $last · next: ${_fmtTs(j['next_run_at'])}\n${j['description'] ?? ''}';
+                        return ListTile(
+                          leading: Icon(
+                            enabled ? Icons.schedule : Icons.schedule_outlined,
+                            color: enabled ? Colors.green : Colors.grey,
+                          ),
+                          title: Text(name),
+                          subtitle: Text(
+                            sub,
+                            maxLines: _wrapLines ? 8 : 2,
+                            overflow: TextOverflow.ellipsis,
+                            softWrap: true,
+                          ),
+                          isThreeLine: true,
+                          trailing: Text(enabled ? 'on' : 'off'),
+                          onLongPress: () async {
+                            await Clipboard.setData(
+                              ClipboardData(text: '$name\n$sub'),
+                            );
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Job copied'),
+                                  duration: Duration(seconds: 1),
+                                ),
+                              );
+                            }
+                          },
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),

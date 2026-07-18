@@ -21,6 +21,7 @@ class _AuditScreenState extends State<AuditScreen> {
   String _query = '';
   bool _queryCase = false;
   bool _queryRegex = false;
+
   /// all | info | warn | error
   String _level = 'all';
   String _actionPrefix = 'all';
@@ -62,7 +63,7 @@ class _AuditScreenState extends State<AuditScreen> {
 
   List<AuditEntry> _ordered(List<AuditEntry> all) {
     final items = List<AuditEntry>.from(all);
-.sort((a, b) {
+    .sort((a, b) {
       if (_sortByTs) {
         final c = a.ts.compareTo(b.ts);
         if (c != 0) return _sortAsc ? c : -c;
@@ -130,7 +131,6 @@ class _AuditScreenState extends State<AuditScreen> {
     return it.toList();
   }
 
-
   String _fmtAuditTs(DateTime ts) {
     if (!_relativeTs) {
       return ts.toLocal().toIso8601String().substring(11, 19);
@@ -151,8 +151,8 @@ class _AuditScreenState extends State<AuditScreen> {
     final title = total == 0
         ? 'Audit log'
         : (visible.length == total
-            ? 'Audit ($total)'
-            : 'Audit (${visible.length}/$total)');
+              ? 'Audit ($total)'
+              : 'Audit (${visible.length}/$total)');
     return Scaffold(
       appBar: AppBar(
         title: Text(_autoRefresh ? '$title · auto' : title),
@@ -163,12 +163,17 @@ class _AuditScreenState extends State<AuditScreen> {
               final items = _ordered(_filter(audit.entries));
               final buf = StringBuffer();
               for (final e in items) {
-                buf.writeln('${e.ts.toIso8601String()} [${e.level}] ${e.action} ${e.detail}');
+                buf.writeln(
+                  '${e.ts.toIso8601String()} [${e.level}] ${e.action} ${e.detail}',
+                );
               }
               await Clipboard.setData(ClipboardData(text: buf.toString()));
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Copied ${items.length} lines'), duration: const Duration(seconds: 1)),
+                  SnackBar(
+                    content: Text('Copied ${items.length} lines'),
+                    duration: const Duration(seconds: 1),
+                  ),
                 );
               }
             },
@@ -195,7 +200,10 @@ class _AuditScreenState extends State<AuditScreen> {
               await Clipboard.setData(ClipboardData(text: text));
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Copied JSON (${items.length})'), duration: const Duration(seconds: 1)),
+                  SnackBar(
+                    content: Text('Copied JSON (${items.length})'),
+                    duration: const Duration(seconds: 1),
+                  ),
                 );
               }
             },
@@ -209,7 +217,9 @@ class _AuditScreenState extends State<AuditScreen> {
               buf.writeln('ts,level,action,detail');
               for (final e in items) {
                 final action = e.action.replaceAll(',', ';');
-                final detail = e.detail.replaceAll(',', ';').replaceAll('\n', ' ');
+                final detail = e.detail
+                    .replaceAll(',', ';')
+                    .replaceAll('\n', ' ');
                 buf.writeln(
                   e.ts.toIso8601String() +
                       ',' +
@@ -224,7 +234,9 @@ class _AuditScreenState extends State<AuditScreen> {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Copied CSV (' + items.length.toString() + ')'),
+                    content: Text(
+                      'Copied CSV (' + items.length.toString() + ')',
+                    ),
                     duration: const Duration(seconds: 1),
                   ),
                 );
@@ -241,15 +253,18 @@ class _AuditScreenState extends State<AuditScreen> {
             tooltip: _sortByTs
                 ? (_sortAsc ? 'Time old→new' : 'Time new→old')
                 : (_sortByDetail
-                    ? (_sortAsc ? 'Details Z→A' : 'Details A→Z')
-                    : (_sortByLevel
-                        ? (_sortAsc ? 'Levels Z→A' : 'Levels A→Z')
-                        : (_sortByAction
-                            ? (_sortAsc ? 'Actions Z→A' : 'Actions A→Z')
-                            : 'Sort by action / level / detail / time'))),
+                      ? (_sortAsc ? 'Details Z→A' : 'Details A→Z')
+                      : (_sortByLevel
+                            ? (_sortAsc ? 'Levels Z→A' : 'Levels A→Z')
+                            : (_sortByAction
+                                  ? (_sortAsc ? 'Actions Z→A' : 'Actions A→Z')
+                                  : 'Sort by action / level / detail / time'))),
             onPressed: () {
               setState(() {
-                if (!_sortByAction && !_sortByLevel && !_sortByDetail && !_sortByTs) {
+                if (!_sortByAction &&
+                    !_sortByLevel &&
+                    !_sortByDetail &&
+                    !_sortByTs) {
                   _sortByAction = true;
                   _sortByLevel = false;
                   _sortByDetail = false;
@@ -290,13 +305,17 @@ class _AuditScreenState extends State<AuditScreen> {
                 }
               });
             },
-            icon: Icon(_sortByTs
-                ? Icons.schedule
-                : (_sortByDetail
-                    ? Icons.notes
-                    : (_sortByLevel
-                        ? Icons.low_priority
-                        : (_sortByAction ? Icons.sort_by_alpha : Icons.sort)))),
+            icon: Icon(
+              _sortByTs
+                  ? Icons.schedule
+                  : (_sortByDetail
+                        ? Icons.notes
+                        : (_sortByLevel
+                              ? Icons.low_priority
+                              : (_sortByAction
+                                    ? Icons.sort_by_alpha
+                                    : Icons.sort))),
+            ),
           ),
 
           IconButton(
@@ -305,7 +324,9 @@ class _AuditScreenState extends State<AuditScreen> {
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
           ),
           IconButton(
-            tooltip: _relativeTs ? 'Absolute timestamps' : 'Relative timestamps',
+            tooltip: _relativeTs
+                ? 'Absolute timestamps'
+                : 'Relative timestamps',
             onPressed: () => setState(() => _relativeTs = !_relativeTs),
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
@@ -313,7 +334,11 @@ class _AuditScreenState extends State<AuditScreen> {
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
-              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+              _scroll.animateTo(
+                0,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
             },
             icon: const Icon(Icons.vertical_align_top),
           ),
@@ -335,9 +360,12 @@ class _AuditScreenState extends State<AuditScreen> {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
             },
-            icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
+            icon: Icon(
+              _autoRefresh
+                  ? Icons.pause_circle_outline
+                  : Icons.play_circle_outline,
+            ),
           ),
-
 
           IconButton(
             tooltip: 'Clear',
@@ -355,17 +383,19 @@ class _AuditScreenState extends State<AuditScreen> {
               decoration: InputDecoration(
                 hintText: _queryRegex
                     ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
-                    : (_queryCase ? 'Filter (case-sensitive)' : 'Filter action / detail'),
+                    : (_queryCase
+                          ? 'Filter (case-sensitive)'
+                          : 'Filter action / detail'),
                 isDense: true,
                 border: const OutlineInputBorder(),
                 prefixIcon: IconButton(
                   tooltip: _queryRegex
                       ? (_queryCase
-                          ? 'Regex · case on (long-press: plain filter)'
-                          : 'Regex · case off (long-press: plain filter)')
+                            ? 'Regex · case on (long-press: plain filter)'
+                            : 'Regex · case off (long-press: plain filter)')
                       : (_queryCase
-                          ? 'Case-sensitive (long-press: regex)'
-                          : 'Case-insensitive (long-press: regex)'),
+                            ? 'Case-sensitive (long-press: regex)'
+                            : 'Case-insensitive (long-press: regex)'),
                   icon: Icon(
                     _queryRegex
                         ? Icons.code
@@ -486,42 +516,56 @@ class _AuditScreenState extends State<AuditScreen> {
                 return RefreshIndicator(
                   onRefresh: () async {
                     setState(() {});
-                    await Future<void>.delayed(const Duration(milliseconds: 200));
-                  },
-                  child: ListView.separated(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                      controller: _scroll,
-                  itemCount: items.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, i) {
-                    final e = items[i];
-                    final color = e.level == 'error'
-                        ? Colors.red
-                        : e.level == 'warn'
-                            ? Colors.orange
-                            : null;
-                    return ListTile(
-                      dense: true,
-                      leading: Icon(Icons.circle, size: 10, color: color ?? Colors.green),
-                      title: Text(e.action),
-                      subtitle: Text(
-                        '${_fmtAuditTs(e.ts)}  ${e.detail}',
-                        maxLines: _wrapLines ? 12 : 3,
-                        overflow: _wrapLines ? TextOverflow.visible : TextOverflow.ellipsis,
-                      ),
-                      onLongPress: () async {
-                        await Clipboard.setData(
-                          ClipboardData(text: '${e.ts.toIso8601String()} [${e.level}] ${e.action} ${e.detail}'),
-                        );
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Entry copied'), duration: Duration(seconds: 1)),
-                          );
-                        }
-                      },
+                    await Future<void>.delayed(
+                      const Duration(milliseconds: 200),
                     );
                   },
-                ),
+                  child: ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    controller: _scroll,
+                    itemCount: items.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, i) {
+                      final e = items[i];
+                      final color = e.level == 'error'
+                          ? Colors.red
+                          : e.level == 'warn'
+                          ? Colors.orange
+                          : null;
+                      return ListTile(
+                        dense: true,
+                        leading: Icon(
+                          Icons.circle,
+                          size: 10,
+                          color: color ?? Colors.green,
+                        ),
+                        title: Text(e.action),
+                        subtitle: Text(
+                          '${_fmtAuditTs(e.ts)}  ${e.detail}',
+                          maxLines: _wrapLines ? 12 : 3,
+                          overflow: _wrapLines
+                              ? TextOverflow.visible
+                              : TextOverflow.ellipsis,
+                        ),
+                        onLongPress: () async {
+                          await Clipboard.setData(
+                            ClipboardData(
+                              text:
+                                  '${e.ts.toIso8601String()} [${e.level}] ${e.action} ${e.detail}',
+                            ),
+                          );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Entry copied'),
+                                duration: Duration(seconds: 1),
+                              ),
+                            );
+                          }
+                        },
+                      );
+                    },
+                  ),
                 );
               },
             ),

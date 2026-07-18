@@ -11,7 +11,8 @@ class ConnectionConfig {
     this.useTls = false,
     this.platformName = 'huanhermes-app',
     String? deviceId,
-  }) : deviceId = deviceId ?? const Uuid().v4().replaceAll('-', '').substring(0, 12);
+  }) : deviceId =
+           deviceId ?? const Uuid().v4().replaceAll('-', '').substring(0, 12);
 
   final String host;
   final int bridgePort;
@@ -100,7 +101,8 @@ class ConnectionConfig {
 
   bool get hasTokens => bridgeToken.isNotEmpty && mgmtToken.isNotEmpty;
 
-  String sessionKeyFor(String conversationId) => 'huan:$deviceId:$conversationId';
+  String sessionKeyFor(String conversationId) =>
+      'huan:$deviceId:$conversationId';
 
   /// Public pairing URI — host/ports/tls only (never embeds tokens).
   String toPairingUri({bool includeTokens = false}) {
@@ -114,7 +116,11 @@ class ConnectionConfig {
       if (bridgeToken.isNotEmpty) q['bridge_token'] = bridgeToken;
       if (mgmtToken.isNotEmpty) q['mgmt_token'] = mgmtToken;
     }
-    return Uri(scheme: 'huanhermes', host: 'connect', queryParameters: q).toString();
+    return Uri(
+      scheme: 'huanhermes',
+      host: 'connect',
+      queryParameters: q,
+    ).toString();
   }
 
   /// One-line public summary for clipboard / share cards.
@@ -166,8 +172,9 @@ class ConnectionConfig {
       bridgePort: overlay.bridgePort,
       mgmtPort: overlay.mgmtPort,
       useTls: overlay.useTls,
-      bridgeToken:
-          overlay.bridgeToken.isNotEmpty ? overlay.bridgeToken : bridgeToken,
+      bridgeToken: overlay.bridgeToken.isNotEmpty
+          ? overlay.bridgeToken
+          : bridgeToken,
       mgmtToken: overlay.mgmtToken.isNotEmpty ? overlay.mgmtToken : mgmtToken,
     );
   }

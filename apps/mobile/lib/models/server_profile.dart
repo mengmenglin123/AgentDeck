@@ -1,4 +1,3 @@
-
 import 'package:uuid/uuid.dart';
 
 import 'connection_config.dart';
@@ -11,8 +10,8 @@ class ServerProfile {
     required this.config,
     this.note,
     DateTime? updatedAt,
-  })  : id = id ?? const Uuid().v4(),
-        updatedAt = updatedAt ?? DateTime.now();
+  }) : id = id ?? const Uuid().v4(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   final String id;
   final String name;
@@ -37,14 +36,18 @@ class ServerProfile {
   }
 
   Map<String, dynamic> toPublicJson() => {
-        'id': id,
-        'name': name,
-        'note': note,
-        'updatedAt': updatedAt.toIso8601String(),
-        'config': config.toPublicJson(),
-      };
+    'id': id,
+    'name': name,
+    'note': note,
+    'updatedAt': updatedAt.toIso8601String(),
+    'config': config.toPublicJson(),
+  };
 
-  factory ServerProfile.fromJson(Map<String, dynamic> json, {String? bridgeToken, String? mgmtToken}) {
+  factory ServerProfile.fromJson(
+    Map<String, dynamic> json, {
+    String? bridgeToken,
+    String? mgmtToken,
+  }) {
     final cfgMap = Map<String, dynamic>.from(json['config'] as Map? ?? json);
     if (bridgeToken != null) cfgMap['bridgeToken'] = bridgeToken;
     if (mgmtToken != null) cfgMap['mgmtToken'] = mgmtToken;
@@ -54,7 +57,9 @@ class ServerProfile {
           ? (json['name'] as String).trim()
           : 'Host',
       note: json['note'] as String?,
-      updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ?? DateTime.now(),
+      updatedAt:
+          DateTime.tryParse(json['updatedAt']?.toString() ?? '') ??
+          DateTime.now(),
       config: ConnectionConfig.fromJson(cfgMap),
     );
   }

@@ -128,19 +128,17 @@ class _DiffScreenState extends State<DiffScreen> {
     final q = _fileCase ? raw : raw.toLowerCase();
     var list = List<Map<String, dynamic>>.from(_files);
     if (raw.isNotEmpty) {
-      list = list
-          .where((f) {
-            final p = '${f['path']}';
-            if (_fileRegex) {
-              try {
-                return RegExp(raw, caseSensitive: _fileCase).hasMatch(p);
-              } catch (_) {
-                return false;
-              }
-            }
-            return (_fileCase ? p : p.toLowerCase()).contains(q);
-          })
-          .toList();
+      list = list.where((f) {
+        final p = '${f['path']}';
+        if (_fileRegex) {
+          try {
+            return RegExp(raw, caseSensitive: _fileCase).hasMatch(p);
+          } catch (_) {
+            return false;
+          }
+        }
+        return (_fileCase ? p : p.toLowerCase()).contains(q);
+      }).toList();
     }
     if (_statusFilter.isNotEmpty) {
       list = list.where((f) => _fileStatus(f) == _statusFilter).toList();
@@ -156,17 +154,20 @@ class _DiffScreenState extends State<DiffScreen> {
         if (v is num) return v.round();
         return int.tryParse(v?.toString() ?? '') ?? 0;
       }
+
       int delsOf(Map x) {
         final v = x['deletions'] ?? x['dels'] ?? x['-'] ?? x['removals'];
         if (v is num) return v.round();
         return int.tryParse(v?.toString() ?? '') ?? 0;
       }
+
       if (_sortByBasename) {
         String baseOf(Map x) {
           final p = (x['path'] ?? x['file'] ?? x['name'] ?? '').toString();
           final i = p.replaceAll('\\', '/').lastIndexOf('/');
           return (i >= 0 ? p.substring(i + 1) : p).toLowerCase();
         }
+
         final c = baseOf(a).compareTo(baseOf(b));
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByPath) {
@@ -194,7 +195,6 @@ class _DiffScreenState extends State<DiffScreen> {
     return list;
   }
 
-
   Future<void> _copyFilesCsv() async {
     final files = _visibleFiles;
     final buf = StringBuffer();
@@ -209,7 +209,10 @@ class _DiffScreenState extends State<DiffScreen> {
     await Clipboard.setData(ClipboardData(text: buf.toString()));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Copied ${files.length} file row(s)'), duration: const Duration(seconds: 1)),
+      SnackBar(
+        content: Text('Copied ${files.length} file row(s)'),
+        duration: const Duration(seconds: 1),
+      ),
     );
   }
 
@@ -231,7 +234,8 @@ class _DiffScreenState extends State<DiffScreen> {
         _files = list;
         _loading = false;
       });
-      final target = _path ?? (list.isNotEmpty ? list.first['path']?.toString() : null);
+      final target =
+          _path ?? (list.isNotEmpty ? list.first['path']?.toString() : null);
       if (target != null && target.isNotEmpty) {
         await _loadPath(target);
       }
@@ -263,7 +267,6 @@ class _DiffScreenState extends State<DiffScreen> {
     }
   }
 
-
   String get _displayDiff {
     final rawQ = _diffQuery.trim();
     if (rawQ.isEmpty) return _diff;
@@ -286,7 +289,6 @@ class _DiffScreenState extends State<DiffScreen> {
     return hit.join('\n');
   }
 
-
   ({int adds, int dels, int hunks}) get _diffStats {
     var adds = 0;
     var dels = 0;
@@ -303,45 +305,62 @@ class _DiffScreenState extends State<DiffScreen> {
     return (adds: adds, dels: dels, hunks: hunks);
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          () {
-            final s = _diffStats;
-            final stats = (s.adds == 0 && s.dels == 0)
-                ? ''
-                : ' · +${s.adds}/-${s.dels}';
-            if (_path == null) return 'Git diff$stats';
-            if (_diffQuery.trim().isEmpty) return 'Diff · $_path$stats';
-            return 'Diff · $_path (find)$stats';
-          }(),
-        ),
+        title: Text(() {
+          final s = _diffStats;
+          final stats = (s.adds == 0 && s.dels == 0)
+              ? ''
+              : ' · +${s.adds}/-${s.dels}';
+          if (_path == null) return 'Git diff$stats';
+          if (_diffQuery.trim().isEmpty) return 'Diff · $_path$stats';
+          return 'Diff · $_path (find)$stats';
+        }()),
         actions: [
           IconButton(
             tooltip: _lineNums ? 'Hide line numbers' : 'Show line numbers',
             onPressed: () => setState(() => _lineNums = !_lineNums),
-            icon: Icon(_lineNums ? Icons.format_list_numbered : Icons.format_list_bulleted),
+            icon: Icon(
+              _lineNums
+                  ? Icons.format_list_numbered
+                  : Icons.format_list_bulleted,
+            ),
           ),
           IconButton(
             tooltip: _sortByBasename
                 ? (_sortAsc ? 'Basename Z→A' : 'Basename A→Z')
                 : (_sortByPath
-                    ? (_sortAsc ? 'Path Z→A' : 'Path A→Z')
-                    : (_sortByDels
-                        ? (_sortAsc ? 'Dels high→low' : 'Dels low→high')
-                        : (_sortByAdds
-                            ? (_sortAsc ? 'Adds high→low' : 'Adds low→high')
-                            : (_sortByStatus
-                                ? (_sortAsc ? 'Status Z→A' : 'Status A→Z')
-                                : (_sortAsc ? 'Path Z→A' : 'Path A→Z'))))),
+                      ? (_sortAsc ? 'Path Z→A' : 'Path A→Z')
+                      : (_sortByDels
+                            ? (_sortAsc ? 'Dels high→low' : 'Dels low→high')
+                            : (_sortByAdds
+                                  ? (_sortAsc
+                                        ? 'Adds high→low'
+                                        : 'Adds low→high')
+                                  : (_sortByStatus
+                                        ? (_sortAsc
+                                              ? 'Status Z→A'
+                                              : 'Status A→Z')
+                                        : (_sortAsc
+                                              ? 'Path Z→A'
+                                              : 'Path A→Z'))))),
             onPressed: () {
               setState(() {
-                if (!_sortByStatus && !_sortByAdds && !_sortByDels && !_sortByPath && !_sortByBasename && _sortAsc) {
+                if (!_sortByStatus &&
+                    !_sortByAdds &&
+                    !_sortByDels &&
+                    !_sortByPath &&
+                    !_sortByBasename &&
+                    _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortByStatus && !_sortByAdds && !_sortByDels && !_sortByPath && !_sortByBasename && !_sortAsc) {
+                } else if (!_sortByStatus &&
+                    !_sortByAdds &&
+                    !_sortByDels &&
+                    !_sortByPath &&
+                    !_sortByBasename &&
+                    !_sortAsc) {
                   _sortByStatus = true;
                   _sortByAdds = false;
                   _sortByDels = false;
@@ -396,17 +415,21 @@ class _DiffScreenState extends State<DiffScreen> {
                 }
               });
             },
-            icon: Icon(_sortByBasename
-                ? Icons.insert_drive_file_outlined
-                : (_sortByPath
-                    ? Icons.route
-                    : (_sortByDels
-                        ? Icons.remove_circle_outline
-                        : (_sortByAdds
-                            ? Icons.add_box_outlined
-                            : (_sortByStatus
-                                ? Icons.flag_outlined
-                                : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))))),
+            icon: Icon(
+              _sortByBasename
+                  ? Icons.insert_drive_file_outlined
+                  : (_sortByPath
+                        ? Icons.route
+                        : (_sortByDels
+                              ? Icons.remove_circle_outline
+                              : (_sortByAdds
+                                    ? Icons.add_box_outlined
+                                    : (_sortByStatus
+                                          ? Icons.flag_outlined
+                                          : (_sortAsc
+                                                ? Icons.sort_by_alpha
+                                                : Icons.sort))))),
+            ),
           ),
 
           IconButton(
@@ -418,7 +441,11 @@ class _DiffScreenState extends State<DiffScreen> {
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
-              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+              _scroll.animateTo(
+                0,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
             },
             icon: const Icon(Icons.vertical_align_top),
           ),
@@ -442,7 +469,10 @@ class _DiffScreenState extends State<DiffScreen> {
                     await Clipboard.setData(ClipboardData(text: _path!));
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Path copied'), duration: Duration(seconds: 1)),
+                        const SnackBar(
+                          content: Text('Path copied'),
+                          duration: Duration(seconds: 1),
+                        ),
                       );
                     }
                   },
@@ -456,7 +486,10 @@ class _DiffScreenState extends State<DiffScreen> {
                     await Clipboard.setData(ClipboardData(text: _diff));
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Diff copied'), duration: Duration(seconds: 1)),
+                        const SnackBar(
+                          content: Text('Diff copied'),
+                          duration: Duration(seconds: 1),
+                        ),
                       );
                     }
                   },
@@ -473,11 +506,17 @@ class _DiffScreenState extends State<DiffScreen> {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
             },
-            icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
+            icon: Icon(
+              _autoRefresh
+                  ? Icons.pause_circle_outline
+                  : Icons.play_circle_outline,
+            ),
           ),
 
-
-          IconButton(onPressed: _loading ? null : _loadIndex, icon: const Icon(Icons.refresh)),
+          IconButton(
+            onPressed: _loading ? null : _loadIndex,
+            icon: const Icon(Icons.refresh),
+          ),
         ],
       ),
       body: Column(
@@ -485,7 +524,10 @@ class _DiffScreenState extends State<DiffScreen> {
           if (_error != null)
             Padding(
               padding: const EdgeInsets.all(12),
-              child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              child: Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
             ),
           if (_loading) const LinearProgressIndicator(minHeight: 2),
           if (_files.isNotEmpty)
@@ -496,21 +538,21 @@ class _DiffScreenState extends State<DiffScreen> {
                 decoration: InputDecoration(
                   hintText: _fileRegex
                       ? (_fileCase
-                          ? 'Filter paths (regex · case)'
-                          : 'Filter paths (regex)')
+                            ? 'Filter paths (regex · case)'
+                            : 'Filter paths (regex)')
                       : (_fileCase
-                          ? 'Filter paths (case-sensitive)'
-                          : 'Filter changed files'),
+                            ? 'Filter paths (case-sensitive)'
+                            : 'Filter changed files'),
                   isDense: true,
                   border: const OutlineInputBorder(),
                   prefixIcon: IconButton(
                     tooltip: _fileRegex
                         ? (_fileCase
-                            ? 'Regex · case on (long-press: plain filter)'
-                            : 'Regex · case off (long-press: plain filter)')
+                              ? 'Regex · case on (long-press: plain filter)'
+                              : 'Regex · case off (long-press: plain filter)')
                         : (_fileCase
-                            ? 'Case-sensitive (long-press: regex)'
-                            : 'Case-insensitive (long-press: regex)'),
+                              ? 'Case-sensitive (long-press: regex)'
+                              : 'Case-insensitive (long-press: regex)'),
                     icon: Icon(
                       _fileRegex
                           ? Icons.code
@@ -567,7 +609,10 @@ class _DiffScreenState extends State<DiffScreen> {
                 children: [
                   FilterChip(
                     visualDensity: VisualDensity.compact,
-                    label: const Text('Any path', style: TextStyle(fontSize: 11)),
+                    label: const Text(
+                      'Any path',
+                      style: TextStyle(fontSize: 11),
+                    ),
                     selected: _pathPrefix.isEmpty,
                     onSelected: (_) => setState(() => _pathPrefix = ''),
                   ),
@@ -652,7 +697,10 @@ class _DiffScreenState extends State<DiffScreen> {
                       backgroundColor: avatarColor ?? Colors.grey,
                       child: Text(
                         badge,
-                        style: const TextStyle(fontSize: 9, color: Colors.white),
+                        style: const TextStyle(
+                          fontSize: 9,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                     label: Text(p, style: const TextStyle(fontSize: 12)),
@@ -669,20 +717,22 @@ class _DiffScreenState extends State<DiffScreen> {
                 controller: _diffFindCtrl,
                 decoration: InputDecoration(
                   hintText: _diffRegex
-                      ? (_diffCase ? 'Find in diff (regex · case)' : 'Find in diff (regex)')
+                      ? (_diffCase
+                            ? 'Find in diff (regex · case)'
+                            : 'Find in diff (regex)')
                       : (_diffCase
-                          ? 'Find in diff (case-sensitive)'
-                          : 'Find in diff (local)'),
+                            ? 'Find in diff (case-sensitive)'
+                            : 'Find in diff (local)'),
                   isDense: true,
                   border: const OutlineInputBorder(),
                   prefixIcon: IconButton(
                     tooltip: _diffRegex
                         ? (_diffCase
-                            ? 'Regex · case on (long-press: plain find)'
-                            : 'Regex · case off (long-press: plain find)')
+                              ? 'Regex · case on (long-press: plain find)'
+                              : 'Regex · case off (long-press: plain find)')
                         : (_diffCase
-                            ? 'Case-sensitive (long-press: regex)'
-                            : 'Case-insensitive (long-press: regex)'),
+                              ? 'Case-sensitive (long-press: regex)'
+                              : 'Case-insensitive (long-press: regex)'),
                     icon: Icon(
                       _diffRegex
                           ? Icons.code
@@ -724,7 +774,11 @@ class _DiffScreenState extends State<DiffScreen> {
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.all(12),
                         children: [
-                          _DiffText(diff: _displayDiff, showLineNumbers: _lineNums, wrapLines: _wrapLines),
+                          _DiffText(
+                            diff: _displayDiff,
+                            showLineNumbers: _lineNums,
+                            wrapLines: _wrapLines,
+                          ),
                         ],
                       ),
                     ),
@@ -737,7 +791,11 @@ class _DiffScreenState extends State<DiffScreen> {
 }
 
 class _DiffText extends StatelessWidget {
-  const _DiffText({required this.diff, this.showLineNumbers = true, this.wrapLines = false});
+  const _DiffText({
+    required this.diff,
+    this.showLineNumbers = true,
+    this.wrapLines = false,
+  });
   final String diff;
   final bool showLineNumbers;
   final bool wrapLines;
@@ -760,20 +818,16 @@ class _DiffText extends StatelessWidget {
                 color: lines[i].startsWith('+') && !lines[i].startsWith('+++')
                     ? const Color(0xFF81C784)
                     : lines[i].startsWith('-') && !lines[i].startsWith('---')
-                        ? const Color(0xFFE57373)
-                        : lines[i].startsWith('@@')
-                            ? const Color(0xFF64B5F6)
-                            : const Color(0xFFB0BEC5),
+                    ? const Color(0xFFE57373)
+                    : lines[i].startsWith('@@')
+                    ? const Color(0xFF64B5F6)
+                    : const Color(0xFFB0BEC5),
               ),
             ),
         ],
       ),
     );
     if (wrapLines) return rich;
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: rich,
-    );
-
+    return SingleChildScrollView(scrollDirection: Axis.horizontal, child: rich);
   }
 }

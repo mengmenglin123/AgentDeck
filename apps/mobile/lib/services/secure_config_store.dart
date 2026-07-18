@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -17,11 +16,12 @@ class SecureConfigStore implements ConnectionStore {
   SecureConfigStore({
     FlutterSecureStorage? secureStorage,
     SharedPreferences? prefs,
-  })  : _secure = secureStorage ??
-            const FlutterSecureStorage(
-              aOptions: AndroidOptions(encryptedSharedPreferences: true),
-            ),
-        _prefsOverride = prefs;
+  }) : _secure =
+           secureStorage ??
+           const FlutterSecureStorage(
+             aOptions: AndroidOptions(encryptedSharedPreferences: true),
+           ),
+       _prefsOverride = prefs;
 
   static const _profilesKey = 'huan_profiles_public_v2';
   static const _activeKey = 'huan_active_profile_v2';
@@ -91,8 +91,12 @@ class SecureConfigStore implements ConnectionStore {
       if (item is! Map) continue;
       final m = Map<String, dynamic>.from(item);
       final id = m['id']?.toString() ?? '';
-      final bridge = id.isEmpty ? '' : (await _secure.read(key: _bridgeKey(id)) ?? '');
-      final mgmt = id.isEmpty ? '' : (await _secure.read(key: _mgmtKey(id)) ?? '');
+      final bridge = id.isEmpty
+          ? ''
+          : (await _secure.read(key: _bridgeKey(id)) ?? '');
+      final mgmt = id.isEmpty
+          ? ''
+          : (await _secure.read(key: _mgmtKey(id)) ?? '');
       out.add(ServerProfile.fromJson(m, bridgeToken: bridge, mgmtToken: mgmt));
     }
     out.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
@@ -117,7 +121,10 @@ class SecureConfigStore implements ConnectionStore {
   }
 
   @override
-  Future<void> upsertProfile(ServerProfile profile, {bool setActive = true}) async {
+  Future<void> upsertProfile(
+    ServerProfile profile, {
+    bool setActive = true,
+  }) async {
     await init();
     final list = await listProfiles();
     final idx = list.indexWhere((p) => p.id == profile.id);
@@ -127,7 +134,10 @@ class SecureConfigStore implements ConnectionStore {
     } else {
       list.add(next);
     }
-    await _secure.write(key: _bridgeKey(next.id), value: next.config.bridgeToken);
+    await _secure.write(
+      key: _bridgeKey(next.id),
+      value: next.config.bridgeToken,
+    );
     await _secure.write(key: _mgmtKey(next.id), value: next.config.mgmtToken);
     await _savePublicList(list);
     if (setActive) await setActiveProfileId(next.id);
@@ -159,7 +169,10 @@ class SecureConfigStore implements ConnectionStore {
     if (activeId != null) {
       final idx = list.indexWhere((p) => p.id == activeId);
       if (idx >= 0) {
-        final updated = list[idx].copyWith(config: config, updatedAt: DateTime.now());
+        final updated = list[idx].copyWith(
+          config: config,
+          updatedAt: DateTime.now(),
+        );
         await upsertProfile(updated, setActive: true);
         return;
       }

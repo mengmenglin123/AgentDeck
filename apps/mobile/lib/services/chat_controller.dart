@@ -19,9 +19,9 @@ class ChatController extends ChangeNotifier {
     BridgeClient Function(ConnectionConfig config)? bridgeFactory,
     MgmtClient Function(ConnectionConfig config)? mgmtFactory,
     AuditLog? audit,
-  })  : _bridgeFactory = bridgeFactory,
-        _mgmtFactory = mgmtFactory ?? ((c) => MgmtClient(config: c)),
-        audit = audit ?? AuditLog();
+  }) : _bridgeFactory = bridgeFactory,
+       _mgmtFactory = mgmtFactory ?? ((c) => MgmtClient(config: c)),
+       audit = audit ?? AuditLog();
 
   final ConnectionConfig config;
   SessionInfo session;
@@ -54,6 +54,7 @@ class ChatController extends ChangeNotifier {
     'tools_visible',
   ];
   int reconnectAttempts = 0;
+
   /// Device-local; mirrored from AppSettings when ChatScreen boots.
   int maxReconnectAttempts = 5;
   bool autoReconnect = true;
@@ -63,8 +64,7 @@ class ChatController extends ChangeNotifier {
 
   List<TranscriptMessage> get messages => List.unmodifiable(reducer.messages);
   bool get isEmpty => messages.isEmpty;
-  bool hasCap(String c) =>
-      capabilities.isEmpty || capabilities.contains(c);
+  bool hasCap(String c) => capabilities.isEmpty || capabilities.contains(c);
 
   Future<void> connect({bool silent = false}) async {
     if (connected || connecting) return;
@@ -72,13 +72,14 @@ class ChatController extends ChangeNotifier {
     if (!silent) error = null;
     notifyListeners();
     try {
-      final client = (_bridgeFactory ??
+      final client =
+          (_bridgeFactory ??
           ((ConnectionConfig c) => BridgeClient(
-                config: c,
-                onMessage: _onBridgeMessage,
-                onError: _onBridgeError,
-                onClose: _onBridgeClose,
-              )))(config);
+            config: c,
+            onMessage: _onBridgeMessage,
+            onError: _onBridgeError,
+            onClose: _onBridgeClose,
+          )))(config);
       client.onMessage ??= _onBridgeMessage;
       client.onError ??= _onBridgeError;
       client.onClose ??= _onBridgeClose;
@@ -143,7 +144,9 @@ class ChatController extends ChangeNotifier {
     reloading = true;
     notifyListeners();
     try {
-      final data = await _mgmtFactory(config).sessionDetail(session.id, project: session.project);
+      final data = await _mgmtFactory(
+        config,
+      ).sessionDetail(session.id, project: session.project);
       final rows = data['transcript'];
       if (rows is List) {
         final list = rows
@@ -314,8 +317,12 @@ class ChatController extends ChangeNotifier {
     }
     reconnectAttempts += 1;
     final delay = Duration(seconds: reconnectAttempts * 2);
-    audit.add('bridge.reconnect_scheduled', detail: 'attempt=$reconnectAttempts/$maxA delay=${delay.inSeconds}s');
-    reconnectHint = 'Reconnecting in ${delay.inSeconds}s (attempt $reconnectAttempts/$maxA)…';
+    audit.add(
+      'bridge.reconnect_scheduled',
+      detail: 'attempt=$reconnectAttempts/$maxA delay=${delay.inSeconds}s',
+    );
+    reconnectHint =
+        'Reconnecting in ${delay.inSeconds}s (attempt $reconnectAttempts/$maxA)…';
     notifyListeners();
     _reconnectTimer?.cancel();
     _reconnectTimer = Timer(delay, () {

@@ -30,21 +30,19 @@ class TranscriptMessage {
     this.streaming = false,
     Map<String, dynamic>? meta,
     DateTime? at,
-  })  : meta = meta ?? <String, dynamic>{},
-        at = at ?? DateTime.now();
+  }) : meta = meta ?? <String, dynamic>{},
+       at = at ?? DateTime.now();
 
   /// user | assistant | system | tool | permission
   final String role;
   String content;
   bool streaming;
   final Map<String, dynamic> meta;
+
   /// Local client timestamp (not Host authoritative).
   final DateTime at;
 
-  TranscriptMessage copyWith({
-    String? content,
-    bool? streaming,
-  }) {
+  TranscriptMessage copyWith({String? content, bool? streaming}) {
     return TranscriptMessage(
       role: role,
       content: content ?? this.content,
@@ -80,7 +78,13 @@ class TranscriptReducer {
     switch (event.kind) {
       case EventKind.user:
         _streamingIdx = null;
-        messages.add(TranscriptMessage(role: 'user', content: event.text, meta: event.meta));
+        messages.add(
+          TranscriptMessage(
+            role: 'user',
+            content: event.text,
+            meta: event.meta,
+          ),
+        );
       case EventKind.assistantDelta:
         if (_streamingIdx == null) {
           messages.add(
@@ -116,18 +120,54 @@ class TranscriptReducer {
               !messages.last.streaming) {
             break;
           }
-          messages.add(TranscriptMessage(role: 'assistant', content: event.text, meta: event.meta));
+          messages.add(
+            TranscriptMessage(
+              role: 'assistant',
+              content: event.text,
+              meta: event.meta,
+            ),
+          );
         }
       case EventKind.thinking:
-        messages.add(TranscriptMessage(role: 'system', content: 'thinking: ${event.text}', meta: event.meta));
+        messages.add(
+          TranscriptMessage(
+            role: 'system',
+            content: 'thinking: ${event.text}',
+            meta: event.meta,
+          ),
+        );
       case EventKind.toolCall:
-        messages.add(TranscriptMessage(role: 'tool', content: 'call: ${event.text}', meta: event.meta));
+        messages.add(
+          TranscriptMessage(
+            role: 'tool',
+            content: 'call: ${event.text}',
+            meta: event.meta,
+          ),
+        );
       case EventKind.toolResult:
-        messages.add(TranscriptMessage(role: 'tool', content: 'result: ${event.text}', meta: event.meta));
+        messages.add(
+          TranscriptMessage(
+            role: 'tool',
+            content: 'result: ${event.text}',
+            meta: event.meta,
+          ),
+        );
       case EventKind.permission:
-        messages.add(TranscriptMessage(role: 'permission', content: event.text, meta: event.meta));
+        messages.add(
+          TranscriptMessage(
+            role: 'permission',
+            content: event.text,
+            meta: event.meta,
+          ),
+        );
       case EventKind.error:
-        messages.add(TranscriptMessage(role: 'system', content: 'error: ${event.text}', meta: event.meta));
+        messages.add(
+          TranscriptMessage(
+            role: 'system',
+            content: 'error: ${event.text}',
+            meta: event.meta,
+          ),
+        );
       case EventKind.runDone:
         if (_streamingIdx != null) {
           messages[_streamingIdx!].streaming = false;
@@ -142,7 +182,13 @@ class TranscriptReducer {
           ),
         );
       case EventKind.system:
-        messages.add(TranscriptMessage(role: 'system', content: event.text, meta: event.meta));
+        messages.add(
+          TranscriptMessage(
+            role: 'system',
+            content: event.text,
+            meta: event.meta,
+          ),
+        );
     }
     lastSeq += 1;
     return messages;
@@ -269,12 +315,20 @@ class TranscriptReducer {
         return apply(
           TranscriptEvent(
             kind: ok ? EventKind.system : EventKind.error,
-            text: ok ? 'registered' : (payload['error']?.toString() ?? 'register failed'),
+            text: ok
+                ? 'registered'
+                : (payload['error']?.toString() ?? 'register failed'),
             meta: payload,
           ),
         );
       default:
-        return apply(TranscriptEvent(kind: EventKind.system, text: 'event:$t', meta: payload));
+        return apply(
+          TranscriptEvent(
+            kind: EventKind.system,
+            text: 'event:$t',
+            meta: payload,
+          ),
+        );
     }
   }
 }

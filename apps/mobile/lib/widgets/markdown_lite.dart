@@ -4,12 +4,7 @@ import 'package:flutter/services.dart';
 /// Lightweight Markdown renderer (no extra packages).
 /// Covers headings (h1–h6), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5/h6, abbr, mark (== / HTML <mark>), spoiler, kbd, sup/sub, underline, del, ins, s, strike, br, small, cite, q, var, samp, dfn, em, strong, b, code, i, big, tt, time, data, bdi, bdo, ruby, rt, rp, wbr, font, center, acronym, nobr, blink, marquee, xmp, listing, plaintext, basefont, dir, menu, isindex, spacer, nextid, keygen, bgsound, multicol, frame, frameset, applet, noembed, noframes, embed, object, param, track, video, audio, picture, canvas, svg, math, area, iframe, portal, dialog, template, slot, meter, progress, figure, figcaption, map, main, aside, nav, section, article, header, footer, hgroup, autolink, strike (~~ / <s>/<del>/<strike>), inline code, bold/italic, bold-italic (***).
 class MarkdownLite extends StatelessWidget {
-  const MarkdownLite(
-    this.source, {
-    super.key,
-    this.style,
-    this.codeStyle,
-  });
+  const MarkdownLite(this.source, {super.key, this.style, this.codeStyle});
 
   final String source;
   final TextStyle? style;
@@ -18,11 +13,14 @@ class MarkdownLite extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final base = style ?? DefaultTextStyle.of(context).style;
-    final codeBase = codeStyle ??
+    final codeBase =
+        codeStyle ??
         base.copyWith(
           fontFamily: 'monospace',
           fontSize: (base.fontSize ?? 14) * 0.92,
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.55),
+          backgroundColor: Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest.withOpacity(0.55),
         );
     final blocks = _splitBlocks(source);
     return Column(
@@ -46,8 +44,12 @@ class MarkdownLite extends StatelessWidget {
                         Expanded(
                           child: Text(
                             (() {
-                              final lang = (b.lang == null || b.lang!.isEmpty) ? 'code' : b.lang!;
-                              final n = b.text.isEmpty ? 0 : b.text.split('\n').length;
+                              final lang = (b.lang == null || b.lang!.isEmpty)
+                                  ? 'code'
+                                  : b.lang!;
+                              final n = b.text.isEmpty
+                                  ? 0
+                                  : b.text.split('\n').length;
                               return '$lang · $n lines';
                             })(),
                             style: const TextStyle(
@@ -61,10 +63,19 @@ class MarkdownLite extends StatelessWidget {
                           tooltip: 'Copy code',
                           visualDensity: VisualDensity.compact,
                           padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 32, minHeight: 28),
-                          icon: const Icon(Icons.copy, size: 16, color: Color(0xFFBDBDBD)),
+                          constraints: const BoxConstraints(
+                            minWidth: 32,
+                            minHeight: 28,
+                          ),
+                          icon: const Icon(
+                            Icons.copy,
+                            size: 16,
+                            color: Color(0xFFBDBDBD),
+                          ),
                           onPressed: () async {
-                            await Clipboard.setData(ClipboardData(text: b.text));
+                            await Clipboard.setData(
+                              ClipboardData(text: b.text),
+                            );
                             if (context.mounted) {
                               ScaffoldMessenger.maybeOf(context)?.showSnackBar(
                                 const SnackBar(
@@ -98,32 +109,62 @@ class MarkdownLite extends StatelessWidget {
           else if (b.kind == _BlockKind.h1)
             Padding(
               padding: const EdgeInsets.only(top: 6, bottom: 4),
-              child: SelectableText.rich(_inline(b.text, base.copyWith(fontSize: 20, fontWeight: FontWeight.w700))),
+              child: SelectableText.rich(
+                _inline(
+                  b.text,
+                  base.copyWith(fontSize: 20, fontWeight: FontWeight.w700),
+                ),
+              ),
             )
           else if (b.kind == _BlockKind.h2)
             Padding(
               padding: const EdgeInsets.only(top: 6, bottom: 4),
-              child: SelectableText.rich(_inline(b.text, base.copyWith(fontSize: 17, fontWeight: FontWeight.w700))),
+              child: SelectableText.rich(
+                _inline(
+                  b.text,
+                  base.copyWith(fontSize: 17, fontWeight: FontWeight.w700),
+                ),
+              ),
             )
           else if (b.kind == _BlockKind.h3)
             Padding(
               padding: const EdgeInsets.only(top: 4, bottom: 2),
-              child: SelectableText.rich(_inline(b.text, base.copyWith(fontSize: 15, fontWeight: FontWeight.w600))),
+              child: SelectableText.rich(
+                _inline(
+                  b.text,
+                  base.copyWith(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+              ),
             )
           else if (b.kind == _BlockKind.h4)
             Padding(
               padding: const EdgeInsets.only(top: 3, bottom: 2),
-              child: SelectableText.rich(_inline(b.text, base.copyWith(fontSize: 14, fontWeight: FontWeight.w600))),
+              child: SelectableText.rich(
+                _inline(
+                  b.text,
+                  base.copyWith(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+              ),
             )
           else if (b.kind == _BlockKind.h5)
             Padding(
               padding: const EdgeInsets.only(top: 2, bottom: 1),
-              child: SelectableText.rich(_inline(b.text, base.copyWith(fontSize: 13, fontWeight: FontWeight.w600))),
+              child: SelectableText.rich(
+                _inline(
+                  b.text,
+                  base.copyWith(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
             )
           else if (b.kind == _BlockKind.h6)
             Padding(
               padding: const EdgeInsets.only(top: 2, bottom: 1),
-              child: SelectableText.rich(_inline(b.text, base.copyWith(fontSize: 12, fontWeight: FontWeight.w600))),
+              child: SelectableText.rich(
+                _inline(
+                  b.text,
+                  base.copyWith(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
             )
           else if (b.kind == _BlockKind.task)
             Padding(
@@ -139,7 +180,8 @@ class MarkdownLite extends StatelessWidget {
                             : base.color?.withOpacity(0.75),
                       ),
                     ),
-                    ..._inline(b.text, base).children ?? [TextSpan(text: b.text, style: base)],
+                    ..._inline(b.text, base).children ??
+                        [TextSpan(text: b.text, style: base)],
                   ],
                 ),
               ),
@@ -151,46 +193,52 @@ class MarkdownLite extends StatelessWidget {
                 TextSpan(
                   children: [
                     TextSpan(text: b.marker ?? '• ', style: base),
-                    ..._inline(b.text, base).children ?? [TextSpan(text: b.text, style: base)],
+                    ..._inline(b.text, base).children ??
+                        [TextSpan(text: b.text, style: base)],
                   ],
                 ),
               ),
             )
           else if (b.kind == _BlockKind.callout)
-            Builder(builder: (context) {
-              final tag = (b.marker ?? 'NOTE').toLowerCase();
-              Color edge = Colors.blueGrey;
-              if (tag.contains('warn') || tag.contains('caution')) {
-                edge = Colors.orange;
-              } else if (tag.contains('tip') || tag.contains('success')) {
-                edge = Colors.teal;
-              } else if (tag.contains('important') || tag.contains('error')) {
-                edge = Colors.deepOrange;
-              }
-              return Container(
-                margin: const EdgeInsets.symmetric(vertical: 4),
-                padding: const EdgeInsets.fromLTRB(10, 6, 8, 6),
-                decoration: BoxDecoration(
-                  border: Border(left: BorderSide(color: edge, width: 3)),
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.4),
-                ),
-                child: SelectableText.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: '${(b.marker ?? 'NOTE').toUpperCase()}  ',
-                        style: base.copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: (base.fontSize ?? 14) * 0.85,
-                          color: edge,
-                        ),
-                      ),
-                      ..._inline(b.text, base).children ?? [TextSpan(text: b.text, style: base)],
-                    ],
+            Builder(
+              builder: (context) {
+                final tag = (b.marker ?? 'NOTE').toLowerCase();
+                Color edge = Colors.blueGrey;
+                if (tag.contains('warn') || tag.contains('caution')) {
+                  edge = Colors.orange;
+                } else if (tag.contains('tip') || tag.contains('success')) {
+                  edge = Colors.teal;
+                } else if (tag.contains('important') || tag.contains('error')) {
+                  edge = Colors.deepOrange;
+                }
+                return Container(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.fromLTRB(10, 6, 8, 6),
+                  decoration: BoxDecoration(
+                    border: Border(left: BorderSide(color: edge, width: 3)),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest.withOpacity(0.4),
                   ),
-                ),
-              );
-            })
+                  child: SelectableText.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '${(b.marker ?? 'NOTE').toUpperCase()}  ',
+                          style: base.copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: (base.fontSize ?? 14) * 0.85,
+                            color: edge,
+                          ),
+                        ),
+                        ..._inline(b.text, base).children ??
+                            [TextSpan(text: b.text, style: base)],
+                      ],
+                    ),
+                  ),
+                );
+              },
+            )
           else if (b.kind == _BlockKind.footnote)
             Padding(
               padding: const EdgeInsets.only(left: 4, top: 4, bottom: 2),
@@ -205,56 +253,88 @@ class MarkdownLite extends StatelessWidget {
                         color: Colors.lightBlue,
                       ),
                     ),
-                    ..._inline(b.text, base.copyWith(fontSize: (base.fontSize ?? 14) * 0.9)).children ??
+                    ..._inline(
+                          b.text,
+                          base.copyWith(fontSize: (base.fontSize ?? 14) * 0.9),
+                        ).children ??
                         [TextSpan(text: b.text, style: base)],
                   ],
                 ),
               ),
             )
           else if (b.kind == _BlockKind.details)
-            Builder(builder: (context) {
-              final raw = b.text;
-              var summary = 'Details';
-              var body = raw;
-              final sm = RegExp(r'<summary[^>]*>([\s\S]*?)</summary>', caseSensitive: false).firstMatch(raw);
-              if (sm != null) {
-                summary = (sm.group(1) ?? 'Details').replaceAll(RegExp(r'<[^>]+>'), '').trim();
-                if (summary.isEmpty) summary = 'Details';
-                body = raw.replaceFirst(sm.group(0)!, '');
-              }
-              body = body
-                  .replaceAll(RegExp(r'</?details[^>]*>', caseSensitive: false), '')
-                  .trim();
-              return Theme(
-                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                child: ExpansionTile(
-                  tilePadding: const EdgeInsets.symmetric(horizontal: 8),
-                  childrenPadding: const EdgeInsets.fromLTRB(12, 0, 8, 8),
-                  title: SelectableText.rich(_inline(summary, base.copyWith(fontWeight: FontWeight.w600))),
-                  children: [
-                    if (body.isNotEmpty)
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: SelectableText.rich(_inline(body, base)),
+            Builder(
+              builder: (context) {
+                final raw = b.text;
+                var summary = 'Details';
+                var body = raw;
+                final sm = RegExp(
+                  r'<summary[^>]*>([\s\S]*?)</summary>',
+                  caseSensitive: false,
+                ).firstMatch(raw);
+                if (sm != null) {
+                  summary = (sm.group(1) ?? 'Details')
+                      .replaceAll(RegExp(r'<[^>]+>'), '')
+                      .trim();
+                  if (summary.isEmpty) summary = 'Details';
+                  body = raw.replaceFirst(sm.group(0)!, '');
+                }
+                body = body
+                    .replaceAll(
+                      RegExp(r'</?details[^>]*>', caseSensitive: false),
+                      '',
+                    )
+                    .trim();
+                return Theme(
+                  data: Theme.of(
+                    context,
+                  ).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    tilePadding: const EdgeInsets.symmetric(horizontal: 8),
+                    childrenPadding: const EdgeInsets.fromLTRB(12, 0, 8, 8),
+                    title: SelectableText.rich(
+                      _inline(
+                        summary,
+                        base.copyWith(fontWeight: FontWeight.w600),
                       ),
-                  ],
-                ),
-              );
-            })
+                    ),
+                    children: [
+                      if (body.isNotEmpty)
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: SelectableText.rich(_inline(body, base)),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            )
           else if (b.kind == _BlockKind.quote)
             Container(
               margin: const EdgeInsets.symmetric(vertical: 4),
               padding: const EdgeInsets.fromLTRB(10, 6, 8, 6),
               decoration: BoxDecoration(
-                border: Border(left: BorderSide(color: Theme.of(context).colorScheme.primary, width: 3)),
-                color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.35),
+                border: Border(
+                  left: BorderSide(
+                    color: Theme.of(context).colorScheme.primary,
+                    width: 3,
+                  ),
+                ),
+                color: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest.withOpacity(0.35),
               ),
-              child: SelectableText.rich(_inline(b.text, base.copyWith(fontStyle: FontStyle.italic))),
+              child: SelectableText.rich(
+                _inline(b.text, base.copyWith(fontStyle: FontStyle.italic)),
+              ),
             )
           else if (b.kind == _BlockKind.hr)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Divider(height: 1, color: Theme.of(context).dividerColor.withOpacity(0.6)),
+              child: Divider(
+                height: 1,
+                color: Theme.of(context).dividerColor.withOpacity(0.6),
+              ),
             )
           else if (b.kind == _BlockKind.table)
             _buildTable(context, b.text, base)
@@ -279,7 +359,9 @@ class MarkdownLite extends StatelessWidget {
       final line = lines[i];
       if (line.trimLeft().startsWith('```')) {
         if (inCode) {
-          out.add(_Block(_BlockKind.code, codeBuf.toString().trimRight(), lang: lang));
+          out.add(
+            _Block(_BlockKind.code, codeBuf.toString().trimRight(), lang: lang),
+          );
           codeBuf.clear();
           inCode = false;
           lang = null;
@@ -313,8 +395,12 @@ class MarkdownLite extends StatelessWidget {
       if (t.contains('|') && i + 1 < lines.length) {
         final sep = lines[i + 1].trim();
         if (RegExp(r'^\|?[\s:-]+\|[\s|:-]+$').hasMatch(sep) ||
-            RegExp(r'^:?-{3,}:?(\s*\|\s*:?-{3,}:?)+$').hasMatch(sep.replaceAll('|', '|').trim())) {
-          final buf = StringBuffer()..writeln(t)..writeln(lines[i + 1]);
+            RegExp(
+              r'^:?-{3,}:?(\s*\|\s*:?-{3,}:?)+$',
+            ).hasMatch(sep.replaceAll('|', '|').trim())) {
+          final buf = StringBuffer()
+            ..writeln(t)
+            ..writeln(lines[i + 1]);
           i += 2;
           while (i < lines.length) {
             final row = lines[i].trimRight();
@@ -328,7 +414,13 @@ class MarkdownLite extends StatelessWidget {
       }
       final fnDef = RegExp(r'^\[\^([^\]]+)\]:\s*(.*)$').firstMatch(t.trim());
       if (fnDef != null) {
-        out.add(_Block(_BlockKind.footnote, fnDef.group(2) ?? '', marker: fnDef.group(1)));
+        out.add(
+          _Block(
+            _BlockKind.footnote,
+            fnDef.group(2) ?? '',
+            marker: fnDef.group(1),
+          ),
+        );
         i++;
         continue;
       }
@@ -358,7 +450,10 @@ class MarkdownLite extends StatelessWidget {
         out.add(_Block(_BlockKind.h1, t.substring(2)));
       } else if (t.startsWith('> ') || t.trim() == '>') {
         final first = t.startsWith('> ') ? t.substring(2) : '';
-        final calloutMatch = RegExp(r'^\[!(NOTE|TIP|WARNING|WARN|IMPORTANT|CAUTION|ERROR)\]\s*(.*)$', caseSensitive: false).firstMatch(first.trim());
+        final calloutMatch = RegExp(
+          r'^\[!(NOTE|TIP|WARNING|WARN|IMPORTANT|CAUTION|ERROR)\]\s*(.*)$',
+          caseSensitive: false,
+        ).firstMatch(first.trim());
         final buf = StringBuffer();
         String? calloutTag;
         if (calloutMatch != null) {
@@ -383,7 +478,9 @@ class MarkdownLite extends StatelessWidget {
           }
         }
         if (calloutTag != null) {
-          out.add(_Block(_BlockKind.callout, buf.toString(), marker: calloutTag));
+          out.add(
+            _Block(_BlockKind.callout, buf.toString(), marker: calloutTag),
+          );
         } else {
           out.add(_Block(_BlockKind.quote, buf.toString()));
         }
@@ -394,7 +491,9 @@ class MarkdownLite extends StatelessWidget {
         out.add(_Block(_BlockKind.task, body, checked: checked));
       } else if (RegExp(r'^\d+\.\s+').hasMatch(t)) {
         final m = RegExp(r'^(\d+)\.\s+(.*)$').firstMatch(t)!;
-        out.add(_Block(_BlockKind.list, m.group(2)!, marker: '${m.group(1)}. '));
+        out.add(
+          _Block(_BlockKind.list, m.group(2)!, marker: '${m.group(1)}. '),
+        );
       } else if (RegExp(r'^[-*+]\s+').hasMatch(t)) {
         final body = t.replaceFirst(RegExp(r'^[-*+]\s+'), '');
         out.add(_Block(_BlockKind.list, body, marker: '• '));
@@ -404,7 +503,9 @@ class MarkdownLite extends StatelessWidget {
       i++;
     }
     if (inCode && codeBuf.isNotEmpty) {
-      out.add(_Block(_BlockKind.code, codeBuf.toString().trimRight(), lang: lang));
+      out.add(
+        _Block(_BlockKind.code, codeBuf.toString().trimRight(), lang: lang),
+      );
     }
     return out;
   }
@@ -418,13 +519,18 @@ class MarkdownLite extends StatelessWidget {
       if (s.endsWith('|')) s = s.substring(0, s.length - 1);
       return s.split('|').map((c) => c.trim()).toList();
     }
+
     final parsed = <List<String>>[];
     for (var r = 0; r < rows.length; r++) {
-      if (r == 1 && RegExp(r'^[\s|:-]+$').hasMatch(rows[r].replaceAll(' ', ''))) {
+      if (r == 1 &&
+          RegExp(r'^[\s|:-]+$').hasMatch(rows[r].replaceAll(' ', ''))) {
         continue; // skip separator
       }
       // also skip classic ---|---
-      if (r == 1 && RegExp(r'^:?-{3,}:?(\s*\|\s*:?-{3,}:?)+$').hasMatch(rows[r].trim().replaceAll(' ', ''))) {
+      if (r == 1 &&
+          RegExp(
+            r'^:?-{3,}:?(\s*\|\s*:?-{3,}:?)+$',
+          ).hasMatch(rows[r].trim().replaceAll(' ', ''))) {
         continue;
       }
       if (r == 1) {
@@ -434,7 +540,9 @@ class MarkdownLite extends StatelessWidget {
       parsed.add(cells(rows[r]));
     }
     if (parsed.isEmpty) return const SizedBox.shrink();
-    final cols = parsed.map((r) => r.length).fold<int>(0, (a, b) => a > b ? a : b);
+    final cols = parsed
+        .map((r) => r.length)
+        .fold<int>(0, (a, b) => a > b ? a : b);
     final border = Theme.of(context).dividerColor.withOpacity(0.45);
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
@@ -451,14 +559,26 @@ class MarkdownLite extends StatelessWidget {
             for (var ri = 0; ri < parsed.length; ri++)
               TableRow(
                 decoration: ri == 0
-                    ? BoxDecoration(color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.55))
+                    ? BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest.withOpacity(0.55),
+                      )
                     : null,
                 children: [
                   for (var ci = 0; ci < cols; ci++)
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       child: SelectableText.rich(
-                        _inline(ci < parsed[ri].length ? parsed[ri][ci] : '', ri == 0 ? base.copyWith(fontWeight: FontWeight.w700) : base),
+                        _inline(
+                          ci < parsed[ri].length ? parsed[ri][ci] : '',
+                          ri == 0
+                              ? base.copyWith(fontWeight: FontWeight.w700)
+                              : base,
+                        ),
                       ),
                     ),
                 ],
@@ -468,8 +588,6 @@ class MarkdownLite extends StatelessWidget {
       ),
     );
   }
-
-
 
   /// Prefix each code line with a dim gutter number (display-only).
   static TextSpan _withLineNumbers(String text, String? lang, TextStyle base) {
@@ -517,7 +635,8 @@ class MarkdownLite extends StatelessWidget {
       }
       final tok = m.group(0)!;
       Color? color;
-      final isHashComment = tok.startsWith('#') &&
+      final isHashComment =
+          tok.startsWith('#') &&
           !(lang ?? '').toLowerCase().startsWith('dart') &&
           !(lang ?? '').toLowerCase().startsWith('c');
       if (tok.startsWith('//') || tok.startsWith('/*') || isHashComment) {
@@ -530,10 +649,12 @@ class MarkdownLite extends StatelessWidget {
       } else if (kw.contains(tok)) {
         color = const Color(0xFF569CD6);
       }
-      spans.add(TextSpan(
-        text: tok,
-        style: color == null ? base : base.copyWith(color: color),
-      ));
+      spans.add(
+        TextSpan(
+          text: tok,
+          style: color == null ? base : base.copyWith(color: color),
+        ),
+      );
       i = m.end;
     }
     if (i < text.length) {
@@ -545,54 +666,156 @@ class MarkdownLite extends StatelessWidget {
   static Set<String> _keywordsFor(String? lang) {
     final l = (lang ?? '').toLowerCase().trim();
     const common = {
-      'if', 'else', 'for', 'while', 'return', 'class', 'true', 'false', 'null',
-      'import', 'from', 'def', 'function', 'const', 'var', 'let', 'new', 'try',
-      'catch', 'throw', 'async', 'await', 'switch', 'case', 'break', 'continue',
-      'void', 'int', 'string', 'bool', 'final', 'static', 'public', 'private',
-      'protected', 'extends', 'implements', 'interface', 'package', 'export',
-      'default', 'this', 'super', 'in', 'of', 'as', 'is', 'with', 'yield',
+      'if',
+      'else',
+      'for',
+      'while',
+      'return',
+      'class',
+      'true',
+      'false',
+      'null',
+      'import',
+      'from',
+      'def',
+      'function',
+      'const',
+      'var',
+      'let',
+      'new',
+      'try',
+      'catch',
+      'throw',
+      'async',
+      'await',
+      'switch',
+      'case',
+      'break',
+      'continue',
+      'void',
+      'int',
+      'string',
+      'bool',
+      'final',
+      'static',
+      'public',
+      'private',
+      'protected',
+      'extends',
+      'implements',
+      'interface',
+      'package',
+      'export',
+      'default',
+      'this',
+      'super',
+      'in',
+      'of',
+      'as',
+      'is',
+      'with',
+      'yield',
     };
     if (l.isEmpty || l == 'text' || l == 'plain') return common;
     if (l == 'dart' || l == 'flutter') {
       return {
         ...common,
-        'widget', 'build', 'override', 'required', 'factory', 'mixin',
-        'typedef', 'enum', 'get', 'set', 'late', 'dynamic', 'abstract',
+        'widget',
+        'build',
+        'override',
+        'required',
+        'factory',
+        'mixin',
+        'typedef',
+        'enum',
+        'get',
+        'set',
+        'late',
+        'dynamic',
+        'abstract',
       };
     }
     if (l == 'py' || l == 'python') {
       return {
         ...common,
-        'None', 'True', 'False', 'and', 'or', 'not', 'lambda', 'pass',
-        'raise', 'except', 'finally', 'elif', 'global', 'nonlocal', 'assert',
+        'None',
+        'True',
+        'False',
+        'and',
+        'or',
+        'not',
+        'lambda',
+        'pass',
+        'raise',
+        'except',
+        'finally',
+        'elif',
+        'global',
+        'nonlocal',
+        'assert',
         'del',
       };
     }
     if (l == 'js' || l == 'ts' || l == 'javascript' || l == 'typescript') {
       return {
         ...common,
-        'typeof', 'instanceof', 'undefined', 'type', 'namespace', 'module',
+        'typeof',
+        'instanceof',
+        'undefined',
+        'type',
+        'namespace',
+        'module',
       };
     }
     if (l == 'go' || l == 'golang') {
       return {
         ...common,
-        'func', 'struct', 'map', 'chan', 'go', 'defer', 'range', 'select',
-        'make', 'nil',
+        'func',
+        'struct',
+        'map',
+        'chan',
+        'go',
+        'defer',
+        'range',
+        'select',
+        'make',
+        'nil',
       };
     }
     if (l == 'rs' || l == 'rust') {
       return {
         ...common,
-        'fn', 'mut', 'impl', 'trait', 'mod', 'use', 'pub', 'crate', 'match',
-        'loop', 'where', 'move', 'ref', 'dyn',
+        'fn',
+        'mut',
+        'impl',
+        'trait',
+        'mod',
+        'use',
+        'pub',
+        'crate',
+        'match',
+        'loop',
+        'where',
+        'move',
+        'ref',
+        'dyn',
       };
     }
     if (l == 'sh' || l == 'bash' || l == 'shell' || l == 'zsh') {
       return {
         ...common,
-        'then', 'fi', 'do', 'done', 'elif', 'esac', 'local', 'echo', 'cd',
-        'pwd', 'exit', 'source',
+        'then',
+        'fi',
+        'do',
+        'done',
+        'elif',
+        'esac',
+        'local',
+        'echo',
+        'cd',
+        'pwd',
+        'exit',
+        'source',
       };
     }
     if (l == 'json') return {'true', 'false', 'null'};
@@ -602,8 +825,8 @@ class MarkdownLite extends StatelessWidget {
   static TextSpan _inline(String text, TextStyle base) {
     final spans = <InlineSpan>[];
     final re = RegExp(
-          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<mark>[^<]+</mark>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<strike>[^<]+</strike>|<br/>|<br>|<wbr/>|<wbr>|<small>[^<]+</small>|<cite>[^<]+</cite>|<q>[^<]+</q>|<var>[^<]+</var>|<samp>[^<]+</samp>|<dfn>[^<]+</dfn>|<em>[^<]+</em>|<strong>[^<]+</strong>|<b>[^<]+</b>|<code>[^<]+</code>|<i>[^<]+</i>|<big>[^<]+</big>|<tt>[^<]+</tt>|<time>[^<]+</time>|<data>[^<]+</data>|<bdi>[^<]+</bdi>|<bdo[^>]*>[^<]+</bdo>|<ruby>[^<]+<rt>[^<]+</rt></ruby>|<ruby>[^<]+</ruby>|<rt>[^<]+</rt>|<rp>[^<]*</rp>|<font[^>]*>[^<]+</font>|<center>[^<]+</center>|<acronym[^>]*>[^<]+</acronym>|<nobr>[^<]+</nobr>|<blink>[^<]+</blink>|<marquee[^>]*>[^<]+</marquee>|<xmp>[^<]+</xmp>|<listing>[^<]+</listing>|<plaintext>[^<]+</plaintext>|<dir>[^<]+</dir>|<menu>[^<]+</menu>|<basefont[^>]*/?>|<isindex[^>]*/?>|<spacer[^>]*>[^<]*</spacer>|<spacer[^>]*/?>|<nextid[^>]*/?>|<keygen[^>]*/?>|<bgsound[^>]*/?>|<multicol[^>]*>[^<]*</multicol>|<multicol[^>]*/?>|<frame[^>]*/?>|<frameset[^>]*>[^<]*</frameset>|<frameset[^>]*/?>|<applet[^>]*>[^<]*</applet>|<applet[^>]*/?>|<noembed[^>]*>[^<]+</noembed>|<noembed[^>]*/?>|<noframes[^>]*>[^<]*</noframes>|<noframes[^>]*/?>|<embed[^>]*/?>|<object[^>]*>[^<]*</object>|<object[^>]*/?>|<param[^>]*/?>|<track[^>]*/?>|<video[^>]*>[^<]*</video>|<video[^>]*/?>|<audio[^>]*>[^<]*</audio>|<audio[^>]*/?>|<picture[^>]*>[^<]*</picture>|<picture[^>]*/?>|<canvas[^>]*>[^<]*</canvas>|<canvas[^>]*/?>|<svg[^>]*>[^<]*</svg>|<svg[^>]*/?>|<math[^>]*>[^<]*</math>|<math[^>]*/?>|<area[^>]*/?>|<iframe[^>]*>[^<]*</iframe>|<iframe[^>]*/?>|<portal[^>]*>[^<]*</portal>|<portal[^>]*/?>|<dialog[^>]*>[^<]*</dialog>|<dialog[^>]*/?>|<template[^>]*>[^<]*</template>|<template[^>]*/?>|<slot[^>]*>[^<]*</slot>|<slot[^>]*/?>|<meter[^>]*>[^<]*</meter>|<meter[^>]*/?>|<progress[^>]*>[^<]*</progress>|<progress[^>]*/?>|<figure[^>]*>[^<]*</figure>|<figure[^>]*/?>|<figcaption[^>]*>[^<]*</figcaption>|<figcaption[^>]*/?>|<map[^>]*>[^<]*</map>|<map[^>]*/?>|<main[^>]*>[^<]*</main>|<main[^>]*/?>|<aside[^>]*>[^<]*</aside>|<aside[^>]*/?>|<nav[^>]*>[^<]*</nav>|<nav[^>]*/?>|<section[^>]*>[^<]*</section>|<section[^>]*/?>|<article[^>]*>[^<]*</article>|<article[^>]*/?>|<header[^>]*>[^<]*</header>|<header[^>]*/?>|<footer[^>]*>[^<]*</footer>|<footer[^>]*/?>|<hgroup[^>]*>[^<]*</hgroup>|<hgroup[^>]*/?>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
-            );
+      r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<mark>[^<]+</mark>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<strike>[^<]+</strike>|<br/>|<br>|<wbr/>|<wbr>|<small>[^<]+</small>|<cite>[^<]+</cite>|<q>[^<]+</q>|<var>[^<]+</var>|<samp>[^<]+</samp>|<dfn>[^<]+</dfn>|<em>[^<]+</em>|<strong>[^<]+</strong>|<b>[^<]+</b>|<code>[^<]+</code>|<i>[^<]+</i>|<big>[^<]+</big>|<tt>[^<]+</tt>|<time>[^<]+</time>|<data>[^<]+</data>|<bdi>[^<]+</bdi>|<bdo[^>]*>[^<]+</bdo>|<ruby>[^<]+<rt>[^<]+</rt></ruby>|<ruby>[^<]+</ruby>|<rt>[^<]+</rt>|<rp>[^<]*</rp>|<font[^>]*>[^<]+</font>|<center>[^<]+</center>|<acronym[^>]*>[^<]+</acronym>|<nobr>[^<]+</nobr>|<blink>[^<]+</blink>|<marquee[^>]*>[^<]+</marquee>|<xmp>[^<]+</xmp>|<listing>[^<]+</listing>|<plaintext>[^<]+</plaintext>|<dir>[^<]+</dir>|<menu>[^<]+</menu>|<basefont[^>]*/?>|<isindex[^>]*/?>|<spacer[^>]*>[^<]*</spacer>|<spacer[^>]*/?>|<nextid[^>]*/?>|<keygen[^>]*/?>|<bgsound[^>]*/?>|<multicol[^>]*>[^<]*</multicol>|<multicol[^>]*/?>|<frame[^>]*/?>|<frameset[^>]*>[^<]*</frameset>|<frameset[^>]*/?>|<applet[^>]*>[^<]*</applet>|<applet[^>]*/?>|<noembed[^>]*>[^<]+</noembed>|<noembed[^>]*/?>|<noframes[^>]*>[^<]*</noframes>|<noframes[^>]*/?>|<embed[^>]*/?>|<object[^>]*>[^<]*</object>|<object[^>]*/?>|<param[^>]*/?>|<track[^>]*/?>|<video[^>]*>[^<]*</video>|<video[^>]*/?>|<audio[^>]*>[^<]*</audio>|<audio[^>]*/?>|<picture[^>]*>[^<]*</picture>|<picture[^>]*/?>|<canvas[^>]*>[^<]*</canvas>|<canvas[^>]*/?>|<svg[^>]*>[^<]*</svg>|<svg[^>]*/?>|<math[^>]*>[^<]*</math>|<math[^>]*/?>|<area[^>]*/?>|<iframe[^>]*>[^<]*</iframe>|<iframe[^>]*/?>|<portal[^>]*>[^<]*</portal>|<portal[^>]*/?>|<dialog[^>]*>[^<]*</dialog>|<dialog[^>]*/?>|<template[^>]*>[^<]*</template>|<template[^>]*/?>|<slot[^>]*>[^<]*</slot>|<slot[^>]*/?>|<meter[^>]*>[^<]*</meter>|<meter[^>]*/?>|<progress[^>]*>[^<]*</progress>|<progress[^>]*/?>|<figure[^>]*>[^<]*</figure>|<figure[^>]*/?>|<figcaption[^>]*>[^<]*</figcaption>|<figcaption[^>]*/?>|<map[^>]*>[^<]*</map>|<map[^>]*/?>|<main[^>]*>[^<]*</main>|<main[^>]*/?>|<aside[^>]*>[^<]*</aside>|<aside[^>]*/?>|<nav[^>]*>[^<]*</nav>|<nav[^>]*/?>|<section[^>]*>[^<]*</section>|<section[^>]*/?>|<article[^>]*>[^<]*</article>|<article[^>]*/?>|<header[^>]*>[^<]*</header>|<header[^>]*/?>|<footer[^>]*>[^<]*</footer>|<footer[^>]*/?>|<hgroup[^>]*>[^<]*</hgroup>|<hgroup[^>]*/?>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
+    );
     var i = 0;
     for (final m in re.allMatches(text)) {
       if (m.start > i) {
@@ -611,122 +834,149 @@ class MarkdownLite extends StatelessWidget {
       }
       final tok = m.group(0)!;
       if (tok.startsWith('~~') && tok.endsWith('~~')) {
-        spans.add(TextSpan(
-          text: tok.substring(2, tok.length - 2),
-          style: base.copyWith(
-            decoration: TextDecoration.lineThrough,
-            color: base.color?.withOpacity(0.65),
+        spans.add(
+          TextSpan(
+            text: tok.substring(2, tok.length - 2),
+            style: base.copyWith(
+              decoration: TextDecoration.lineThrough,
+              color: base.color?.withOpacity(0.65),
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('==') && tok.endsWith('==')) {
-        spans.add(TextSpan(
-          text: tok.substring(2, tok.length - 2),
-          style: base.copyWith(
-            backgroundColor: const Color(0x66FFEB3B),
-            color: base.color,
+        spans.add(
+          TextSpan(
+            text: tok.substring(2, tok.length - 2),
+            style: base.copyWith(
+              backgroundColor: const Color(0x66FFEB3B),
+              color: base.color,
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('||') && tok.endsWith('||') && tok.length > 4) {
-        spans.add(TextSpan(
-          text: tok.substring(2, tok.length - 2),
-          style: base.copyWith(
-            backgroundColor: const Color(0x66000000),
-            color: const Color(0x00000000),
+        spans.add(
+          TextSpan(
+            text: tok.substring(2, tok.length - 2),
+            style: base.copyWith(
+              backgroundColor: const Color(0x66000000),
+              color: const Color(0x00000000),
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<kbd>') && tok.endsWith('</kbd>')) {
         final body = tok.substring(5, tok.length - 6);
-        spans.add(TextSpan(
-          text: ' $body ',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            fontSize: (base.fontSize ?? 14) * 0.9,
-            backgroundColor: const Color(0x22000000),
-            color: base.color,
+        spans.add(
+          TextSpan(
+            text: ' $body ',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              fontSize: (base.fontSize ?? 14) * 0.9,
+              backgroundColor: const Color(0x22000000),
+              color: base.color,
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<sup>') && tok.endsWith('</sup>')) {
         final body = tok.substring(5, tok.length - 6);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontSize: (base.fontSize ?? 14) * 0.75,
-            height: 1.0,
-            color: base.color?.withOpacity(0.9),
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              fontSize: (base.fontSize ?? 14) * 0.75,
+              height: 1.0,
+              color: base.color?.withOpacity(0.9),
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<sub>') && tok.endsWith('</sub>')) {
         final body = tok.substring(5, tok.length - 6);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontSize: (base.fontSize ?? 14) * 0.75,
-            height: 1.2,
-            color: base.color?.withOpacity(0.85),
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              fontSize: (base.fontSize ?? 14) * 0.75,
+              height: 1.2,
+              color: base.color?.withOpacity(0.85),
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<u>') && tok.endsWith('</u>')) {
         final body = tok.substring(3, tok.length - 4);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            decoration: TextDecoration.underline,
-            color: base.color,
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              decoration: TextDecoration.underline,
+              color: base.color,
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<mark>') && tok.endsWith('</mark>')) {
         // HTML mark — same highlight as ==text==
         final body = tok.substring(6, tok.length - 7);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            backgroundColor: const Color(0x66FFEB3B),
-            color: base.color,
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              backgroundColor: const Color(0x66FFEB3B),
+              color: base.color,
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<del>') && tok.endsWith('</del>')) {
         final body = tok.substring(5, tok.length - 6);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            decoration: TextDecoration.lineThrough,
-            color: base.color?.withOpacity(0.7),
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              decoration: TextDecoration.lineThrough,
+              color: base.color?.withOpacity(0.7),
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<ins>') && tok.endsWith('</ins>')) {
         // HTML insert marker
         final body = tok.substring(5, tok.length - 6);
         final prior = base.decoration;
         final deco = prior == null || prior == TextDecoration.none
             ? TextDecoration.underline
-            : TextDecoration.combine(<TextDecoration>[prior, TextDecoration.underline]);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            decoration: deco,
-            color: base.color?.withOpacity(0.95),
+            : TextDecoration.combine(<TextDecoration>[
+                prior,
+                TextDecoration.underline,
+              ]);
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              decoration: deco,
+              color: base.color?.withOpacity(0.95),
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<s>') && tok.endsWith('</s>')) {
         // HTML strike alias of del
         final body = tok.substring(3, tok.length - 4);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            decoration: TextDecoration.lineThrough,
-            color: base.color?.withOpacity(0.7),
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              decoration: TextDecoration.lineThrough,
+              color: base.color?.withOpacity(0.7),
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<strike>') && tok.endsWith('</strike>')) {
         // HTML strike (legacy) alias of del / s
         final body = tok.substring(8, tok.length - 9);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            decoration: TextDecoration.lineThrough,
-            color: base.color?.withOpacity(0.7),
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              decoration: TextDecoration.lineThrough,
+              color: base.color?.withOpacity(0.7),
+            ),
           ),
-        ));
+        );
       } else if (tok == '<br/>' || tok == '<br>') {
         // HTML line break
         spans.add(const TextSpan(text: '\n'));
@@ -735,849 +985,1010 @@ class MarkdownLite extends StatelessWidget {
         spans.add(const TextSpan(text: '\u200B'));
       } else if (tok.startsWith('<small>') && tok.endsWith('</small>')) {
         final body = tok.substring(7, tok.length - 8);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontSize: (base.fontSize ?? 14) * 0.85,
-            color: base.color?.withOpacity(0.85),
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              fontSize: (base.fontSize ?? 14) * 0.85,
+              color: base.color?.withOpacity(0.85),
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<cite>') && tok.endsWith('</cite>')) {
         final body = tok.substring(6, tok.length - 7);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontStyle: FontStyle.italic,
-            color: base.color?.withOpacity(0.85),
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              fontStyle: FontStyle.italic,
+              color: base.color?.withOpacity(0.85),
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<q>') && tok.endsWith('</q>')) {
         final body = tok.substring(3, tok.length - 4);
-        spans.add(TextSpan(
-          text: '“$body”',
-          style: base.copyWith(
-            fontStyle: FontStyle.italic,
+        spans.add(
+          TextSpan(
+            text: '“$body”',
+            style: base.copyWith(fontStyle: FontStyle.italic),
           ),
-        ));
+        );
       } else if (tok.startsWith('<var>') && tok.endsWith('</var>')) {
         // HTML variable / placeholder name
         final body = tok.substring(5, tok.length - 6);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontStyle: FontStyle.italic,
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.88),
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              fontStyle: FontStyle.italic,
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.88),
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<samp>') && tok.endsWith('</samp>')) {
         // HTML sample output
         final body = tok.substring(6, tok.length - 7);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            backgroundColor: base.backgroundColor ?? const Color(0x22000000),
-            color: base.color?.withOpacity(0.9),
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              backgroundColor: base.backgroundColor ?? const Color(0x22000000),
+              color: base.color?.withOpacity(0.9),
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<dfn>') && tok.endsWith('</dfn>')) {
         // HTML definition term
         final body = tok.substring(5, tok.length - 6);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontStyle: FontStyle.italic,
-            fontWeight: FontWeight.w600,
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              fontStyle: FontStyle.italic,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<em>') && tok.endsWith('</em>')) {
         // HTML em alias of *italic*
         final body = tok.substring(4, tok.length - 5);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontStyle: FontStyle.italic,
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(fontStyle: FontStyle.italic),
           ),
-        ));
+        );
       } else if (tok.startsWith('<strong>') && tok.endsWith('</strong>')) {
         // HTML strong alias of **bold**
         final body = tok.substring(8, tok.length - 9);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(fontWeight: FontWeight.w700),
-        ));
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(fontWeight: FontWeight.w700),
+          ),
+        );
       } else if (tok.startsWith('<b>') && tok.endsWith('</b>')) {
         // HTML b alias of **bold**
         final body = tok.substring(3, tok.length - 4);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(fontWeight: FontWeight.w700),
-        ));
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(fontWeight: FontWeight.w700),
+          ),
+        );
       } else if (tok.startsWith('<code>') && tok.endsWith('</code>')) {
         // HTML code alias of `inline code`
         final body = tok.substring(6, tok.length - 7);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            backgroundColor: base.backgroundColor ?? const Color(0x22000000),
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              backgroundColor: base.backgroundColor ?? const Color(0x22000000),
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<i>') && tok.endsWith('</i>')) {
         // HTML i alias of *italic*
         final body = tok.substring(3, tok.length - 4);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontStyle: FontStyle.italic,
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(fontStyle: FontStyle.italic),
           ),
-        ));
+        );
       } else if (tok.startsWith('<big>') && tok.endsWith('</big>')) {
         // HTML big — larger text
         final body = tok.substring(5, tok.length - 6);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontSize: (base.fontSize ?? 14) * 1.15,
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(fontSize: (base.fontSize ?? 14) * 1.15),
           ),
-        ));
+        );
       } else if (tok.startsWith('<tt>') && tok.endsWith('</tt>')) {
         // HTML tt teletype alias of code-ish monospace (no bg required)
         final body = tok.substring(4, tok.length - 5);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontFamily: 'monospace',
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(fontFamily: 'monospace'),
           ),
-        ));
+        );
       } else if (tok.startsWith('<time>') && tok.endsWith('</time>')) {
         // HTML time — semantic datetime display (muted / slightly smaller)
         final body = tok.substring(6, tok.length - 7);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontSize: (base.fontSize ?? 14) * 0.92,
-            color: base.color?.withOpacity(0.75),
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              fontSize: (base.fontSize ?? 14) * 0.92,
+              color: base.color?.withOpacity(0.75),
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<data>') && tok.endsWith('</data>')) {
         // HTML data — machine-readable value (monospace + slight letterSpacing)
         final body = tok.substring(6, tok.length - 7);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            letterSpacing: 0.4,
-            color: base.color?.withOpacity(0.9),
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              letterSpacing: 0.4,
+              color: base.color?.withOpacity(0.9),
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<bdi>') && tok.endsWith('</bdi>')) {
         // HTML bdi — bidirectional isolate (demo: italic + slight letterSpacing)
         final body = tok.substring(5, tok.length - 6);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontStyle: FontStyle.italic,
-            letterSpacing: 0.3,
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              fontStyle: FontStyle.italic,
+              letterSpacing: 0.3,
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<bdo')) {
         // HTML bdo — bidirectional override (may carry dir=); strip tags, show inner text
-        final bodyM = RegExp(r'<bdo[^>]*>([^<]+)</bdo>', caseSensitive: false).firstMatch(tok);
+        final bodyM = RegExp(
+          r'<bdo[^>]*>([^<]+)</bdo>',
+          caseSensitive: false,
+        ).firstMatch(tok);
         final body = bodyM?.group(1) ?? tok;
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.82),
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.82),
+            ),
           ),
-        ));
-      } else if (tok.startsWith('<ruby>') && tok.contains('<rt>') && tok.endsWith('</ruby>')) {
+        );
+      } else if (tok.startsWith('<ruby>') &&
+          tok.contains('<rt>') &&
+          tok.endsWith('</ruby>')) {
         // HTML ruby with annotation: <ruby>BASE<rt>ANNO</rt></ruby>
-        final rm = RegExp(r'<ruby>([^<]+)<rt>([^<]+)</rt></ruby>').firstMatch(tok);
+        final rm = RegExp(
+          r'<ruby>([^<]+)<rt>([^<]+)</rt></ruby>',
+        ).firstMatch(tok);
         final baseText = rm?.group(1) ?? tok;
         final anno = rm?.group(2) ?? '';
-        spans.add(TextSpan(
-          text: baseText,
-          style: base.copyWith(
-            letterSpacing: 0.3,
-          ),
-        ));
+        spans.add(
+          TextSpan(text: baseText, style: base.copyWith(letterSpacing: 0.3)),
+        );
         if (anno.isNotEmpty) {
-          spans.add(TextSpan(
-            text: anno,
+          spans.add(
+            TextSpan(
+              text: anno,
+              style: base.copyWith(
+                fontSize: (base.fontSize ?? 14) * 0.75,
+                color: base.color?.withOpacity(0.7),
+                height: 1.0,
+              ),
+            ),
+          );
+        }
+      } else if (tok.startsWith('<ruby>') && tok.endsWith('</ruby>')) {
+        // HTML ruby base-only fallback
+        final body = tok.substring(6, tok.length - 7);
+        spans.add(
+          TextSpan(text: body, style: base.copyWith(letterSpacing: 0.3)),
+        );
+      } else if (tok.startsWith('<rt>') && tok.endsWith('</rt>')) {
+        // HTML rt — ruby annotation / smaller muted text
+        final body = tok.substring(4, tok.length - 5);
+        spans.add(
+          TextSpan(
+            text: body,
             style: base.copyWith(
               fontSize: (base.fontSize ?? 14) * 0.75,
               color: base.color?.withOpacity(0.7),
               height: 1.0,
             ),
-          ));
-        }
-      } else if (tok.startsWith('<ruby>') && tok.endsWith('</ruby>')) {
-        // HTML ruby base-only fallback
-        final body = tok.substring(6, tok.length - 7);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            letterSpacing: 0.3,
           ),
-        ));
-      } else if (tok.startsWith('<rt>') && tok.endsWith('</rt>')) {
-        // HTML rt — ruby annotation / smaller muted text
-        final body = tok.substring(4, tok.length - 5);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontSize: (base.fontSize ?? 14) * 0.75,
-            color: base.color?.withOpacity(0.7),
-            height: 1.0,
-          ),
-        ));
+        );
       } else if (tok.startsWith('<rp>') && tok.endsWith('</rp>')) {
         // HTML rp — ruby parenthesis fallback (often empty-ish); muted smaller
         final body = tok.substring(4, tok.length - 5);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontSize: (base.fontSize ?? 14) * 0.85,
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              fontSize: (base.fontSize ?? 14) * 0.85,
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<font')) {
         // HTML font — attr-tolerant; optional color=#RRGGBB; else slight opacity
-        final bodyM = RegExp(r'<font[^>]*>([^<]+)</font>', caseSensitive: false).firstMatch(tok);
+        final bodyM = RegExp(
+          r'<font[^>]*>([^<]+)</font>',
+          caseSensitive: false,
+        ).firstMatch(tok);
         final body = bodyM?.group(1) ?? tok;
-        final colorM = RegExp(r'color\s*=\s*#([0-9A-Fa-f]{6})', caseSensitive: false).firstMatch(tok);
+        final colorM = RegExp(
+          r'color\s*=\s*#([0-9A-Fa-f]{6})',
+          caseSensitive: false,
+        ).firstMatch(tok);
         Color? fontColor;
         if (colorM != null) {
           final v = int.tryParse(colorM.group(1)!, radix: 16);
           if (v != null) fontColor = Color(0xFF000000 | v);
         }
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            color: fontColor ?? base.color?.withOpacity(0.88),
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              color: fontColor ?? base.color?.withOpacity(0.88),
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<center>') && tok.endsWith('</center>')) {
         // HTML center lite — TextAlign not on TextSpan; letterSpacing 0.2 demo
         final body = tok.substring(8, tok.length - 9);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            letterSpacing: 0.2,
-            color: base.color?.withOpacity(0.92),
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              letterSpacing: 0.2,
+              color: base.color?.withOpacity(0.92),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<acronym')) {
         // HTML acronym — abbr peer; title optional; small-caps-ish w600 + letterSpacing
-        final titleM = RegExp(r'title="([^"]*)"', caseSensitive: false).firstMatch(tok);
-        final titleM2 = RegExp(r"title='([^']*)'", caseSensitive: false).firstMatch(tok);
-        final bodyM = RegExp(r'<acronym[^>]*>([^<]+)</acronym>', caseSensitive: false).firstMatch(tok);
+        final titleM = RegExp(
+          r'title="([^"]*)"',
+          caseSensitive: false,
+        ).firstMatch(tok);
+        final titleM2 = RegExp(
+          r"title='([^']*)'",
+          caseSensitive: false,
+        ).firstMatch(tok);
+        final bodyM = RegExp(
+          r'<acronym[^>]*>([^<]+)</acronym>',
+          caseSensitive: false,
+        ).firstMatch(tok);
         final body = bodyM?.group(1) ?? tok;
         final title = titleM?.group(1) ?? titleM2?.group(1) ?? '';
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-            decoration: TextDecoration.underline,
-            decorationStyle: TextDecorationStyle.dotted,
-            color: base.color,
-          ),
-        ));
-        if (title.isNotEmpty) {
-          spans.add(TextSpan(
-            text: ' ($title)',
+        spans.add(
+          TextSpan(
+            text: body,
             style: base.copyWith(
-              fontSize: (base.fontSize ?? 14) * 0.8,
-              color: base.color?.withOpacity(0.65),
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+              decoration: TextDecoration.underline,
+              decorationStyle: TextDecorationStyle.dotted,
+              color: base.color,
             ),
-          ));
+          ),
+        );
+        if (title.isNotEmpty) {
+          spans.add(
+            TextSpan(
+              text: ' ($title)',
+              style: base.copyWith(
+                fontSize: (base.fontSize ?? 14) * 0.8,
+                color: base.color?.withOpacity(0.65),
+              ),
+            ),
+          );
         }
       } else if (tok.startsWith('<nobr>') && tok.endsWith('</nobr>')) {
         // HTML nobr lite — no soft-wrap control on TextSpan; letterSpacing 0.1 keep-together demo
         final body = tok.substring(6, tok.length - 7);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            letterSpacing: 0.1,
-          ),
-        ));
+        spans.add(
+          TextSpan(text: body, style: base.copyWith(letterSpacing: 0.1)),
+        );
       } else if (tok.startsWith('<blink>') && tok.endsWith('</blink>')) {
         // HTML blink lite — static opacity demo (no animation)
         final body = tok.substring(7, tok.length - 8);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(color: base.color?.withOpacity(0.55)),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<marquee')) {
         // HTML marquee lite — attr-tolerant; italic + letterSpacing scroll-ish demo
-        final bodyM = RegExp(r'<marquee[^>]*>([^<]+)</marquee>', caseSensitive: false).firstMatch(tok);
+        final bodyM = RegExp(
+          r'<marquee[^>]*>([^<]+)</marquee>',
+          caseSensitive: false,
+        ).firstMatch(tok);
         final body = bodyM?.group(1) ?? tok;
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontStyle: FontStyle.italic,
-            letterSpacing: 0.6,
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              fontStyle: FontStyle.italic,
+              letterSpacing: 0.6,
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<xmp>') && tok.endsWith('</xmp>')) {
         // HTML xmp — legacy pre-like monospace demo (single-line body)
         final body = tok.substring(5, tok.length - 6);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            fontSize: (base.fontSize ?? 14) * 0.92,
-            color: base.color?.withOpacity(0.88),
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              fontSize: (base.fontSize ?? 14) * 0.92,
+              color: base.color?.withOpacity(0.88),
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<listing>') && tok.endsWith('</listing>')) {
         // HTML listing — legacy pre-like monospace demo (single-line body)
         final body = tok.substring(9, tok.length - 10);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            fontSize: (base.fontSize ?? 14) * 0.92,
-            color: base.color?.withOpacity(0.88),
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              fontSize: (base.fontSize ?? 14) * 0.92,
+              color: base.color?.withOpacity(0.88),
+            ),
           ),
-        ));
-      } else if (tok.startsWith('<plaintext>') && tok.endsWith('</plaintext>')) {
+        );
+      } else if (tok.startsWith('<plaintext>') &&
+          tok.endsWith('</plaintext>')) {
         // HTML plaintext — legacy pre-like monospace demo (single-line body)
         final body = tok.substring(11, tok.length - 12);
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.9),
+        spans.add(
+          TextSpan(
+            text: body,
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.9),
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<dir>') && tok.endsWith('</dir>')) {
         // HTML dir — legacy list-like demo
         final body = tok.substring(5, tok.length - 6);
-        spans.add(TextSpan(
-          text: '• $body',
-          style: base.copyWith(
-            fontSize: (base.fontSize ?? 14) * 0.95,
-            color: base.color?.withOpacity(0.9),
+        spans.add(
+          TextSpan(
+            text: '• $body',
+            style: base.copyWith(
+              fontSize: (base.fontSize ?? 14) * 0.95,
+              color: base.color?.withOpacity(0.9),
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('<menu>') && tok.endsWith('</menu>')) {
         // HTML menu — legacy list-like demo
         final body = tok.substring(6, tok.length - 7);
-        spans.add(TextSpan(
-          text: '• $body',
-          style: base.copyWith(
-            fontSize: (base.fontSize ?? 14) * 0.95,
-            color: base.color?.withOpacity(0.9),
+        spans.add(
+          TextSpan(
+            text: '• $body',
+            style: base.copyWith(
+              fontSize: (base.fontSize ?? 14) * 0.95,
+              color: base.color?.withOpacity(0.9),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<basefont')) {
         // HTML basefont lite — void-ish; size=N → fontSize*0.9 demo; else letterSpacing
-        final sizeM = RegExp(r'size\s*=\s*(\d+)', caseSensitive: false).firstMatch(tok);
+        final sizeM = RegExp(
+          r'size\s*=\s*(\d+)',
+          caseSensitive: false,
+        ).firstMatch(tok);
         if (sizeM != null) {
-          spans.add(TextSpan(
-            text: '\u200B',
-            style: base.copyWith(
-              fontSize: (base.fontSize ?? 14) * 0.9,
+          spans.add(
+            TextSpan(
+              text: '\u200B',
+              style: base.copyWith(fontSize: (base.fontSize ?? 14) * 0.9),
             ),
-          ));
+          );
         } else {
-          spans.add(TextSpan(
-            text: '\u200B',
-            style: base.copyWith(
-              letterSpacing: 0.2,
-            ),
-          ));
+          spans.add(
+            TextSpan(text: '\u200B', style: base.copyWith(letterSpacing: 0.2)),
+          );
         }
       } else if (tok.toLowerCase().startsWith('<isindex')) {
         // HTML isindex lite — void-ish legacy search prompt demo
-        spans.add(TextSpan(
-          text: '[search]',
-          style: base.copyWith(
-            color: base.color?.withOpacity(0.5),
-            letterSpacing: 0.5,
+        spans.add(
+          TextSpan(
+            text: '[search]',
+            style: base.copyWith(
+              color: base.color?.withOpacity(0.5),
+              letterSpacing: 0.5,
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<spacer')) {
         // HTML spacer lite — void-ish or body; size=N → em-spaces, else two spaces
-        final sizeM = RegExp(r'size\s*=\s*(\d+)', caseSensitive: false).firstMatch(tok);
+        final sizeM = RegExp(
+          r'size\s*=\s*(\d+)',
+          caseSensitive: false,
+        ).firstMatch(tok);
         final n = int.tryParse(sizeM?.group(1) ?? '') ?? 2;
         final count = n.clamp(1, 32);
-        spans.add(TextSpan(
-          text: List.filled(count, '\u2003').join(),
-          style: base,
-        ));
+        spans.add(
+          TextSpan(text: List.filled(count, '\u2003').join(), style: base),
+        );
       } else if (tok.toLowerCase().startsWith('<nextid')) {
         // HTML nextid lite — void-ish legacy id counter demo
-        spans.add(TextSpan(
-          text: '#id',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '#id',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<keygen')) {
         // HTML keygen lite — void-ish legacy key pair demo
-        spans.add(TextSpan(
-          text: '[key]',
-          style: base.copyWith(
-            color: base.color?.withOpacity(0.55),
-            letterSpacing: 0.5,
+        spans.add(
+          TextSpan(
+            text: '[key]',
+            style: base.copyWith(
+              color: base.color?.withOpacity(0.55),
+              letterSpacing: 0.5,
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<bgsound')) {
         // HTML bgsound lite — void-ish legacy background sound demo
-        spans.add(TextSpan(
-          text: '[♪]',
-          style: base.copyWith(
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[♪]',
+            style: base.copyWith(color: base.color?.withOpacity(0.55)),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<multicol')) {
         // HTML multicol lite — closed body letterSpacing demo, or void ZWSP
-        final bodyM = RegExp(r'<multicol[^>]*>([^<]*)</multicol>', caseSensitive: false).firstMatch(tok);
+        final bodyM = RegExp(
+          r'<multicol[^>]*>([^<]*)</multicol>',
+          caseSensitive: false,
+        ).firstMatch(tok);
         if (bodyM != null) {
-          spans.add(TextSpan(
-            text: bodyM.group(1) ?? '',
-            style: base.copyWith(
-              letterSpacing: 0.35,
+          spans.add(
+            TextSpan(
+              text: bodyM.group(1) ?? '',
+              style: base.copyWith(letterSpacing: 0.35),
             ),
-          ));
+          );
         } else {
-          spans.add(TextSpan(
-            text: '\u200B',
-            style: base.copyWith(
-              letterSpacing: 0.35,
-            ),
-          ));
+          spans.add(
+            TextSpan(text: '\u200B', style: base.copyWith(letterSpacing: 0.35)),
+          );
         }
       } else if (tok.toLowerCase().startsWith('<frameset')) {
         // HTML frameset lite — void-ish / closed legacy frames container demo
-        spans.add(TextSpan(
-          text: '[frames]',
-          style: base.copyWith(
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[frames]',
+            style: base.copyWith(color: base.color?.withOpacity(0.55)),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<frame')) {
         // HTML frame lite — void-ish legacy frameset child demo
-        spans.add(TextSpan(
-          text: '[frame]',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[frame]',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<applet')) {
         // HTML applet lite — void-ish / closed legacy applet demo
-        spans.add(TextSpan(
-          text: '[app]',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[app]',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<noembed')) {
         // HTML noembed lite — closed body or void fallback demo
-        final bodyNe = RegExp(r'<noembed[^>]*>([^<]+)</noembed>', caseSensitive: false).firstMatch(tok);
+        final bodyNe = RegExp(
+          r'<noembed[^>]*>([^<]+)</noembed>',
+          caseSensitive: false,
+        ).firstMatch(tok);
         if (bodyNe != null) {
-          spans.add(TextSpan(
-            text: bodyNe.group(1) ?? '',
-            style: base.copyWith(
-              color: base.color?.withOpacity(0.7),
+          spans.add(
+            TextSpan(
+              text: bodyNe.group(1) ?? '',
+              style: base.copyWith(color: base.color?.withOpacity(0.7)),
             ),
-          ));
+          );
         } else {
-          spans.add(TextSpan(
-            text: '[noembed]',
-            style: base.copyWith(
-              color: base.color?.withOpacity(0.7),
+          spans.add(
+            TextSpan(
+              text: '[noembed]',
+              style: base.copyWith(color: base.color?.withOpacity(0.7)),
             ),
-          ));
+          );
         }
       } else if (tok.toLowerCase().startsWith('<noframes')) {
         // HTML noframes lite — closed body opacity demo, or muted fallback
-        final bodyNf = RegExp(r'<noframes[^>]*>([^<]*)</noframes>', caseSensitive: false).firstMatch(tok);
+        final bodyNf = RegExp(
+          r'<noframes[^>]*>([^<]*)</noframes>',
+          caseSensitive: false,
+        ).firstMatch(tok);
         if (bodyNf != null) {
-          spans.add(TextSpan(
-            text: bodyNf.group(1) ?? '',
-            style: base.copyWith(
-              color: base.color?.withOpacity(0.7),
+          spans.add(
+            TextSpan(
+              text: bodyNf.group(1) ?? '',
+              style: base.copyWith(color: base.color?.withOpacity(0.7)),
             ),
-          ));
+          );
         } else {
-          spans.add(TextSpan(
-            text: '[noframes]',
-            style: base.copyWith(
-              color: base.color?.withOpacity(0.7),
+          spans.add(
+            TextSpan(
+              text: '[noframes]',
+              style: base.copyWith(color: base.color?.withOpacity(0.7)),
             ),
-          ));
+          );
         }
       } else if (tok.toLowerCase().startsWith('<embed')) {
         // HTML embed lite — void-ish legacy plugin demo
-        spans.add(TextSpan(
-          text: '[embed]',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[embed]',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<object')) {
         // HTML object lite — closed / void-ish legacy object demo
-        spans.add(TextSpan(
-          text: '[obj]',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[obj]',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<param')) {
         // HTML param lite — void-ish legacy object param demo
-        spans.add(TextSpan(
-          text: '[param]',
-          style: base.copyWith(
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[param]',
+            style: base.copyWith(color: base.color?.withOpacity(0.55)),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<video')) {
         // HTML video lite — closed / void-ish media demo
-        spans.add(TextSpan(
-          text: '[video]',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[video]',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<track')) {
         // HTML track lite — void-ish media track demo
-        spans.add(TextSpan(
-          text: '[track]',
-          style: base.copyWith(
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[track]',
+            style: base.copyWith(color: base.color?.withOpacity(0.55)),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<audio')) {
         // HTML audio lite — closed / void-ish media demo
-        spans.add(TextSpan(
-          text: '[audio]',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[audio]',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<picture')) {
         // HTML picture lite — closed / void-ish media demo
-        spans.add(TextSpan(
-          text: '[pic]',
-          style: base.copyWith(
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[pic]',
+            style: base.copyWith(color: base.color?.withOpacity(0.55)),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<canvas')) {
         // HTML canvas lite — closed / void-ish canvas demo
-        spans.add(TextSpan(
-          text: '[canvas]',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[canvas]',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<svg')) {
         // HTML svg lite — closed / void-ish svg demo
-        spans.add(TextSpan(
-          text: '[svg]',
-          style: base.copyWith(
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[svg]',
+            style: base.copyWith(color: base.color?.withOpacity(0.55)),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<math')) {
         // HTML math lite — closed / void-ish math demo
-        spans.add(TextSpan(
-          text: '[math]',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[math]',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<area')) {
         // HTML area lite — void-ish image-map area demo
-        spans.add(TextSpan(
-          text: '[area]',
-          style: base.copyWith(
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[area]',
+            style: base.copyWith(color: base.color?.withOpacity(0.55)),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<iframe')) {
         // HTML iframe lite — closed / void-ish iframe demo
-        spans.add(TextSpan(
-          text: '[iframe]',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[iframe]',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<portal')) {
         // HTML portal lite — closed / void-ish portal demo
-        spans.add(TextSpan(
-          text: '[portal]',
-          style: base.copyWith(
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[portal]',
+            style: base.copyWith(color: base.color?.withOpacity(0.55)),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<dialog')) {
         // HTML dialog lite — closed / void-ish dialog demo
-        spans.add(TextSpan(
-          text: '[dialog]',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[dialog]',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<template')) {
         // HTML template lite — closed / void-ish template demo
-        spans.add(TextSpan(
-          text: '[tmpl]',
-          style: base.copyWith(
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[tmpl]',
+            style: base.copyWith(color: base.color?.withOpacity(0.55)),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<slot')) {
         // HTML slot lite — closed / void-ish slot demo
-        spans.add(TextSpan(
-          text: '[slot]',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[slot]',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<meter')) {
         // HTML meter lite — closed / void-ish meter demo
-        spans.add(TextSpan(
-          text: '[meter]',
-          style: base.copyWith(
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[meter]',
+            style: base.copyWith(color: base.color?.withOpacity(0.55)),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<progress')) {
         // HTML progress lite — closed / void-ish progress demo
-        spans.add(TextSpan(
-          text: '[progress]',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[progress]',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<figure')) {
         // HTML figure lite — closed / void-ish figure demo
-        spans.add(TextSpan(
-          text: '[figure]',
-          style: base.copyWith(
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[figure]',
+            style: base.copyWith(color: base.color?.withOpacity(0.55)),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<figcaption')) {
         // HTML figcaption — muted demo label
-        spans.add(TextSpan(
-          text: '[figcaption]',
-          style: base.copyWith(
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[figcaption]',
+            style: base.copyWith(color: base.color?.withOpacity(0.55)),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<map')) {
         // HTML map — monospace muted demo label
-        spans.add(TextSpan(
-          text: '[map]',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[map]',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<main')) {
         // HTML main — monospace muted demo label
-        spans.add(TextSpan(
-          text: '[main]',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[main]',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<aside')) {
         // HTML aside — monospace muted demo label
-        spans.add(TextSpan(
-          text: '[aside]',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[aside]',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<nav')) {
         // HTML nav — monospace muted demo label
-        spans.add(TextSpan(
-          text: '[nav]',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[nav]',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<section')) {
         // HTML section — monospace muted demo label
-        spans.add(TextSpan(
-          text: '[section]',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[section]',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<article')) {
         // HTML article — monospace muted demo label
-        spans.add(TextSpan(
-          text: '[article]',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[article]',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<header')) {
         // HTML header — monospace muted demo label
-        spans.add(TextSpan(
-          text: '[header]',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[header]',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<footer')) {
         // HTML footer — muted demo label
-        spans.add(TextSpan(
-          text: '[footer]',
-          style: base.copyWith(
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[footer]',
+            style: base.copyWith(color: base.color?.withOpacity(0.55)),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<hgroup')) {
         // HTML hgroup — monospace muted demo label
-        spans.add(TextSpan(
-          text: '[hgroup]',
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            color: base.color?.withOpacity(0.55),
+        spans.add(
+          TextSpan(
+            text: '[hgroup]',
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              color: base.color?.withOpacity(0.55),
+            ),
           ),
-        ));
+        );
       } else if (tok.toLowerCase().startsWith('<abbr')) {
-        final titleM = RegExp(r'title="([^"]*)"', caseSensitive: false).firstMatch(tok);
-        final titleM2 = RegExp(r"title='([^']*)'", caseSensitive: false).firstMatch(tok);
-        final bodyM = RegExp(r'<abbr[^>]*>([^<]+)</abbr>', caseSensitive: false).firstMatch(tok);
+        final titleM = RegExp(
+          r'title="([^"]*)"',
+          caseSensitive: false,
+        ).firstMatch(tok);
+        final titleM2 = RegExp(
+          r"title='([^']*)'",
+          caseSensitive: false,
+        ).firstMatch(tok);
+        final bodyM = RegExp(
+          r'<abbr[^>]*>([^<]+)</abbr>',
+          caseSensitive: false,
+        ).firstMatch(tok);
         final body = bodyM?.group(1) ?? tok;
         final title = titleM?.group(1) ?? titleM2?.group(1) ?? '';
-        spans.add(TextSpan(
-          text: body,
-          style: base.copyWith(
-            decoration: TextDecoration.underline,
-            decorationStyle: TextDecorationStyle.dotted,
-            color: base.color,
-          ),
-        ));
-        if (title.isNotEmpty) {
-          spans.add(TextSpan(
-            text: ' ($title)',
+        spans.add(
+          TextSpan(
+            text: body,
             style: base.copyWith(
-              fontSize: (base.fontSize ?? 14) * 0.8,
-              color: base.color?.withOpacity(0.65),
+              decoration: TextDecoration.underline,
+              decorationStyle: TextDecorationStyle.dotted,
+              color: base.color,
             ),
-          ));
+          ),
+        );
+        if (title.isNotEmpty) {
+          spans.add(
+            TextSpan(
+              text: ' ($title)',
+              style: base.copyWith(
+                fontSize: (base.fontSize ?? 14) * 0.8,
+                color: base.color?.withOpacity(0.65),
+              ),
+            ),
+          );
         }
       } else if (tok.startsWith('`') && tok.endsWith('`')) {
-        spans.add(TextSpan(
-          text: tok.substring(1, tok.length - 1),
-          style: base.copyWith(
-            fontFamily: 'monospace',
-            backgroundColor: base.backgroundColor ?? const Color(0x22000000),
+        spans.add(
+          TextSpan(
+            text: tok.substring(1, tok.length - 1),
+            style: base.copyWith(
+              fontFamily: 'monospace',
+              backgroundColor: base.backgroundColor ?? const Color(0x22000000),
+            ),
           ),
-        ));
-      } else if (tok.startsWith('***') && tok.endsWith('***') && tok.length > 6) {
+        );
+      } else if (tok.startsWith('***') &&
+          tok.endsWith('***') &&
+          tok.length > 6) {
         // bold-italic — must be checked before **
-        spans.add(TextSpan(
-          text: tok.substring(3, tok.length - 3),
-          style: base.copyWith(
-            fontWeight: FontWeight.w700,
-            fontStyle: FontStyle.italic,
+        spans.add(
+          TextSpan(
+            text: tok.substring(3, tok.length - 3),
+            style: base.copyWith(
+              fontWeight: FontWeight.w700,
+              fontStyle: FontStyle.italic,
+            ),
           ),
-        ));
-      } else if ((tok.startsWith('**') && tok.endsWith('**')) || (tok.startsWith('__') && tok.endsWith('__'))) {
-        spans.add(TextSpan(
-          text: tok.substring(2, tok.length - 2),
-          style: base.copyWith(fontWeight: FontWeight.w700),
-        ));
-      } else if ((tok.startsWith('*') && tok.endsWith('*')) || (tok.startsWith('_') && tok.endsWith('_'))) {
-        spans.add(TextSpan(
-          text: tok.substring(1, tok.length - 1),
-          style: base.copyWith(fontStyle: FontStyle.italic),
-        ));
+        );
+      } else if ((tok.startsWith('**') && tok.endsWith('**')) ||
+          (tok.startsWith('__') && tok.endsWith('__'))) {
+        spans.add(
+          TextSpan(
+            text: tok.substring(2, tok.length - 2),
+            style: base.copyWith(fontWeight: FontWeight.w700),
+          ),
+        );
+      } else if ((tok.startsWith('*') && tok.endsWith('*')) ||
+          (tok.startsWith('_') && tok.endsWith('_'))) {
+        spans.add(
+          TextSpan(
+            text: tok.substring(1, tok.length - 1),
+            style: base.copyWith(fontStyle: FontStyle.italic),
+          ),
+        );
       } else if (tok.startsWith('![')) {
         final im = RegExp(r'!\[([^\]]*)\]\(([^)]+)\)').firstMatch(tok);
         final rawAlt = im?.group(1) ?? '';
         final alt = rawAlt.isEmpty ? 'image' : rawAlt;
         final url = im?.group(2) ?? '';
         // Console-safe: no network fetch / no file_picker; show alt + path only.
-        spans.add(TextSpan(
-          text: '🖼 $alt',
-          style: base.copyWith(
-            color: Colors.tealAccent.shade200,
-            fontFamily: 'monospace',
-            fontSize: (base.fontSize ?? 14) * 0.95,
-          ),
-        ));
-        if (url.isNotEmpty) {
-          spans.add(TextSpan(
-            text: ' ($url)',
+        spans.add(
+          TextSpan(
+            text: '🖼 $alt',
             style: base.copyWith(
-              color: base.color?.withOpacity(0.55),
-              fontSize: (base.fontSize ?? 14) * 0.85,
+              color: Colors.tealAccent.shade200,
               fontFamily: 'monospace',
+              fontSize: (base.fontSize ?? 14) * 0.95,
             ),
-          ));
+          ),
+        );
+        if (url.isNotEmpty) {
+          spans.add(
+            TextSpan(
+              text: ' ($url)',
+              style: base.copyWith(
+                color: base.color?.withOpacity(0.55),
+                fontSize: (base.fontSize ?? 14) * 0.85,
+                fontFamily: 'monospace',
+              ),
+            ),
+          );
         }
       } else if (tok.startsWith('[^') && tok.endsWith(']')) {
         final label = tok.substring(2, tok.length - 1);
-        spans.add(TextSpan(
-          text: '[$label]',
-          style: base.copyWith(
-            fontSize: (base.fontSize ?? 14) * 0.75,
-            color: Colors.lightBlue,
-            fontWeight: FontWeight.w700,
+        spans.add(
+          TextSpan(
+            text: '[$label]',
+            style: base.copyWith(
+              fontSize: (base.fontSize ?? 14) * 0.75,
+              color: Colors.lightBlue,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-        ));
+        );
       } else if (tok.startsWith('[')) {
         final lm = RegExp(r'\[([^\]]+)\]\(([^)]+)\)').firstMatch(tok);
         final label = lm?.group(1) ?? tok;
         final url = lm?.group(2) ?? '';
-        spans.add(TextSpan(
-          text: label,
-          style: base.copyWith(
-            color: Colors.lightBlue,
-            decoration: TextDecoration.underline,
-          ),
-        ));
-        if (url.isNotEmpty) {
-          spans.add(TextSpan(
-            text: ' ↗',
-            style: base.copyWith(color: Colors.lightBlue.withOpacity(0.7), fontSize: (base.fontSize ?? 14) * 0.85),
-          ));
-          // Keep URL as copyable plain trailing text (console-safe; no url_launcher dep).
-          spans.add(TextSpan(
-            text: ' ($url)',
+        spans.add(
+          TextSpan(
+            text: label,
             style: base.copyWith(
-              color: base.color?.withOpacity(0.55),
-              fontSize: (base.fontSize ?? 14) * 0.85,
-              fontFamily: 'monospace',
+              color: Colors.lightBlue,
+              decoration: TextDecoration.underline,
             ),
-          ));
+          ),
+        );
+        if (url.isNotEmpty) {
+          spans.add(
+            TextSpan(
+              text: ' ↗',
+              style: base.copyWith(
+                color: Colors.lightBlue.withOpacity(0.7),
+                fontSize: (base.fontSize ?? 14) * 0.85,
+              ),
+            ),
+          );
+          // Keep URL as copyable plain trailing text (console-safe; no url_launcher dep).
+          spans.add(
+            TextSpan(
+              text: ' ($url)',
+              style: base.copyWith(
+                color: base.color?.withOpacity(0.55),
+                fontSize: (base.fontSize ?? 14) * 0.85,
+                fontFamily: 'monospace',
+              ),
+            ),
+          );
         }
       } else if (tok.startsWith('http://') || tok.startsWith('https://')) {
         // Bare URL autolink — console-safe (no url_launcher); show + keep copyable.
@@ -1585,15 +1996,17 @@ class MarkdownLite extends StatelessWidget {
         while (url.isNotEmpty && '.,;:!?'.contains(url[url.length - 1])) {
           url = url.substring(0, url.length - 1);
         }
-        spans.add(TextSpan(
-          text: url,
-          style: base.copyWith(
-            color: Colors.lightBlue,
-            decoration: TextDecoration.underline,
-            fontFamily: 'monospace',
-            fontSize: (base.fontSize ?? 14) * 0.95,
+        spans.add(
+          TextSpan(
+            text: url,
+            style: base.copyWith(
+              color: Colors.lightBlue,
+              decoration: TextDecoration.underline,
+              fontFamily: 'monospace',
+              fontSize: (base.fontSize ?? 14) * 0.95,
+            ),
           ),
-        ));
+        );
         if (url.length < tok.length) {
           spans.add(TextSpan(text: tok.substring(url.length), style: base));
         }
@@ -1609,7 +2022,25 @@ class MarkdownLite extends StatelessWidget {
   }
 }
 
-enum _BlockKind { para, h1, h2, h3, h4, h5, h6, list, task, code, quote, callout, blank, hr, table, details, footnote }
+enum _BlockKind {
+  para,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  list,
+  task,
+  code,
+  quote,
+  callout,
+  blank,
+  hr,
+  table,
+  details,
+  footnote,
+}
 
 class _Block {
   const _Block(this.kind, this.text, {this.lang, this.checked, this.marker});
@@ -1617,6 +2048,7 @@ class _Block {
   final String text;
   final String? lang;
   final bool? checked;
+
   /// Bullet "• " or ordered "1. " etc.
   final String? marker;
 }

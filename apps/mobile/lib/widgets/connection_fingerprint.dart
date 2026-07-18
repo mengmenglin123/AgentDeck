@@ -94,9 +94,16 @@ class _FingerprintPainter extends CustomPainter {
       for (var c = 0; c < cells; c++) {
         final i = r * cells + c;
         if (i >= bits.length || !bits[i]) continue;
-        final rect = Rect.fromLTWH(c * cell + 1, r * cell + 1, cell - 2, cell - 2);
+        final rect = Rect.fromLTWH(
+          c * cell + 1,
+          r * cell + 1,
+          cell - 2,
+          cell - 2,
+        );
         final corner =
-            (r < 3 && c < 3) || (r < 3 && c >= cells - 3) || (r >= cells - 3 && c < 3);
+            (r < 3 && c < 3) ||
+            (r < 3 && c >= cells - 3) ||
+            (r >= cells - 3 && c < 3);
         canvas.drawRRect(
           RRect.fromRectAndRadius(rect, const Radius.circular(2)),
           corner ? accentPaint : fgPaint,

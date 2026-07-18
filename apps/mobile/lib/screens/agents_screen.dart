@@ -29,13 +29,17 @@ class _AgentsScreenState extends State<AgentsScreen> {
   String _query = '';
   bool _queryCase = false;
   bool _queryRegex = false;
+
   /// all | agents | platforms | projects
   String _section = 'all';
   String _statusFilter = '';
+
   /// Adapter filter: '' | mock | hermes | claude | codex | other
   String _adapter = '';
+
   /// Model filter: '' | gpt | claude | codex | gemini | other
   String _model = '';
+
   /// Platform filter: '' | telegram | discord | slack | feishu | other
   String _platform = '';
   bool _wrapLines = false;
@@ -60,8 +64,8 @@ class _AgentsScreenState extends State<AgentsScreen> {
   void initState() {
     super.initState();
     _load();
-      WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
-}
+    WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
+  }
 
   @override
   void dispose() {
@@ -80,9 +84,12 @@ class _AgentsScreenState extends State<AgentsScreen> {
       final data = await _mgmt.agents();
       final projects = await _mgmt.projects();
       setState(() {
-        _agents = (data['agents'] is List) ? List<dynamic>.from(data['agents'] as List) : [];
-        _platforms =
-            (data['platforms'] is List) ? List<dynamic>.from(data['platforms'] as List) : [];
+        _agents = (data['agents'] is List)
+            ? List<dynamic>.from(data['agents'] as List)
+            : [];
+        _platforms = (data['platforms'] is List)
+            ? List<dynamic>.from(data['platforms'] as List)
+            : [];
         _projects = projects
             .map(
               (p) => {
@@ -114,7 +121,18 @@ class _AgentsScreenState extends State<AgentsScreen> {
   String _agentSub(dynamic a) {
     if (a is Map) {
       final parts = <String>[];
-      for (final k in ['type', 'agent_type', 'status', 'model', 'provider', 'adapter', 'process', 'description', 'version', 'note']) {
+      for (final k in [
+        'type',
+        'agent_type',
+        'status',
+        'model',
+        'provider',
+        'adapter',
+        'process',
+        'description',
+        'version',
+        'note',
+      ]) {
         final v = a[k];
         if (v != null && '$v'.isNotEmpty) parts.add('$k=$v');
       }
@@ -131,7 +149,9 @@ class _AgentsScreenState extends State<AgentsScreen> {
 
   String _agentAdapterKey(dynamic a) {
     if (a is Map) {
-      return (a['adapter'] ?? a['runtime'] ?? a['backend'] ?? '').toString().toLowerCase();
+      return (a['adapter'] ?? a['runtime'] ?? a['backend'] ?? '')
+          .toString()
+          .toLowerCase();
     }
     return '';
   }
@@ -196,7 +216,8 @@ class _AgentsScreenState extends State<AgentsScreen> {
     final adapterHay = _agentAdapterKey(a);
     final modelHay = _agentModelKey(a);
     final platformHay = _agentPlatformKey(a);
-    final hayRaw = '${_agentTitle(a)} ${_agentSub(a)} $adapterHay $modelHay $platformHay';
+    final hayRaw =
+        '${_agentTitle(a)} ${_agentSub(a)} $adapterHay $modelHay $platformHay';
     if (_queryRegex) {
       try {
         return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
@@ -227,7 +248,9 @@ class _AgentsScreenState extends State<AgentsScreen> {
 
   String _agentStatusKey(dynamic a) {
     if (a is Map) {
-      return (a['status'] ?? a['state'] ?? a['phase'] ?? '').toString().toLowerCase();
+      return (a['status'] ?? a['state'] ?? a['phase'] ?? '')
+          .toString()
+          .toLowerCase();
     }
     return '';
   }
@@ -244,14 +267,20 @@ class _AgentsScreenState extends State<AgentsScreen> {
 
   String _agentModelKey(dynamic a) {
     if (a is Map) {
-      return (a['model'] ?? a['provider'] ?? a['llm'] ?? a['engine'] ?? '').toString().toLowerCase();
+      return (a['model'] ?? a['provider'] ?? a['llm'] ?? a['engine'] ?? '')
+          .toString()
+          .toLowerCase();
     }
     return '';
   }
 
   String _agentPlatformKey(dynamic a) {
     if (a is Map) {
-      return (a['platform'] ?? a['platform_name'] ?? a['runtime'] ?? a['env'] ?? '')
+      return (a['platform'] ??
+              a['platform_name'] ??
+              a['runtime'] ??
+              a['env'] ??
+              '')
           .toString()
           .toLowerCase();
     }
@@ -260,7 +289,9 @@ class _AgentsScreenState extends State<AgentsScreen> {
 
   String _agentTypeKey(dynamic a) {
     if (a is Map) {
-      return (a['type'] ?? a['agent_type'] ?? a['status'] ?? '').toString().toLowerCase();
+      return (a['type'] ?? a['agent_type'] ?? a['status'] ?? '')
+          .toString()
+          .toLowerCase();
     }
     return '';
   }
@@ -269,8 +300,12 @@ class _AgentsScreenState extends State<AgentsScreen> {
     final list = _agents.where(_matchAgent).toList();
     list.sort((a, b) {
       if (_sortByVersion) {
-        final va = (a['version'] ?? a['ver'] ?? a['agent_version'] ?? '').toString().toLowerCase();
-        final vb = (b['version'] ?? b['ver'] ?? b['agent_version'] ?? '').toString().toLowerCase();
+        final va = (a['version'] ?? a['ver'] ?? a['agent_version'] ?? '')
+            .toString()
+            .toLowerCase();
+        final vb = (b['version'] ?? b['ver'] ?? b['agent_version'] ?? '')
+            .toString()
+            .toLowerCase();
         final c = va.compareTo(vb);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByCaps) {
@@ -283,16 +318,29 @@ class _AgentsScreenState extends State<AgentsScreen> {
           if (s.isEmpty) return 0;
           return s.split(RegExp(r'[,\s]+')).where((e) => e.isNotEmpty).length;
         }
+
         final c = capsOf(a).compareTo(capsOf(b));
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByNote) {
-        final na = (a['note'] ?? a['notes'] ?? a['description'] ?? a['remark'] ?? '').toString().toLowerCase();
-        final nb = (b['note'] ?? b['notes'] ?? b['description'] ?? b['remark'] ?? '').toString().toLowerCase();
+        final na =
+            (a['note'] ?? a['notes'] ?? a['description'] ?? a['remark'] ?? '')
+                .toString()
+                .toLowerCase();
+        final nb =
+            (b['note'] ?? b['notes'] ?? b['description'] ?? b['remark'] ?? '')
+                .toString()
+                .toLowerCase();
         final c = na.compareTo(nb);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByCwd) {
-        final ca = (a['cwd'] ?? a['workspace'] ?? a['work_dir'] ?? a['dir'] ?? '').toString().toLowerCase();
-        final cb = (b['cwd'] ?? b['workspace'] ?? b['work_dir'] ?? b['dir'] ?? '').toString().toLowerCase();
+        final ca =
+            (a['cwd'] ?? a['workspace'] ?? a['work_dir'] ?? a['dir'] ?? '')
+                .toString()
+                .toLowerCase();
+        final cb =
+            (b['cwd'] ?? b['workspace'] ?? b['work_dir'] ?? b['dir'] ?? '')
+                .toString()
+                .toLowerCase();
         final c = ca.compareTo(cb);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortBySessions) {
@@ -302,21 +350,46 @@ class _AgentsScreenState extends State<AgentsScreen> {
           if (v is List) return v.length;
           return int.tryParse(v?.toString() ?? '') ?? 0;
         }
+
         final c = scOf(a).compareTo(scOf(b));
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByProvider) {
-        final pa = (a['provider'] ?? a['llm'] ?? a['engine'] ?? a['runtime'] ?? '').toString().toLowerCase();
-        final pb = (b['provider'] ?? b['llm'] ?? b['engine'] ?? b['runtime'] ?? '').toString().toLowerCase();
+        final pa =
+            (a['provider'] ?? a['llm'] ?? a['engine'] ?? a['runtime'] ?? '')
+                .toString()
+                .toLowerCase();
+        final pb =
+            (b['provider'] ?? b['llm'] ?? b['engine'] ?? b['runtime'] ?? '')
+                .toString()
+                .toLowerCase();
         final c = pa.compareTo(pb);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortById) {
-        final ia = (a['id'] ?? a['agent_id'] ?? a['name'] ?? '').toString().toLowerCase();
-        final ib = (b['id'] ?? b['agent_id'] ?? b['name'] ?? '').toString().toLowerCase();
+        final ia = (a['id'] ?? a['agent_id'] ?? a['name'] ?? '')
+            .toString()
+            .toLowerCase();
+        final ib = (b['id'] ?? b['agent_id'] ?? b['name'] ?? '')
+            .toString()
+            .toLowerCase();
         final c = ia.compareTo(ib);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByProject) {
-        final pa = (a['project'] ?? a['project_id'] ?? a['cwd'] ?? a['workspace'] ?? '').toString().toLowerCase();
-        final pb = (b['project'] ?? b['project_id'] ?? b['cwd'] ?? b['workspace'] ?? '').toString().toLowerCase();
+        final pa =
+            (a['project'] ??
+                    a['project_id'] ??
+                    a['cwd'] ??
+                    a['workspace'] ??
+                    '')
+                .toString()
+                .toLowerCase();
+        final pb =
+            (b['project'] ??
+                    b['project_id'] ??
+                    b['cwd'] ??
+                    b['workspace'] ??
+                    '')
+                .toString()
+                .toLowerCase();
         final c = pa.compareTo(pb);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByPlatform) {
@@ -332,7 +405,9 @@ class _AgentsScreenState extends State<AgentsScreen> {
         final c = _agentTypeKey(a).compareTo(_agentTypeKey(b));
         if (c != 0) return _sortAsc ? c : -c;
       }
-      final c = _agentTitle(a).toLowerCase().compareTo(_agentTitle(b).toLowerCase());
+      final c = _agentTitle(
+        a,
+      ).toLowerCase().compareTo(_agentTitle(b).toLowerCase());
       return _sortAsc ? c : -c;
     });
     return list;
@@ -425,7 +500,9 @@ class _AgentsScreenState extends State<AgentsScreen> {
                     for (final p in platforms) {
                       buf.writeln('platform: $p');
                     }
-                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    await Clipboard.setData(
+                      ClipboardData(text: buf.toString()),
+                    );
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -451,7 +528,9 @@ class _AgentsScreenState extends State<AgentsScreen> {
                         final m = Map<String, dynamic>.from(a as dynamic);
                         final name = '${m['name'] ?? ''}'.replaceAll(',', ';');
                         final id = '${m['id'] ?? ''}'.replaceAll(',', ';');
-                        final extra = '${m['model'] ?? m['provider'] ?? m['status'] ?? ''}'.replaceAll(',', ';');
+                        final extra =
+                            '${m['model'] ?? m['provider'] ?? m['status'] ?? ''}'
+                                .replaceAll(',', ';');
                         buf.writeln('agent,$name,$id,$extra');
                       } else {
                         buf.writeln('agent,${'$a'.replaceAll(',', ';')},,');
@@ -466,7 +545,9 @@ class _AgentsScreenState extends State<AgentsScreen> {
                       final name = '$p'.replaceAll(',', ';');
                       buf.writeln('platform,$name,,');
                     }
-                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    await Clipboard.setData(
+                      ClipboardData(text: buf.toString()),
+                    );
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -484,33 +565,75 @@ class _AgentsScreenState extends State<AgentsScreen> {
             tooltip: _sortByVersion
                 ? (_sortAsc ? 'Version Z→A' : 'Version A→Z')
                 : (_sortByCaps
-                    ? (_sortAsc ? 'Capabilities many→few' : 'Capabilities few→many')
-                    : (_sortByNote
-                    ? (_sortAsc ? 'Note Z→A' : 'Note A→Z')
-                    : (_sortByCwd
-                        ? (_sortAsc ? 'Cwd Z→A' : 'Cwd A→Z')
-                        : (_sortBySessions
-                            ? (_sortAsc ? 'Sessions many→few' : 'Sessions few→many')
-                            : (_sortByProvider
-                                ? (_sortAsc ? 'Provider Z→A' : 'Provider A→Z')
-                                : (_sortById
-                                    ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
-                                    : (_sortByProject
-                                        ? (_sortAsc ? 'Project Z→A' : 'Project A→Z')
-                                        : (_sortByPlatform
-                                            ? (_sortAsc ? 'Platform Z→A' : 'Platform A→Z')
-                                            : (_sortByStatus
-                                                ? (_sortAsc ? 'Status Z→A' : 'Status A→Z')
-                                                : (_sortByModel
-                                                    ? (_sortAsc ? 'Model Z→A' : 'Model A→Z')
-                                                    : (_sortByType
-                                                        ? (_sortAsc ? 'Type Z→A' : 'Type A→Z')
-                                                        : (_sortAsc ? 'Name Z→A' : 'Name A→Z')))))))))))),
+                      ? (_sortAsc
+                            ? 'Capabilities many→few'
+                            : 'Capabilities few→many')
+                      : (_sortByNote
+                            ? (_sortAsc ? 'Note Z→A' : 'Note A→Z')
+                            : (_sortByCwd
+                                  ? (_sortAsc ? 'Cwd Z→A' : 'Cwd A→Z')
+                                  : (_sortBySessions
+                                        ? (_sortAsc
+                                              ? 'Sessions many→few'
+                                              : 'Sessions few→many')
+                                        : (_sortByProvider
+                                              ? (_sortAsc
+                                                    ? 'Provider Z→A'
+                                                    : 'Provider A→Z')
+                                              : (_sortById
+                                                    ? (_sortAsc
+                                                          ? 'Id Z→A'
+                                                          : 'Id A→Z')
+                                                    : (_sortByProject
+                                                          ? (_sortAsc
+                                                                ? 'Project Z→A'
+                                                                : 'Project A→Z')
+                                                          : (_sortByPlatform
+                                                                ? (_sortAsc
+                                                                      ? 'Platform Z→A'
+                                                                      : 'Platform A→Z')
+                                                                : (_sortByStatus
+                                                                      ? (_sortAsc
+                                                                            ? 'Status Z→A'
+                                                                            : 'Status A→Z')
+                                                                      : (_sortByModel
+                                                                            ? (_sortAsc
+                                                                                  ? 'Model Z→A'
+                                                                                  : 'Model A→Z')
+                                                                            : (_sortByType
+                                                                                  ? (_sortAsc
+                                                                                        ? 'Type Z→A'
+                                                                                        : 'Type A→Z')
+                                                                                  : (_sortAsc ? 'Name Z→A' : 'Name A→Z')))))))))))),
             onPressed: () {
               setState(() {
-                if (!_sortByType && !_sortByModel && !_sortByStatus && !_sortByPlatform && !_sortByProject && !_sortById && !_sortByProvider && !_sortBySessions && !_sortByCwd && !_sortByNote && !_sortByCaps && !_sortByVersion && _sortAsc) {
+                if (!_sortByType &&
+                    !_sortByModel &&
+                    !_sortByStatus &&
+                    !_sortByPlatform &&
+                    !_sortByProject &&
+                    !_sortById &&
+                    !_sortByProvider &&
+                    !_sortBySessions &&
+                    !_sortByCwd &&
+                    !_sortByNote &&
+                    !_sortByCaps &&
+                    !_sortByVersion &&
+                    _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortByType && !_sortByModel && !_sortByStatus && !_sortByPlatform && !_sortByProject && !_sortById && !_sortByProvider && !_sortBySessions && !_sortByCwd && !_sortByNote && !_sortByCaps && !_sortByVersion && !_sortAsc) {
+                } else if (!_sortByType &&
+                    !_sortByModel &&
+                    !_sortByStatus &&
+                    !_sortByPlatform &&
+                    !_sortByProject &&
+                    !_sortById &&
+                    !_sortByProvider &&
+                    !_sortBySessions &&
+                    !_sortByCwd &&
+                    !_sortByNote &&
+                    !_sortByCaps &&
+                    !_sortByVersion &&
+                    !_sortAsc) {
                   _sortByType = true;
                   _sortByModel = false;
                   _sortByStatus = false;
@@ -718,31 +841,36 @@ class _AgentsScreenState extends State<AgentsScreen> {
                 }
               });
             },
-            icon: Icon(_sortByVersion
-                ? Icons.numbers
-                : (_sortByCaps
-                    ? Icons.extension_outlined
-                    : (_sortByNote
-                    ? Icons.sticky_note_2_outlined
-                    : (_sortByCwd
-                        ? Icons.folder_outlined
-                        : (_sortBySessions
-                            ? Icons.forum_outlined
-                            : (_sortByProvider
-                                ? Icons.hub_outlined
-                                : (_sortById
-                                    ? Icons.tag
-                                    : (_sortByProject
-                                        ? Icons.folder_special_outlined
-                                        : (_sortByPlatform
-                                            ? Icons.devices_other_outlined
-                                            : (_sortByStatus
-                                                ? Icons.flag_outlined
-                                                : (_sortByModel
-                                                    ? Icons.memory_outlined
-                                                    : (_sortByType
-                                                        ? Icons.category_outlined
-                                                        : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))))))))))))),
+            icon: Icon(
+              _sortByVersion
+                  ? Icons.numbers
+                  : (_sortByCaps
+                        ? Icons.extension_outlined
+                        : (_sortByNote
+                              ? Icons.sticky_note_2_outlined
+                              : (_sortByCwd
+                                    ? Icons.folder_outlined
+                                    : (_sortBySessions
+                                          ? Icons.forum_outlined
+                                          : (_sortByProvider
+                                                ? Icons.hub_outlined
+                                                : (_sortById
+                                                      ? Icons.tag
+                                                      : (_sortByProject
+                                                            ? Icons
+                                                                  .folder_special_outlined
+                                                            : (_sortByPlatform
+                                                                  ? Icons
+                                                                        .devices_other_outlined
+                                                                  : (_sortByStatus
+                                                                        ? Icons
+                                                                              .flag_outlined
+                                                                        : (_sortByModel
+                                                                              ? Icons.memory_outlined
+                                                                              : (_sortByType
+                                                                                    ? Icons.category_outlined
+                                                                                    : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))))))))))),
+            ),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
@@ -754,7 +882,11 @@ class _AgentsScreenState extends State<AgentsScreen> {
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
-              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+              _scroll.animateTo(
+                0,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
             },
             icon: const Icon(Icons.vertical_align_top),
           ),
@@ -776,11 +908,17 @@ class _AgentsScreenState extends State<AgentsScreen> {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
             },
-            icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
+            icon: Icon(
+              _autoRefresh
+                  ? Icons.pause_circle_outline
+                  : Icons.play_circle_outline,
+            ),
           ),
 
-
-          IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
+          IconButton(
+            onPressed: _loading ? null : _load,
+            icon: const Icon(Icons.refresh),
+          ),
         ],
       ),
       body: Column(
@@ -788,7 +926,10 @@ class _AgentsScreenState extends State<AgentsScreen> {
           if (_error != null)
             Padding(
               padding: const EdgeInsets.all(12),
-              child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              child: Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
             ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -845,7 +986,10 @@ class _AgentsScreenState extends State<AgentsScreen> {
                       padding: const EdgeInsets.only(right: 6),
                       child: FilterChip(
                         visualDensity: VisualDensity.compact,
-                        label: const Text('Any status', style: TextStyle(fontSize: 11)),
+                        label: const Text(
+                          'Any status',
+                          style: TextStyle(fontSize: 11),
+                        ),
                         selected: _statusFilter.isEmpty,
                         onSelected: (_) => setState(() => _statusFilter = ''),
                       ),
@@ -948,17 +1092,19 @@ class _AgentsScreenState extends State<AgentsScreen> {
               decoration: InputDecoration(
                 hintText: _queryRegex
                     ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
-                    : (_queryCase ? 'Filter (case-sensitive)' : 'Filter agents / platforms / projects'),
+                    : (_queryCase
+                          ? 'Filter (case-sensitive)'
+                          : 'Filter agents / platforms / projects'),
                 isDense: true,
                 border: const OutlineInputBorder(),
                 prefixIcon: IconButton(
                   tooltip: _queryRegex
                       ? (_queryCase
-                          ? 'Regex · case on (long-press: plain filter)'
-                          : 'Regex · case off (long-press: plain filter)')
+                            ? 'Regex · case on (long-press: plain filter)'
+                            : 'Regex · case off (long-press: plain filter)')
                       : (_queryCase
-                          ? 'Case-sensitive (long-press: regex)'
-                          : 'Case-insensitive (long-press: regex)'),
+                            ? 'Case-sensitive (long-press: regex)'
+                            : 'Case-insensitive (long-press: regex)'),
                   icon: Icon(
                     _queryRegex
                         ? Icons.code
@@ -987,92 +1133,118 @@ class _AgentsScreenState extends State<AgentsScreen> {
               onRefresh: _load,
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                      controller: _scroll,
+                controller: _scroll,
                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
                 children: [
-                if (_section == 'all' || _section == 'agents') ...[
-                Text('Host agent types', style: Theme.of(context).textTheme.titleSmall),
-                const SizedBox(height: 6),
-                if (_agents.isEmpty)
-                  const ListTile(dense: true, title: Text('No agents catalog (Host may omit /agents)'))
-                else if (agents.isEmpty)
-                  const ListTile(dense: true, title: Text('No agents match filter'))
-                else
-                  Column(
-                    children: [
-                      for (final a in agents)
-                        ListTile(
-                          dense: true,
-                          leading: const Icon(Icons.smart_toy_outlined),
-                          title: Text(_agentTitle(a)),
+                  if (_section == 'all' || _section == 'agents') ...[
+                    Text(
+                      'Host agent types',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 6),
+                    if (_agents.isEmpty)
+                      const ListTile(
+                        dense: true,
+                        title: Text(
+                          'No agents catalog (Host may omit /agents)',
+                        ),
+                      )
+                    else if (agents.isEmpty)
+                      const ListTile(
+                        dense: true,
+                        title: Text('No agents match filter'),
+                      )
+                    else
+                      Column(
+                        children: [
+                          for (final a in agents)
+                            ListTile(
+                              dense: true,
+                              leading: const Icon(Icons.smart_toy_outlined),
+                              title: Text(_agentTitle(a)),
+                              subtitle: Text(
+                                _agentSub(a),
+                                maxLines: _wrapLines ? 10 : 3,
+                                overflow: TextOverflow.ellipsis,
+                                softWrap: true,
+                              ),
+                              trailing: IconButton(
+                                tooltip: 'Copy',
+                                icon: const Icon(Icons.copy, size: 18),
+                                onPressed: () =>
+                                    _copy('${_agentTitle(a)}\n${_agentSub(a)}'),
+                              ),
+                            ),
+                        ],
+                      ),
+                  ],
+                  if (_section == 'all' || _section == 'platforms') ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      'Platforms',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 6),
+                    if (_platforms.isEmpty)
+                      const ListTile(dense: true, title: Text('—'))
+                    else if (platforms.isEmpty)
+                      const ListTile(
+                        dense: true,
+                        title: Text('No platforms match filter'),
+                      )
+                    else
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final p in platforms)
+                            ActionChip(
+                              label: Text('$p'),
+                              onPressed: () => _copy('$p'),
+                            ),
+                        ],
+                      ),
+                  ],
+                  if (_section == 'all' || _section == 'projects') ...[
+                    const Divider(height: 32),
+                    Text(
+                      'Projects (from /projects)',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 4),
+                    if (projects.isEmpty && _projects.isNotEmpty)
+                      const ListTile(
+                        dense: true,
+                        title: Text('No projects match filter'),
+                      ),
+                    for (final p in projects)
+                      Card(
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        child: ListTile(
+                          leading: const Icon(Icons.folder_special_outlined),
+                          title: Text('${p['name']}'),
                           subtitle: Text(
-                            _agentSub(a),
-                            maxLines: _wrapLines ? 10 : 3,
+                            'agent=${p['agent_type']} · sessions=${p['sessions_count']}'
+                            '${(p['note'] != null && '${p['note']}'.isNotEmpty) ? '\n${p['note']}' : ''}',
+                            maxLines: _wrapLines ? 8 : 2,
                             overflow: TextOverflow.ellipsis,
                             softWrap: true,
                           ),
-                          trailing: IconButton(
-                            tooltip: 'Copy',
-                            icon: const Icon(Icons.copy, size: 18),
-                            onPressed: () => _copy('${_agentTitle(a)}\n${_agentSub(a)}'),
+                          isThreeLine:
+                              (p['note'] != null && '${p['note']}'.isNotEmpty),
+                          trailing: Text(
+                            ((p['capabilities'] as List?) ?? const []).length
+                                .toString(),
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          onLongPress: () => _copy(
+                            '${p['name']}\nagent=${p['agent_type']} sessions=${p['sessions_count']}\n${p['note'] ?? ''}',
                           ),
                         ),
-                    ],
-                  ),
-                ],
-                if (_section == 'all' || _section == 'platforms') ...[
-                const SizedBox(height: 16),
-                Text('Platforms', style: Theme.of(context).textTheme.titleSmall),
-                const SizedBox(height: 6),
-                if (_platforms.isEmpty)
-                  const ListTile(dense: true, title: Text('—'))
-                else if (platforms.isEmpty)
-                  const ListTile(dense: true, title: Text('No platforms match filter'))
-                else
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final p in platforms)
-                        ActionChip(
-                          label: Text('$p'),
-                          onPressed: () => _copy('$p'),
-                        ),
-                    ],
-                  ),
-                ],
-                if (_section == 'all' || _section == 'projects') ...[
-                const Divider(height: 32),
-                Text('Projects (from /projects)', style: Theme.of(context).textTheme.titleSmall),
-                const SizedBox(height: 4),
-                if (projects.isEmpty && _projects.isNotEmpty)
-                  const ListTile(dense: true, title: Text('No projects match filter')),
-                for (final p in projects)
-                  Card(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    child: ListTile(
-                      leading: const Icon(Icons.folder_special_outlined),
-                      title: Text('${p['name']}'),
-                      subtitle: Text(
-                        'agent=${p['agent_type']} · sessions=${p['sessions_count']}'
-                        '${(p['note'] != null && '${p['note']}'.isNotEmpty) ? '\n${p['note']}' : ''}',
-                        maxLines: _wrapLines ? 8 : 2,
-                        overflow: TextOverflow.ellipsis,
-                        softWrap: true,
                       ),
-                      isThreeLine: (p['note'] != null && '${p['note']}'.isNotEmpty),
-                      trailing: Text(
-                        ((p['capabilities'] as List?) ?? const []).length.toString(),
-                        style: const TextStyle(fontSize: 11),
-                      ),
-                      onLongPress: () => _copy(
-                        '${p['name']}\nagent=${p['agent_type']} sessions=${p['sessions_count']}\n${p['note'] ?? ''}',
-                      ),
-                    ),
-                  ),
+                  ],
                 ],
-              ],
-            ),
+              ),
             ),
           ),
         ],

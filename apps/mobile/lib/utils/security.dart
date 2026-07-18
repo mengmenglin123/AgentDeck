@@ -1,4 +1,3 @@
-
 /// Redaction and connection safety helpers (P2-6). Never log raw tokens.
 class Security {
   static String redactToken(String? token) {
@@ -18,7 +17,10 @@ class Security {
       (m) => '${m[1]}***',
     );
     s = s.replaceAllMapped(
-      RegExp(r'((?:api[_-]?key|token|secret|password)\s*[:=]\s*)\S+', caseSensitive: false),
+      RegExp(
+        r'((?:api[_-]?key|token|secret|password)\s*[:=]\s*)\S+',
+        caseSensitive: false,
+      ),
       (m) => '${m[1]}***',
     );
     return s;

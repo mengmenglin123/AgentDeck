@@ -256,13 +256,12 @@ class _SkillsScreenState extends State<SkillsScreen> {
                 : () async {
                     final buf = StringBuffer();
                     for (final s in items) {
-                        final name = (s['name'] ?? s['id'] ?? 'skill')
-                            .toString();
-                        final desc = (s['description'] ?? s['summary'] ?? '')
-                            .toString();
-                        buf.writeln('## $name');
-                        if (desc.isNotEmpty) buf.writeln(desc);
-                        buf.writeln();
+                      final name = (s['name'] ?? s['id'] ?? 'skill').toString();
+                      final desc = (s['description'] ?? s['summary'] ?? '')
+                          .toString();
+                      buf.writeln('## $name');
+                      if (desc.isNotEmpty) buf.writeln(desc);
+                      buf.writeln();
                     }
                     await Clipboard.setData(
                       ClipboardData(text: buf.toString()),
@@ -286,23 +285,24 @@ class _SkillsScreenState extends State<SkillsScreen> {
                     final buf = StringBuffer();
                     buf.writeln('name,source,category,version,description');
                     for (final s in items) {
-                        final name = (s['name'] ?? s['id'] ?? 'skill')
-                            .toString()
-                            .replaceAll(',', ';');
-                        final source = (s['source'] ?? '')
-                            .toString()
-                            .replaceAll(',', ';');
-                        final category = (s['category'] ?? '')
-                            .toString()
-                            .replaceAll(',', ';');
-                        final version = (s['version'] ?? '')
-                            .toString()
-                            .replaceAll(',', ';');
-                        final desc = (s['description'] ?? s['summary'] ?? '')
-                            .toString()
-                            .replaceAll(',', ';')
-                            .replaceAll('\n', ' ');
-                        buf.writeln('$name,$source,$category,$version,$desc');
+                      final name = (s['name'] ?? s['id'] ?? 'skill')
+                          .toString()
+                          .replaceAll(',', ';');
+                      final source = (s['source'] ?? '').toString().replaceAll(
+                        ',',
+                        ';',
+                      );
+                      final category = (s['category'] ?? '')
+                          .toString()
+                          .replaceAll(',', ';');
+                      final version = (s['version'] ?? '')
+                          .toString()
+                          .replaceAll(',', ';');
+                      final desc = (s['description'] ?? s['summary'] ?? '')
+                          .toString()
+                          .replaceAll(',', ';')
+                          .replaceAll('\n', ' ');
+                      buf.writeln('$name,$source,$category,$version,$desc');
                     }
                     await Clipboard.setData(
                       ClipboardData(text: buf.toString()),

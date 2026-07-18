@@ -9,8 +9,8 @@ class SessionController extends ChangeNotifier {
   SessionController({
     required ConnectionConfig config,
     MgmtClient Function(ConnectionConfig config)? mgmtFactory,
-  })  : _config = config,
-        _mgmtFactory = mgmtFactory ?? ((c) => MgmtClient(config: c));
+  }) : _config = config,
+       _mgmtFactory = mgmtFactory ?? ((c) => MgmtClient(config: c));
 
   ConnectionConfig _config;
   final MgmtClient Function(ConnectionConfig config) _mgmtFactory;
@@ -74,7 +74,10 @@ class SessionController extends ChangeNotifier {
 
   Future<void> deleteSession(SessionInfo session) async {
     try {
-      await _mgmt.deleteSession(session.id, project: session.project.isEmpty ? selectedProject : session.project);
+      await _mgmt.deleteSession(
+        session.id,
+        project: session.project.isEmpty ? selectedProject : session.project,
+      );
       await refresh();
     } on Exception catch (e) {
       error = e.toString();

@@ -27,7 +27,8 @@ class TerminalScreen extends StatefulWidget {
   State<TerminalScreen> createState() => _TerminalScreenState();
 }
 
-class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObserver {
+class _TerminalScreenState extends State<TerminalScreen>
+    with WidgetsBindingObserver {
   BridgeClient? _bridge;
   final _input = TextEditingController();
   final _scroll = ScrollController();
@@ -57,7 +58,9 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _buf.writeln('HuanHermes terminal channel (session ${widget.session.sessionKey})');
+    _buf.writeln(
+      'HuanHermes terminal channel (session ${widget.session.sessionKey})',
+    );
     _buf.writeln('Type help · protocol demo only');
     _buf.writeln('↑/↓ local history · device only');
     _buf.writeln('');
@@ -68,7 +71,6 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
     } catch (_) {}
     _connect();
   }
-
 
   Future<void> _setTermScale(double v) async {
     final nv = v.clamp(0.85, 1.4);
@@ -154,11 +156,11 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
     }
   }
 
-
   void _pushResize({int? cols, int? rows}) {
     final c = cols ?? _termCols;
     final r = rows ?? _termRows;
-    if (c == _termCols && r == _termRows && cols == null && rows == null) return;
+    if (c == _termCols && r == _termRows && cols == null && rows == null)
+      return;
     _termCols = c.clamp(20, 240);
     _termRows = r.clamp(5, 120);
     final b = _bridge;
@@ -211,7 +213,6 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
       });
     }
   }
-
 
   void _noteWorkdirFromCommand(String text) {
     final t = text.trim();
@@ -296,7 +297,10 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
     if (items.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No local terminal history yet'), duration: Duration(seconds: 1)),
+        const SnackBar(
+          content: Text('No local terminal history yet'),
+          duration: Duration(seconds: 1),
+        ),
       );
       return;
     }
@@ -327,7 +331,12 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
               ListTile(
                 dense: true,
                 leading: const Icon(Icons.history, size: 18),
-                title: Text(c, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontFamily: 'monospace', fontSize: 13)),
+                title: Text(
+                  c,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+                ),
                 onTap: () => Navigator.pop(ctx, c),
               ),
           ],
@@ -370,8 +379,6 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
     unawaited(_bridge?.close() ?? Future.value());
     super.dispose();
   }
-
-
 
   String get _displayBuffer {
     final full = _buf.toString();
@@ -416,7 +423,6 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
     return lines.isEmpty ? '' : (lines.join('\n') + '\n');
   }
 
-
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -443,8 +449,8 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                 color: _connecting
                     ? Colors.amber
                     : _bridge != null
-                        ? Colors.green
-                        : Colors.redAccent,
+                    ? Colors.green
+                    : Colors.redAccent,
               ),
             ),
             Expanded(
@@ -480,7 +486,9 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
           IconButton(
             tooltip: _showTs ? 'Hide timestamps' : 'Show timestamps',
             onPressed: () => setState(() => _showTs = !_showTs),
-            icon: Icon(_showTs ? Icons.timer_off_outlined : Icons.timer_outlined),
+            icon: Icon(
+              _showTs ? Icons.timer_off_outlined : Icons.timer_outlined,
+            ),
           ),
           IconButton(
             tooltip: _showFind ? 'Hide find' : 'Find in buffer',
@@ -518,7 +526,11 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
-              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+              _scroll.animateTo(
+                0,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
             },
             icon: const Icon(Icons.vertical_align_top),
           ),
@@ -542,7 +554,10 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
               await Clipboard.setData(ClipboardData(text: text));
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Copied ${text.length} chars'), duration: const Duration(seconds: 1)),
+                SnackBar(
+                  content: Text('Copied ${text.length} chars'),
+                  duration: const Duration(seconds: 1),
+                ),
               );
             },
             icon: const Icon(Icons.copy_all_outlined),
@@ -562,7 +577,10 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
               await Clipboard.setData(ClipboardData(text: buf.toString()));
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Copied CSV (${lines.length} lines)'), duration: const Duration(seconds: 1)),
+                SnackBar(
+                  content: Text('Copied CSV (${lines.length} lines)'),
+                  duration: const Duration(seconds: 1),
+                ),
               );
             },
             icon: const Icon(Icons.table_chart_outlined),
@@ -592,7 +610,10 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
               color: cs.errorContainer,
               child: ListTile(
                 dense: true,
-                title: Text(_error!, style: TextStyle(color: cs.onErrorContainer, fontSize: 12)),
+                title: Text(
+                  _error!,
+                  style: TextStyle(color: cs.onErrorContainer, fontSize: 12),
+                ),
                 trailing: IconButton(
                   icon: const Icon(Icons.close, size: 18),
                   onPressed: () => setState(() => _error = null),
@@ -607,7 +628,11 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
               children: [
                 for (final item in <(String, bool, void Function(bool))>[
                   ('Wrap', _wrapLines, (v) => setState(() => _wrapLines = v)),
-                  ('Newest', _newestFirst, (v) => setState(() => _newestFirst = v)),
+                  (
+                    'Newest',
+                    _newestFirst,
+                    (v) => setState(() => _newestFirst = v),
+                  ),
                   ('Timestamps', _showTs, (v) => setState(() => _showTs = v)),
                   ('Find', _showFind, (v) => setState(() => _showFind = v)),
                   ('Regex', _findRegex, (v) => setState(() => _findRegex = v)),
@@ -616,7 +641,10 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                   Padding(
                     padding: const EdgeInsets.only(right: 6),
                     child: FilterChip(
-                      label: Text(item.$1, style: const TextStyle(fontSize: 11)),
+                      label: Text(
+                        item.$1,
+                        style: const TextStyle(fontSize: 11),
+                      ),
                       selected: item.$2,
                       visualDensity: VisualDensity.compact,
                       onSelected: item.$3,
@@ -670,21 +698,21 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                 decoration: InputDecoration(
                   hintText: _findRegex
                       ? (_findCase
-                          ? 'Regex find (case-sensitive, client-only)'
-                          : 'Regex find (client-only)')
+                            ? 'Regex find (case-sensitive, client-only)'
+                            : 'Regex find (client-only)')
                       : (_findCase
-                          ? 'Find (case-sensitive, client-only)'
-                          : 'Find in local buffer (client-only)'),
+                            ? 'Find (case-sensitive, client-only)'
+                            : 'Find in local buffer (client-only)'),
                   isDense: true,
                   border: const OutlineInputBorder(),
                   prefixIcon: IconButton(
                     tooltip: _findRegex
                         ? (_findCase
-                            ? 'Regex · case on (long-press: plain find)'
-                            : 'Regex · case off (long-press: plain find)')
+                              ? 'Regex · case on (long-press: plain find)'
+                              : 'Regex · case off (long-press: plain find)')
                         : (_findCase
-                            ? 'Case-sensitive (long-press: regex)'
-                            : 'Case-insensitive (long-press: regex)'),
+                              ? 'Case-sensitive (long-press: regex)'
+                              : 'Case-insensitive (long-press: regex)'),
                     icon: Icon(
                       _findRegex
                           ? Icons.code
@@ -722,7 +750,9 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                     controller: _scroll,
                     scrollDirection: Axis.vertical,
                     child: SingleChildScrollView(
-                      scrollDirection: _wrapLines ? Axis.vertical : Axis.horizontal,
+                      scrollDirection: _wrapLines
+                          ? Axis.vertical
+                          : Axis.horizontal,
                       child: ConstrainedBox(
                         constraints: BoxConstraints(
                           minWidth: MediaQuery.sizeOf(context).width - 24,
@@ -780,7 +810,9 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                   ),
                   const SizedBox(width: 8),
                   FilledButton(
-                    onPressed: (_connecting || _bridge == null || _busy) ? null : _send,
+                    onPressed: (_connecting || _bridge == null || _busy)
+                        ? null
+                        : _send,
                     child: const Text('Run'),
                   ),
                 ],

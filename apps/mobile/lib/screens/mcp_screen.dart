@@ -48,8 +48,8 @@ class _McpScreenState extends State<McpScreen> {
   void initState() {
     super.initState();
     _load();
-      WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
-}
+    WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
+  }
 
   @override
   void dispose() {
@@ -102,20 +102,27 @@ class _McpScreenState extends State<McpScreen> {
         final bool? isOn = en is bool
             ? en
             : (en == null
-                ? null
-                : ('$en'.toLowerCase() == 'true' ||
-                    '$en' == '1' ||
-                    '$en'.toLowerCase() == 'yes'));
+                  ? null
+                  : ('$en'.toLowerCase() == 'true' ||
+                        '$en' == '1' ||
+                        '$en'.toLowerCase() == 'yes'));
         if (_enabled == 'on' && isOn != true) return false;
         if (_enabled == 'off' && isOn != false) return false;
         if (_enabled == 'unknown' && isOn != null) return false;
       }
       if (_transportFilter.isNotEmpty) {
-        final tr = (s['transport'] ?? s['type'] ?? s['protocol'] ?? s['url'] ?? s['command'] ?? '')
-            .toString()
-            .toLowerCase();
+        final tr =
+            (s['transport'] ??
+                    s['type'] ??
+                    s['protocol'] ??
+                    s['url'] ??
+                    s['command'] ??
+                    '')
+                .toString()
+                .toLowerCase();
         if (_transportFilter == 'other') {
-          final known = tr.contains('stdio') ||
+          final known =
+              tr.contains('stdio') ||
               tr.contains('sse') ||
               tr.contains('http') ||
               tr.contains('ws') ||
@@ -130,7 +137,8 @@ class _McpScreenState extends State<McpScreen> {
             .toString()
             .toLowerCase();
         if (_kind == 'other') {
-          final known = kd.contains('inprocess') ||
+          final known =
+              kd.contains('inprocess') ||
               kd.contains('stdio') ||
               kd.contains('sse') ||
               kd.contains('http') ||
@@ -156,7 +164,12 @@ class _McpScreenState extends State<McpScreen> {
     }).toList();
     list.sort((a, b) {
       String endpointOf(Map x) =>
-          (x['url'] ?? x['command'] ?? x['transport'] ?? x['endpoint'] ?? x['description'] ?? '')
+          (x['url'] ??
+                  x['command'] ??
+                  x['transport'] ??
+                  x['endpoint'] ??
+                  x['description'] ??
+                  '')
               .toString()
               .toLowerCase();
       if (_sortByName) {
@@ -165,28 +178,48 @@ class _McpScreenState extends State<McpScreen> {
         final c = na.compareTo(nb);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByKind) {
-        final ka = (a['kind'] ?? a['type'] ?? a['category'] ?? '').toString().toLowerCase();
-        final kb = (b['kind'] ?? b['type'] ?? b['category'] ?? '').toString().toLowerCase();
+        final ka = (a['kind'] ?? a['type'] ?? a['category'] ?? '')
+            .toString()
+            .toLowerCase();
+        final kb = (b['kind'] ?? b['type'] ?? b['category'] ?? '')
+            .toString()
+            .toLowerCase();
         final c = ka.compareTo(kb);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByCommand) {
-        final ca = (a['command'] ?? a['cmd'] ?? a['args'] ?? a['url'] ?? '').toString().toLowerCase();
-        final cb = (b['command'] ?? b['cmd'] ?? b['args'] ?? b['url'] ?? '').toString().toLowerCase();
+        final ca = (a['command'] ?? a['cmd'] ?? a['args'] ?? a['url'] ?? '')
+            .toString()
+            .toLowerCase();
+        final cb = (b['command'] ?? b['cmd'] ?? b['args'] ?? b['url'] ?? '')
+            .toString()
+            .toLowerCase();
         final c = ca.compareTo(cb);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByDesc) {
-        final da = (a['description'] ?? a['summary'] ?? a['note'] ?? '').toString().toLowerCase();
-        final db = (b['description'] ?? b['summary'] ?? b['note'] ?? '').toString().toLowerCase();
+        final da = (a['description'] ?? a['summary'] ?? a['note'] ?? '')
+            .toString()
+            .toLowerCase();
+        final db = (b['description'] ?? b['summary'] ?? b['note'] ?? '')
+            .toString()
+            .toLowerCase();
         final c = da.compareTo(db);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortById) {
-        final ia = (a['id'] ?? a['server_id'] ?? a['name'] ?? '').toString().toLowerCase();
-        final ib = (b['id'] ?? b['server_id'] ?? b['name'] ?? '').toString().toLowerCase();
+        final ia = (a['id'] ?? a['server_id'] ?? a['name'] ?? '')
+            .toString()
+            .toLowerCase();
+        final ib = (b['id'] ?? b['server_id'] ?? b['name'] ?? '')
+            .toString()
+            .toLowerCase();
         final c = ia.compareTo(ib);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByTransport) {
-        final ta = (a['transport'] ?? a['type'] ?? a['kind'] ?? '').toString().toLowerCase();
-        final tb = (b['transport'] ?? b['type'] ?? b['kind'] ?? '').toString().toLowerCase();
+        final ta = (a['transport'] ?? a['type'] ?? a['kind'] ?? '')
+            .toString()
+            .toLowerCase();
+        final tb = (b['transport'] ?? b['type'] ?? b['kind'] ?? '')
+            .toString()
+            .toLowerCase();
         final c = ta.compareTo(tb);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByEndpoint) {
@@ -232,8 +265,8 @@ class _McpScreenState extends State<McpScreen> {
           items.isEmpty
               ? 'MCP (readonly)'
               : (items.length == servers.length
-                  ? 'MCP (${items.length})'
-                  : 'MCP (${items.length}/${servers.length})'),
+                    ? 'MCP (${items.length})'
+                    : 'MCP (${items.length}/${servers.length})'),
         ),
         actions: [
           IconButton(
@@ -243,17 +276,24 @@ class _McpScreenState extends State<McpScreen> {
                 : () async {
                     final buf = StringBuffer();
                     for (final s in items) {
-                        final name = (s['name'] ?? s['id'] ?? 'mcp').toString();
-                        final desc = (s['description'] ?? s['url'] ?? s['command'] ?? '').toString();
-                        buf.writeln('## $name');
-                        if (desc.isNotEmpty) buf.writeln(desc);
-                        buf.writeln('$s');
-                        buf.writeln();
+                      final name = (s['name'] ?? s['id'] ?? 'mcp').toString();
+                      final desc =
+                          (s['description'] ?? s['url'] ?? s['command'] ?? '')
+                              .toString();
+                      buf.writeln('## $name');
+                      if (desc.isNotEmpty) buf.writeln(desc);
+                      buf.writeln('$s');
+                      buf.writeln();
                     }
-                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    await Clipboard.setData(
+                      ClipboardData(text: buf.toString()),
+                    );
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Copied ${items.length} MCP entries'), duration: const Duration(seconds: 1)),
+                        SnackBar(
+                          content: Text('Copied ${items.length} MCP entries'),
+                          duration: const Duration(seconds: 1),
+                        ),
                       );
                     }
                   },
@@ -267,15 +307,22 @@ class _McpScreenState extends State<McpScreen> {
                     final buf = StringBuffer();
                     buf.writeln('name,status,description');
                     for (final s in items) {
-                        final name = (s['name'] ?? s['id'] ?? 'mcp').toString().replaceAll(',', ';');
-                        final status = (s['status'] ?? s['state'] ?? '').toString().replaceAll(',', ';');
-                        final desc = (s['description'] ?? s['url'] ?? s['command'] ?? '')
-                            .toString()
-                            .replaceAll(',', ';')
-                            .replaceAll('\n', ' ');
-                        buf.writeln('$name,$status,$desc');
+                      final name = (s['name'] ?? s['id'] ?? 'mcp')
+                          .toString()
+                          .replaceAll(',', ';');
+                      final status = (s['status'] ?? s['state'] ?? '')
+                          .toString()
+                          .replaceAll(',', ';');
+                      final desc =
+                          (s['description'] ?? s['url'] ?? s['command'] ?? '')
+                              .toString()
+                              .replaceAll(',', ';')
+                              .replaceAll('\n', ' ');
+                      buf.writeln('$name,$status,$desc');
                     }
-                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    await Clipboard.setData(
+                      ClipboardData(text: buf.toString()),
+                    );
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -291,27 +338,57 @@ class _McpScreenState extends State<McpScreen> {
             tooltip: _sortByName
                 ? (_sortAsc ? 'Name Z→A' : 'Name A→Z')
                 : (_sortByKind
-                    ? (_sortAsc ? 'Kind Z→A' : 'Kind A→Z')
-                    : (_sortByCommand
-                        ? (_sortAsc ? 'Command Z→A' : 'Command A→Z')
-                        : (_sortByDesc
-                            ? (_sortAsc ? 'Description Z→A' : 'Description A→Z')
-                            : (_sortById
-                                ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
-                                : (_sortByTransport
-                                    ? (_sortAsc ? 'Transport Z→A' : 'Transport A→Z')
-                                    : (_sortByEndpoint
-                                        ? (_sortAsc ? 'Endpoint Z→A' : 'Endpoint A→Z')
-                                        : (_sortByTools
-                                            ? (_sortAsc ? 'Tools many→few' : 'Tools few→many')
-                                            : (_sortByStatus
-                                                ? (_sortAsc ? 'Status Z→A' : 'Status A→Z')
-                                                : (_sortAsc ? 'Name Z→A' : 'Name A→Z'))))))))),
+                      ? (_sortAsc ? 'Kind Z→A' : 'Kind A→Z')
+                      : (_sortByCommand
+                            ? (_sortAsc ? 'Command Z→A' : 'Command A→Z')
+                            : (_sortByDesc
+                                  ? (_sortAsc
+                                        ? 'Description Z→A'
+                                        : 'Description A→Z')
+                                  : (_sortById
+                                        ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                                        : (_sortByTransport
+                                              ? (_sortAsc
+                                                    ? 'Transport Z→A'
+                                                    : 'Transport A→Z')
+                                              : (_sortByEndpoint
+                                                    ? (_sortAsc
+                                                          ? 'Endpoint Z→A'
+                                                          : 'Endpoint A→Z')
+                                                    : (_sortByTools
+                                                          ? (_sortAsc
+                                                                ? 'Tools many→few'
+                                                                : 'Tools few→many')
+                                                          : (_sortByStatus
+                                                                ? (_sortAsc
+                                                                      ? 'Status Z→A'
+                                                                      : 'Status A→Z')
+                                                                : (_sortAsc
+                                                                      ? 'Name Z→A'
+                                                                      : 'Name A→Z'))))))))),
             onPressed: () {
               setState(() {
-                if (!_sortByStatus && !_sortByTools && !_sortByEndpoint && !_sortByTransport && !_sortById && !_sortByDesc && !_sortByCommand && !_sortByKind && !_sortByName && _sortAsc) {
+                if (!_sortByStatus &&
+                    !_sortByTools &&
+                    !_sortByEndpoint &&
+                    !_sortByTransport &&
+                    !_sortById &&
+                    !_sortByDesc &&
+                    !_sortByCommand &&
+                    !_sortByKind &&
+                    !_sortByName &&
+                    _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortByStatus && !_sortByTools && !_sortByEndpoint && !_sortByTransport && !_sortById && !_sortByDesc && !_sortByCommand && !_sortByKind && !_sortByName && !_sortAsc) {
+                } else if (!_sortByStatus &&
+                    !_sortByTools &&
+                    !_sortByEndpoint &&
+                    !_sortByTransport &&
+                    !_sortById &&
+                    !_sortByDesc &&
+                    !_sortByCommand &&
+                    !_sortByKind &&
+                    !_sortByName &&
+                    !_sortAsc) {
                   _sortByStatus = true;
                   _sortByTools = false;
                   _sortByEndpoint = false;
@@ -442,25 +519,33 @@ class _McpScreenState extends State<McpScreen> {
                 }
               });
             },
-            icon: Icon(_sortByName
-                ? Icons.sort_by_alpha
-                : (_sortByKind
-                    ? Icons.category_outlined
-                    : (_sortByCommand
-                        ? Icons.terminal
-                        : (_sortByDesc
-                            ? Icons.notes
-                            : (_sortById
-                                ? Icons.tag
-                                : (_sortByTransport
-                                    ? Icons.swap_horiz
-                                    : (_sortByEndpoint
-                                        ? Icons.link
-                                        : (_sortByTools
-                                            ? Icons.build_outlined
-                                            : (_sortByStatus
-                                                ? Icons.health_and_safety_outlined
-                                                : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))))))))),
+            icon: Icon(
+              _sortByName
+                  ? Icons.sort_by_alpha
+                  : (_sortByKind
+                        ? Icons.category_outlined
+                        : (_sortByCommand
+                              ? Icons.terminal
+                              : (_sortByDesc
+                                    ? Icons.notes
+                                    : (_sortById
+                                          ? Icons.tag
+                                          : (_sortByTransport
+                                                ? Icons.swap_horiz
+                                                : (_sortByEndpoint
+                                                      ? Icons.link
+                                                      : (_sortByTools
+                                                            ? Icons
+                                                                  .build_outlined
+                                                            : (_sortByStatus
+                                                                  ? Icons
+                                                                        .health_and_safety_outlined
+                                                                  : (_sortAsc
+                                                                        ? Icons
+                                                                              .sort_by_alpha
+                                                                        : Icons
+                                                                              .sort))))))))),
+            ),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
@@ -472,7 +557,11 @@ class _McpScreenState extends State<McpScreen> {
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
-              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+              _scroll.animateTo(
+                0,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
             },
             icon: const Icon(Icons.vertical_align_top),
           ),
@@ -494,9 +583,12 @@ class _McpScreenState extends State<McpScreen> {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
             },
-            icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
+            icon: Icon(
+              _autoRefresh
+                  ? Icons.pause_circle_outline
+                  : Icons.play_circle_outline,
+            ),
           ),
-
 
           IconButton(
             onPressed: loading ? null : _load,
@@ -529,7 +621,10 @@ class _McpScreenState extends State<McpScreen> {
                         ('unknown', 'Unknown'),
                       ])
                         FilterChip(
-                          label: Text(f.$2, style: const TextStyle(fontSize: 12)),
+                          label: Text(
+                            f.$2,
+                            style: const TextStyle(fontSize: 12),
+                          ),
                           selected: _status == f.$1,
                           onSelected: (_) => setState(() => _status = f.$1),
                           visualDensity: VisualDensity.compact,
@@ -549,7 +644,10 @@ class _McpScreenState extends State<McpScreen> {
                         ('unknown', 'enabled?'),
                       ])
                         FilterChip(
-                          label: Text(f.$2, style: const TextStyle(fontSize: 11)),
+                          label: Text(
+                            f.$2,
+                            style: const TextStyle(fontSize: 11),
+                          ),
                           selected: _enabled == f.$1,
                           onSelected: (_) => setState(() => _enabled = f.$1),
                           visualDensity: VisualDensity.compact,
@@ -571,9 +669,13 @@ class _McpScreenState extends State<McpScreen> {
                         ('other', 'Other'),
                       ])
                         FilterChip(
-                          label: Text(f.$2, style: const TextStyle(fontSize: 12)),
+                          label: Text(
+                            f.$2,
+                            style: const TextStyle(fontSize: 12),
+                          ),
                           selected: _transportFilter == f.$1,
-                          onSelected: (_) => setState(() => _transportFilter = f.$1),
+                          onSelected: (_) =>
+                              setState(() => _transportFilter = f.$1),
                           visualDensity: VisualDensity.compact,
                         ),
                     ],
@@ -593,7 +695,10 @@ class _McpScreenState extends State<McpScreen> {
                         ('other', 'other'),
                       ])
                         FilterChip(
-                          label: Text(f.$2, style: const TextStyle(fontSize: 11)),
+                          label: Text(
+                            f.$2,
+                            style: const TextStyle(fontSize: 11),
+                          ),
                           selected: _kind == f.$1,
                           onSelected: (_) => setState(() => _kind = f.$1),
                           visualDensity: VisualDensity.compact,
@@ -607,25 +712,37 @@ class _McpScreenState extends State<McpScreen> {
                     spacing: 8,
                     children: [
                       FilterChip(
-                        label: const Text('Wrap', style: TextStyle(fontSize: 11)),
+                        label: const Text(
+                          'Wrap',
+                          style: TextStyle(fontSize: 11),
+                        ),
                         selected: _wrapLines,
                         onSelected: (v) => setState(() => _wrapLines = v),
                         visualDensity: VisualDensity.compact,
                       ),
                       FilterChip(
-                        label: const Text('Regex', style: TextStyle(fontSize: 11)),
+                        label: const Text(
+                          'Regex',
+                          style: TextStyle(fontSize: 11),
+                        ),
                         selected: _queryRegex,
                         onSelected: (v) => setState(() => _queryRegex = v),
                         visualDensity: VisualDensity.compact,
                       ),
                       FilterChip(
-                        label: const Text('Case', style: TextStyle(fontSize: 11)),
+                        label: const Text(
+                          'Case',
+                          style: TextStyle(fontSize: 11),
+                        ),
                         selected: _queryCase,
                         onSelected: (v) => setState(() => _queryCase = v),
                         visualDensity: VisualDensity.compact,
                       ),
                       FilterChip(
-                        label: const Text('Auto', style: TextStyle(fontSize: 11)),
+                        label: const Text(
+                          'Auto',
+                          style: TextStyle(fontSize: 11),
+                        ),
                         selected: _autoRefresh,
                         onSelected: (v) {
                           setState(() => _autoRefresh = v);
@@ -642,26 +759,32 @@ class _McpScreenState extends State<McpScreen> {
                     controller: _q,
                     decoration: InputDecoration(
                       hintText: _queryRegex
-                          ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
-                          : (_queryCase ? 'Filter (case-sensitive)' : 'Filter name / tools / status'),
+                          ? (_queryCase
+                                ? 'Filter (regex · case)'
+                                : 'Filter (regex)')
+                          : (_queryCase
+                                ? 'Filter (case-sensitive)'
+                                : 'Filter name / tools / status'),
                       isDense: true,
                       border: const OutlineInputBorder(),
                       prefixIcon: IconButton(
                         tooltip: _queryRegex
                             ? (_queryCase
-                                ? 'Regex · case on (long-press: plain filter)'
-                                : 'Regex · case off (long-press: plain filter)')
+                                  ? 'Regex · case on (long-press: plain filter)'
+                                  : 'Regex · case off (long-press: plain filter)')
                             : (_queryCase
-                                ? 'Case-sensitive (long-press: regex)'
-                                : 'Case-insensitive (long-press: regex)'),
+                                  ? 'Case-sensitive (long-press: regex)'
+                                  : 'Case-insensitive (long-press: regex)'),
                         icon: Icon(
                           _queryRegex
                               ? Icons.code
                               : (_queryCase ? Icons.text_fields : Icons.search),
                           size: 18,
                         ),
-                        onPressed: () => setState(() => _queryCase = !_queryCase),
-                        onLongPress: () => setState(() => _queryRegex = !_queryRegex),
+                        onPressed: () =>
+                            setState(() => _queryCase = !_queryCase),
+                        onLongPress: () =>
+                            setState(() => _queryRegex = !_queryRegex),
                       ),
                       suffixIcon: _query.isEmpty
                           ? null
@@ -685,58 +808,68 @@ class _McpScreenState extends State<McpScreen> {
                   child: servers.isEmpty && error == null
                       ? const Center(child: Text('No MCP servers reported'))
                       : items.isEmpty
-                          ? const Center(child: Text('No servers match filter'))
-                          : RefreshIndicator(
-                    onRefresh: _load,
-                    child: ListView.builder(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      controller: _scroll,
-                              padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
-                              itemCount: items.length,
-                              itemBuilder: (context, i) {
-                                final s = items[i];
-                                final name = s['name']?.toString() ?? 'unnamed';
-                                final tools = s['tools'] is List
-                                    ? (s['tools'] as List).map((e) => e.toString()).join(', ')
-                                    : '';
-                                final sub = [
-                                  if (s['description'] != null) s['description'].toString(),
-                                  if (s['kind'] != null) 'kind: ${s['kind']}',
-                                  if (s['status'] != null) 'status: ${s['status']}',
-                                  if (s['enabled'] != null) 'enabled: ${s['enabled']}',
-                                  if (s['note'] != null) 'note: ${s['note']}',
-                                  if (tools.isNotEmpty) 'tools: $tools',
-                                ].where((e) => e.isNotEmpty).join('\n');
-                                return Card(
-                                  child: ListTile(
-                                    leading: const Icon(Icons.hub_outlined),
-                                    title: Text(name),
-                                    subtitle: Text(
-                                      sub,
-                                      maxLines: _wrapLines ? 8 : 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      softWrap: true,
-                                    ),
-                                    isThreeLine: true,
-                                    trailing: IconButton(
-                                      tooltip: 'Copy',
-                                      icon: const Icon(Icons.copy, size: 18),
-                                      onPressed: () async {
-                                        await Clipboard.setData(ClipboardData(text: '$name\n$sub'));
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('MCP entry copied'),
-                                              duration: Duration(seconds: 1),
-                                            ),
-                                          );
-                                        }
-                                      },
-                                    ),
+                      ? const Center(child: Text('No servers match filter'))
+                      : RefreshIndicator(
+                          onRefresh: _load,
+                          child: ListView.builder(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            controller: _scroll,
+                            padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
+                            itemCount: items.length,
+                            itemBuilder: (context, i) {
+                              final s = items[i];
+                              final name = s['name']?.toString() ?? 'unnamed';
+                              final tools = s['tools'] is List
+                                  ? (s['tools'] as List)
+                                        .map((e) => e.toString())
+                                        .join(', ')
+                                  : '';
+                              final sub = [
+                                if (s['description'] != null)
+                                  s['description'].toString(),
+                                if (s['kind'] != null) 'kind: ${s['kind']}',
+                                if (s['status'] != null)
+                                  'status: ${s['status']}',
+                                if (s['enabled'] != null)
+                                  'enabled: ${s['enabled']}',
+                                if (s['note'] != null) 'note: ${s['note']}',
+                                if (tools.isNotEmpty) 'tools: $tools',
+                              ].where((e) => e.isNotEmpty).join('\n');
+                              return Card(
+                                child: ListTile(
+                                  leading: const Icon(Icons.hub_outlined),
+                                  title: Text(name),
+                                  subtitle: Text(
+                                    sub,
+                                    maxLines: _wrapLines ? 8 : 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    softWrap: true,
                                   ),
-                                );
-                              },
-                            )),
+                                  isThreeLine: true,
+                                  trailing: IconButton(
+                                    tooltip: 'Copy',
+                                    icon: const Icon(Icons.copy, size: 18),
+                                    onPressed: () async {
+                                      await Clipboard.setData(
+                                        ClipboardData(text: '$name\n$sub'),
+                                      );
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('MCP entry copied'),
+                                            duration: Duration(seconds: 1),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                 ),
               ],
             ),

@@ -1,4 +1,3 @@
-
 class SessionInfo {
   SessionInfo({
     required this.id,
@@ -51,7 +50,8 @@ class SessionInfo {
   factory SessionInfo.fromJson(Map<String, dynamic> json) {
     final sk = (json['session_key'] ?? json['id'] ?? '').toString();
     final id = (json['id'] ?? sk).toString();
-    final title = (json['title'] ?? json['name'] ?? json['chat_name'])?.toString();
+    final title = (json['title'] ?? json['name'] ?? json['chat_name'])
+        ?.toString();
     // last message can be string or object
     String? lastUser = json['last_user']?.toString();
     final lm = json['last_message'];
@@ -69,8 +69,13 @@ class SessionInfo {
       title: title,
       lastUser: lastUser,
       updatedAt: _asDouble(json['updated_at'] ?? json['updatedAt']),
-      createdAt: _asDouble(json['created_at'] ?? json['createdAt'] ?? json['created']),
-      running: json['running'] == true || json['live'] == true || json['active'] == true,
+      createdAt: _asDouble(
+        json['created_at'] ?? json['createdAt'] ?? json['created'],
+      ),
+      running:
+          json['running'] == true ||
+          json['live'] == true ||
+          json['active'] == true,
       mode: json['mode']?.toString(),
       model: json['model']?.toString(),
       workdir: json['workdir']?.toString() ?? json['work_dir']?.toString(),

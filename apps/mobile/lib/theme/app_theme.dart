@@ -26,10 +26,14 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         border: const OutlineInputBorder(),
         enabledBorder: highContrast
-            ? const OutlineInputBorder(borderSide: BorderSide(color: Colors.black87, width: 1.4))
+            ? const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.black87, width: 1.4),
+              )
             : null,
         focusedBorder: highContrast
-            ? OutlineInputBorder(borderSide: BorderSide(color: scheme.primary, width: 2))
+            ? OutlineInputBorder(
+                borderSide: BorderSide(color: scheme.primary, width: 2),
+              )
             : null,
       ),
       listTileTheme: highContrast
@@ -68,10 +72,14 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         border: const OutlineInputBorder(),
         enabledBorder: highContrast
-            ? const OutlineInputBorder(borderSide: BorderSide(color: Colors.white70, width: 1.4))
+            ? const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.white70, width: 1.4),
+              )
             : null,
         focusedBorder: highContrast
-            ? OutlineInputBorder(borderSide: BorderSide(color: scheme.primary, width: 2))
+            ? OutlineInputBorder(
+                borderSide: BorderSide(color: scheme.primary, width: 2),
+              )
             : null,
       ),
     );

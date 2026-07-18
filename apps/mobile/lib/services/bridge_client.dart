@@ -18,14 +18,16 @@ class BridgeClient {
     this.onMessage,
     this.onError,
     this.onClose,
-    WebSocketChannel Function(Uri uri, {Iterable<String>? protocols})? connector,
+    WebSocketChannel Function(Uri uri, {Iterable<String>? protocols})?
+    connector,
   }) : _connector = connector;
 
   final ConnectionConfig config;
   BridgeMessageHandler? onMessage;
   BridgeErrorHandler? onError;
   BridgeCloseHandler? onClose;
-  final WebSocketChannel Function(Uri uri, {Iterable<String>? protocols})? _connector;
+  final WebSocketChannel Function(Uri uri, {Iterable<String>? protocols})?
+  _connector;
 
   WebSocketChannel? _channel;
   StreamSubscription? _sub;
@@ -85,10 +87,7 @@ class BridgeClient {
       'type': 'register',
       'platform': config.platformName,
       'capabilities': ['text', 'buttons', 'typing', 'preview', 'terminal'],
-      'metadata': {
-        'version': '0.1.11',
-        'device_id': config.deviceId,
-      },
+      'metadata': {'version': '0.1.11', 'device_id': config.deviceId},
     });
   }
 
@@ -101,10 +100,11 @@ class BridgeClient {
     List<Map<String, dynamic>> images = const [],
     List<Map<String, dynamic>> files = const [],
   }) {
-    final sk = sessionKeyOverride ??
-        'huan:${config.deviceId}:$conversationId';
-    final replyCtx = 'ctx-${const Uuid().v4().replaceAll('-', '').substring(0, 12)}';
-    final msgId = 'msg-${const Uuid().v4().replaceAll('-', '').substring(0, 12)}';
+    final sk = sessionKeyOverride ?? 'huan:${config.deviceId}:$conversationId';
+    final replyCtx =
+        'ctx-${const Uuid().v4().replaceAll('-', '').substring(0, 12)}';
+    final msgId =
+        'msg-${const Uuid().v4().replaceAll('-', '').substring(0, 12)}';
     send({
       'type': 'message',
       'msg_id': msgId,
@@ -117,11 +117,7 @@ class BridgeClient {
       'files': files,
       'audio': null,
     });
-    return {
-      'session_key': sk,
-      'reply_ctx': replyCtx,
-      'msg_id': msgId,
-    };
+    return {'session_key': sk, 'reply_ctx': replyCtx, 'msg_id': msgId};
   }
 
   void sendCardAction({
@@ -220,7 +216,9 @@ class BridgeClient {
             _registerCompleter!.complete();
           }
         } else {
-          final err = AuthError(payload['error']?.toString() ?? 'register denied');
+          final err = AuthError(
+            payload['error']?.toString() ?? 'register denied',
+          );
           if (_registerCompleter != null && !_registerCompleter!.isCompleted) {
             _registerCompleter!.completeError(err);
           }

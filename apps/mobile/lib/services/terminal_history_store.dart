@@ -16,7 +16,10 @@ class TerminalHistoryStore {
     try {
       final v = jsonDecode(raw);
       if (v is! List) return [];
-      return v.map((e) => e.toString()).where((s) => s.trim().isNotEmpty).toList();
+      return v
+          .map((e) => e.toString())
+          .where((s) => s.trim().isNotEmpty)
+          .toList();
     } catch (_) {
       return [];
     }
