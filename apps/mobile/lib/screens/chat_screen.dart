@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'dart:convert';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -233,101 +236,122 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _attachDemo() async {
-    // No file_picker dep: demo attachment via dialog (base64/text) for protocol path.
-    final nameCtrl = TextEditingController(text: 'note.txt');
-    final bodyCtrl = TextEditingController(text: 'hello from HuanHermes attach demo');
-    final kind = await showDialog<String>(
+    final action = await showModalBottomSheet<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Attach (protocol demo)'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Sends Bridge message.files / images without native picker. '
-                'Protocol path without native file_picker. Camera/gallery remain P4.',
-                style: TextStyle(fontSize: 12),
-              ),
-              const SizedBox(height: 8),
-              const Text('Presets', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 4),
-              Wrap(
-                spacing: 6,
-                runSpacing: 4,
-                children: [
-                  ActionChip(
-                    label: const Text('note.txt'),
-                    onPressed: () {
-                      nameCtrl.text = 'note.txt';
-                      bodyCtrl.text = 'hello from HuanHermes attach demo';
-                    },
-                  ),
-                  ActionChip(
-                    label: const Text('context.md'),
-                    onPressed: () {
-                      nameCtrl.text = 'context.md';
-                      bodyCtrl.text =
-                          '# Context\n\n> App is console-only.\n\n1. Bridge WS\n2. Management REST\n';
-                    },
-                  ),
-                  ActionChip(
-                    label: const Text('payload.json'),
-                    onPressed: () {
-                      nameCtrl.text = 'payload.json';
-                      bodyCtrl.text = '{\n  "source": "huanhermes-app",\n  "demo": true\n}\n';
-                    },
-                  ),
-                  ActionChip(
-                    label: const Text('snippet.log'),
-                    onPressed: () {
-                      nameCtrl.text = 'snippet.log';
-                      bodyCtrl.text = 'INFO mock-host ready\nWARN pairing URI must not embed tokens\n';
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'filename')),
-              TextField(controller: bodyCtrl, decoration: const InputDecoration(labelText: 'text content'), maxLines: 3),
-            ],
-          ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(title: Text('Attach'), subtitle: Text('Choose source')),
+            ListTile(
+              leading: const Icon(Icons.folder_open),
+              title: const Text('Pick file'),
+              subtitle: const Text('From device storage'),
+              onTap: () => Navigator.pop(ctx, 'file'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Pick image'),
+              subtitle: const Text('From gallery'),
+              onTap: () => Navigator.pop(ctx, 'image_gallery'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take photo'),
+              subtitle: const Text('From camera'),
+              onTap: () => Navigator.pop(ctx, 'image_camera'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.text_snippet),
+              title: const Text('Demo text'),
+              subtitle: const Text('Type content manually'),
+              onTap: () => Navigator.pop(ctx, 'demo'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(ctx, 'image'), child: const Text('As image meta')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, 'file'), child: const Text('As file')),
-        ],
       ),
     );
-    if (kind == null) return;
-    final name = nameCtrl.text.trim().isEmpty ? 'attach.bin' : nameCtrl.text.trim();
-    final b64 = base64Encode(utf8.encode(bodyCtrl.text));
-    setState(() {
-      if (kind == 'image') {
-        _pendingImages.add({
-          'name': name.endsWith('.png') ? name : '$name.png',
-          'mime': 'image/png',
-          'data_base64': b64,
-          'note': 'demo-meta',
-        });
-      } else {
-        final lower = name.toLowerCase();
-        final mime = lower.endsWith('.json')
-            ? 'application/json'
-            : lower.endsWith('.md')
-                ? 'text/markdown'
-                : lower.endsWith('.log')
-                    ? 'text/x-log'
-                    : 'text/plain';
-        _pendingFiles.add({
-          'name': name,
-          'mime': mime,
-          'data_base64': b64,
-        });
-      }
-    });
+    if (action == null) return;
+
+    if (action == 'file') {
+      final result = await FilePicker.platform.pickFiles(withData: true);
+      if (result == null || result.files.isEmpty) return;
+      final f = result.files.first;
+      final bytes = f.bytes;
+      if (bytes == null) return;
+      final b64 = base64Encode(bytes);
+      final name = f.name;
+      final lower = name.toLowerCase();
+      final mime = lower.endsWith('.json')
+          ? 'application/json'
+          : lower.endsWith('.md')
+              ? 'text/markdown'
+              : lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg')
+                  ? 'image/${lower.split('.').last}'
+                  : 'application/octet-stream';
+      setState(() {
+        if (mime.startsWith('image/')) {
+          _pendingImages.add({'name': name, 'mime': mime, 'data_base64': b64});
+        } else {
+          _pendingFiles.add({'name': name, 'mime': mime, 'data_base64': b64});
+        }
+      });
+    } else if (action == 'image_gallery') {
+      final picker = ImagePicker();
+      final img = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+      if (img == null) return;
+      final bytes = await img.readAsBytes();
+      final b64 = base64Encode(bytes);
+      final name = img.name;
+      setState(() {
+        _pendingImages.add({'name': name, 'mime': 'image/jpeg', 'data_base64': b64});
+      });
+    } else if (action == 'image_camera') {
+      final picker = ImagePicker();
+      final img = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+      if (img == null) return;
+      final bytes = await img.readAsBytes();
+      final b64 = base64Encode(bytes);
+      final name = img.name;
+      setState(() {
+        _pendingImages.add({'name': name, 'mime': 'image/jpeg', 'data_base64': b64});
+      });
+    } else if (action == 'demo') {
+      final nameCtrl = TextEditingController(text: 'note.txt');
+      final bodyCtrl = TextEditingController(text: 'hello from HuanHermes attach demo');
+      final kind = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Demo attachment'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'filename')),
+                TextField(controller: bodyCtrl, decoration: const InputDecoration(labelText: 'text content'), maxLines: 3),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx, 'image'), child: const Text('As image')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, 'file'), child: const Text('As file')),
+          ],
+        ),
+      );
+      if (kind == null) return;
+      final name = nameCtrl.text.trim().isEmpty ? 'attach.bin' : nameCtrl.text.trim();
+      final b64 = base64Encode(utf8.encode(bodyCtrl.text));
+      setState(() {
+        if (kind == 'image') {
+          _pendingImages.add({'name': name.endsWith('.png') ? name : '$name.png', 'mime': 'image/png', 'data_base64': b64});
+        } else {
+          final lower = name.toLowerCase();
+          final mime = lower.endsWith('.json') ? 'application/json' : lower.endsWith('.md') ? 'text/markdown' : 'text/plain';
+          _pendingFiles.add({'name': name, 'mime': mime, 'data_base64': b64});
+        }
+      });
+    }
   }
 
   Future<void> _pickMode() async {

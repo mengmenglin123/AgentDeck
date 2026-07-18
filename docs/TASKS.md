@@ -659,6 +659,9 @@
 - [x] **P4-3bg** Newest chips: activity/logs/memory (0.1.161)
 - [x] **P4-1bo** Fix mock df/free/ps/uptime handlers (0.1.162)
 
+- [x] **P4-5ca** System notifications (flutter_local_notifications) (0.1.164)
+- [x] **P4-5cb** File picker (file_picker + image_picker) (0.1.164)
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

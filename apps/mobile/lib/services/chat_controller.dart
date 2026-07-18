@@ -7,6 +7,7 @@ import '../models/connection_config.dart';
 import '../models/session_info.dart';
 import '../models/transcript.dart';
 import 'audit_log.dart';
+import 'notification_service.dart';
 import 'prompt_history_store.dart';
 import 'bridge_client.dart';
 import 'mgmt_client.dart';
@@ -359,6 +360,12 @@ class ChatController extends ChangeNotifier {
     if (type == 'run_done') {
       runActive = false;
       typing = false;
+      // Show notification when task completes
+      final summary = payload['summary']?.toString() ?? 'Task completed';
+      NotificationService.instance.showTaskComplete(
+        sessionName: session.name,
+        summary: summary,
+      );
     }
     reducer.applyBridgePayload(payload);
     notifyListeners();

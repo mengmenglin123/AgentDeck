@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.164
+
+- System notifications: flutter_local_notifications + Android POST_NOTIFICATIONS permission
+- File picker: real file/image picking from device storage, gallery, or camera
+- Image picker: camera and gallery integration for image attachments
+- Notification service: task completion + error alerts with channel support
+- File picker service: unified file/image/video picking interface
+
+
 ## 0.1.163
 
 - Refactor: remove 25 duplicate elif handler blocks (-73 lines)
