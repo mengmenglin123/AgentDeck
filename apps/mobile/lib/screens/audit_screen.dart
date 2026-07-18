@@ -463,6 +463,12 @@ class _AuditScreenState extends State<AuditScreen> {
                   onSelected: (v) => setState(() => _newestFirst = v),
                   visualDensity: VisualDensity.compact,
                 ),
+                FilterChip(
+                  label: const Text('Auto', style: TextStyle(fontSize: 11)),
+                  selected: _autoRefresh,
+                  onSelected: (v) => setState(() => _autoRefresh = v),
+                  visualDensity: VisualDensity.compact,
+                ),
               ],
             ),
           ),

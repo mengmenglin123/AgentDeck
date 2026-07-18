@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.154
+
+- Auto refresh FilterChips on activity/agents/audit/cron screens
+- MarkdownLite `<figcaption>` + `<map>`
+- Mock history/alias/unalias (+ help/which/type lockstep)
+
 ## 0.1.153
 
 - Terminal view Find FilterChip

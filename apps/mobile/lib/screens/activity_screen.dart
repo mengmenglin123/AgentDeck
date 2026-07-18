@@ -710,6 +710,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   onSelected: (v) => setState(() => _queryCase = v),
                   visualDensity: VisualDensity.compact,
                 ),
+                FilterChip(
+                  label: const Text('Auto', style: TextStyle(fontSize: 11)),
+                  selected: _autoRefresh,
+                  onSelected: (v) => setState(() => _autoRefresh = v),
+                  visualDensity: VisualDensity.compact,
+                ),
               ],
             ),
           ),

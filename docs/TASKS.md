@@ -637,6 +637,9 @@
 - [x] **P4-3bb** Terminal view Find FilterChip (0.1.153)
 - [x] **P4-5be** MarkdownLite `<progress>` + `<figure>` (0.1.153)
 - [x] **P4-1bc** Mock chsh/passwd/lastlog (0.1.153)
+- [x] **P4-3bc** Auto refresh chips: activity/agents/audit/cron (0.1.154)
+- [x] **P4-5bf** MarkdownLite `<figcaption>` + `<map>` (0.1.154)
+- [x] **P4-1bd** Mock history/alias/unalias (0.1.154)
 
 ## P4 — 远期
 
