@@ -25,6 +25,8 @@ class _PairingScreenState extends State<PairingScreen> {
   Map<String, dynamic> data = {};
   Timer? _timer;
   bool _wrapLines = false;
+  String _payloadQuery = '';
+  final _payloadFilterCtrl = TextEditingController();
   bool _autoRefresh = false;
   final _scroll = ScrollController();
 
@@ -37,6 +39,7 @@ class _PairingScreenState extends State<PairingScreen> {
 
   @override
   void dispose() {
+    _payloadFilterCtrl.dispose();
     _timer?.cancel();
     _scroll.dispose();
     super.dispose();
@@ -103,6 +106,15 @@ class _PairingScreenState extends State<PairingScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(okMsg), duration: const Duration(seconds: 1)),
     );
+  }
+
+  String get _payloadText {
+    final raw = Security.redactText(data.toString());
+    final q = _payloadQuery.trim().toLowerCase();
+    if (q.isEmpty) return raw;
+    final lines = raw.split('\n').where((l) => l.toLowerCase().contains(q)).toList();
+    if (lines.isEmpty) return '(no payload lines match: $_payloadQuery)';
+    return lines.join('\n');
   }
 
   @override
@@ -302,8 +314,28 @@ class _PairingScreenState extends State<PairingScreen> {
                 const SizedBox(height: 16),
                 Text('Host payload (redacted)', style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 8),
+                TextField(
+                  controller: _payloadFilterCtrl,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    prefixIcon: const Icon(Icons.search, size: 18),
+                    hintText: 'Filter payload lines',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: _payloadQuery.isEmpty
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            onPressed: () {
+                              _payloadFilterCtrl.clear();
+                              setState(() => _payloadQuery = '');
+                            },
+                          ),
+                  ),
+                  onChanged: (v) => setState(() => _payloadQuery = v),
+                ),
+                const SizedBox(height: 8),
                 SelectableText(
-                  Security.redactText(data.toString()),
+                  _payloadText,
                   style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
                   maxLines: _wrapLines ? null : 8,
                 ),

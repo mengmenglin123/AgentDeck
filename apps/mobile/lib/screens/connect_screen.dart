@@ -25,6 +25,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
   bool _obscureBridge = true;
   bool _obscureMgmt = true;
   bool _wrapLines = false;
+  bool _sortAsc = true;
   final _scroll = ScrollController();
   bool _useTls = false;
 
@@ -279,6 +280,12 @@ class _ConnectScreenState extends State<ConnectScreen> {
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
           IconButton(
+            tooltip: _sortAsc ? 'Profiles Z→A' : 'Profiles A→Z',
+            onPressed: () => setState(() => _sortAsc = !_sortAsc),
+            icon: Icon(_sortAsc ? Icons.sort_by_alpha : Icons.sort),
+          ),
+
+          IconButton(
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
@@ -340,7 +347,12 @@ class _ConnectScreenState extends State<ConnectScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: controller.profiles.map((p) {
+                children: (List.of(controller.profiles)
+                  ..sort((a, b) {
+                    final c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+                    return _sortAsc ? c : -c;
+                  }))
+                  .map((p) {
                   final selected = p.id == controller.activeProfileId;
                   return FilterChip(
                     label: Text(

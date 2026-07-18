@@ -36,6 +36,7 @@ class _DiffScreenState extends State<DiffScreen> {
   String _diffQuery = '';
   final _fileFilterCtrl = TextEditingController();
   String _fileFilter = '';
+  String _statusFilter = '';
 
   @override
   void initState() {
@@ -68,11 +69,31 @@ class _DiffScreenState extends State<DiffScreen> {
     super.dispose();
   }
 
+  String _fileStatus(Map<String, dynamic> f) {
+    final s = '${f['status'] ?? f['state'] ?? ''}'.trim();
+    if (s.isNotEmpty) return s;
+    if (f['has_diff'] == true) return 'changed';
+    return 'unknown';
+  }
+
+  List<String> get _statusOptions {
+    final set = <String>{};
+    for (final f in _files) {
+      set.add(_fileStatus(f));
+    }
+    final list = set.toList()..sort();
+    return list;
+  }
+
   List<Map<String, dynamic>> get _visibleFiles {
     final q = _fileFilter.trim().toLowerCase();
-    final list = q.isEmpty
-        ? List<Map<String, dynamic>>.from(_files)
-        : _files.where((f) => '${f['path']}'.toLowerCase().contains(q)).toList();
+    var list = List<Map<String, dynamic>>.from(_files);
+    if (q.isNotEmpty) {
+      list = list.where((f) => '${f['path']}'.toLowerCase().contains(q)).toList();
+    }
+    if (_statusFilter.isNotEmpty) {
+      list = list.where((f) => _fileStatus(f) == _statusFilter).toList();
+    }
     list.sort((a, b) {
       final pa = '${a['path']}'.toLowerCase();
       final pb = '${b['path']}'.toLowerCase();
@@ -306,6 +327,31 @@ class _DiffScreenState extends State<DiffScreen> {
                         ),
                 ),
                 onChanged: (v) => setState(() => _fileFilter = v),
+              ),
+            ),
+          if (_files.isNotEmpty && _statusOptions.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  FilterChip(
+                    visualDensity: VisualDensity.compact,
+                    label: const Text('All', style: TextStyle(fontSize: 11)),
+                    selected: _statusFilter.isEmpty,
+                    onSelected: (_) => setState(() => _statusFilter = ''),
+                  ),
+                  for (final s in _statusOptions)
+                    FilterChip(
+                      visualDensity: VisualDensity.compact,
+                      label: Text(s, style: const TextStyle(fontSize: 11)),
+                      selected: _statusFilter == s,
+                      onSelected: (_) => setState(() {
+                        _statusFilter = _statusFilter == s ? '' : s;
+                      }),
+                    ),
+                ],
               ),
             ),
           if (_files.isNotEmpty)

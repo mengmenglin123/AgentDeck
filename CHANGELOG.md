@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.58
+
+- Host Dashboard: text filter for capability chips
+- Diff: status chips filter for changed files
+- Connect: A→Z / Z→A sort for profile chips
+- Pairing: filter host payload lines
+
 ## 0.1.57
 
 - Terminal: newest/oldest line order toggle

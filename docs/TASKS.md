@@ -269,6 +269,11 @@
 | P3-203 | Sessions 排序方向反转 | [x] |
 | P3-204 | Status capabilities 过滤 | [x] |
 
+| P3-205 | Host Dashboard capabilities 文本过滤 | [x] |
+| P3-206 | Diff 文件 status chips 过滤 | [x] |
+| P3-207 | Connect 档案 A→Z/Z→A 排序 | [x] |
+| P3-208 | Pairing payload 行过滤 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

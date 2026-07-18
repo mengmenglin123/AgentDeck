@@ -39,6 +39,8 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
   final _scroll = ScrollController();
   DateTime? _lastOk;
   String _capFilter = '';
+  String _capQuery = '';
+  final _capQueryCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -52,6 +54,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
   @override
   void dispose() {
     _keyFilterCtrl.dispose();
+    _capQueryCtrl.dispose();
     _scroll.dispose();
     _timer?.cancel();
     super.dispose();
@@ -384,10 +387,33 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
                 const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: TextField(
+                    controller: _capQueryCtrl,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      prefixIcon: const Icon(Icons.search, size: 18),
+                      hintText: 'Filter capabilities',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: _capQuery.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                _capQueryCtrl.clear();
+                                setState(() => _capQuery = '');
+                              },
+                            ),
+                    ),
+                    onChanged: (v) => setState(() => _capQuery = v),
+                  ),
+                ),
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
                   children: [
+                    // full-width search sits above chips via parent Column if present;
                     FilterChip(
                       visualDensity: VisualDensity.compact,
                       label: const Text('All', style: TextStyle(fontSize: 11)),
@@ -395,6 +421,8 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                       onSelected: (_) => setState(() => _capFilter = ''),
                     ),
                     for (final c in (_status['capabilities'] as List? ?? const []))
+                      if (_capQuery.trim().isEmpty ||
+                          '$c'.toLowerCase().contains(_capQuery.trim().toLowerCase()))
                       FilterChip(
                         visualDensity: VisualDensity.compact,
                         avatar: Icon(_capIcon('$c'), size: 14),
