@@ -187,6 +187,8 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
       'projects: ${_status['projects_count'] ?? '—'}',
       'sessions: ${_status['sessions_count'] ?? '—'}',
       'active_runs: ${_status['active_runs'] ?? '—'}',
+      if (_status['hermes'] is Map)
+        'hermes: adapter=${(_status['hermes'] as Map)['adapter'] ?? '—'} process=${(_status['hermes'] as Map)['process']}',
       if (caps.isNotEmpty) 'capabilities: $caps',
       if (_error != null) 'error: $_error',
       if (_lastOk != null) 'last_ok: ${_lastOk!.toIso8601String()}',
@@ -473,6 +475,12 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                     _StatChip(label: 'projects', value: '${_status['projects_count'] ?? '—'}'),
                     _StatChip(label: 'sessions', value: '${_status['sessions_count'] ?? '—'}'),
                     _StatChip(label: 'runs', value: '${_status['active_runs'] ?? '—'}'),
+                    if (_status['hermes'] is Map)
+                      _StatChip(
+                        label: 'hermes',
+                        value: '${((_status['hermes'] as Map)['adapter'] ?? '—')}'
+                            '${((_status['hermes'] as Map)['process'] == true) ? ' · live' : ' · mock'}',
+                      ),
                   ],
                 ),
                 const SizedBox(height: 16),

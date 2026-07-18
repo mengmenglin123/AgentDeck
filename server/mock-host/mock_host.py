@@ -783,7 +783,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, mkdir, whoami, uname, hostname, id, date, env, cat, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, mkdir, whoami, which, uname, hostname, id, date, env, cat, head, tail, wc, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -855,6 +855,16 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             out(("\n".join(names) + ("\n" if names else "")), done=True, exit_code=0)
     elif lower == "whoami":
         out("huanhermes-mock\n", done=True, exit_code=0)
+    elif lower.startswith("which "):
+        name = data.strip()[6:].strip()
+        known = {
+            "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date",
+            "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help",
+        }
+        if name in known:
+            out(f"/usr/bin/{name}\n", done=True, exit_code=0)
+        else:
+            out(f"which: no {name} in mock PATH\n", done=True, exit_code=1)
     elif lower in {"clear", "reset", "cls"}:
         out("\x1b[2J\x1b[H[mock-clear]\n", done=True, exit_code=0)
     elif lower in {"uname", "uname -a"}:
@@ -863,10 +873,38 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         out("mock-host\n", done=True, exit_code=0)
     elif lower in {"id", "id -u"}:
         out("uid=1000(huanhermes-mock) gid=1000(mock) groups=1000(mock)\n", done=True, exit_code=0)
-    elif lower.startswith("cat "):
-        path = data.strip()[4:].strip() or "(empty)"
+    elif lower.startswith("cat ") or lower.startswith("head ") or lower.startswith("tail ") or lower.startswith("wc "):
         st_c = _session_state(sk)
-        out(f"[mock-cat] {path}\n(workdir={st_c.get('workdir') or '/workspace'})\n", done=True, exit_code=0)
+        parts = data.strip().split(None, 1)
+        cmd = parts[0].lower() if parts else "cat"
+        arg = parts[1].strip() if len(parts) > 1 else ""
+        # strip simple flags like -n
+        while arg.startswith("-"):
+            bits = arg.split(None, 1)
+            arg = bits[1] if len(bits) > 1 else ""
+        path = arg or "(empty)"
+        wd = st_c.get("workdir") or "/workspace"
+        # resolve relative to workdir
+        if path.startswith("/"):
+            rel = path.replace("/workspace", "").lstrip("/")
+        else:
+            base = wd.replace("/workspace", "").lstrip("/")
+            rel = "/".join(p for p in (base + "/" + path).split("/") if p and p != ".")
+        node, cleaned = _ws_resolve(rel)
+        if node is None or node.get("type") != "file":
+            out(f"{cmd}: {path}: No such file\n", done=True, exit_code=1)
+        else:
+            content = node.get("content") or ""
+            if cmd == "wc":
+                lines = content.count("\n") + (0 if content.endswith("\n") or not content else 1)
+                words = len(content.split())
+                out(f"{lines} {words} {len(content)} {cleaned or path}\n", done=True, exit_code=0)
+            elif cmd == "head":
+                out("\n".join(content.splitlines()[:10]) + ("\n" if content else ""), done=True, exit_code=0)
+            elif cmd == "tail":
+                out("\n".join(content.splitlines()[-10:]) + ("\n" if content else ""), done=True, exit_code=0)
+            else:
+                out(content if content.endswith("\n") or not content else content + "\n", done=True, exit_code=0)
     elif lower in {"date", "date -u"}:
         out(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()) + "\n", done=True, exit_code=0)
     elif lower in {"env", "printenv"}:

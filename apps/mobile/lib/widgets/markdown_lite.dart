@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings, lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, strike, inline code, bold/italic.
+/// Covers headings, lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), strike, inline code, bold/italic.
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -464,7 +464,7 @@ class MarkdownLite extends StatelessWidget {
   static TextSpan _inline(String text, TextStyle base) {
     final spans = <InlineSpan>[];
     final re = RegExp(
-      r'(~~[^~]+~~|`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|\[[^\]]+\]\([^)]+\))',
+      r'(~~[^~]+~~|`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\))',
     );
     var i = 0;
     for (final m in re.allMatches(text)) {
@@ -498,6 +498,30 @@ class MarkdownLite extends StatelessWidget {
           text: tok.substring(1, tok.length - 1),
           style: base.copyWith(fontStyle: FontStyle.italic),
         ));
+      } else if (tok.startsWith('![')) {
+        final im = RegExp(r'!\[([^\]]*)\]\(([^)]+)\)').firstMatch(tok);
+        final rawAlt = im?.group(1) ?? '';
+        final alt = rawAlt.isEmpty ? 'image' : rawAlt;
+        final url = im?.group(2) ?? '';
+        // Console-safe: no network fetch / no file_picker; show alt + path only.
+        spans.add(TextSpan(
+          text: '🖼 $alt',
+          style: base.copyWith(
+            color: Colors.tealAccent.shade200,
+            fontFamily: 'monospace',
+            fontSize: (base.fontSize ?? 14) * 0.95,
+          ),
+        ));
+        if (url.isNotEmpty) {
+          spans.add(TextSpan(
+            text: ' ($url)',
+            style: base.copyWith(
+              color: base.color?.withOpacity(0.55),
+              fontSize: (base.fontSize ?? 14) * 0.85,
+              fontFamily: 'monospace',
+            ),
+          ));
+        }
       } else if (tok.startsWith('[')) {
         final lm = RegExp(r'\[([^\]]+)\]\(([^)]+)\)').firstMatch(tok);
         final label = lm?.group(1) ?? tok;

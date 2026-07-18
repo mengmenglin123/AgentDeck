@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.105
+
+- MarkdownLite image `![alt](url)` console-safe alt chip (no network)
+- Mock terminal which/head/tail/wc + cat from workspace tree
+- Host dashboard hermes adapter chip + copy metadata
+
 ## 0.1.104
 
 - Mock terminal cd/mkdir (readonly tree) + help; workdir-aware ls
