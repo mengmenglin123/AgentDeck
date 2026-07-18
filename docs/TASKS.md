@@ -643,6 +643,9 @@
 - [x] **P4-3bd** Auto refresh chips: diff/host_dashboard/logs (0.1.155)
 - [x] **P4-5bg** MarkdownLite `<main>` + `<aside>` + `<nav>` (0.1.155)
 - [x] **P4-1be** Mock lastb/faillog/chage (0.1.155)
+- [x] **P4-3be** Auto refresh chips: mcp/memory/sessions (0.1.156)
+- [x] **P4-5bh** MarkdownLite `<section>` + `<article>` + `<header>` (0.1.156)
+- [x] **P4-1bf** Mock ulimit/finger/nologin (0.1.156)
 
 ## P4 — 远期
 

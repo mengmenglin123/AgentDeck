@@ -1038,6 +1038,15 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       onSelected: (v) => setState(() => _queryCase = v),
                       visualDensity: VisualDensity.compact,
                     ),
+                    FilterChip(
+                      label: const Text('Auto', style: TextStyle(fontSize: 11)),
+                      selected: _autoRefresh,
+                      onSelected: (v) {
+                        setState(() => _autoRefresh = v);
+                        _armTimer();
+                      },
+                      visualDensity: VisualDensity.compact,
+                    ),
                     for (final f in const [
                       ('', 'Any agent'),
                       ('hermes', 'hermes'),

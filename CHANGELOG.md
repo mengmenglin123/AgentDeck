@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.156
+
+- Auto refresh FilterChips on mcp/memory/sessions screens
+- MarkdownLite `<section>` + `<article>` + `<header>`
+- Mock ulimit/finger/nologin (+ help/which/type lockstep)
+
 ## 0.1.155
 
 - Auto refresh FilterChips on diff/host_dashboard/logs screens
