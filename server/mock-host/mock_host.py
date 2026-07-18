@@ -460,15 +460,20 @@ def seed_host_logs() -> None:
         if HOST_LOGS:
             return
     samples = [
-        ("info", "Mock Host listening (bridge+mgmt)"),
-        ("info", "Hermes adapter=mock (ADR-002) — no live process"),
-        ("debug", "Terminal geometry default 80x24"),
-        ("warn", "Pairing URI must never embed tokens"),
-        ("info", "Activity seed events ready"),
+        ("info", "Mock Host listening (bridge+mgmt)", "mock-host"),
+        ("info", "Hermes adapter=mock (ADR-002) — no live process", "hermes"),
+        ("debug", "Terminal geometry default 80x24", "terminal"),
+        ("warn", "Pairing URI must never embed tokens", "bridge"),
+        ("info", "Activity seed events ready", "mock-host"),
+        ("info", "Session channel accepted", "session"),
+        ("debug", "Bridge ping/pong ok", "bridge"),
+        ("error", "Simulated tool timeout (demo)", "hermes"),
+        ("warn", "Workspace readonly for console", "session"),
+        ("info", "Logs source filter demo seed", "mock-host"),
     ]
     now = int(time.time())
-    for i, (level, msg) in enumerate(samples):
-        host_log(level, msg, source="mock-host", ts=now - (len(samples) - i) * 15)
+    for i, (level, msg, src) in enumerate(samples):
+        host_log(level, msg, source=src, ts=now - (len(samples) - i) * 15)
 
 
 seed_host_logs()
@@ -805,7 +810,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, md5sum, sha1sum, sha256sum, base64, file, type, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, hexdump, xxd, jq, md5sum, sha1sum, sha256sum, base64, file, type, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -882,7 +887,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         known = {
             "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date",
             "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help",
-            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type",
+            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "hexdump", "xxd", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1591,6 +1596,123 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
                     out_lines.append(line)
             out("\n".join(out_lines) + ("\n" if out_lines else ""), done=True, exit_code=0)
 
+
+    elif lower.startswith("fold ") or lower == "fold":
+        parts = data.strip().split()
+        width = 80
+        path = None
+        i = 1
+        while i < len(parts):
+            t = parts[i]
+            if t in {"-w", "--width"} and i + 1 < len(parts):
+                try:
+                    width = max(8, min(200, int(parts[i + 1])))
+                except Exception:
+                    pass
+                i += 2
+                continue
+            if t.startswith("-w") and len(t) > 2 and t[2:].isdigit():
+                width = max(8, min(200, int(t[2:])))
+                i += 1
+                continue
+            if t.startswith("-"):
+                i += 1
+                continue
+            path = t
+            i += 1
+        if not path:
+            out("fold: missing file operand\n", done=True, exit_code=1)
+        else:
+            st_f = _session_state(sk)
+            wd = st_f.get("workdir") or "/workspace"
+            if path.startswith("/"):
+                rel = path.replace("/workspace", "").lstrip("/")
+            else:
+                base = wd.replace("/workspace", "").lstrip("/")
+                rel = "/".join(p for p in (base + "/" + path).split("/") if p and p != ".")
+            node, _ = _ws_resolve(rel)
+            text = (node.get("content") if node and node.get("type") == "file" else path) or ""
+            out_lines = []
+            for line in text.splitlines() or [text]:
+                if not line:
+                    out_lines.append("")
+                    continue
+                for j in range(0, len(line), width):
+                    out_lines.append(line[j : j + width])
+            out("\n".join(out_lines) + ("\n" if out_lines else ""), done=True, exit_code=0)
+    elif lower.startswith("hexdump") or lower.startswith("xxd ") or lower == "xxd" or lower == "hexdump":
+        parts = data.strip().split()
+        path = next((p for p in parts[1:] if not p.startswith("-")), None)
+        if not path:
+            out("hexdump: missing file operand\n", done=True, exit_code=1)
+        else:
+            st_x = _session_state(sk)
+            wd = st_x.get("workdir") or "/workspace"
+            if path.startswith("/"):
+                rel = path.replace("/workspace", "").lstrip("/")
+            else:
+                base = wd.replace("/workspace", "").lstrip("/")
+                rel = "/".join(p for p in (base + "/" + path).split("/") if p and p != ".")
+            node, cleaned = _ws_resolve(rel)
+            if node is None or node.get("type") != "file":
+                out(f"hexdump: {path}: No such file or directory\n", done=True, exit_code=1)
+            else:
+                raw = (node.get("content") or "").encode("utf-8")
+                lines = []
+                for off in range(0, min(len(raw), 256), 16):
+                    chunk = raw[off : off + 16]
+                    hexpart = " ".join(f"{b:02x}" for b in chunk)
+                    asc = "".join(chr(b) if 32 <= b < 127 else "." for b in chunk)
+                    lines.append(f"{off:08x}  {hexpart:<48}  |{asc}|")
+                if len(raw) > 256:
+                    lines.append(f"... ({len(raw)} bytes total, showing first 256)")
+                out("\n".join(lines) + "\n", done=True, exit_code=0)
+    elif lower.startswith("jq ") or lower == "jq":
+        # minimal: jq . path  or jq . <<< json
+        parts = data.strip().split(None, 2)
+        # jq . file
+        expr = "."
+        path = None
+        tokens = data.strip().split()
+        for t in tokens[1:]:
+            if t.startswith("-"):
+                continue
+            if t.startswith(".") and path is None and expr == ".":
+                expr = t
+                continue
+            if path is None and not t.startswith("."):
+                path = t
+        if path is None:
+            out("jq: (mock) usage: jq . <file.json>\n", done=True, exit_code=1)
+        else:
+            st_j = _session_state(sk)
+            wd = st_j.get("workdir") or "/workspace"
+            if path.startswith("/"):
+                rel = path.replace("/workspace", "").lstrip("/")
+            else:
+                base = wd.replace("/workspace", "").lstrip("/")
+                rel = "/".join(p for p in (base + "/" + path).split("/") if p and p != ".")
+            node, _ = _ws_resolve(rel)
+            if node is None or node.get("type") != "file":
+                out(f"jq: {path}: No such file or directory\n", done=True, exit_code=1)
+            else:
+                content = node.get("content") or ""
+                try:
+                    import json as _json
+                    obj = _json.loads(content)
+                    if expr in {".", ""}:
+                        out(_json.dumps(obj, indent=2, ensure_ascii=False) + "\n", done=True, exit_code=0)
+                    elif expr.startswith(".") and len(expr) > 1:
+                        key = expr[1:].split(".")[0].split("[")[0]
+                        if isinstance(obj, dict) and key in obj:
+                            out(_json.dumps(obj[key], indent=2, ensure_ascii=False) + "\n", done=True, exit_code=0)
+                        else:
+                            out("null\n", done=True, exit_code=0)
+                    else:
+                        out(_json.dumps(obj, indent=2, ensure_ascii=False) + "\n", done=True, exit_code=0)
+                except Exception as e:
+                    out(f"jq: parse error: {e}\n", done=True, exit_code=1)
+
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)
     elif lower in {"clear", "cls"}:
@@ -2097,7 +2219,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                 {
                     "ok": True,
                     "data": {
-                        "version": "mock-0.1.113",
+                        "version": "mock-0.1.114",
                         "uptime_seconds": int(time.time() - START_TS),
                         "connected_platforms": ["bridge"],
                         "projects_count": len(PROJECTS),
@@ -2416,10 +2538,17 @@ class MgmtHandler(BaseHTTPRequestHandler):
                 limit = 80
             limit = max(1, min(limit, 200))
             level = ((qs.get("level") or [""])[0] or "").lower()
+            source = ((qs.get("source") or [""])[0] or "").lower()
             with HOST_LOGS_LOCK:
                 items = list(HOST_LOGS)
             if level:
                 items = [x for x in items if str(x.get("level", "")).lower() == level]
+            if source:
+                items = [
+                    x
+                    for x in items
+                    if source in str(x.get("source") or x.get("logger") or x.get("component") or "").lower()
+                ]
             items = items[-limit:]
             items = list(reversed(items))
             self._send(200, {"ok": True, "data": {"logs": items, "count": len(items)}})

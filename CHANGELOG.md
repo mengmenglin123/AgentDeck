@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.114
+
+- Logs source filter chips + API `source` query
+- MarkdownLite `<sup>` / `<sub>`
+- Mock fold/hexdump/xxd/jq; richer log seeds
+
 ## 0.1.113
 
 - Skills category filter chips

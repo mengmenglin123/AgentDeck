@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings, lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, mark, spoiler, kbd, autolink, strike, inline code, bold/italic.
+/// Covers headings, lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, mark, spoiler, kbd, sup/sub, autolink, strike, inline code, bold/italic.
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -555,7 +555,7 @@ class MarkdownLite extends StatelessWidget {
   static TextSpan _inline(String text, TextStyle base) {
     final spans = <InlineSpan>[];
     final re = RegExp(
-      r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
+      r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
     );
     var i = 0;
     for (final m in re.allMatches(text)) {
@@ -596,6 +596,26 @@ class MarkdownLite extends StatelessWidget {
             fontSize: (base.fontSize ?? 14) * 0.9,
             backgroundColor: const Color(0x22000000),
             color: base.color,
+          ),
+        ));
+      } else if (tok.startsWith('<sup>') && tok.endsWith('</sup>')) {
+        final body = tok.substring(5, tok.length - 6);
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            fontSize: (base.fontSize ?? 14) * 0.75,
+            height: 1.0,
+            color: base.color?.withOpacity(0.9),
+          ),
+        ));
+      } else if (tok.startsWith('<sub>') && tok.endsWith('</sub>')) {
+        final body = tok.substring(5, tok.length - 6);
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            fontSize: (base.fontSize ?? 14) * 0.75,
+            height: 1.2,
+            color: base.color?.withOpacity(0.85),
           ),
         ));
       } else if (tok.startsWith('`') && tok.endsWith('`')) {

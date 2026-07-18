@@ -337,9 +337,10 @@ class MgmtClient {
     }
   }
 
-  Future<Map<String, dynamic>> logs({int limit = 80, String? level}) async {
+  Future<Map<String, dynamic>> logs({int limit = 80, String? level, String? source}) async {
     final q = StringBuffer('?limit=$limit');
     if (level != null && level.isNotEmpty) q.write('&level=${Uri.encodeQueryComponent(level)}');
+    if (source != null && source.isNotEmpty) q.write('&source=${Uri.encodeQueryComponent(source)}');
     return _request('GET', '/logs$q');
   }
 

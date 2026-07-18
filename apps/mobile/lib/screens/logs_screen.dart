@@ -24,6 +24,7 @@ class _LogsScreenState extends State<LogsScreen> {
   String? _error;
   List<Map<String, dynamic>> _logs = [];
   String _level = '';
+  String _source = '';
   String _query = '';
   bool _queryCase = false;
   bool _queryRegex = false;
@@ -72,7 +73,7 @@ class _LogsScreenState extends State<LogsScreen> {
       _error = null;
     });
     try {
-      final data = await _mgmt.logs(limit: 100, level: _level.isEmpty ? null : _level);
+      final data = await _mgmt.logs(limit: 100, level: _level.isEmpty ? null : _level, source: _source.isEmpty ? null : _source);
       final raw = data['logs'];
       final list = <Map<String, dynamic>>[];
       if (raw is List) {
@@ -470,6 +471,32 @@ class _LogsScreenState extends State<LogsScreen> {
                   ),
               ],
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final f in const [
+                    ('', 'Any source'),
+                    ('mock-host', 'mock-host'),
+                    ('bridge', 'bridge'),
+                    ('session', 'session'),
+                    ('terminal', 'terminal'),
+                    ('hermes', 'hermes'),
+                  ])
+                    FilterChip(
+                      label: Text(f.$2, style: const TextStyle(fontSize: 11)),
+                      selected: _source == f.$1,
+                      onSelected: (_) {
+                        setState(() => _source = f.$1);
+                        _load();
+                      },
+                      visualDensity: VisualDensity.compact,
+                    ),
+                ],
+              ),
+            ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
@@ -477,7 +504,7 @@ class _LogsScreenState extends State<LogsScreen> {
               decoration: InputDecoration(
                 hintText: _queryRegex
                     ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
-                    : (_queryCase ? 'Filter (case-sensitive)' : 'Filter message / level'),
+                    : (_queryCase ? 'Filter (case-sensitive)' : 'Filter message / level / source'),
                 isDense: true,
                 border: const OutlineInputBorder(),
                 prefixIcon: IconButton(
