@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.103
+
+- Mock workspace hermes/ + docs/protocol; git status + diffs
+- Terminal ls dynamic from workspace tree
+- Logs show source/logger; code block header line count
+
 ## 0.1.102
 
 - MarkdownLite ordered lists + multi-line blockquotes

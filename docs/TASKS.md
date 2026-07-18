@@ -488,6 +488,8 @@
 - [x] **P4-5h** Attach protocol demo presets (no native picker) (0.1.102)
 - [x] **P4-3f** Mock hermes cron + host log seed; Cron project/tags UI (0.1.102)
 - [x] **P4-1e** Mock terminal clear/reset (0.1.102)
+- [x] **P4-3g** Mock workspace hermes tree + git/diff + dynamic ls (0.1.103)
+- [x] **P4-5i** Code block header line count; Logs source label (0.1.103)
 
 ## P4 — 远期
 
@@ -495,7 +497,7 @@
 |----|------|------|
 | P4-1 | 真远程 PTY（cols/rows + 终端字号偏好；真 ioctl/shell 仍远期） | [~] |
 | P4-2 | 相机扫码配对（剪贴板 URI + paste card 已有；真相机仍远期） | [~] |
-| P4-3 | Host 真 Hermes adapter（Mock status/agents/skills/memory/MCP 已加深；真进程仍远期） | [~] |
+| P4-3 | Host 真 Hermes adapter（Mock workspace/git/diff/memory/MCP/status 已加深；真进程仍远期） | [~] |
 | P4-4 | 通知 / 后台重连（resume/reconnect + 应用内 permission snack 已有；系统通知仍远期） | [~] |
 | P4-5 | 更完整代码高亮 / 真文件选择器（着色+表格/任务/有序/引用/链接/删除线/行号/附件 preset 已有；真 file_picker 仍远期） | [~] |
 

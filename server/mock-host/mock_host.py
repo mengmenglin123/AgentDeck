@@ -126,7 +126,46 @@ WORKSPACE_TREE: Dict[str, Any] = {
                     "type": "file",
                     "content": "Console notes.\n- status dashboard\n- prompt history\n- workspace browse\n",
                     "size": 70,
-                }
+                },
+                "protocol.md": {
+                    "type": "file",
+                    "content": "# Protocol\n\nBridge WS + Management REST.\nSee repo docs/protocol (Host owns runtime).\n",
+                    "size": 90,
+                },
+            },
+        },
+        "hermes": {
+            "type": "dir",
+            "children": {
+                "README.md": {
+                    "type": "file",
+                    "content": (
+                        "# Hermes project (mock)\n\n"
+                        "App is console-only. Real Hermes agent loop stays on Host (ADR-002).\n\n"
+                        "## Status\n\n"
+                        "- adapter: mock\n"
+                        "- process: false\n"
+                    ),
+                    "size": 160,
+                },
+                "AGENTS.md": {
+                    "type": "file",
+                    "content": (
+                        "# Hermes agents\n\n"
+                        "Mock catalog only — Host will map Bridge → process later.\n"
+                    ),
+                    "size": 80,
+                },
+                "skills": {
+                    "type": "dir",
+                    "children": {
+                        "hermes-agent.md": {
+                            "type": "file",
+                            "content": "Skill stub: hermes-agent (catalog surface).\n",
+                            "size": 48,
+                        },
+                    },
+                },
             },
         },
     },
@@ -195,8 +234,11 @@ def workspace_git_status() -> Dict[str, Any]:
         "files": [
             {"path": "src/main.py", "status": "M"},
             {"path": "docs/notes.md", "status": "?"},
+            {"path": "docs/protocol.md", "status": "A"},
+            {"path": "hermes/README.md", "status": "A"},
+            {"path": "hermes/AGENTS.md", "status": "A"},
         ],
-        "note": "Mock git status — readonly demo",
+        "note": "Mock git status — readonly demo (includes hermes/ tree)",
     }
 
 
@@ -340,6 +382,26 @@ MOCK_DIFFS: Dict[str, str] = {
  
  if __name__ == "__main__":
      main()
+""",
+    "hermes/README.md": """--- /dev/null
++++ b/hermes/README.md
+@@ -0,0 +1,8 @@
++# Hermes project (mock)
++
++App is console-only. Real Hermes agent loop stays on Host (ADR-002).
++
++## Status
++
++- adapter: mock
++- process: false
+""",
+    "docs/protocol.md": """--- /dev/null
++++ b/docs/protocol.md
+@@ -0,0 +1,5 @@
++# Protocol
++
++Bridge WS + Management REST.
++See repo docs/protocol (Host owns runtime).
 """,
 }
 
@@ -731,8 +793,18 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
     elif lower == "pwd":
         st = _session_state(sk)
         out((st.get("workdir") or "/workspace") + "\n", done=True, exit_code=0)
-    elif lower in {"ls", "ls -la"}:
-        out("AGENTS.md\nREADME.md\nsrc/\n", done=True, exit_code=0)
+    elif lower in {"ls", "ls -la"} or lower.startswith("ls "):
+        st_ls = _session_state(sk)
+        rel = (st_ls.get("workdir") or "/workspace").replace("/workspace", "").lstrip("/")
+        node, _ = _ws_resolve(rel)
+        if node is None or node.get("type") == "file":
+            out("ls: cannot access workdir\n", done=True, exit_code=1)
+        else:
+            kids = node.get("children") or {}
+            names = []
+            for name, child in sorted(kids.items(), key=lambda x: (x[1].get("type") != "dir", x[0])):
+                names.append(name + ("/" if child.get("type") == "dir" else ""))
+            out(("\n".join(names) + ("\n" if names else "")), done=True, exit_code=0)
     elif lower == "whoami":
         out("huanhermes-mock\n", done=True, exit_code=0)
     elif lower in {"clear", "reset", "cls"}:

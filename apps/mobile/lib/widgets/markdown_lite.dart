@@ -45,7 +45,11 @@ class MarkdownLite extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            (b.lang == null || b.lang!.isEmpty) ? 'code' : b.lang!,
+                            (() {
+                              final lang = (b.lang == null || b.lang!.isEmpty) ? 'code' : b.lang!;
+                              final n = b.text.isEmpty ? 0 : b.text.split('\n').length;
+                              return '$lang · $n lines';
+                            })(),
                             style: const TextStyle(
                               color: Color(0xFF9E9E9E),
                               fontSize: 11,

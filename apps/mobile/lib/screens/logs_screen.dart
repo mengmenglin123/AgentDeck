@@ -530,6 +530,7 @@ class _LogsScreenState extends State<LogsScreen> {
                       final e = _visible[i];
                       final level = '${e['level'] ?? 'info'}';
                       final msg = '${e['message'] ?? ''}';
+                      final src = '${e['source'] ?? e['logger'] ?? e['component'] ?? ''}';
                       final ts = e['ts'];
                       final when = _fmtWhen(ts);
                       final color = _levelColor(level, cs);
@@ -562,7 +563,7 @@ class _LogsScreenState extends State<LogsScreen> {
                             ),
                           ),
                           title: Text(
-                            msg,
+                            src.isEmpty ? msg : '[$src] $msg',
                             style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
                             maxLines: _wrapLines ? null : 1,
                             overflow: _wrapLines ? TextOverflow.visible : TextOverflow.ellipsis,
@@ -570,7 +571,7 @@ class _LogsScreenState extends State<LogsScreen> {
                           ),
                           subtitle: Text(when, style: const TextStyle(fontSize: 10)),
                           onLongPress: () async {
-                            await Clipboard.setData(ClipboardData(text: '[$level] $when $msg'));
+                            await Clipboard.setData(ClipboardData(text: '[$level] $when${src.isNotEmpty ? ' $src' : ''} $msg'));
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Log line copied'), duration: Duration(seconds: 1)),
