@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.123
+
+- Host dashboard value-type filter chips
+- MarkdownLite `<dfn>` + `<em>`
+- Mock lscpu/fmt/shuf (+ help/which/type lockstep)
+
 ## 0.1.122
 
 - Agents platform filter chips

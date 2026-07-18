@@ -40,6 +40,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
   bool _queryRegex = false;
   bool _relativeTs = false;
   String _keyQuery = '';
+  String _typeFilter = ''; // empty=all
   final _keyFilterCtrl = TextEditingController();
   bool _autoRefresh = true;
   final _scroll = ScrollController();
@@ -707,10 +708,34 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                         onChanged: (v) => setState(() => _keyQuery = v),
                       ),
                     ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (final t in const ['', 'string', 'number', 'bool', 'list', 'map', 'null'])
+                            FilterChip(
+                              visualDensity: VisualDensity.compact,
+                              label: Text(
+                                t.isEmpty ? 'Any type' : t,
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                              selected: _typeFilter == t,
+                              onSelected: (_) => setState(() => _typeFilter = t),
+                            ),
+                        ],
+                      ),
+                    ),
                     for (final e in (() {
                       final rawQ = _keyQuery.trim();
                           final q = _queryCase ? rawQ : rawQ.toLowerCase();
                       var entries = _status.entries.toList();
+                      if (_typeFilter.isNotEmpty) {
+                        entries = entries
+                            .where((e) => _valueTypeLabel(e.value) == _typeFilter)
+                            .toList();
+                      }
                       if (rawQ.isNotEmpty) {
                         entries = entries
                             .where((e) {
