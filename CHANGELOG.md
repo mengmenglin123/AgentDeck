@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.48
+
+- Sessions: auto-refresh toggle (dashboard interval)
+- Logs: newest / oldest sort
+- Diff: copy filtered files CSV
+- Chat: copy all visible messages (local transcript)
+
 ## 0.1.47
 
 - Audit: auto-refresh toggle (dashboard interval; local re-render)

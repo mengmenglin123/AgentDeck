@@ -40,6 +40,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
   final _titleCtrl = TextEditingController();
   final _searchCtrl = TextEditingController();
   final _scroll = ScrollController();
+  Timer? _timer;
+  bool _autoRefresh = false;
   final _pins = SessionPinsStore();
   final _notes = SessionNotesStore();
   final _archive = SessionArchiveStore();
@@ -60,6 +62,20 @@ class _SessionsScreenState extends State<SessionsScreen> {
   void initState() {
     super.initState();
     _loadPins();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
+  }
+
+  void _armTimer() {
+    _timer?.cancel();
+    if (!_autoRefresh || !mounted) return;
+    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
+    if (sec <= 0) return;
+    _timer = Timer.periodic(Duration(seconds: sec), (_) {
+      if (!mounted) return;
+      final sessions = _sessions;
+      if (sessions == null || sessions.loading) return;
+      sessions.refresh();
+    });
   }
 
   Future<void> _loadPins() async {
@@ -536,6 +552,15 @@ class _SessionsScreenState extends State<SessionsScreen> {
                 },
                 icon: const Icon(Icons.vertical_align_bottom),
               ),
+              IconButton(
+                tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
+                onPressed: () {
+                  setState(() => _autoRefresh = !_autoRefresh);
+                  _armTimer();
+                },
+                icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
+              ),
+
 
               PopupMenuButton<String>(
                 tooltip: 'More',

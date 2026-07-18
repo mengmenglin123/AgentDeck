@@ -628,6 +628,24 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+
+  Future<void> _copyAllMessages() async {
+    final msgs = _visibleMessages;
+    if (msgs.isEmpty) return;
+    final buf = StringBuffer();
+    for (final m in msgs) {
+      final role = m.role;
+      final text = m.content;
+      buf.writeln('[$role] $text');
+      buf.writeln();
+    }
+    await Clipboard.setData(ClipboardData(text: buf.toString().trimRight()));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Copied ${msgs.length} message(s)'), duration: const Duration(seconds: 1)),
+    );
+  }
+
   Future<void> _exportTranscript() async {
     final md = _chat.exportTranscriptMarkdown();
     await Clipboard.setData(ClipboardData(text: md));
@@ -765,6 +783,12 @@ class _ChatScreenState extends State<ChatScreen> {
             onPressed: _chat.messages.isEmpty ? null : _exportTranscript,
             icon: const Icon(Icons.ios_share_outlined),
           ),
+          IconButton(
+            tooltip: 'Copy all messages',
+            onPressed: _chat.messages.isEmpty ? null : _copyAllMessages,
+            icon: const Icon(Icons.copy_all_outlined),
+          ),
+
           IconButton(
             tooltip: 'Clear local view',
             onPressed: _chat.messages.isEmpty ? null : _clearLocalTranscript,

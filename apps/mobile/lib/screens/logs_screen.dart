@@ -28,6 +28,7 @@ class _LogsScreenState extends State<LogsScreen> {
   bool _wrapLines = true;
   final _scroll = ScrollController();
   Timer? _timer;
+  bool _newestFirst = true;
   bool _autoRefresh = false;
 
   @override
@@ -83,13 +84,21 @@ class _LogsScreenState extends State<LogsScreen> {
 
   List<Map<String, dynamic>> get _visible {
     final q = _query.trim().toLowerCase();
-    if (q.isEmpty) return _logs;
-    return _logs.where((e) {
-      final msg = '${e['message'] ?? ''}'.toLowerCase();
-      final level = '${e['level'] ?? ''}'.toLowerCase();
-      final ts = '${e['ts'] ?? ''}'.toLowerCase();
-      return msg.contains(q) || level.contains(q) || ts.contains(q);
-    }).toList();
+    List<Map<String, dynamic>> list;
+    if (q.isEmpty) {
+      list = List<Map<String, dynamic>>.from(_logs);
+    } else {
+      list = _logs.where((e) {
+        final msg = '${e['message'] ?? ''}'.toLowerCase();
+        final level = '${e['level'] ?? ''}'.toLowerCase();
+        final ts = '${e['ts'] ?? ''}'.toLowerCase();
+        return msg.contains(q) || level.contains(q) || ts.contains(q);
+      }).toList();
+    }
+    if (!_newestFirst) {
+      return list.reversed.toList();
+    }
+    return list;
   }
 
   Color _levelColor(String level, ColorScheme cs) {
@@ -173,6 +182,12 @@ class _LogsScreenState extends State<LogsScreen> {
                   },
             icon: const Icon(Icons.table_chart_outlined),
           ),
+          IconButton(
+            tooltip: _newestFirst ? 'Oldest first' : 'Newest first',
+            onPressed: () => setState(() => _newestFirst = !_newestFirst),
+            icon: Icon(_newestFirst ? Icons.arrow_downward : Icons.arrow_upward),
+          ),
+
           IconButton(
             tooltip: 'Jump to top',
             onPressed: () {

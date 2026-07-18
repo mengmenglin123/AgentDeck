@@ -52,6 +52,25 @@ class _DiffScreenState extends State<DiffScreen> {
     return _files.where((f) => '${f['path']}'.toLowerCase().contains(q)).toList();
   }
 
+
+  Future<void> _copyFilesCsv() async {
+    final files = _visibleFiles;
+    final buf = StringBuffer();
+    buf.writeln('path,status,additions,deletions');
+    for (final f in files) {
+      final path = '${f['path'] ?? f['file'] ?? ''}'.replaceAll('"', '""');
+      final status = '${f['status'] ?? f['state'] ?? ''}'.replaceAll('"', '""');
+      final add = f['additions'] ?? f['adds'] ?? f['+'] ?? '';
+      final dels = f['deletions'] ?? f['dels'] ?? f['-'] ?? '';
+      buf.writeln('"$path","$status",$add,$dels');
+    }
+    await Clipboard.setData(ClipboardData(text: buf.toString()));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Copied ${files.length} file row(s)'), duration: const Duration(seconds: 1)),
+    );
+  }
+
   Future<void> _loadIndex() async {
     setState(() {
       _loading = true;
@@ -204,6 +223,12 @@ class _DiffScreenState extends State<DiffScreen> {
                   },
             icon: const Icon(Icons.copy_all_outlined),
           ),
+          IconButton(
+            tooltip: 'Copy files CSV',
+            onPressed: _files.isEmpty ? null : _copyFilesCsv,
+            icon: const Icon(Icons.table_chart_outlined),
+          ),
+
           IconButton(onPressed: _loading ? null : _loadIndex, icon: const Icon(Icons.refresh)),
         ],
       ),
