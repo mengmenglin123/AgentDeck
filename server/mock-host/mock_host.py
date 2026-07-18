@@ -834,7 +834,8 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, locale, umask, readlink, cksum, sum, expand, unexpand, tac, namei, dir, vdir, tsort, pathchk, mktemp, sync, link, ln, truncate, install, shred, timeout, nice, nohup, watch, stdbuf, flock, ionice, taskset, prlimit, chroot, unshare, nsenter, setpriv, capsh, runcon, ldd, ldconfig, uuidgen, df, free, ps, uptime, true, false, printf, sleep, touch, rmdir, mkfifo, getopt, strings, csplit, diff, patch, sdiff, diff3, pr, sha512sum, base32, sha224sum, sha384sum, dircolors, tput, tset, tabs, script, scriptreplay, infocmp, toe, reset, resize, login, mesg, write, wall, newgrp, su, sudo, chfn, chsh, passwd, lastlog, lastb, faillog, chage, ulimit, finger, nologin, ulimit, finger, nologin, bash, logout, source, tar, gzip, gunzip, zip, unzip, curl, wget, ssh, rsync, ping, kill, jobs, bg, fg, unset, history, alias, unalias, cp, mv, rm, chmod, chown, chgrp, less, more, awk, sed, kill, jobs, bg, fg, echo <text>, stty, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, locale, umask, readlink, cksum, sum, expand, unexpand, tac, namei, dir, vdir, tsort, pathchk, mktemp, sync, link, ln, truncate, install, shred, timeout, nice, nohup, watch, stdbuf, flock, ionice, taskset, prlimit, chroot, unshare, nsenter, setpriv, capsh, runcon, ldd, ldconfig, uuidgen, df, free, ps, uptime, true, false, printf, sleep, touch, rmdir, mkfifo, getopt, strings, csplit, diff, patch, sdiff, diff3, pr, sha512sum, base32, sha224sum, sha384sum, dircolors, tput, tset, tabs, script, scriptreplay, infocmp, toe, reset, resize, login, mesg, write, wall, newgrp, su, sudo, chfn, chsh, passwd, lastlog, lastb, faillog, chage, ulimit, finger, nologin, ulimit, finger, nologin, bash, logout, source, tar, gzip, gunzip, zip, unzip, curl, wget, ssh, rsync, ping, vi, nano, screen, tmux, mount, umount, service, systemctl, lsblk, fdisk, cron, crontab, useradd, userdel, usermod, groupadd, groupdel, mail, kill, jobs, bg, fg, unset, history, alias, unalias, cp, mv, rm, chmod, chown, chgrp, less, more, awk, sed, kill, jobs, bg, fg, echo <text>, stty, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, locale, umask, readlink, cksum, sum, expand, unexpand, tac, namei, dir, vdir, tsort, pathchk, mktemp, sync, link, ln, truncate, install, shred, timeout, nice, nohup, watch, stdbuf, flock, ionice, taskset, prlimit, chroot, unshare, nsenter, setpriv, capsh, runcon, ldd, ldconfig, uuidgen, df, free, ps, uptime, true, false, printf, sleep, touch, rmdir, mkfifo, getopt, strings, csplit, diff, patch, sdiff, diff3, pr, sha512sum, base32, sha224sum, sha384sum, dircolors, tput, tset, tabs, script, scriptreplay, infocmp, toe, reset, resize, login, mesg, write, wall, newgrp, su, sudo, chfn, chsh, passwd, lastlog, lastb, faillog, chage, ulimit, finger, nologin, ulimit, finger, nologin, bash, sh, set, logout, source, tar, gzip, gunzip, zip, unzip, curl, wget, ssh, rsync, ping, kill, jobs, bg, fg, unset, history, alias, unalias, cp, mv, rm, chmod, chown, chgrp, less, more, awk, sed, kill, jobs, bg, fg, echo <text>, stty, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -932,7 +933,8 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         name = data.strip()[6:].strip()
         known = {
             "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "file", "type", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch", "stdbuf", "flock", "ionice", "taskset", "prlimit", "chroot", "unshare", "nsenter", "setpriv", "capsh", "runcon", "ldd", "ldconfig", "uuidgen", "rmdir", "mkfifo", "getopt", "strings", "csplit", "diff", "patch", "sdiff", "pr", "dircolors", "tput", "tset", "tabs", "script", "scriptreplay", "infocmp", "toe", "reset", "resize", "login", "mesg", "write", "wall", "newgrp", "su", "sudo", "chfn", "chsh", "passwd", "lastlog", "lastb", "faillog", "chage", "ulimit", "finger", "nologin", "unset", "alias", "unalias", "kill", "jobs", "bg", "fg", "less", "more", "awk", "sed", "cp", "mv", "rm", "chmod", "chown", "chgrp",
-            "bash", "sh", "exit", "logout", "source", "set", "tar", "gzip", "gunzip", "zip", "unzip", "curl", "wget", "ssh", "scp", "rsync", "ping",
+            "bash", "sh", "exit", "logout", "source", "set", "curl", "wget", "ssh", "scp", "rsync", "ping",
+            "tar", "gzip", "gunzip", "zip", "unzip",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1550,8 +1552,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             out("type: missing operand\n", done=True, exit_code=1)
         else:
             builtins = {
-                "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "export", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch", "stdbuf", "flock", "ionice", "taskset", "prlimit", "chroot", "unshare", "nsenter", "setpriv", "capsh", "runcon", "ldd", "ldconfig", "uuidgen", "rmdir", "mkfifo", "getopt", "strings", "csplit", "diff", "patch", "sdiff", "pr", "dircolors", "tput", "tset", "tabs", "script", "scriptreplay", "infocmp", "toe", "reset", "resize", "login", "mesg", "write", "wall", "newgrp", "su", "sudo", "chfn", "chsh", "passwd", "lastlog", "lastb", "faillog", "chage", "ulimit", "finger", "nologin", "unset", "alias", "unalias", "kill", "jobs", "bg", "fg", "less", "more", "awk", "sed", "cp", "mv", "rm", "chmod", "chown", "chgrp",
-                "bash", "sh", "exit", "logout", "source", "set", "tar", "gzip", "gunzip", "zip", "unzip", "curl", "wget", "ssh", "scp", "rsync", "ping",
+                "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "export", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch", "stdbuf", "flock", "ionice", "taskset", "prlimit", "chroot", "unshare", "nsenter", "setpriv", "capsh", "runcon", "ldd", "ldconfig", "uuidgen", "rmdir", "mkfifo", "getopt", "strings", "csplit", "diff", "patch", "sdiff", "pr", "dircolors", "tput", "tset", "tabs", "script", "scriptreplay", "infocmp", "toe", "reset", "resize", "login", "mesg", "write", "wall", "newgrp", "su", "sudo", "chfn", "chsh", "passwd", "lastlog", "lastb", "faillog", "chage", "ulimit", "finger", "nologin", "unset", "alias", "unalias", "kill", "jobs", "bg", "fg", "less", "more", "awk", "sed", "cp", "mv", "rm", "chmod", "chown", "chgrp", "bash", "sh", "exit", "logout", "source", "set", "tar", "gzip", "gunzip", "zip", "unzip", "curl", "wget", "ssh", "scp", "rsync", "ping",
                             }
             if name.split()[0] in builtins:
                 out(f"{name.split()[0]} is a shell builtin\n", done=True, exit_code=0)
@@ -3423,6 +3424,129 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         else:
             out("PING localhost (127.0.0.1) 56(84) bytes of data.\n64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.010 ms\n\n--- localhost ping statistics ---\n1 packets transmitted, 1 received, 0% packet loss\n", done=True, exit_code=0)
 
+
+    # --- editors/multiplexers (demo only) ---
+    elif lower.startswith("man ") or lower == "man":
+        if lower == "man" or lower == "man ":
+            out("What manual page do you want?\nFor example, try \'man man\'.\n", done=True, exit_code=1)
+        else:
+            out("No manual entry for " + data.strip().split()[-1] + "\n", done=True, exit_code=16)
+    elif lower.startswith("info ") or lower == "info":
+        if lower == "info" or lower == "info ":
+            out("info: no menu item \'(dir)\' in node \'(dir)top\'.\n", done=True, exit_code=1)
+        else:
+            out("No menu item \'" + data.strip().split()[-1] + "\' in node \'(dir)top\'.\n", done=True, exit_code=1)
+    elif lower.startswith("vi ") or lower == "vi":
+        out("mock: vi: command not available in demo mode\n", done=True, exit_code=1)
+    elif lower.startswith("nano ") or lower == "nano":
+        out("mock: nano: command not available in demo mode\n", done=True, exit_code=1)
+    elif lower.startswith("screen ") or lower == "screen":
+        out("mock: screen: command not available in demo mode\n", done=True, exit_code=1)
+    elif lower.startswith("tmux ") or lower == "tmux":
+        out("mock: tmux: command not available in demo mode\n", done=True, exit_code=1)
+    # --- filesystem/system (demo only) ---
+    elif lower.startswith("mount ") or lower == "mount":
+        if lower == "mount" or lower == "mount ":
+            out("sysfs on /sys type sysfs (rw,nosuid,nodev,noexec)\nproc on /proc type proc (rw,nosuid,nodev,noexec)\n/dev/sda1 on / type ext4 (rw,relatime)\n", done=True, exit_code=0)
+        else:
+            pass
+    elif lower.startswith("umount ") or lower == "umount":
+        if lower == "umount" or lower == "umount ":
+            out("umount: no mount point specified.\n", done=True, exit_code=1)
+        else:
+            pass
+    elif lower.startswith("dd "):
+        pass
+    elif lower == "dd":
+        out("dd: missing operand\nTry \'dd --help\' for more information.\n", done=True, exit_code=1)
+    elif lower.startswith("service ") or lower == "service":
+        if lower == "service" or lower == "service ":
+            out("Usage: service < option > | --status-all | service name [ action | ... ]\n", done=True, exit_code=1)
+        else:
+            pass
+    elif lower.startswith("systemctl ") or lower == "systemctl":
+        if lower == "systemctl" or lower == "systemctl ":
+            out("  UNIT                     LOAD   ACTIVE SUB    DESCRIPTION\n  -.mount                  loaded active mounted Root Mount\n  sshd.service             loaded active running OpenSSH server\n\nLOAD   = Reflects whether the unit definition was properly loaded.\nACTIVE = The high-level unit activation state\n", done=True, exit_code=0)
+        else:
+            pass
+    elif lower.startswith("lsblk ") or lower == "lsblk":
+        out("NAME   MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT\nsda      8:0    0   20G  0 disk\n\u2514\u2500sda1 8:1    0   20G  0 part /\n", done=True, exit_code=0)
+    elif lower.startswith("fdisk ") or lower == "fdisk":
+        if lower == "fdisk" or lower == "fdisk ":
+            out("Usage: fdisk [options] <disk>\n", done=True, exit_code=1)
+        else:
+            pass
+    # --- user/group management (demo only) ---
+    elif lower.startswith("at ") or lower == "at":
+        if lower == "at" or lower == "at ":
+            out("at: missing operand\n", done=True, exit_code=1)
+        else:
+            pass
+    elif lower.startswith("cron") or lower == "cron":
+        out("mock: cron: command not available in demo mode\n", done=True, exit_code=1)
+    elif lower.startswith("crontab ") or lower == "crontab":
+        if lower == "crontab" or lower == "crontab ":
+            out("crontab: usage error: file name or -l, -r, -e required.\n", done=True, exit_code=1)
+        else:
+            pass
+    elif lower.startswith("useradd ") or lower == "useradd":
+        if lower == "useradd" or lower == "useradd ":
+            out("Usage: useradd [options] LOGIN\n", done=True, exit_code=2)
+        else:
+            pass
+    elif lower.startswith("userdel ") or lower == "userdel":
+        if lower == "userdel" or lower == "userdel ":
+            out("Usage: userdel [options] LOGIN\n", done=True, exit_code=2)
+        else:
+            pass
+    elif lower.startswith("usermod ") or lower == "usermod":
+        if lower == "usermod" or lower == "usermod ":
+            out("Usage: usermod [options] LOGIN\n", done=True, exit_code=2)
+        else:
+            pass
+    elif lower.startswith("groupadd ") or lower == "groupadd":
+        if lower == "groupadd" or lower == "groupadd ":
+            out("Usage: groupadd [options] GROUP\n", done=True, exit_code=2)
+        else:
+            pass
+    elif lower.startswith("groupdel ") or lower == "groupdel":
+        if lower == "groupdel" or lower == "groupdel ":
+            out("Usage: groupdel [options] GROUP\n", done=True, exit_code=2)
+        else:
+            pass
+    elif lower.startswith("mail ") or lower == "mail":
+        out("mock: mail: command not available in demo mode\n", done=True, exit_code=1)
+
+
+    # --- shell builtins (demo only) ---
+    elif lower == "bash" or lower.startswith("bash "):
+        out("", done=True, exit_code=0)
+    elif lower == "sh" or lower.startswith("sh "):
+        out("", done=True, exit_code=0)
+    elif lower == "exit" or lower.startswith("exit "):
+        out("exit\n", done=True, exit_code=0)
+    elif lower == "logout" or lower.startswith("logout "):
+        out("logout\n", done=True, exit_code=0)
+    elif lower.startswith("source "):
+        out("", done=True, exit_code=0)
+    elif lower == "source":
+        out("source: filename argument required\n", done=True, exit_code=1)
+    elif lower == "set":
+        out(
+            "BASH=/bin/bash\n"
+            "BASHOPTS=cmdhist:complete_fullquote\n"
+            "HOME=/home/mock\n"
+            "HOSTNAME=mock-host\n"
+            "LANG=en_US.UTF-8\n"
+            "PATH=/usr/local/bin:/usr/bin:/bin\n"
+            "PWD=/home/mock\n"
+            "SHELL=/bin/bash\n"
+            "USER=mock\n",
+            done=True,
+            exit_code=0,
+        )
+    elif lower.startswith("set "):
+        out("", done=True, exit_code=0)
 
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)

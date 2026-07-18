@@ -2,9 +2,13 @@
 
 ## 0.1.159
 
+- Mock 22 commands: shell/archive/network + editors/system/admin
 - Mock bash/sh/exit/logout/source/set (+ help/which/type lockstep)
 - Mock tar/gzip/gunzip/zip/unzip (+ help/which/type lockstep)
 - Mock curl/wget/ssh/scp/rsync/ping (+ help/which/type lockstep)
+- Mock man/info/vi/nano/screen/tmux (+ help/which/type lockstep)
+- Mock mount/umount/dd/service/systemctl/lsblk/fdisk (+ help/which/type lockstep)
+- Mock at/cron/crontab/useradd/userdel/usermod/groupadd/groupdel/mail (+ help/which/type lockstep)
 
 ## 0.1.158
 
