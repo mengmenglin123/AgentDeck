@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.140
+
+- Logs view FilterChips (wrap / regex / case)
+- MarkdownLite `<nextid>` + `<keygen>`
+- Mock mkdir/rmdir/mkfifo (+ help/which/type lockstep)
+
 ## 0.1.139
 
 - Memory view FilterChips (wrap / regex / case)

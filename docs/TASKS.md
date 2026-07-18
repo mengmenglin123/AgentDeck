@@ -595,6 +595,9 @@
 - [x] **P4-3an** Memory view FilterChips wrap/regex/case (0.1.139)
 - [x] **P4-5aq** MarkdownLite `<isindex>` + `<spacer>` (0.1.139)
 - [x] **P4-1ao** Mock printf/realpath/touch (0.1.139)
+- [x] **P4-3ao** Logs view FilterChips wrap/regex/case (0.1.140)
+- [x] **P4-5ar** MarkdownLite `<nextid>` + `<keygen>` (0.1.140)
+- [x] **P4-1ap** Mock mkdir/rmdir/mkfifo (0.1.140)
 
 ## P4 — 远期
 
@@ -604,7 +607,7 @@
 | P4-2 | 相机扫码配对（剪贴板 URI + paste card 已有；真相机仍远期） | [~] |
 | P4-3 | Host 真 Hermes adapter（Mock workspace/git/diff/memory/MCP/status/activity/agents 已加深；真进程仍远期） | [~] |
 | P4-4 | 通知 / 后台重连（resume/reconnect + permission/reconnected snack 已有；系统通知仍远期） | [~] |
-| P4-5 | 更完整代码高亮 / 真文件选择器（着色+表格/任务/有序/引用/链接/autolink/图alt/callout/details/footnotes/h4/h5/h6/abbr/mark/spoiler/kbd/sup/sub/u/del/ins/s/small/***/cite/q/var/samp/dfn/em/strong/b/code/i/big/tt/HTML mark/br/strike/time/data/bdi/bdo/ruby/rt/font/center/wbr/rp/acronym/nobr/blink/marquee/xmp/listing/plaintext/basefont/dir/menu/isindex/spacer/删除线/行号/附件 preset 已有；真 file_picker 仍远期） | [~] |
+| P4-5 | 更完整代码高亮 / 真文件选择器（着色+表格/任务/有序/引用/链接/autolink/图alt/callout/details/footnotes/h4/h5/h6/abbr/mark/spoiler/kbd/sup/sub/u/del/ins/s/small/***/cite/q/var/samp/dfn/em/strong/b/code/i/big/tt/HTML mark/br/strike/time/data/bdi/bdo/ruby/rt/font/center/wbr/rp/acronym/nobr/blink/marquee/xmp/listing/plaintext/basefont/dir/menu/isindex/spacer/nextid/keygen/删除线/行号/附件 preset 已有；真 file_picker 仍远期） | [~] |
 
 ## 验收命令
 
