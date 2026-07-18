@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.153
+
+- Terminal view Find FilterChip
+- MarkdownLite `<progress>` + `<figure>`
+- Mock chsh/passwd/lastlog (+ help/which/type lockstep; demo-only)
+
 ## 0.1.152
 
 - Diff view Line# FilterChip

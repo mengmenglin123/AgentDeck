@@ -609,6 +609,7 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
                   ('Wrap', _wrapLines, (v) => setState(() => _wrapLines = v)),
                   ('Newest', _newestFirst, (v) => setState(() => _newestFirst = v)),
                   ('Timestamps', _showTs, (v) => setState(() => _showTs = v)),
+                  ('Find', _showFind, (v) => setState(() => _showFind = v)),
                   ('Regex', _findRegex, (v) => setState(() => _findRegex = v)),
                   ('Case', _findCase, (v) => setState(() => _findCase = v)),
                 ])
