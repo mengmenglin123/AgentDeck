@@ -535,7 +535,27 @@ class _DiffScreenState extends State<DiffScreen> {
                 itemBuilder: (ctx, i) {
                   final p = (_visibleFiles[i]['path'] ?? '').toString();
                   final selected = p == _path;
+                  final st = _fileStatus(_visibleFiles[i]);
+                  Color? avatarColor;
+                  if (st == 'M' || st == 'modified') {
+                    avatarColor = Colors.orange;
+                  } else if (st == 'A' || st == 'added') {
+                    avatarColor = Colors.green;
+                  } else if (st == 'D' || st == 'deleted') {
+                    avatarColor = Colors.red;
+                  } else if (st == '?' || st == 'untracked') {
+                    avatarColor = Colors.blueGrey;
+                  }
+                  final badge = st.isEmpty ? '?' : st.substring(0, 1);
                   return ChoiceChip(
+                    avatar: CircleAvatar(
+                      radius: 8,
+                      backgroundColor: avatarColor ?? Colors.grey,
+                      child: Text(
+                        badge,
+                        style: const TextStyle(fontSize: 9, color: Colors.white),
+                      ),
+                    ),
                     label: Text(p, style: const TextStyle(fontSize: 12)),
                     selected: selected,
                     onSelected: (_) => _loadPath(p),

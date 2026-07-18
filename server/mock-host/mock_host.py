@@ -783,7 +783,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, cat, head, tail, wc, stat, du, basename, dirname, realpath, df, free, ps, uptime, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, cat, head, tail, wc, stat, du, basename, dirname, realpath, df, free, ps, uptime, true, false, printf, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -860,7 +860,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         known = {
             "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date",
             "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help",
-            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which",
+            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1055,6 +1055,19 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         sz = du_size(node)
         label = cleaned or "."
         out(f"{sz}\t{label}\n", done=True, exit_code=0)
+
+
+    elif lower in {"true", ":", "true -"}:
+        out("", done=True, exit_code=0)
+    elif lower in {"false"}:
+        out("", done=True, exit_code=1)
+    elif lower.startswith("printf "):
+        # minimal printf — no full format parser; strip outer quotes
+        arg = data.strip()[7:].strip()
+        if (arg.startswith('"') and arg.endswith('"')) or (arg.startswith("'") and arg.endswith("'")):
+            arg = arg[1:-1]
+        arg = arg.replace("\\n", "\n").replace("\\t", "\t")
+        out(arg, done=True, exit_code=0)
 
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)

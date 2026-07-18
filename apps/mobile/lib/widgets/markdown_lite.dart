@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings, lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, mark, strike, inline code, bold/italic.
+/// Covers headings, lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, mark, autolink, strike, inline code, bold/italic.
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -513,7 +513,7 @@ class MarkdownLite extends StatelessWidget {
   static TextSpan _inline(String text, TextStyle base) {
     final spans = <InlineSpan>[];
     final re = RegExp(
-      r'(~~[^~]+~~|==[^=]+==|`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\))',
+      r'(~~[^~]+~~|==[^=]+==|`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
     );
     var i = 0;
     for (final m in re.allMatches(text)) {
@@ -604,6 +604,24 @@ class MarkdownLite extends StatelessWidget {
               fontFamily: 'monospace',
             ),
           ));
+        }
+      } else if (tok.startsWith('http://') || tok.startsWith('https://')) {
+        // Bare URL autolink — console-safe (no url_launcher); show + keep copyable.
+        var url = tok;
+        while (url.isNotEmpty && '.,;:!?'.contains(url[url.length - 1])) {
+          url = url.substring(0, url.length - 1);
+        }
+        spans.add(TextSpan(
+          text: url,
+          style: base.copyWith(
+            color: Colors.lightBlue,
+            decoration: TextDecoration.underline,
+            fontFamily: 'monospace',
+            fontSize: (base.fontSize ?? 14) * 0.95,
+          ),
+        ));
+        if (url.length < tok.length) {
+          spans.add(TextSpan(text: tok.substring(url.length), style: base));
         }
       } else {
         spans.add(TextSpan(text: tok, style: base));

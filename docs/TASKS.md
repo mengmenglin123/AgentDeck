@@ -500,6 +500,9 @@
 - [x] **P4-4f** Audit action-prefix filter chips (0.1.106)
 - [x] **P4-5l** MarkdownLite ==mark== highlight (0.1.107)
 - [x] **P4-1i** Mock terminal path utils (basename/dirname/realpath/stat/du) (0.1.107)
+- [x] **P4-5m** MarkdownLite bare URL autolink (0.1.108)
+- [x] **P4-3j** Diff status-colored chips; workspace .md MarkdownLite preview (0.1.108)
+- [x] **P4-1j** Mock terminal true/false/printf (0.1.108)
 
 ## P4 — 远期
 
@@ -509,7 +512,7 @@
 | P4-2 | 相机扫码配对（剪贴板 URI + paste card 已有；真相机仍远期） | [~] |
 | P4-3 | Host 真 Hermes adapter（Mock workspace/git/diff/memory/MCP/status 已加深；真进程仍远期） | [~] |
 | P4-4 | 通知 / 后台重连（resume/reconnect + 应用内 permission snack 已有；系统通知仍远期） | [~] |
-| P4-5 | 更完整代码高亮 / 真文件选择器（着色+表格/任务/有序/引用/链接/图alt/callout/mark/删除线/行号/附件 preset 已有；真 file_picker 仍远期） | [~] |
+| P4-5 | 更完整代码高亮 / 真文件选择器（着色+表格/任务/有序/引用/链接/autolink/图alt/callout/mark/删除线/行号/附件 preset 已有；真 file_picker 仍远期） | [~] |
 
 ## 验收命令
 

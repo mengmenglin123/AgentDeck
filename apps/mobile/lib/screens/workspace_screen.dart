@@ -8,6 +8,7 @@ import '../services/app_settings_controller.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 import 'diff_screen.dart';
+import '../widgets/markdown_lite.dart';
 
 /// Readonly Host workspace browser (`GET /workspace`, `/workspace/git`).
 /// Console-only — no write/delete; Host is source of truth.
@@ -756,10 +757,14 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.all(16),
                     children: [
-                      SelectableText(
-                        node?['content']?.toString() ?? '',
-                        style: const TextStyle(fontFamily: 'monospace', fontSize: 13, height: 1.35),
-                      ),
+                      if ((_path.endsWith('.md') || (_path.endsWith('.markdown'))) &&
+                          (node?['content']?.toString() ?? '').isNotEmpty)
+                        MarkdownLite(data: node?['content']?.toString() ?? '')
+                      else
+                        SelectableText(
+                          node?['content']?.toString() ?? '',
+                          style: const TextStyle(fontFamily: 'monospace', fontSize: 13, height: 1.35),
+                        ),
                     ],
                   )
                 : ListView(

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.108
+
+- MarkdownLite bare URL autolink (console-safe)
+- Diff file chips status-colored avatars
+- Workspace .md preview via MarkdownLite
+- Mock terminal true/false/printf + help
+
 ## 0.1.107
 
 - MarkdownLite `==mark==` highlight
