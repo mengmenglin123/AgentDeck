@@ -434,6 +434,38 @@ class _AuditScreenState extends State<AuditScreen> {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                FilterChip(
+                  label: const Text('Wrap', style: TextStyle(fontSize: 11)),
+                  selected: _wrapLines,
+                  onSelected: (v) => setState(() => _wrapLines = v),
+                  visualDensity: VisualDensity.compact,
+                ),
+                FilterChip(
+                  label: const Text('Regex', style: TextStyle(fontSize: 11)),
+                  selected: _queryRegex,
+                  onSelected: (v) => setState(() => _queryRegex = v),
+                  visualDensity: VisualDensity.compact,
+                ),
+                FilterChip(
+                  label: const Text('Case', style: TextStyle(fontSize: 11)),
+                  selected: _queryCase,
+                  onSelected: (v) => setState(() => _queryCase = v),
+                  visualDensity: VisualDensity.compact,
+                ),
+                FilterChip(
+                  label: const Text('Newest', style: TextStyle(fontSize: 11)),
+                  selected: _newestFirst,
+                  onSelected: (v) => setState(() => _newestFirst = v),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+          ),
           Expanded(
             child: AnimatedBuilder(
               animation: audit,

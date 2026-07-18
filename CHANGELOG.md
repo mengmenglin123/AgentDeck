@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.136
+
+- Audit view FilterChips (wrap / regex / case / newest)
+- MarkdownLite `<xmp>` + `<listing>`
+- Mock unshare/nsenter/setpriv (+ help/which/type lockstep)
+
 ## 0.1.135
 
 - Connect query FilterChips (wrap / regex / case)

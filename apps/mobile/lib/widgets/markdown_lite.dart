@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings (h1–h6), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5/h6, abbr, mark (== / HTML <mark>), spoiler, kbd, sup/sub, underline, del, ins, s, strike, br, small, cite, q, var, samp, dfn, em, strong, b, code, i, big, tt, time, data, bdi, bdo, ruby, rt, rp, wbr, font, center, acronym, nobr, blink, marquee, autolink, strike (~~ / <s>/<del>/<strike>), inline code, bold/italic, bold-italic (***).
+/// Covers headings (h1–h6), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5/h6, abbr, mark (== / HTML <mark>), spoiler, kbd, sup/sub, underline, del, ins, s, strike, br, small, cite, q, var, samp, dfn, em, strong, b, code, i, big, tt, time, data, bdi, bdo, ruby, rt, rp, wbr, font, center, acronym, nobr, blink, marquee, xmp, listing, autolink, strike (~~ / <s>/<del>/<strike>), inline code, bold/italic, bold-italic (***).
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -602,7 +602,7 @@ class MarkdownLite extends StatelessWidget {
   static TextSpan _inline(String text, TextStyle base) {
     final spans = <InlineSpan>[];
     final re = RegExp(
-          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<mark>[^<]+</mark>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<strike>[^<]+</strike>|<br/>|<br>|<wbr/>|<wbr>|<small>[^<]+</small>|<cite>[^<]+</cite>|<q>[^<]+</q>|<var>[^<]+</var>|<samp>[^<]+</samp>|<dfn>[^<]+</dfn>|<em>[^<]+</em>|<strong>[^<]+</strong>|<b>[^<]+</b>|<code>[^<]+</code>|<i>[^<]+</i>|<big>[^<]+</big>|<tt>[^<]+</tt>|<time>[^<]+</time>|<data>[^<]+</data>|<bdi>[^<]+</bdi>|<bdo[^>]*>[^<]+</bdo>|<ruby>[^<]+<rt>[^<]+</rt></ruby>|<ruby>[^<]+</ruby>|<rt>[^<]+</rt>|<rp>[^<]*</rp>|<font[^>]*>[^<]+</font>|<center>[^<]+</center>|<acronym[^>]*>[^<]+</acronym>|<nobr>[^<]+</nobr>|<blink>[^<]+</blink>|<marquee[^>]*>[^<]+</marquee>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
+          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<mark>[^<]+</mark>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<strike>[^<]+</strike>|<br/>|<br>|<wbr/>|<wbr>|<small>[^<]+</small>|<cite>[^<]+</cite>|<q>[^<]+</q>|<var>[^<]+</var>|<samp>[^<]+</samp>|<dfn>[^<]+</dfn>|<em>[^<]+</em>|<strong>[^<]+</strong>|<b>[^<]+</b>|<code>[^<]+</code>|<i>[^<]+</i>|<big>[^<]+</big>|<tt>[^<]+</tt>|<time>[^<]+</time>|<data>[^<]+</data>|<bdi>[^<]+</bdi>|<bdo[^>]*>[^<]+</bdo>|<ruby>[^<]+<rt>[^<]+</rt></ruby>|<ruby>[^<]+</ruby>|<rt>[^<]+</rt>|<rp>[^<]*</rp>|<font[^>]*>[^<]+</font>|<center>[^<]+</center>|<acronym[^>]*>[^<]+</acronym>|<nobr>[^<]+</nobr>|<blink>[^<]+</blink>|<marquee[^>]*>[^<]+</marquee>|<xmp>[^<]+</xmp>|<listing>[^<]+</listing>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
             );
     var i = 0;
     for (final m in re.allMatches(text)) {
@@ -1023,6 +1023,28 @@ class MarkdownLite extends StatelessWidget {
           style: base.copyWith(
             fontStyle: FontStyle.italic,
             letterSpacing: 0.6,
+          ),
+        ));
+      } else if (tok.startsWith('<xmp>') && tok.endsWith('</xmp>')) {
+        // HTML xmp — legacy pre-like monospace demo (single-line body)
+        final body = tok.substring(5, tok.length - 6);
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            fontFamily: 'monospace',
+            fontSize: (base.fontSize ?? 14) * 0.92,
+            color: base.color?.withOpacity(0.88),
+          ),
+        ));
+      } else if (tok.startsWith('<listing>') && tok.endsWith('</listing>')) {
+        // HTML listing — legacy pre-like monospace demo (single-line body)
+        final body = tok.substring(9, tok.length - 10);
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            fontFamily: 'monospace',
+            fontSize: (base.fontSize ?? 14) * 0.92,
+            color: base.color?.withOpacity(0.88),
           ),
         ));
       } else if (tok.toLowerCase().startsWith('<abbr')) {
