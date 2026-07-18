@@ -25,6 +25,7 @@ class _LogsScreenState extends State<LogsScreen> {
   List<Map<String, dynamic>> _logs = [];
   String _level = '';
   String _source = '';
+  String _logger = ''; // empty=all
   String _query = '';
   bool _queryCase = false;
   bool _queryRegex = false;
@@ -93,6 +94,13 @@ class _LogsScreenState extends State<LogsScreen> {
     }
   }
 
+  String _loggerOf(Map x) =>
+      (x['logger'] ?? x['source'] ?? x['component'] ?? x['module'] ?? x['name'] ?? '')
+          .toString()
+          .toLowerCase();
+
+  static const _knownLoggers = ['mock-host', 'bridge', 'session', 'terminal', 'hermes'];
+
   List<Map<String, dynamic>> get _visible {
     final rawQ = _query.trim();
     final q = _queryCase ? rawQ : rawQ.toLowerCase();
@@ -123,11 +131,17 @@ class _LogsScreenState extends State<LogsScreen> {
         return msg.contains(q) || level.contains(q) || logger.contains(q) || ts.contains(q);
       }).toList();
     }
+    if (_logger.isNotEmpty) {
+      list = list.where((e) {
+        final lo = _loggerOf(e);
+        if (_logger == 'other') {
+          return !_knownLoggers.any((k) => lo.contains(k));
+        }
+        return lo.contains(_logger);
+      }).toList();
+    }
     list.sort((a, b) {
-      String loggerOf(Map x) =>
-          (x['logger'] ?? x['source'] ?? x['component'] ?? x['module'] ?? x['name'] ?? '')
-              .toString()
-              .toLowerCase();
+      String loggerOf(Map x) => _loggerOf(x);
       if (_sortByTs) {
         int tsOf(Map e) {
           final v = e['ts'] ?? e['timestamp'] ?? e['time'] ?? e['created_at'];
@@ -450,52 +464,77 @@ class _LogsScreenState extends State<LogsScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-            child: Wrap(
-              spacing: 8,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final f in const [
-                  ('', 'All'),
-                  ('info', 'Info'),
-                  ('debug', 'Debug'),
-                  ('warn', 'Warn'),
-                  ('error', 'Error'),
-                ])
-                  FilterChip(
-                    label: Text(f.$2, style: const TextStyle(fontSize: 12)),
-                    selected: _level == f.$1,
-                    onSelected: (_) {
-                      setState(() => _level = f.$1);
-                      _load();
-                    },
-                    visualDensity: VisualDensity.compact,
-                  ),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final f in const [
+                      ('', 'All'),
+                      ('info', 'Info'),
+                      ('debug', 'Debug'),
+                      ('warn', 'Warn'),
+                      ('error', 'Error'),
+                    ])
+                      FilterChip(
+                        label: Text(f.$2, style: const TextStyle(fontSize: 12)),
+                        selected: _level == f.$1,
+                        onSelected: (_) {
+                          setState(() => _level = f.$1);
+                          _load();
+                        },
+                        visualDensity: VisualDensity.compact,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    for (final f in const [
+                      ('', 'Any source'),
+                      ('mock-host', 'mock-host'),
+                      ('bridge', 'bridge'),
+                      ('session', 'session'),
+                      ('terminal', 'terminal'),
+                      ('hermes', 'hermes'),
+                    ])
+                      FilterChip(
+                        label: Text(f.$2, style: const TextStyle(fontSize: 11)),
+                        selected: _source == f.$1,
+                        onSelected: (_) {
+                          setState(() => _source = f.$1);
+                          _load();
+                        },
+                        visualDensity: VisualDensity.compact,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    for (final f in const [
+                      ('', 'Any logger'),
+                      ('mock-host', 'mock-host'),
+                      ('bridge', 'bridge'),
+                      ('session', 'session'),
+                      ('terminal', 'terminal'),
+                      ('hermes', 'hermes'),
+                      ('other', 'other'),
+                    ])
+                      FilterChip(
+                        label: Text(f.$2, style: const TextStyle(fontSize: 11)),
+                        selected: _logger == f.$1,
+                        onSelected: (_) => setState(() => _logger = f.$1),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                  ],
+                ),
               ],
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: [
-                  for (final f in const [
-                    ('', 'Any source'),
-                    ('mock-host', 'mock-host'),
-                    ('bridge', 'bridge'),
-                    ('session', 'session'),
-                    ('terminal', 'terminal'),
-                    ('hermes', 'hermes'),
-                  ])
-                    FilterChip(
-                      label: Text(f.$2, style: const TextStyle(fontSize: 11)),
-                      selected: _source == f.$1,
-                      onSelected: (_) {
-                        setState(() => _source = f.$1);
-                        _load();
-                      },
-                      visualDensity: VisualDensity.compact,
-                    ),
-                ],
-              ),
             ),
           ),
           Padding(

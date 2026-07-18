@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.128
+
+- Logs logger filter chips
+- MarkdownLite `<br>` + `<strike>`
+- Mock unexpand/tac/namei (+ help/which/type lockstep)
+
 ## 0.1.127
 
 - Skills tag filter chips
