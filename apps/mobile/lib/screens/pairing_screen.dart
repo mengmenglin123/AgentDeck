@@ -25,6 +25,7 @@ class _PairingScreenState extends State<PairingScreen> {
   Map<String, dynamic> data = {};
   Timer? _timer;
   bool _autoRefresh = false;
+  final _scroll = ScrollController();
 
   @override
   void initState() {
@@ -36,6 +37,7 @@ class _PairingScreenState extends State<PairingScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -151,6 +153,27 @@ class _PairingScreenState extends State<PairingScreen> {
             },
             icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
           ),
+          IconButton(
+            tooltip: 'Jump to top',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+            },
+            icon: const Icon(Icons.vertical_align_top),
+          ),
+          IconButton(
+            tooltip: 'Jump to end',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(
+                _scroll.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
+            },
+            icon: const Icon(Icons.vertical_align_bottom),
+          ),
+
           IconButton(onPressed: loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
       ),
@@ -159,6 +182,7 @@ class _PairingScreenState extends State<PairingScreen> {
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
+              controller: _scroll,
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(20),
               children: [

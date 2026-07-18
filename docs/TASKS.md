@@ -214,6 +214,11 @@
 | P3-159 | Sessions 跳到顶部/底部 | [x] |
 | P3-160 | Host Dashboard 导出 status CSV | [x] |
 
+| P3-161 | Audit 自动刷新（可暂停） | [x] |
+| P3-162 | Status 跳到顶部/底部 | [x] |
+| P3-163 | Pairing 跳到顶部/底部 | [x] |
+| P3-164 | Host Dashboard 跳到顶部/底部 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.47
+
+- Audit: auto-refresh toggle (dashboard interval; local re-render)
+- Status: jump to top / end
+- Pairing: jump to top / end
+- Host Dashboard: jump to top / end
+
 ## 0.1.46
 
 - Pairing: auto-refresh toggle (dashboard interval)

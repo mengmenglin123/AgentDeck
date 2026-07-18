@@ -25,6 +25,7 @@ class _StatusScreenState extends State<StatusScreen> {
   Map<String, dynamic> _status = const {};
   Timer? _timer;
   bool _autoRefresh = true;
+  final _scroll = ScrollController();
 
   @override
   void initState() {
@@ -38,6 +39,7 @@ class _StatusScreenState extends State<StatusScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -208,6 +210,27 @@ class _StatusScreenState extends State<StatusScreen> {
             onPressed: () => _copyCsv(c),
             icon: const Icon(Icons.table_chart_outlined),
           ),
+          IconButton(
+            tooltip: 'Jump to top',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+            },
+            icon: const Icon(Icons.vertical_align_top),
+          ),
+          IconButton(
+            tooltip: 'Jump to end',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(
+                _scroll.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
+            },
+            icon: const Icon(Icons.vertical_align_bottom),
+          ),
+
 
           IconButton(
             tooltip: 'Refresh',
@@ -260,6 +283,7 @@ class _StatusScreenState extends State<StatusScreen> {
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
+        controller: _scroll,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20),
         children: [

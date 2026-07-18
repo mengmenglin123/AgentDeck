@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
+import '../services/app_settings_controller.dart';
 import '../services/audit_log.dart';
 
 class AuditScreen extends StatefulWidget {
@@ -21,6 +24,25 @@ class _AuditScreenState extends State<AuditScreen> {
   bool _newestFirst = true;
   bool _wrapLines = false;
   final _scroll = ScrollController();
+  Timer? _timer;
+  bool _autoRefresh = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
+  }
+
+  void _armTimer() {
+    _timer?.cancel();
+    if (!_autoRefresh || !mounted) return;
+    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
+    if (sec <= 0) return;
+    _timer = Timer.periodic(Duration(seconds: sec), (_) {
+      if (!mounted) return;
+      setState(() {});
+    });
+  }
 
   @override
   void dispose() {
@@ -59,7 +81,7 @@ class _AuditScreenState extends State<AuditScreen> {
             : 'Audit (${visible.length}/$total)');
     return Scaffold(
       appBar: AppBar(
-        title: Text(title),
+        title: Text(_autoRefresh ? '$title · auto' : title),
         actions: [
           IconButton(
             tooltip: 'Copy all',
@@ -166,6 +188,15 @@ class _AuditScreenState extends State<AuditScreen> {
             },
             icon: const Icon(Icons.vertical_align_bottom),
           ),
+          IconButton(
+            tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
+            onPressed: () {
+              setState(() => _autoRefresh = !_autoRefresh);
+              _armTimer();
+            },
+            icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
+          ),
+
 
           IconButton(
             tooltip: 'Clear',

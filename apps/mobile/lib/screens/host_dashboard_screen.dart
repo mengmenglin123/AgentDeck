@@ -31,6 +31,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
   String? _error;
   bool _loading = true;
   Timer? _timer;
+  final _scroll = ScrollController();
   DateTime? _lastOk;
   String _capFilter = '';
 
@@ -45,6 +46,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
 
   @override
   void dispose() {
+    _scroll.dispose();
     _timer?.cancel();
     super.dispose();
   }
@@ -194,6 +196,27 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
             onPressed: _status.isEmpty && _error == null ? null : _copyCsv,
             icon: const Icon(Icons.table_chart_outlined),
           ),
+          IconButton(
+            tooltip: 'Jump to top',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+            },
+            icon: const Icon(Icons.vertical_align_top),
+          ),
+          IconButton(
+            tooltip: 'Jump to end',
+            onPressed: () {
+              if (!_scroll.hasClients) return;
+              _scroll.animateTo(
+                _scroll.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
+            },
+            icon: const Icon(Icons.vertical_align_bottom),
+          ),
+
 
 
           IconButton(
@@ -208,6 +231,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
           : RefreshIndicator(
               onRefresh: _refresh,
               child: ListView(
+        controller: _scroll,
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               children: [
