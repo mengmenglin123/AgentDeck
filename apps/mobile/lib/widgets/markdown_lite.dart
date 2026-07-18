@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings (h1–h6), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5/h6, abbr, mark (== / HTML <mark>), spoiler, kbd, sup/sub, underline, del, ins, s, strike, br, small, cite, q, var, samp, dfn, em, strong, b, code, i, big, tt, time, data, bdi, bdo, autolink, strike (~~ / <s>/<del>/<strike>), inline code, bold/italic, bold-italic (***).
+/// Covers headings (h1–h6), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5/h6, abbr, mark (== / HTML <mark>), spoiler, kbd, sup/sub, underline, del, ins, s, strike, br, small, cite, q, var, samp, dfn, em, strong, b, code, i, big, tt, time, data, bdi, bdo, ruby, rt, rp, wbr, font, center, autolink, strike (~~ / <s>/<del>/<strike>), inline code, bold/italic, bold-italic (***).
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -602,7 +602,7 @@ class MarkdownLite extends StatelessWidget {
   static TextSpan _inline(String text, TextStyle base) {
     final spans = <InlineSpan>[];
     final re = RegExp(
-          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<mark>[^<]+</mark>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<strike>[^<]+</strike>|<br/>|<br>|<small>[^<]+</small>|<cite>[^<]+</cite>|<q>[^<]+</q>|<var>[^<]+</var>|<samp>[^<]+</samp>|<dfn>[^<]+</dfn>|<em>[^<]+</em>|<strong>[^<]+</strong>|<b>[^<]+</b>|<code>[^<]+</code>|<i>[^<]+</i>|<big>[^<]+</big>|<tt>[^<]+</tt>|<time>[^<]+</time>|<data>[^<]+</data>|<bdi>[^<]+</bdi>|<bdo[^>]*>[^<]+</bdo>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
+          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<mark>[^<]+</mark>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<strike>[^<]+</strike>|<br/>|<br>|<wbr/>|<wbr>|<small>[^<]+</small>|<cite>[^<]+</cite>|<q>[^<]+</q>|<var>[^<]+</var>|<samp>[^<]+</samp>|<dfn>[^<]+</dfn>|<em>[^<]+</em>|<strong>[^<]+</strong>|<b>[^<]+</b>|<code>[^<]+</code>|<i>[^<]+</i>|<big>[^<]+</big>|<tt>[^<]+</tt>|<time>[^<]+</time>|<data>[^<]+</data>|<bdi>[^<]+</bdi>|<bdo[^>]*>[^<]+</bdo>|<ruby>[^<]+<rt>[^<]+</rt></ruby>|<ruby>[^<]+</ruby>|<rt>[^<]+</rt>|<rp>[^<]*</rp>|<font[^>]*>[^<]+</font>|<center>[^<]+</center>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
             );
     var i = 0;
     for (final m in re.allMatches(text)) {
@@ -730,6 +730,9 @@ class MarkdownLite extends StatelessWidget {
       } else if (tok == '<br/>' || tok == '<br>') {
         // HTML line break
         spans.add(const TextSpan(text: '\n'));
+      } else if (tok == '<wbr/>' || tok == '<wbr>') {
+        // HTML word break opportunity — zero-width space
+        spans.add(const TextSpan(text: '\u200B'));
       } else if (tok.startsWith('<small>') && tok.endsWith('</small>')) {
         final body = tok.substring(7, tok.length - 8);
         spans.add(TextSpan(
@@ -890,6 +893,84 @@ class MarkdownLite extends StatelessWidget {
             color: base.color?.withOpacity(0.82),
           ),
         ));
+      } else if (tok.startsWith('<ruby>') && tok.contains('<rt>') && tok.endsWith('</ruby>')) {
+        // HTML ruby with annotation: <ruby>BASE<rt>ANNO</rt></ruby>
+        final rm = RegExp(r'<ruby>([^<]+)<rt>([^<]+)</rt></ruby>').firstMatch(tok);
+        final baseText = rm?.group(1) ?? tok;
+        final anno = rm?.group(2) ?? '';
+        spans.add(TextSpan(
+          text: baseText,
+          style: base.copyWith(
+            letterSpacing: 0.3,
+          ),
+        ));
+        if (anno.isNotEmpty) {
+          spans.add(TextSpan(
+            text: anno,
+            style: base.copyWith(
+              fontSize: (base.fontSize ?? 14) * 0.75,
+              color: base.color?.withOpacity(0.7),
+              height: 1.0,
+            ),
+          ));
+        }
+      } else if (tok.startsWith('<ruby>') && tok.endsWith('</ruby>')) {
+        // HTML ruby base-only fallback
+        final body = tok.substring(6, tok.length - 7);
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            letterSpacing: 0.3,
+          ),
+        ));
+      } else if (tok.startsWith('<rt>') && tok.endsWith('</rt>')) {
+        // HTML rt — ruby annotation / smaller muted text
+        final body = tok.substring(4, tok.length - 5);
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            fontSize: (base.fontSize ?? 14) * 0.75,
+            color: base.color?.withOpacity(0.7),
+            height: 1.0,
+          ),
+        ));
+      } else if (tok.startsWith('<rp>') && tok.endsWith('</rp>')) {
+        // HTML rp — ruby parenthesis fallback (often empty-ish); muted smaller
+        final body = tok.substring(4, tok.length - 5);
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            fontSize: (base.fontSize ?? 14) * 0.85,
+            color: base.color?.withOpacity(0.55),
+          ),
+        ));
+      } else if (tok.toLowerCase().startsWith('<font')) {
+        // HTML font — attr-tolerant; optional color=#RRGGBB; else slight opacity
+        final bodyM = RegExp(r'<font[^>]*>([^<]+)</font>', caseSensitive: false).firstMatch(tok);
+        final body = bodyM?.group(1) ?? tok;
+        final colorM = RegExp(r'color\s*=\s*#([0-9A-Fa-f]{6})', caseSensitive: false).firstMatch(tok);
+        Color? fontColor;
+        if (colorM != null) {
+          final v = int.tryParse(colorM.group(1)!, radix: 16);
+          if (v != null) fontColor = Color(0xFF000000 | v);
+        }
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            color: fontColor ?? base.color?.withOpacity(0.88),
+          ),
+        ));
+      } else if (tok.startsWith('<center>') && tok.endsWith('</center>')) {
+        // HTML center lite — TextAlign not on TextSpan; letterSpacing 0.2 demo
+        final body = tok.substring(8, tok.length - 9);
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            letterSpacing: 0.2,
+            color: base.color?.withOpacity(0.92),
+          ),
+        ));
+      } else if (tok.toLowerCase().startsWith('<abbr')) {
       } else if (tok.toLowerCase().startsWith('<abbr')) {
         final titleM = RegExp(r'title="([^"]*)"', caseSensitive: false).firstMatch(tok);
         final titleM2 = RegExp(r"title='([^']*)'", caseSensitive: false).firstMatch(tok);

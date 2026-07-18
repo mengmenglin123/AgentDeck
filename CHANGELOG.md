@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.133
+
+- Pairing view FilterChips (wrap / regex / case / sort / auto)
+- MarkdownLite `<wbr>` + `<rp>`
+- Mock nice/nohup/watch (+ help/which/type lockstep)
+
+## 0.1.132
+
+- Terminal view FilterChips (wrap / newest / timestamps)
+- MarkdownLite `<font>` + `<center>`
+- Mock install/shred/timeout (+ help/which/type lockstep)
+
+## 0.1.131
+
+- Chat permission role filter chip
+- MarkdownLite `<ruby>` + `<rt>`
+- Mock link/ln/truncate (+ help/which/type lockstep)
+
 ## 0.1.130
 
 - Audit action chips expand (host/git/settings/terminal/other)

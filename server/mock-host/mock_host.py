@@ -834,7 +834,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, locale, umask, readlink, cksum, sum, expand, unexpand, tac, namei, dir, vdir, tsort, pathchk, mktemp, sync, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, locale, umask, readlink, cksum, sum, expand, unexpand, tac, namei, dir, vdir, tsort, pathchk, mktemp, sync, link, ln, truncate, install, shred, timeout, nice, nohup, watch, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -909,7 +909,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
     elif lower.startswith("which "):
         name = data.strip()[6:].strip()
         known = {
-            "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync",
+            "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1460,7 +1460,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             out("type: missing operand\n", done=True, exit_code=1)
         else:
             builtins = {
-                "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "export", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "base64", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync",
+                "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "export", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "base64", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch",
                             }
             if name.split()[0] in builtins:
                 out(f"{name.split()[0]} is a shell builtin\n", done=True, exit_code=0)
@@ -2542,6 +2542,140 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
     elif lower == "sync" or lower.startswith("sync "):
         # mock sync: flush no-op
         out("", done=True, exit_code=0)
+    elif lower.startswith("link ") or lower == "link":
+        # mock link: hardlink create TARGET LINK_NAME; silent success (no real FS)
+        parts = data.strip().split()
+        if len(parts) < 3:
+            out("link: usage: link TARGET LINK_NAME\n", done=True, exit_code=1)
+        else:
+            out("", done=True, exit_code=0)
+    elif lower.startswith("ln ") or lower == "ln":
+        # mock ln: ln [-s] [-f] TARGET LINK; strip -s/-f; need 2 path args
+        parts = data.strip().split()
+        paths = []
+        for p in parts[1:]:
+            if p in ("-s", "-f"):
+                continue
+            if p.startswith("-") and len(p) > 1 and all(c in "sf" for c in p[1:]):
+                continue
+            paths.append(p)
+        if len(paths) < 2:
+            out("ln: missing file operand\n", done=True, exit_code=1)
+        else:
+            out("", done=True, exit_code=0)
+    elif lower.startswith("truncate ") or lower == "truncate":
+        # mock truncate: no-op success; -s SIZE optional; FILE required
+        parts = data.strip().split()
+        file_arg = None
+        i = 1
+        while i < len(parts):
+            p = parts[i]
+            if p == "-s":
+                i += 2  # skip SIZE
+                continue
+            if p.startswith("-s") and len(p) > 2:
+                i += 1  # -sSIZE
+                continue
+            if p.startswith("-") and p not in ("-s",):
+                i += 1
+                continue
+            file_arg = p
+            break
+        if not file_arg:
+            out("truncate: missing file operand\n", done=True, exit_code=1)
+        else:
+            out("", done=True, exit_code=0)
+
+
+    elif lower.startswith("install ") or lower == "install":
+        # mock install: install [-m MODE] [-D] SRC DST; strip -m/-D; need 2 path args
+        parts = data.strip().split()
+        paths = []
+        i = 1
+        while i < len(parts):
+            p = parts[i]
+            if p == "-m":
+                i += 2  # skip MODE
+                continue
+            if p.startswith("-m") and len(p) > 2:
+                i += 1  # -mMODE
+                continue
+            if p == "-D":
+                i += 1
+                continue
+            if p.startswith("-") and p not in ("-D", "-m"):
+                i += 1
+                continue
+            paths.append(p)
+            i += 1
+        if len(paths) < 2:
+            out("install: usage: install SRC DST\n", done=True, exit_code=1)
+        else:
+            out("", done=True, exit_code=0)
+    elif lower.startswith("shred ") or lower == "shred":
+        # mock shred: wipe FILE (optional -u); missing file exit 1; silent success
+        parts = data.strip().split()
+        paths = []
+        for p in parts[1:]:
+            if p == "-u":
+                continue
+            if p.startswith("-") and len(p) > 1 and all(c in "u" for c in p[1:]):
+                continue
+            paths.append(p)
+        if not paths:
+            out("shred: missing file operand\n", done=True, exit_code=1)
+        else:
+            out("", done=True, exit_code=0)
+    elif lower.startswith("timeout ") or lower == "timeout":
+        # mock timeout: timeout SECS CMD...; no real wait/sleep; silent success
+        parts = data.strip().split()
+        if len(parts) < 3:
+            out("timeout: usage: timeout SECS CMD...\n", done=True, exit_code=1)
+        else:
+            secs = parts[1]
+            if not re.fullmatch(r"[0-9]+", secs):
+                out("timeout: invalid time interval\n", done=True, exit_code=1)
+            else:
+                out("", done=True, exit_code=0)
+
+    elif lower.startswith("nice ") or lower == "nice":
+        # mock nice: nice [-n N] CMD...; strip optional -n N; need CMD else usage 1; silent 0
+        parts = data.strip().split()
+        i = 1
+        if i < len(parts) and parts[i] == "-n":
+            i += 2  # skip N
+        elif i < len(parts) and parts[i].startswith("-n") and len(parts[i]) > 2:
+            i += 1  # -nN
+        cmd_parts = parts[i:]
+        if not cmd_parts:
+            out("nice: usage: nice [-n N] CMD...\n", done=True, exit_code=1)
+        else:
+            out("", done=True, exit_code=0)
+    elif lower.startswith("nohup ") or lower == "nohup":
+        # mock nohup: nohup CMD...; need CMD else exit 1; print ignore msg; do not run CMD
+        parts = data.strip().split()
+        if len(parts) < 2:
+            out("nohup: missing operand\n", done=True, exit_code=1)
+        else:
+            out("nohup: ignoring input and appending output to 'nohup.out'\n", done=True, exit_code=0)
+    elif lower.startswith("watch ") or lower == "watch":
+        # mock watch: watch [-n N] CMD; one snapshot line; NEVER loop/sleep
+        parts = data.strip().split()
+        i = 1
+        interval = "2"
+        if i < len(parts) and parts[i] == "-n":
+            if i + 1 < len(parts):
+                interval = parts[i + 1]
+            i += 2
+        elif i < len(parts) and parts[i].startswith("-n") and len(parts[i]) > 2:
+            interval = parts[i][2:]
+            i += 1
+        cmd_parts = parts[i:]
+        if not cmd_parts:
+            out("watch: missing command\n", done=True, exit_code=1)
+        else:
+            cmd_str = " ".join(cmd_parts)
+            out(f"Every {interval}s: {cmd_str}\nmock: ran once\n", done=True, exit_code=0)
 
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)

@@ -272,6 +272,53 @@ class _PairingScreenState extends State<PairingScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(20),
               children: [
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      for (final item in <(String, bool, void Function(bool))>[
+                        (
+                          'Wrap',
+                          _wrapLines,
+                          (v) => setState(() => _wrapLines = v),
+                        ),
+                        (
+                          'Regex',
+                          _payloadRegex,
+                          (v) => setState(() => _payloadRegex = v),
+                        ),
+                        (
+                          'Case',
+                          _payloadCase,
+                          (v) => setState(() => _payloadCase = v),
+                        ),
+                        (
+                          'Sort',
+                          _payloadSorted,
+                          (v) => setState(() => _payloadSorted = v),
+                        ),
+                        (
+                          'Auto',
+                          _autoRefresh,
+                          (v) {
+                            setState(() => _autoRefresh = v);
+                            _armTimer();
+                          },
+                        ),
+                      ])
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: FilterChip(
+                            label: Text(item.$1, style: const TextStyle(fontSize: 11)),
+                            selected: item.$2,
+                            visualDensity: VisualDensity.compact,
+                            onSelected: item.$3,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
                 if (error != null) Text(error!, style: TextStyle(color: cs.error)),
                 Text(
                   'Share connection stub without tokens. Paste into Connect on another device. '

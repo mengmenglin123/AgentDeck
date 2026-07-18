@@ -600,6 +600,28 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
               ),
             ),
           if (_connecting) const LinearProgressIndicator(minHeight: 2),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(8, 6, 8, 2),
+            child: Row(
+              children: [
+                for (final item in <(String, bool, void Function(bool))>[
+                  ('Wrap', _wrapLines, (v) => setState(() => _wrapLines = v)),
+                  ('Newest', _newestFirst, (v) => setState(() => _newestFirst = v)),
+                  ('Timestamps', _showTs, (v) => setState(() => _showTs = v)),
+                ])
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      label: Text(item.$1, style: const TextStyle(fontSize: 11)),
+                      selected: item.$2,
+                      visualDensity: VisualDensity.compact,
+                      onSelected: item.$3,
+                    ),
+                  ),
+              ],
+            ),
+          ),
           Material(
             color: cs.surfaceContainerLow,
             child: SingleChildScrollView(

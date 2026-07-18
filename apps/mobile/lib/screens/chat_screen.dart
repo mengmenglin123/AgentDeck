@@ -1003,6 +1003,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     ('assistant', 'Assistant'),
                     ('system', 'System'),
                     ('tool', 'Tool'),
+                    ('permission', 'Permission'),
                   ])
                     Padding(
                       padding: const EdgeInsets.only(right: 6),
