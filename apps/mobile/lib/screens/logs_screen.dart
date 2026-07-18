@@ -74,7 +74,11 @@ class _LogsScreenState extends State<LogsScreen> {
       _error = null;
     });
     try {
-      final data = await _mgmt.logs(limit: 100, level: _level.isEmpty ? null : _level, source: _source.isEmpty ? null : _source);
+      final data = await _mgmt.logs(
+        limit: 100,
+        level: _level.isEmpty ? null : _level,
+        source: _source.isEmpty ? null : _source,
+      );
       final raw = data['logs'];
       final list = <Map<String, dynamic>>[];
       if (raw is List) {
@@ -95,11 +99,22 @@ class _LogsScreenState extends State<LogsScreen> {
   }
 
   String _loggerOf(Map x) =>
-      (x['logger'] ?? x['source'] ?? x['component'] ?? x['module'] ?? x['name'] ?? '')
+      (x['logger'] ??
+              x['source'] ??
+              x['component'] ??
+              x['module'] ??
+              x['name'] ??
+              '')
           .toString()
           .toLowerCase();
 
-  static const _knownLoggers = ['mock-host', 'bridge', 'session', 'terminal', 'hermes'];
+  static const _knownLoggers = [
+    'mock-host',
+    'bridge',
+    'session',
+    'terminal',
+    'hermes',
+  ];
 
   List<Map<String, dynamic>> get _visible {
     final rawQ = _query.trim();
@@ -124,11 +139,17 @@ class _LogsScreenState extends State<LogsScreen> {
           final s = '${v ?? ''}';
           return _queryCase ? s : s.toLowerCase();
         }
+
         final msg = norm(e['message']);
         final level = norm(e['level']);
         final ts = norm(e['ts']);
-        final logger = norm(e['logger'] ?? e['source'] ?? e['component'] ?? e['module']);
-        return msg.contains(q) || level.contains(q) || logger.contains(q) || ts.contains(q);
+        final logger = norm(
+          e['logger'] ?? e['source'] ?? e['component'] ?? e['module'],
+        );
+        return msg.contains(q) ||
+            level.contains(q) ||
+            logger.contains(q) ||
+            ts.contains(q);
       }).toList();
     }
     if (_logger.isNotEmpty) {
@@ -152,16 +173,29 @@ class _LogsScreenState extends State<LogsScreen> {
           final p = DateTime.tryParse(v?.toString() ?? '');
           return p?.millisecondsSinceEpoch ?? 0;
         }
+
         final c = tsOf(a).compareTo(tsOf(b));
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortById) {
-        final ia = (a['id'] ?? a['log_id'] ?? a['uuid'] ?? a['request_id'] ?? '').toString().toLowerCase();
-        final ib = (b['id'] ?? b['log_id'] ?? b['uuid'] ?? b['request_id'] ?? '').toString().toLowerCase();
+        final ia =
+            (a['id'] ?? a['log_id'] ?? a['uuid'] ?? a['request_id'] ?? '')
+                .toString()
+                .toLowerCase();
+        final ib =
+            (b['id'] ?? b['log_id'] ?? b['uuid'] ?? b['request_id'] ?? '')
+                .toString()
+                .toLowerCase();
         final c = ia.compareTo(ib);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortBySource) {
-        final sa = (a['source'] ?? a['origin'] ?? a['channel'] ?? a['provider'] ?? '').toString().toLowerCase();
-        final sb = (b['source'] ?? b['origin'] ?? b['channel'] ?? b['provider'] ?? '').toString().toLowerCase();
+        final sa =
+            (a['source'] ?? a['origin'] ?? a['channel'] ?? a['provider'] ?? '')
+                .toString()
+                .toLowerCase();
+        final sb =
+            (b['source'] ?? b['origin'] ?? b['channel'] ?? b['provider'] ?? '')
+                .toString()
+                .toLowerCase();
         final c = sa.compareTo(sb);
         if (c != 0) return _sortAsc ? c : -c;
         final ma = '${a['message'] ?? ''}'.toLowerCase();
@@ -203,6 +237,7 @@ class _LogsScreenState extends State<LogsScreen> {
         final p = DateTime.tryParse(v?.toString() ?? '');
         return p?.millisecondsSinceEpoch ?? 0;
       }
+
       final c = tsOf(a).compareTo(tsOf(b));
       return _newestFirst ? -c : c;
     });
@@ -254,16 +289,14 @@ class _LogsScreenState extends State<LogsScreen> {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          () {
-            final base = _visible.isEmpty
-                ? 'Host logs'
-                : (_visible.length == _logs.length
+        title: Text(() {
+          final base = _visible.isEmpty
+              ? 'Host logs'
+              : (_visible.length == _logs.length
                     ? 'Host logs (${_visible.length})'
                     : 'Host logs (${_visible.length}/${_logs.length})');
-            return _autoRefresh ? '$base · auto' : base;
-          }(),
-        ),
+          return _autoRefresh ? '$base · auto' : base;
+        }()),
         actions: [
           IconButton(
             tooltip: 'Copy all',
@@ -277,10 +310,15 @@ class _LogsScreenState extends State<LogsScreen> {
                       final ts = e['ts'];
                       buf.writeln('[$level] $ts $msg');
                     }
-                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    await Clipboard.setData(
+                      ClipboardData(text: buf.toString()),
+                    );
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Copied ${_visible.length} lines'), duration: const Duration(seconds: 1)),
+                        SnackBar(
+                          content: Text('Copied ${_visible.length} lines'),
+                          duration: const Duration(seconds: 1),
+                        ),
                       );
                     }
                   },
@@ -295,11 +333,18 @@ class _LogsScreenState extends State<LogsScreen> {
                     buf.writeln('ts,level,message');
                     for (final e in _visible) {
                       final ts = '${e['ts'] ?? ''}'.replaceAll(',', ';');
-                      final level = '${e['level'] ?? 'info'}'.replaceAll(',', ';');
-                      final msg = '${e['message'] ?? ''}'.replaceAll(',', ';').replaceAll('\n', ' ');
+                      final level = '${e['level'] ?? 'info'}'.replaceAll(
+                        ',',
+                        ';',
+                      );
+                      final msg = '${e['message'] ?? ''}'
+                          .replaceAll(',', ';')
+                          .replaceAll('\n', ' ');
                       buf.writeln('$ts,$level,$msg');
                     }
-                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    await Clipboard.setData(
+                      ClipboardData(text: buf.toString()),
+                    );
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -314,25 +359,36 @@ class _LogsScreenState extends State<LogsScreen> {
           IconButton(
             tooltip: _newestFirst ? 'Oldest first' : 'Newest first',
             onPressed: () => setState(() => _newestFirst = !_newestFirst),
-            icon: Icon(_newestFirst ? Icons.arrow_downward : Icons.arrow_upward),
+            icon: Icon(
+              _newestFirst ? Icons.arrow_downward : Icons.arrow_upward,
+            ),
           ),
           IconButton(
             tooltip: _sortByTs
                 ? (_sortAsc ? 'Time old→new' : 'Time new→old')
                 : (_sortById
-                    ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
-                    : (_sortBySource
-                        ? (_sortAsc ? 'Source Z→A' : 'Source A→Z')
-                        : (_sortByLogger
-                            ? (_sortAsc ? 'Logger Z→A' : 'Logger A→Z')
-                            : (_sortByLevel
-                                ? (_sortAsc ? 'Levels Z→A' : 'Levels A→Z')
-                                : (_sortByMsg
-                                    ? (_sortAsc ? 'Messages Z→A' : 'Messages A→Z')
-                                    : 'Sort by message / level / logger / source / id / time'))))),
+                      ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                      : (_sortBySource
+                            ? (_sortAsc ? 'Source Z→A' : 'Source A→Z')
+                            : (_sortByLogger
+                                  ? (_sortAsc ? 'Logger Z→A' : 'Logger A→Z')
+                                  : (_sortByLevel
+                                        ? (_sortAsc
+                                              ? 'Levels Z→A'
+                                              : 'Levels A→Z')
+                                        : (_sortByMsg
+                                              ? (_sortAsc
+                                                    ? 'Messages Z→A'
+                                                    : 'Messages A→Z')
+                                              : 'Sort by message / level / logger / source / id / time'))))),
             onPressed: () {
               setState(() {
-                if (!_sortByMsg && !_sortByLevel && !_sortByLogger && !_sortBySource && !_sortById && !_sortByTs) {
+                if (!_sortByMsg &&
+                    !_sortByLevel &&
+                    !_sortByLogger &&
+                    !_sortBySource &&
+                    !_sortById &&
+                    !_sortByTs) {
                   _sortByMsg = true;
                   _sortByLevel = false;
                   _sortByLogger = false;
@@ -403,25 +459,32 @@ class _LogsScreenState extends State<LogsScreen> {
                 }
               });
             },
-            icon: Icon(_sortByTs
-                ? Icons.schedule
-                : (_sortById
-                    ? Icons.tag
-                    : (_sortBySource
-                        ? Icons.source_outlined
-                        : (_sortByLogger
-                            ? Icons.account_tree_outlined
-                            : (_sortByLevel
-                                ? Icons.low_priority
-                                : (_sortByMsg ? Icons.sort_by_alpha : Icons.sort)))))),
+            icon: Icon(
+              _sortByTs
+                  ? Icons.schedule
+                  : (_sortById
+                        ? Icons.tag
+                        : (_sortBySource
+                              ? Icons.source_outlined
+                              : (_sortByLogger
+                                    ? Icons.account_tree_outlined
+                                    : (_sortByLevel
+                                          ? Icons.low_priority
+                                          : (_sortByMsg
+                                                ? Icons.sort_by_alpha
+                                                : Icons.sort))))),
+            ),
           ),
-
 
           IconButton(
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
-              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+              _scroll.animateTo(
+                0,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
             },
             icon: const Icon(Icons.vertical_align_top),
           ),
@@ -443,7 +506,11 @@ class _LogsScreenState extends State<LogsScreen> {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
             },
-            icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
+            icon: Icon(
+              _autoRefresh
+                  ? Icons.pause_circle_outline
+                  : Icons.play_circle_outline,
+            ),
           ),
 
           IconButton(
@@ -452,12 +519,17 @@ class _LogsScreenState extends State<LogsScreen> {
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
           ),
           IconButton(
-            tooltip: _relativeTs ? 'Absolute timestamps' : 'Relative timestamps',
+            tooltip: _relativeTs
+                ? 'Absolute timestamps'
+                : 'Relative timestamps',
             onPressed: () => setState(() => _relativeTs = !_relativeTs),
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
 
-          IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
+          IconButton(
+            onPressed: _loading ? null : _load,
+            icon: const Icon(Icons.refresh),
+          ),
         ],
       ),
       body: Column(
@@ -546,7 +618,10 @@ class _LogsScreenState extends State<LogsScreen> {
                       visualDensity: VisualDensity.compact,
                     ),
                     FilterChip(
-                      label: const Text('Regex', style: TextStyle(fontSize: 11)),
+                      label: const Text(
+                        'Regex',
+                        style: TextStyle(fontSize: 11),
+                      ),
                       selected: _queryRegex,
                       onSelected: (v) => setState(() => _queryRegex = v),
                       visualDensity: VisualDensity.compact,
@@ -564,7 +639,10 @@ class _LogsScreenState extends State<LogsScreen> {
                       visualDensity: VisualDensity.compact,
                     ),
                     FilterChip(
-                      label: const Text('Newest', style: TextStyle(fontSize: 11)),
+                      label: const Text(
+                        'Newest',
+                        style: TextStyle(fontSize: 11),
+                      ),
                       selected: _newestFirst,
                       onSelected: (v) => setState(() => _newestFirst = v),
                       visualDensity: VisualDensity.compact,
@@ -580,17 +658,19 @@ class _LogsScreenState extends State<LogsScreen> {
               decoration: InputDecoration(
                 hintText: _queryRegex
                     ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
-                    : (_queryCase ? 'Filter (case-sensitive)' : 'Filter message / level / source'),
+                    : (_queryCase
+                          ? 'Filter (case-sensitive)'
+                          : 'Filter message / level / source'),
                 isDense: true,
                 border: const OutlineInputBorder(),
                 prefixIcon: IconButton(
                   tooltip: _queryRegex
                       ? (_queryCase
-                          ? 'Regex · case on (long-press: plain filter)'
-                          : 'Regex · case off (long-press: plain filter)')
+                            ? 'Regex · case on (long-press: plain filter)'
+                            : 'Regex · case off (long-press: plain filter)')
                       : (_queryCase
-                          ? 'Case-sensitive (long-press: regex)'
-                          : 'Case-insensitive (long-press: regex)'),
+                            ? 'Case-sensitive (long-press: regex)'
+                            : 'Case-insensitive (long-press: regex)'),
                   icon: Icon(
                     _queryRegex
                         ? Icons.code
@@ -618,73 +698,101 @@ class _LogsScreenState extends State<LogsScreen> {
           if (_loading) const LinearProgressIndicator(minHeight: 2),
           Expanded(
             child: _logs.isEmpty && !_loading
-                ? const Center(child: Text('No log lines (Host may omit /logs)'))
+                ? const Center(
+                    child: Text('No log lines (Host may omit /logs)'),
+                  )
                 : _visible.isEmpty && !_loading
-                    ? const Center(child: Text('No lines match filter'))
+                ? const Center(child: Text('No lines match filter'))
                 : RefreshIndicator(
                     onRefresh: _load,
                     child: ListView.separated(
                       controller: _scroll,
                       physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(8, 4, 8, 24),
-                    itemCount: _visible.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, i) {
-                      final e = _visible[i];
-                      final level = '${e['level'] ?? 'info'}';
-                      final msg = '${e['message'] ?? ''}';
-                      final src = '${e['source'] ?? e['logger'] ?? e['component'] ?? ''}';
-                      final ts = e['ts'];
-                      final when = _fmtWhen(ts);
-                      final color = _levelColor(level, cs);
-                      return Container(
-                        decoration: BoxDecoration(
-                          border: Border(left: BorderSide(color: color, width: 3)),
-                          color: level.toLowerCase() == 'error'
-                              ? cs.errorContainer.withOpacity(0.25)
-                              : (level.toLowerCase() == 'warn' || level.toLowerCase() == 'warning')
-                                  ? Colors.orange.withOpacity(0.08)
-                                  : null,
-                        ),
-                        child: ListTile(
-                          dense: true,
-                          leading: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: color.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: color.withOpacity(0.5)),
+                      padding: const EdgeInsets.fromLTRB(8, 4, 8, 24),
+                      itemCount: _visible.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, i) {
+                        final e = _visible[i];
+                        final level = '${e['level'] ?? 'info'}';
+                        final msg = '${e['message'] ?? ''}';
+                        final src =
+                            '${e['source'] ?? e['logger'] ?? e['component'] ?? ''}';
+                        final ts = e['ts'];
+                        final when = _fmtWhen(ts);
+                        final color = _levelColor(level, cs);
+                        return Container(
+                          decoration: BoxDecoration(
+                            border: Border(
+                              left: BorderSide(color: color, width: 3),
                             ),
-                            child: Text(
-                              level.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: color,
-                                fontFamily: 'monospace',
+                            color: level.toLowerCase() == 'error'
+                                ? cs.errorContainer.withOpacity(0.25)
+                                : (level.toLowerCase() == 'warn' ||
+                                      level.toLowerCase() == 'warning')
+                                ? Colors.orange.withOpacity(0.08)
+                                : null,
+                          ),
+                          child: ListTile(
+                            dense: true,
+                            leading: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: color.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: color.withOpacity(0.5),
+                                ),
+                              ),
+                              child: Text(
+                                level.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: color,
+                                  fontFamily: 'monospace',
+                                ),
                               ),
                             ),
-                          ),
-                          title: Text(
-                            src.isEmpty ? msg : '[$src] $msg',
-                            style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
-                            maxLines: _wrapLines ? null : 1,
-                            overflow: _wrapLines ? TextOverflow.visible : TextOverflow.ellipsis,
-                            softWrap: _wrapLines,
-                          ),
-                          subtitle: Text(when, style: const TextStyle(fontSize: 10)),
-                          onLongPress: () async {
-                            await Clipboard.setData(ClipboardData(text: '[$level] $when${src.isNotEmpty ? ' $src' : ''} $msg'));
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Log line copied'), duration: Duration(seconds: 1)),
+                            title: Text(
+                              src.isEmpty ? msg : '[$src] $msg',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontFamily: 'monospace',
+                              ),
+                              maxLines: _wrapLines ? null : 1,
+                              overflow: _wrapLines
+                                  ? TextOverflow.visible
+                                  : TextOverflow.ellipsis,
+                              softWrap: _wrapLines,
+                            ),
+                            subtitle: Text(
+                              when,
+                              style: const TextStyle(fontSize: 10),
+                            ),
+                            onLongPress: () async {
+                              await Clipboard.setData(
+                                ClipboardData(
+                                  text:
+                                      '[$level] $when${src.isNotEmpty ? ' $src' : ''} $msg',
+                                ),
                               );
-                            }
-                          },
-                        ),
-                      );
-                    },
-                  )),
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Log line copied'),
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),

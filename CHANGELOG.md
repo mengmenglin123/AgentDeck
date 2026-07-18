@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.162
+
+- Fix: mock df/free/ps/uptime handlers (were in help but missing)
+
+
 ## 0.1.161
 
 - Newest FilterChips on activity/logs/memory screens

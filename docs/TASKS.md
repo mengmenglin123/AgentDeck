@@ -657,6 +657,7 @@
 - [x] **P4-1bm** Mock curl/wget/ssh/scp/rsync/ping (0.1.159)
 - [x] **P4-1bn** Mock ip/netstat/traceroute (0.1.160)
 - [x] **P4-3bg** Newest chips: activity/logs/memory (0.1.161)
+- [x] **P4-1bo** Fix mock df/free/ps/uptime handlers (0.1.162)
 
 ## P4 — 远期
 

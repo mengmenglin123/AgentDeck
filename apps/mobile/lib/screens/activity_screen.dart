@@ -19,6 +19,7 @@ class ActivityScreen extends StatefulWidget {
   });
 
   final ConnectionConfig config;
+
   /// Optional known sessions for open-chat jump.
   final List<SessionInfo> sessions;
 
@@ -133,22 +134,33 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
   IconData _icon(String kind) {
     if (kind.contains('session')) return Icons.forum_outlined;
-    if (kind.contains('chat') || kind.contains('message')) return Icons.chat_bubble_outline;
+    if (kind.contains('chat') || kind.contains('message'))
+      return Icons.chat_bubble_outline;
     if (kind.contains('host')) return Icons.dns_outlined;
     if (kind.contains('cron')) return Icons.schedule;
     return Icons.bolt_outlined;
   }
 
   String? _sessionRef(Map<String, dynamic> e) {
-    for (final k in const ['session_key', 'sessionKey', 'session_id', 'sessionId', 'id']) {
+    for (final k in const [
+      'session_key',
+      'sessionKey',
+      'session_id',
+      'sessionId',
+      'id',
+    ]) {
       final v = e[k]?.toString().trim();
-      if (v != null && v.isNotEmpty && (k.contains('session') || v.contains(':'))) {
+      if (v != null &&
+          v.isNotEmpty &&
+          (k.contains('session') || v.contains(':'))) {
         return v;
       }
     }
     // summary may embed session key/id
     final summary = (e['summary'] ?? '').toString();
-    final m = RegExp(r'(huan:[^\s]+|sess-[a-zA-Z0-9_-]+|[a-f0-9]{8,})').firstMatch(summary);
+    final m = RegExp(
+      r'(huan:[^\s]+|sess-[a-zA-Z0-9_-]+|[a-f0-9]{8,})',
+    ).firstMatch(summary);
     return m?.group(1);
   }
 
@@ -192,7 +204,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
       final kind = (e['kind'] ?? e['type'] ?? 'event').toString().toLowerCase();
       if (_kind.isNotEmpty) {
         if (_kind == 'other') {
-          final known = kind.contains('session') ||
+          final known =
+              kind.contains('session') ||
               kind.contains('chat') ||
               kind.contains('message') ||
               kind.contains('host') ||
@@ -209,11 +222,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
         if (!lv.contains(_level.toLowerCase())) return false;
       }
       if (_source.isNotEmpty) {
-        final src = (e['source'] ?? e['origin'] ?? e['channel'] ?? e['provider'] ?? '')
-            .toString()
-            .toLowerCase();
+        final src =
+            (e['source'] ?? e['origin'] ?? e['channel'] ?? e['provider'] ?? '')
+                .toString()
+                .toLowerCase();
         if (_source == 'other') {
-          final known = src.contains('mock') ||
+          final known =
+              src.contains('mock') ||
               src.contains('bridge') ||
               src.contains('session') ||
               src.contains('terminal') ||
@@ -243,6 +258,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       final p = DateTime.tryParse(v?.toString() ?? '');
       return p?.millisecondsSinceEpoch ?? 0;
     }
+
     list.sort((a, b) {
       if (_sortByPriority) {
         final pa = (a['priority'] ?? '').toString().toLowerCase();
@@ -253,38 +269,72 @@ class _ActivityScreenState extends State<ActivityScreen> {
         final c = tsOf(a).compareTo(tsOf(b));
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByChannel) {
-        final ca = (a['channel'] ?? a['platform'] ?? a['origin'] ?? a['source'] ?? '').toString().toLowerCase();
-        final cb = (b['channel'] ?? b['platform'] ?? b['origin'] ?? b['source'] ?? '').toString().toLowerCase();
+        final ca =
+            (a['channel'] ?? a['platform'] ?? a['origin'] ?? a['source'] ?? '')
+                .toString()
+                .toLowerCase();
+        final cb =
+            (b['channel'] ?? b['platform'] ?? b['origin'] ?? b['source'] ?? '')
+                .toString()
+                .toLowerCase();
         final cs = ca.compareTo(cb);
         if (cs != 0) return _sortAsc ? cs : -cs;
       } else if (_sortByType) {
-        final ta = (a['type'] ?? a['event_type'] ?? a['content'] ?? '').toString().toLowerCase();
-        final tb = (b['type'] ?? b['event_type'] ?? b['content'] ?? '').toString().toLowerCase();
+        final ta = (a['type'] ?? a['event_type'] ?? a['content'] ?? '')
+            .toString()
+            .toLowerCase();
+        final tb = (b['type'] ?? b['event_type'] ?? b['content'] ?? '')
+            .toString()
+            .toLowerCase();
         final cs = ta.compareTo(tb);
         if (cs != 0) return _sortAsc ? cs : -cs;
       } else if (_sortByLevel) {
-        final la = (a['level'] ?? a['severity'] ?? a['priority'] ?? '').toString().toLowerCase();
-        final lb = (b['level'] ?? b['severity'] ?? b['priority'] ?? '').toString().toLowerCase();
+        final la = (a['level'] ?? a['severity'] ?? a['priority'] ?? '')
+            .toString()
+            .toLowerCase();
+        final lb = (b['level'] ?? b['severity'] ?? b['priority'] ?? '')
+            .toString()
+            .toLowerCase();
         final cs = la.compareTo(lb);
         if (cs != 0) return _sortAsc ? cs : -cs;
       } else if (_sortById) {
-        final ia = (a['id'] ?? a['event_id'] ?? a['uuid'] ?? '').toString().toLowerCase();
-        final ib = (b['id'] ?? b['event_id'] ?? b['uuid'] ?? '').toString().toLowerCase();
+        final ia = (a['id'] ?? a['event_id'] ?? a['uuid'] ?? '')
+            .toString()
+            .toLowerCase();
+        final ib = (b['id'] ?? b['event_id'] ?? b['uuid'] ?? '')
+            .toString()
+            .toLowerCase();
         final cs = ia.compareTo(ib);
         if (cs != 0) return _sortAsc ? cs : -cs;
       } else if (_sortBySource) {
-        final sa = (a['source'] ?? a['origin'] ?? a['channel'] ?? a['provider'] ?? '').toString().toLowerCase();
-        final sb = (b['source'] ?? b['origin'] ?? b['channel'] ?? b['provider'] ?? '').toString().toLowerCase();
+        final sa =
+            (a['source'] ?? a['origin'] ?? a['channel'] ?? a['provider'] ?? '')
+                .toString()
+                .toLowerCase();
+        final sb =
+            (b['source'] ?? b['origin'] ?? b['channel'] ?? b['provider'] ?? '')
+                .toString()
+                .toLowerCase();
         final cs = sa.compareTo(sb);
         if (cs != 0) return _sortAsc ? cs : -cs;
       } else if (_sortBySession) {
-        final sa = (a['session_key'] ?? a['session_id'] ?? a['session'] ?? '').toString().toLowerCase();
-        final sb = (b['session_key'] ?? b['session_id'] ?? b['session'] ?? '').toString().toLowerCase();
+        final sa = (a['session_key'] ?? a['session_id'] ?? a['session'] ?? '')
+            .toString()
+            .toLowerCase();
+        final sb = (b['session_key'] ?? b['session_id'] ?? b['session'] ?? '')
+            .toString()
+            .toLowerCase();
         final cs = sa.compareTo(sb);
         if (cs != 0) return _sortAsc ? cs : -cs;
       } else if (_sortBySummary) {
-        final sa = (a['summary'] ?? a['message'] ?? a['detail'] ?? a['title'] ?? '').toString().toLowerCase();
-        final sb = (b['summary'] ?? b['message'] ?? b['detail'] ?? b['title'] ?? '').toString().toLowerCase();
+        final sa =
+            (a['summary'] ?? a['message'] ?? a['detail'] ?? a['title'] ?? '')
+                .toString()
+                .toLowerCase();
+        final sb =
+            (b['summary'] ?? b['message'] ?? b['detail'] ?? b['title'] ?? '')
+                .toString()
+                .toLowerCase();
         final cs = sa.compareTo(sb);
         if (cs != 0) return _sortAsc ? cs : -cs;
       } else if (_sortByKind) {
@@ -304,16 +354,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final items = _filtered;
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          () {
-            final base = items.isEmpty
-                ? 'Host activity'
-                : (_events.isEmpty || items.length == _events.length
+        title: Text(() {
+          final base = items.isEmpty
+              ? 'Host activity'
+              : (_events.isEmpty || items.length == _events.length
                     ? 'Host activity (${items.length})'
                     : 'Host activity (${items.length}/${_events.length})');
-            return _autoRefresh ? '$base · auto' : base;
-          }(),
-        ),
+          return _autoRefresh ? '$base · auto' : base;
+        }()),
         actions: [
           IconButton(
             tooltip: 'Copy all',
@@ -324,14 +372,20 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     for (final e in items) {
                       final ts = e['ts'] ?? e['time'] ?? '';
                       final kind = e['type'] ?? e['kind'] ?? 'event';
-                      final msg = e['message'] ?? e['summary'] ?? e['content'] ?? e;
+                      final msg =
+                          e['message'] ?? e['summary'] ?? e['content'] ?? e;
                       final sk = e['session_key'] ?? e['session_id'] ?? '';
                       buf.writeln('[$ts] $kind  $msg  session=$sk');
                     }
-                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    await Clipboard.setData(
+                      ClipboardData(text: buf.toString()),
+                    );
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Copied ${items.length} events'), duration: const Duration(seconds: 1)),
+                        SnackBar(
+                          content: Text('Copied ${items.length} events'),
+                          duration: const Duration(seconds: 1),
+                        ),
                       );
                     }
                   },
@@ -345,15 +399,23 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     final buf = StringBuffer();
                     buf.writeln('ts,kind,session,message');
                     for (final e in items) {
-                      final ts = '${e['ts'] ?? e['time'] ?? ''}'.replaceAll(',', ';');
-                      final kind = '${e['type'] ?? e['kind'] ?? 'event'}'.replaceAll(',', ';');
-                      final sk = '${e['session_key'] ?? e['session_id'] ?? ''}'.replaceAll(',', ';');
-                      final msg = '${e['message'] ?? e['summary'] ?? e['content'] ?? ''}'
-                          .replaceAll(',', ';')
-                          .replaceAll('\n', ' ');
+                      final ts = '${e['ts'] ?? e['time'] ?? ''}'.replaceAll(
+                        ',',
+                        ';',
+                      );
+                      final kind = '${e['type'] ?? e['kind'] ?? 'event'}'
+                          .replaceAll(',', ';');
+                      final sk = '${e['session_key'] ?? e['session_id'] ?? ''}'
+                          .replaceAll(',', ';');
+                      final msg =
+                          '${e['message'] ?? e['summary'] ?? e['content'] ?? ''}'
+                              .replaceAll(',', ';')
+                              .replaceAll('\n', ' ');
                       buf.writeln('$ts,$kind,$sk,$msg');
                     }
-                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    await Clipboard.setData(
+                      ClipboardData(text: buf.toString()),
+                    );
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -368,10 +430,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
           IconButton(
             tooltip: _newestFirst ? 'Oldest first' : 'Newest first',
             onPressed: () => setState(() => _newestFirst = !_newestFirst),
-            icon: Icon(_newestFirst ? Icons.arrow_downward : Icons.arrow_upward),
+            icon: Icon(
+              _newestFirst ? Icons.arrow_downward : Icons.arrow_upward,
+            ),
           ),
           IconButton(
-            tooltip: _relativeTs ? 'Absolute timestamps' : 'Relative timestamps',
+            tooltip: _relativeTs
+                ? 'Absolute timestamps'
+                : 'Relative timestamps',
             onPressed: () => setState(() => _relativeTs = !_relativeTs),
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
@@ -379,27 +445,43 @@ class _ActivityScreenState extends State<ActivityScreen> {
             tooltip: _sortByPriority
                 ? (_sortAsc ? 'Priority Z→A' : 'Priority A→Z')
                 : (_sortByTs
-                    ? (_sortAsc ? 'Time old→new' : 'Time new→old')
-                    : (_sortByChannel
-                    ? (_sortAsc ? 'Channel Z→A' : 'Channel A→Z')
-                    : (_sortByType
-                        ? (_sortAsc ? 'Type Z→A' : 'Type A→Z')
-                        : (_sortByLevel
-                            ? (_sortAsc ? 'Level Z→A' : 'Level A→Z')
-                            : (_sortById
-                                ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
-                                : (_sortBySource
-                                    ? (_sortAsc ? 'Source Z→A' : 'Source A→Z')
-                                    : (_sortBySession
-                                        ? (_sortAsc ? 'Session Z→A' : 'Session A→Z')
-                                        : (_sortBySummary
-                                            ? (_sortAsc ? 'Summary Z→A' : 'Summary A→Z')
-                                            : (_sortByKind
-                                                ? (_sortAsc ? 'Kinds Z→A' : 'Kinds A→Z')
-                                                : 'Sort by kind / summary / session / source / id / level / type / channel / time / priority'))))))))),
+                      ? (_sortAsc ? 'Time old→new' : 'Time new→old')
+                      : (_sortByChannel
+                            ? (_sortAsc ? 'Channel Z→A' : 'Channel A→Z')
+                            : (_sortByType
+                                  ? (_sortAsc ? 'Type Z→A' : 'Type A→Z')
+                                  : (_sortByLevel
+                                        ? (_sortAsc ? 'Level Z→A' : 'Level A→Z')
+                                        : (_sortById
+                                              ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                                              : (_sortBySource
+                                                    ? (_sortAsc
+                                                          ? 'Source Z→A'
+                                                          : 'Source A→Z')
+                                                    : (_sortBySession
+                                                          ? (_sortAsc
+                                                                ? 'Session Z→A'
+                                                                : 'Session A→Z')
+                                                          : (_sortBySummary
+                                                                ? (_sortAsc
+                                                                      ? 'Summary Z→A'
+                                                                      : 'Summary A→Z')
+                                                                : (_sortByKind
+                                                                      ? (_sortAsc
+                                                                            ? 'Kinds Z→A'
+                                                                            : 'Kinds A→Z')
+                                                                      : 'Sort by kind / summary / session / source / id / level / type / channel / time / priority'))))))))),
             onPressed: () {
               setState(() {
-                if (!_sortByKind && !_sortBySummary && !_sortBySession && !_sortBySource && !_sortById && !_sortByLevel && !_sortByType && !_sortByChannel && !_sortByTs) {
+                if (!_sortByKind &&
+                    !_sortBySummary &&
+                    !_sortBySession &&
+                    !_sortBySource &&
+                    !_sortById &&
+                    !_sortByLevel &&
+                    !_sortByType &&
+                    !_sortByChannel &&
+                    !_sortByTs) {
                   _sortByKind = true;
                   _sortBySummary = false;
                   _sortBySession = false;
@@ -554,25 +636,32 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 }
               });
             },
-            icon: Icon(_sortByPriority
-                ? Icons.low_priority
-                : (_sortByTs
-                    ? Icons.schedule
-                    : (_sortByChannel
-                    ? Icons.cell_tower
-                    : (_sortByType
-                        ? Icons.label_outline
-                        : (_sortByLevel
-                            ? Icons.low_priority
-                            : (_sortById
-                                ? Icons.tag
-                                : (_sortBySource
-                                    ? Icons.source_outlined
-                                    : (_sortBySession
-                                        ? Icons.vpn_key_outlined
-                                        : (_sortBySummary
-                                            ? Icons.notes
-                                            : (_sortByKind ? Icons.category_outlined : Icons.sort)))))))))),
+            icon: Icon(
+              _sortByPriority
+                  ? Icons.low_priority
+                  : (_sortByTs
+                        ? Icons.schedule
+                        : (_sortByChannel
+                              ? Icons.cell_tower
+                              : (_sortByType
+                                    ? Icons.label_outline
+                                    : (_sortByLevel
+                                          ? Icons.low_priority
+                                          : (_sortById
+                                                ? Icons.tag
+                                                : (_sortBySource
+                                                      ? Icons.source_outlined
+                                                      : (_sortBySession
+                                                            ? Icons
+                                                                  .vpn_key_outlined
+                                                            : (_sortBySummary
+                                                                  ? Icons.notes
+                                                                  : (_sortByKind
+                                                                        ? Icons
+                                                                              .category_outlined
+                                                                        : Icons
+                                                                              .sort))))))))),
+            ),
           ),
 
           IconButton(
@@ -587,13 +676,21 @@ class _ActivityScreenState extends State<ActivityScreen> {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
             },
-            icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
+            icon: Icon(
+              _autoRefresh
+                  ? Icons.pause_circle_outline
+                  : Icons.play_circle_outline,
+            ),
           ),
           IconButton(
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
-              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+              _scroll.animateTo(
+                0,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
             },
             icon: const Icon(Icons.vertical_align_top),
           ),
@@ -610,8 +707,10 @@ class _ActivityScreenState extends State<ActivityScreen> {
             icon: const Icon(Icons.vertical_align_bottom),
           ),
 
-
-          IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
+          IconButton(
+            onPressed: _loading ? null : _load,
+            icon: const Icon(Icons.refresh),
+          ),
         ],
       ),
       body: Column(
@@ -619,7 +718,10 @@ class _ActivityScreenState extends State<ActivityScreen> {
           if (_error != null)
             Padding(
               padding: const EdgeInsets.all(12),
-              child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              child: Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
             ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -732,17 +834,19 @@ class _ActivityScreenState extends State<ActivityScreen> {
               decoration: InputDecoration(
                 hintText: _queryRegex
                     ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
-                    : (_queryCase ? 'Filter (case-sensitive)' : 'Filter kind / summary / session'),
+                    : (_queryCase
+                          ? 'Filter (case-sensitive)'
+                          : 'Filter kind / summary / session'),
                 isDense: true,
                 border: const OutlineInputBorder(),
                 prefixIcon: IconButton(
                   tooltip: _queryRegex
                       ? (_queryCase
-                          ? 'Regex · case on (long-press: plain filter)'
-                          : 'Regex · case off (long-press: plain filter)')
+                            ? 'Regex · case on (long-press: plain filter)'
+                            : 'Regex · case off (long-press: plain filter)')
                       : (_queryCase
-                          ? 'Case-sensitive (long-press: regex)'
-                          : 'Case-insensitive (long-press: regex)'),
+                            ? 'Case-sensitive (long-press: regex)'
+                            : 'Case-insensitive (long-press: regex)'),
                   icon: Icon(
                     _queryRegex
                         ? Icons.code
@@ -780,51 +884,62 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     child: ListView.separated(
                       physics: const AlwaysScrollableScrollPhysics(),
                       controller: _scroll,
-                    itemCount: items.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (ctx, i) {
-                      final e = items[i];
-                      final kind = (e['kind'] ?? 'event').toString();
-                      final summary = (e['summary'] ?? '').toString();
-                      final ref = _sessionRef(e);
-                      final resolvable = ref != null && _resolveSession(ref) != null;
-                      return ListTile(
-                        leading: Icon(_icon(kind)),
-                        title: Text(
-                          summary.isEmpty ? kind : summary,
-                          maxLines: _wrapLines ? 8 : 2,
-                          overflow: TextOverflow.ellipsis,
-                          softWrap: true,
-                        ),
-                        subtitle: Text(
-                          [
-                            kind,
-                            if ((e['level'] ?? '').toString().isNotEmpty) (e['level']).toString(),
-                            if ((e['source'] ?? '').toString().isNotEmpty) (e['source']).toString(),
-                            _fmtTs(e['ts']),
-                            if (ref != null) ref,
-                          ].join(' · '),
-                        ),
-                        dense: true,
-                        trailing: ref == null
-                            ? null
-                            : Icon(
-                                resolvable ? Icons.chat_outlined : Icons.copy_all_outlined,
-                                size: 18,
-                              ),
-                        onTap: ref == null ? null : () => _openSession(e),
-                        onLongPress: () async {
-                          final text = '${e['kind']} ${e['summary']} ${e['session_key'] ?? e['session_id'] ?? ''}'.trim();
-                          await Clipboard.setData(ClipboardData(text: text));
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Event copied'), duration: Duration(seconds: 1)),
-                            );
-                          }
-                        },
-                      );
-                    },
-                  )),
+                      itemCount: items.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (ctx, i) {
+                        final e = items[i];
+                        final kind = (e['kind'] ?? 'event').toString();
+                        final summary = (e['summary'] ?? '').toString();
+                        final ref = _sessionRef(e);
+                        final resolvable =
+                            ref != null && _resolveSession(ref) != null;
+                        return ListTile(
+                          leading: Icon(_icon(kind)),
+                          title: Text(
+                            summary.isEmpty ? kind : summary,
+                            maxLines: _wrapLines ? 8 : 2,
+                            overflow: TextOverflow.ellipsis,
+                            softWrap: true,
+                          ),
+                          subtitle: Text(
+                            [
+                              kind,
+                              if ((e['level'] ?? '').toString().isNotEmpty)
+                                (e['level']).toString(),
+                              if ((e['source'] ?? '').toString().isNotEmpty)
+                                (e['source']).toString(),
+                              _fmtTs(e['ts']),
+                              if (ref != null) ref,
+                            ].join(' · '),
+                          ),
+                          dense: true,
+                          trailing: ref == null
+                              ? null
+                              : Icon(
+                                  resolvable
+                                      ? Icons.chat_outlined
+                                      : Icons.copy_all_outlined,
+                                  size: 18,
+                                ),
+                          onTap: ref == null ? null : () => _openSession(e),
+                          onLongPress: () async {
+                            final text =
+                                '${e['kind']} ${e['summary']} ${e['session_key'] ?? e['session_id'] ?? ''}'
+                                    .trim();
+                            await Clipboard.setData(ClipboardData(text: text));
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Event copied'),
+                                  duration: Duration(seconds: 1),
+                                ),
+                              );
+                            }
+                          },
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),

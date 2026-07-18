@@ -935,6 +935,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             "bash", "sh", "exit", "logout", "source", "set", "curl", "wget", "ssh", "scp", "rsync", "ping",
             "tar", "gzip", "gunzip", "zip", "unzip",
             "ip", "netstat", "traceroute",
+            "df", "free", "ps", "uptime",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1554,6 +1555,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             builtins = {
                 "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "export", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch", "stdbuf", "flock", "ionice", "taskset", "prlimit", "chroot", "unshare", "nsenter", "setpriv", "capsh", "runcon", "ldd", "ldconfig", "uuidgen", "rmdir", "mkfifo", "getopt", "strings", "csplit", "diff", "patch", "sdiff", "pr", "dircolors", "tput", "tset", "tabs", "script", "scriptreplay", "infocmp", "toe", "reset", "resize", "login", "mesg", "write", "wall", "newgrp", "su", "sudo", "chfn", "chsh", "passwd", "lastlog", "lastb", "faillog", "chage", "ulimit", "finger", "nologin", "unset", "alias", "unalias", "kill", "jobs", "bg", "fg", "less", "more", "awk", "sed", "cp", "mv", "rm", "chmod", "chown", "chgrp", "bash", "sh", "exit", "logout", "source", "set", "tar", "gzip", "gunzip", "zip", "unzip", "curl", "wget", "ssh", "scp", "rsync", "ping",
                 "ip", "netstat", "traceroute",
+                "df", "free", "ps", "uptime",
                             }
             if name.split()[0] in builtins:
                 out(f"{name.split()[0]} is a shell builtin\n", done=True, exit_code=0)
@@ -3573,6 +3575,17 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             out("traceroute: missing host operand\n", done=True, exit_code=1)
         else:
             out("traceroute to mock-host (127.0.0.1), 30 hops max, 60 byte packets\n 1  mock-host (127.0.0.1)  0.010 ms  0.005 ms  0.004 ms\n", done=True, exit_code=0)
+
+
+    # --- system info (missing from help) ---
+    elif lower == "df" or lower.startswith("df "):
+        out("Filesystem     1K-blocks    Used Available Use% Mounted on\n/dev/sda1       20480000 8192000  12288000  41% /\ntmpfs             512000       0    512000   0% /dev/shm\n", done=True, exit_code=0)
+    elif lower == "free" or lower.startswith("free "):
+        out("              total        used        free      shared  buff/cache   available\nMem:        8192000     2048000     4096000      128000     2048000     5888000\nSwap:       2048000           0     2048000\n", done=True, exit_code=0)
+    elif lower == "ps" or lower.startswith("ps "):
+        out("  PID TTY          TIME CMD\n    1 pts/0    00:00:00 bash\n  100 pts/0    00:00:00 ps\n", done=True, exit_code=0)
+    elif lower == "uptime" or lower.startswith("uptime "):
+        out(" 14:00:00 up 7 days,  3:00,  1 user,  load average: 0.01, 0.02, 0.00\n", done=True, exit_code=0)
 
 
     elif lower.startswith("echo "):

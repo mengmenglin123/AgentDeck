@@ -51,8 +51,8 @@ class _MemoryScreenState extends State<MemoryScreen> {
   void initState() {
     super.initState();
     _load();
-      WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
-}
+    WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
+  }
 
   @override
   void dispose() {
@@ -69,7 +69,8 @@ class _MemoryScreenState extends State<MemoryScreen> {
       if (_type != 'all') {
         final t = (m['type'] ?? '').toString().toLowerCase();
         if (_type == 'other') {
-          final known = t.contains('note') ||
+          final known =
+              t.contains('note') ||
               t.contains('fact') ||
               t.contains('pref') ||
               t.contains('rule') ||
@@ -82,7 +83,9 @@ class _MemoryScreenState extends State<MemoryScreen> {
       }
       if (_tag != 'all' && _tag.isNotEmpty) {
         final tags = m['tags'] is List
-            ? (m['tags'] as List).map((e) => e.toString().toLowerCase()).toList()
+            ? (m['tags'] as List)
+                  .map((e) => e.toString().toLowerCase())
+                  .toList()
             : [(m['tags'] ?? '').toString().toLowerCase()];
         final joined = tags.join(' ');
         if (_tag == 'other') {
@@ -102,8 +105,11 @@ class _MemoryScreenState extends State<MemoryScreen> {
         }
       }
       if (rawQ.isEmpty) return true;
-      final tags = m['tags'] is List ? (m['tags'] as List).join(' ') : '${m['tags'] ?? ''}';
-      final hayRaw = '${m['title']} ${m['id']} ${m['content']} ${m['scope']} ${m['type']} $tags';
+      final tags = m['tags'] is List
+          ? (m['tags'] as List).join(' ')
+          : '${m['tags'] ?? ''}';
+      final hayRaw =
+          '${m['title']} ${m['id']} ${m['content']} ${m['scope']} ${m['type']} $tags';
       if (_queryRegex) {
         try {
           return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
@@ -123,23 +129,35 @@ class _MemoryScreenState extends State<MemoryScreen> {
       final p = DateTime.tryParse(v?.toString() ?? '');
       return p?.millisecondsSinceEpoch ?? 0;
     }
+
     list.sort((a, b) {
       double confOf(Map x) {
         final v = x['confidence'] ?? x['score'] ?? x['weight'];
         if (v is num) return v.toDouble();
         return double.tryParse(v?.toString() ?? '') ?? -1;
       }
+
       if (_sortByTs) {
         final c = tsOf(a).compareTo(tsOf(b));
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByPath) {
-        final pa = (a['path'] ?? a['file'] ?? a['source_path'] ?? a['uri'] ?? '').toString().toLowerCase();
-        final pb = (b['path'] ?? b['file'] ?? b['source_path'] ?? b['uri'] ?? '').toString().toLowerCase();
+        final pa =
+            (a['path'] ?? a['file'] ?? a['source_path'] ?? a['uri'] ?? '')
+                .toString()
+                .toLowerCase();
+        final pb =
+            (b['path'] ?? b['file'] ?? b['source_path'] ?? b['uri'] ?? '')
+                .toString()
+                .toLowerCase();
         final c = pa.compareTo(pb);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortById) {
-        final ia = (a['id'] ?? a['memory_id'] ?? a['uuid'] ?? a['key'] ?? '').toString().toLowerCase();
-        final ib = (b['id'] ?? b['memory_id'] ?? b['uuid'] ?? b['key'] ?? '').toString().toLowerCase();
+        final ia = (a['id'] ?? a['memory_id'] ?? a['uuid'] ?? a['key'] ?? '')
+            .toString()
+            .toLowerCase();
+        final ib = (b['id'] ?? b['memory_id'] ?? b['uuid'] ?? b['key'] ?? '')
+            .toString()
+            .toLowerCase();
         final c = ia.compareTo(ib);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByScope) {
@@ -159,8 +177,12 @@ class _MemoryScreenState extends State<MemoryScreen> {
         final cn = na.compareTo(nb);
         if (cn != 0) return _sortAsc ? cn : -cn;
       } else if (_sortByContent) {
-        final ca = (a['content'] ?? a['text'] ?? a['body'] ?? '').toString().toLowerCase();
-        final cb = (b['content'] ?? b['text'] ?? b['body'] ?? '').toString().toLowerCase();
+        final ca = (a['content'] ?? a['text'] ?? a['body'] ?? '')
+            .toString()
+            .toLowerCase();
+        final cb = (b['content'] ?? b['text'] ?? b['body'] ?? '')
+            .toString()
+            .toLowerCase();
         final c = ca.compareTo(cb);
         if (c != 0) return _sortAsc ? c : -c;
         final na = (a['title'] ?? a['id'] ?? '').toString().toLowerCase();
@@ -228,7 +250,6 @@ class _MemoryScreenState extends State<MemoryScreen> {
     });
   }
 
-
   String _fmtMemTs(Map m) {
     final v = m['updated_at'] ?? m['created_at'] ?? m['ts'] ?? m['time'];
     DateTime? dt;
@@ -261,8 +282,8 @@ class _MemoryScreenState extends State<MemoryScreen> {
           _visible.isEmpty
               ? 'Host memory'
               : (_visible.length == _items.length
-                  ? 'Host memory (${_visible.length})'
-                  : 'Host memory (${_visible.length}/${_items.length})'),
+                    ? 'Host memory (${_visible.length})'
+                    : 'Host memory (${_visible.length}/${_items.length})'),
         ),
         actions: [
           IconButton(
@@ -272,7 +293,8 @@ class _MemoryScreenState extends State<MemoryScreen> {
                 : () async {
                     final buf = StringBuffer();
                     for (final m in _visible) {
-                      final title = (m['title'] ?? m['id'] ?? 'memory').toString();
+                      final title = (m['title'] ?? m['id'] ?? 'memory')
+                          .toString();
                       final content = (m['content'] ?? '').toString();
                       final scope = (m['scope'] ?? '').toString();
                       final type = (m['type'] ?? '').toString();
@@ -281,10 +303,15 @@ class _MemoryScreenState extends State<MemoryScreen> {
                       buf.writeln(content);
                       buf.writeln();
                     }
-                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    await Clipboard.setData(
+                      ClipboardData(text: buf.toString()),
+                    );
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Copied ${_visible.length} memories'), duration: const Duration(seconds: 1)),
+                        SnackBar(
+                          content: Text('Copied ${_visible.length} memories'),
+                          duration: const Duration(seconds: 1),
+                        ),
                       );
                     }
                   },
@@ -298,17 +325,31 @@ class _MemoryScreenState extends State<MemoryScreen> {
                     final buf = StringBuffer();
                     buf.writeln('id,title,scope,type,content');
                     for (final m in _visible) {
-                      final id = (m['id'] ?? '').toString().replaceAll(',', ';');
-                      final title = (m['title'] ?? '').toString().replaceAll(',', ';');
-                      final scope = (m['scope'] ?? '').toString().replaceAll(',', ';');
-                      final type = (m['type'] ?? '').toString().replaceAll(',', ';');
+                      final id = (m['id'] ?? '').toString().replaceAll(
+                        ',',
+                        ';',
+                      );
+                      final title = (m['title'] ?? '').toString().replaceAll(
+                        ',',
+                        ';',
+                      );
+                      final scope = (m['scope'] ?? '').toString().replaceAll(
+                        ',',
+                        ';',
+                      );
+                      final type = (m['type'] ?? '').toString().replaceAll(
+                        ',',
+                        ';',
+                      );
                       final content = (m['content'] ?? '')
                           .toString()
                           .replaceAll(',', ';')
                           .replaceAll('\n', ' ');
                       buf.writeln('$id,$title,$scope,$type,$content');
                     }
-                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    await Clipboard.setData(
+                      ClipboardData(text: buf.toString()),
+                    );
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -323,10 +364,14 @@ class _MemoryScreenState extends State<MemoryScreen> {
           IconButton(
             tooltip: _newestFirst ? 'Oldest first' : 'Newest first',
             onPressed: () => setState(() => _newestFirst = !_newestFirst),
-            icon: Icon(_newestFirst ? Icons.arrow_downward : Icons.arrow_upward),
+            icon: Icon(
+              _newestFirst ? Icons.arrow_downward : Icons.arrow_upward,
+            ),
           ),
           IconButton(
-            tooltip: _relativeTs ? 'Absolute timestamps' : 'Relative timestamps',
+            tooltip: _relativeTs
+                ? 'Absolute timestamps'
+                : 'Relative timestamps',
             onPressed: () => setState(() => _relativeTs = !_relativeTs),
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
@@ -334,23 +379,38 @@ class _MemoryScreenState extends State<MemoryScreen> {
             tooltip: _sortByTs
                 ? (_sortAsc ? 'Time old→new' : 'Time new→old')
                 : (_sortByPath
-                    ? (_sortAsc ? 'Path Z→A' : 'Path A→Z')
-                    : (_sortById
-                        ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
-                        : (_sortByScope
-                            ? (_sortAsc ? 'Scope Z→A' : 'Scope A→Z')
-                            : (_sortByConfidence
-                                ? (_sortAsc ? 'Confidence high→low' : 'Confidence low→high')
-                                : (_sortByContent
-                                    ? (_sortAsc ? 'Content Z→A' : 'Content A→Z')
-                                    : (_sortByType
-                                        ? (_sortAsc ? 'Types Z→A' : 'Types A→Z')
-                                        : (_sortByTitle
-                                            ? (_sortAsc ? 'Titles Z→A' : 'Titles A→Z')
-                                            : 'Sort by title / type / content / confidence / scope / id / path / time'))))))),
+                      ? (_sortAsc ? 'Path Z→A' : 'Path A→Z')
+                      : (_sortById
+                            ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                            : (_sortByScope
+                                  ? (_sortAsc ? 'Scope Z→A' : 'Scope A→Z')
+                                  : (_sortByConfidence
+                                        ? (_sortAsc
+                                              ? 'Confidence high→low'
+                                              : 'Confidence low→high')
+                                        : (_sortByContent
+                                              ? (_sortAsc
+                                                    ? 'Content Z→A'
+                                                    : 'Content A→Z')
+                                              : (_sortByType
+                                                    ? (_sortAsc
+                                                          ? 'Types Z→A'
+                                                          : 'Types A→Z')
+                                                    : (_sortByTitle
+                                                          ? (_sortAsc
+                                                                ? 'Titles Z→A'
+                                                                : 'Titles A→Z')
+                                                          : 'Sort by title / type / content / confidence / scope / id / path / time'))))))),
             onPressed: () {
               setState(() {
-                if (!_sortByTitle && !_sortByType && !_sortByContent && !_sortByConfidence && !_sortByScope && !_sortById && !_sortByPath && !_sortByTs) {
+                if (!_sortByTitle &&
+                    !_sortByType &&
+                    !_sortByContent &&
+                    !_sortByConfidence &&
+                    !_sortByScope &&
+                    !_sortById &&
+                    !_sortByPath &&
+                    !_sortByTs) {
                   _sortByTitle = true;
                   _sortByType = false;
                   _sortByContent = false;
@@ -459,21 +519,26 @@ class _MemoryScreenState extends State<MemoryScreen> {
                 }
               });
             },
-            icon: Icon(_sortByTs
-                ? Icons.schedule
-                : (_sortByPath
-                    ? Icons.folder_open
-                    : (_sortById
-                        ? Icons.tag
-                        : (_sortByScope
-                            ? Icons.folder_outlined
-                            : (_sortByConfidence
-                                ? Icons.speed
-                                : (_sortByContent
-                                    ? Icons.article_outlined
-                                    : (_sortByType
-                                        ? Icons.category_outlined
-                                        : (_sortByTitle ? Icons.sort_by_alpha : Icons.sort)))))))),
+            icon: Icon(
+              _sortByTs
+                  ? Icons.schedule
+                  : (_sortByPath
+                        ? Icons.folder_open
+                        : (_sortById
+                              ? Icons.tag
+                              : (_sortByScope
+                                    ? Icons.folder_outlined
+                                    : (_sortByConfidence
+                                          ? Icons.speed
+                                          : (_sortByContent
+                                                ? Icons.article_outlined
+                                                : (_sortByType
+                                                      ? Icons.category_outlined
+                                                      : (_sortByTitle
+                                                            ? Icons
+                                                                  .sort_by_alpha
+                                                            : Icons.sort))))))),
+            ),
           ),
 
           IconButton(
@@ -486,7 +551,11 @@ class _MemoryScreenState extends State<MemoryScreen> {
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
-              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+              _scroll.animateTo(
+                0,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
             },
             icon: const Icon(Icons.vertical_align_top),
           ),
@@ -508,11 +577,17 @@ class _MemoryScreenState extends State<MemoryScreen> {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
             },
-            icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
+            icon: Icon(
+              _autoRefresh
+                  ? Icons.pause_circle_outline
+                  : Icons.play_circle_outline,
+            ),
           ),
 
-
-          IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
+          IconButton(
+            onPressed: _loading ? null : _load,
+            icon: const Icon(Icons.refresh),
+          ),
         ],
       ),
       body: Column(
@@ -637,17 +712,19 @@ class _MemoryScreenState extends State<MemoryScreen> {
               decoration: InputDecoration(
                 hintText: _queryRegex
                     ? (_queryCase ? 'Search (regex · case)' : 'Search (regex)')
-                    : (_queryCase ? 'Search (case-sensitive)' : 'Search title/content'),
+                    : (_queryCase
+                          ? 'Search (case-sensitive)'
+                          : 'Search title/content'),
                 border: const OutlineInputBorder(),
                 isDense: true,
                 prefixIcon: IconButton(
                   tooltip: _queryRegex
                       ? (_queryCase
-                          ? 'Regex · case on (long-press: plain search)'
-                          : 'Regex · case off (long-press: plain search)')
+                            ? 'Regex · case on (long-press: plain search)'
+                            : 'Regex · case off (long-press: plain search)')
                       : (_queryCase
-                          ? 'Case-sensitive (long-press: regex)'
-                          : 'Case-insensitive (long-press: regex)'),
+                            ? 'Case-sensitive (long-press: regex)'
+                            : 'Case-insensitive (long-press: regex)'),
                   icon: Icon(
                     _queryRegex
                         ? Icons.code
@@ -687,14 +764,19 @@ class _MemoryScreenState extends State<MemoryScreen> {
           if (_error != null)
             Padding(
               padding: const EdgeInsets.all(12),
-              child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              child: Text(
+                _error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
             ),
           if (_loading) const LinearProgressIndicator(minHeight: 2),
           Expanded(
             child: _items.isEmpty && !_loading
-                ? const Center(child: Text('No memories (Host may not expose /memory)'))
+                ? const Center(
+                    child: Text('No memories (Host may not expose /memory)'),
+                  )
                 : _visible.isEmpty && !_loading
-                    ? const Center(child: Text('No memories match filter'))
+                ? const Center(child: Text('No memories match filter'))
                 : RefreshIndicator(
                     onRefresh: _load,
                     child: ListView.separated(
@@ -704,19 +786,26 @@ class _MemoryScreenState extends State<MemoryScreen> {
                       separatorBuilder: (_, __) => const Divider(height: 1),
                       itemBuilder: (ctx, i) {
                         final m = _visible[i];
-                        final title = (m['title'] ?? m['id'] ?? 'memory').toString();
+                        final title = (m['title'] ?? m['id'] ?? 'memory')
+                            .toString();
                         final content = (m['content'] ?? '').toString();
                         final scope = (m['scope'] ?? '').toString();
                         final type = (m['type'] ?? '').toString();
                         final conf = (m['confidence'] ?? '').toString();
                         final tags = m['tags'] is List
-                            ? (m['tags'] as List).map((e) => e.toString()).where((e) => e.isNotEmpty).join(', ')
+                            ? (m['tags'] as List)
+                                  .map((e) => e.toString())
+                                  .where((e) => e.isNotEmpty)
+                                  .join(', ')
                             : (m['tags']?.toString() ?? '');
-                        final full = '# $title\n\nscope: $scope\ntype: $type\nconfidence: $conf'
+                        final full =
+                            '# $title\n\nscope: $scope\ntype: $type\nconfidence: $conf'
                             '${tags.isNotEmpty ? '\ntags: $tags' : ''}\n\n$content';
                         return ListTile(
                           leading: Icon(
-                            scope == 'project' ? Icons.folder_special_outlined : Icons.psychology_outlined,
+                            scope == 'project'
+                                ? Icons.folder_special_outlined
+                                : Icons.psychology_outlined,
                           ),
                           title: Text(title),
                           subtitle: Text(
@@ -731,10 +820,15 @@ class _MemoryScreenState extends State<MemoryScreen> {
                             tooltip: 'Copy',
                             icon: const Icon(Icons.copy, size: 18),
                             onPressed: () async {
-                              await Clipboard.setData(ClipboardData(text: full));
+                              await Clipboard.setData(
+                                ClipboardData(text: full),
+                              );
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Memory copied'), duration: Duration(seconds: 1)),
+                                  const SnackBar(
+                                    content: Text('Memory copied'),
+                                    duration: Duration(seconds: 1),
+                                  ),
                                 );
                               }
                             },
@@ -744,7 +838,12 @@ class _MemoryScreenState extends State<MemoryScreen> {
                               context: context,
                               isScrollControlled: true,
                               builder: (_) => Padding(
-                                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  16,
+                                  16,
+                                  32,
+                                ),
                                 child: SingleChildScrollView(
                                   child: SelectableText(full),
                                 ),
@@ -755,7 +854,10 @@ class _MemoryScreenState extends State<MemoryScreen> {
                             await Clipboard.setData(ClipboardData(text: full));
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Memory copied'), duration: Duration(seconds: 1)),
+                                const SnackBar(
+                                  content: Text('Memory copied'),
+                                  duration: Duration(seconds: 1),
+                                ),
                               );
                             }
                           },
