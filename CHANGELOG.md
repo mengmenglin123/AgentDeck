@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.151
+
+- Terminal view FilterChips (regex / case; wrap already present)
+- MarkdownLite `<dialog>` + `<template>`
+- Mock write/wall/newgrp (+ help/which/type lockstep)
+
 ## 0.1.150
 
 - Diff view FilterChips (wrap / regex / case)
