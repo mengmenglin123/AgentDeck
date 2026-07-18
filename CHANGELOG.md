@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.167
+
+- Hermes adapter detection: show Mock vs Real Hermes in settings
+- ConnectionController.adapterType / isRealHermes getters
+- Settings dynamically displays connected host type
+- App compatible with both mock and real Hermes hosts
+
+
 ## 0.1.166
 
 - Real PTY support: HUAN_REAL_PTY=1 enables real shell with PTY

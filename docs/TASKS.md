@@ -663,6 +663,7 @@
 - [x] **P4-5cb** File picker (file_picker + image_picker) (0.1.164)
 - [x] **P4-5cc** QR code generation + scanner (qr_flutter + mobile_scanner) (0.1.165)
 - [x] **P4-5cd** Real PTY support (HUAN_REAL_PTY=1) (0.1.166)
+- [x] **P4-5ce** Real Hermes adapter detection + compatibility (0.1.167)
 
 ## P4 — 远期
 

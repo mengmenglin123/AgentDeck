@@ -8,19 +8,14 @@ import '../models/server_profile.dart';
 import 'mgmt_client.dart';
 import 'connection_store.dart';
 
-enum ConnectionPhase {
-  idle,
-  testing,
-  ready,
-  error,
-}
+enum ConnectionPhase { idle, testing, ready, error }
 
 class ConnectionController extends ChangeNotifier {
   ConnectionController({
     required ConnectionStore store,
     MgmtClient Function(ConnectionConfig config)? mgmtFactory,
-  })  : _store = store,
-        _mgmtFactory = mgmtFactory ?? ((c) => MgmtClient(config: c));
+  }) : _store = store,
+       _mgmtFactory = mgmtFactory ?? ((c) => MgmtClient(config: c));
 
   final ConnectionStore _store;
   final MgmtClient Function(ConnectionConfig config) _mgmtFactory;
@@ -46,6 +41,17 @@ class ConnectionController extends ChangeNotifier {
   Timer? _healthTimer;
 
   bool get isReady => phase == ConnectionPhase.ready && saved != null;
+
+  /// Detected adapter type from host /status response.
+  /// Returns 'mock', 'hermes', 'real', or 'unknown'.
+  String get adapterType {
+    final adapter = lastStatus?['adapter']?.toString() ?? '';
+    if (adapter.isEmpty) return 'unknown';
+    return adapter;
+  }
+
+  /// Whether connected to a real Hermes agent (not mock).
+  bool get isRealHermes => adapterType != 'mock' && adapterType != 'unknown';
 
   /// true when last probe failed (or stale success + newer error).
   bool get healthDegraded {
@@ -148,7 +154,8 @@ class ConnectionController extends ChangeNotifier {
       lastTestLatencyMs = sw.elapsedMilliseconds;
 
       ServerProfile profile;
-      if (activeProfileId != null && profiles.any((p) => p.id == activeProfileId)) {
+      if (activeProfileId != null &&
+          profiles.any((p) => p.id == activeProfileId)) {
         final prev = profiles.firstWhere((p) => p.id == activeProfileId);
         profile = prev.copyWith(
           name: draftProfileName,
@@ -205,10 +212,7 @@ class ConnectionController extends ChangeNotifier {
     stopHealthHeartbeat();
     lastHealthOkAt = null;
     lastHealthError = null;
-    draft = ConnectionConfig(
-      bridgeToken: '',
-      mgmtToken: '',
-    );
+    draft = ConnectionConfig(bridgeToken: '', mgmtToken: '');
     draftProfileName = 'Host ${profiles.length + 1}';
     activeProfileId = null;
     phase = ConnectionPhase.idle;
@@ -289,8 +293,7 @@ class ConnectionController extends ChangeNotifier {
   }
 
   /// Public helper for UI warning.
-  bool get draftNeedsTlsWarning =>
-      !draft.useTls && !_isLocalHost(draft.host);
+  bool get draftNeedsTlsWarning => !draft.useTls && !_isLocalHost(draft.host);
 
   bool _fail(String message) {
     lastError = message;
