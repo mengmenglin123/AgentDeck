@@ -274,6 +274,11 @@
 | P3-207 | Connect 档案 A→Z/Z→A 排序 | [x] |
 | P3-208 | Pairing payload 行过滤 | [x] |
 
+| P3-209 | Logs 按 level 排序循环 | [x] |
+| P3-210 | Audit 按 level 排序循环 | [x] |
+| P3-211 | Cron 按 schedule 排序 | [x] |
+| P3-212 | MCP 按 status 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

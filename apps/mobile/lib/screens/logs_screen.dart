@@ -30,6 +30,7 @@ class _LogsScreenState extends State<LogsScreen> {
   Timer? _timer;
   bool _newestFirst = true;
   bool _sortByMsg = false;
+  bool _sortByLevel = false;
   bool _sortAsc = true;
   bool _autoRefresh = false;
 
@@ -98,7 +99,16 @@ class _LogsScreenState extends State<LogsScreen> {
       }).toList();
     }
     list.sort((a, b) {
-      if (_sortByMsg) {
+      if (_sortByLevel) {
+        final la = '${a['level'] ?? ''}'.toLowerCase();
+        final lb = '${b['level'] ?? ''}'.toLowerCase();
+        final cl = la.compareTo(lb);
+        if (cl != 0) return _sortAsc ? cl : -cl;
+        final ma = '${a['message'] ?? ''}'.toLowerCase();
+        final mb = '${b['message'] ?? ''}'.toLowerCase();
+        final cm = ma.compareTo(mb);
+        if (cm != 0) return _sortAsc ? cm : -cm;
+      } else if (_sortByMsg) {
         final ma = '${a['message'] ?? ''}'.toLowerCase();
         final mb = '${b['message'] ?? ''}'.toLowerCase();
         final c = ma.compareTo(mb);
@@ -210,23 +220,35 @@ class _LogsScreenState extends State<LogsScreen> {
             icon: Icon(_newestFirst ? Icons.arrow_downward : Icons.arrow_upward),
           ),
           IconButton(
-            tooltip: _sortByMsg
-                ? (_sortAsc ? 'Messages Z→A' : 'Messages A→Z')
-                : 'Sort by message',
+            tooltip: _sortByLevel
+                ? (_sortAsc ? 'Levels Z→A' : 'Levels A→Z')
+                : (_sortByMsg
+                    ? (_sortAsc ? 'Messages Z→A' : 'Messages A→Z')
+                    : 'Sort by message / level'),
             onPressed: () {
               setState(() {
-                if (!_sortByMsg) {
+                if (!_sortByMsg && !_sortByLevel) {
                   _sortByMsg = true;
+                  _sortByLevel = false;
                   _sortAsc = true;
-                } else if (_sortAsc) {
+                } else if (_sortByMsg && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortByMsg && !_sortAsc) {
+                  _sortByMsg = false;
+                  _sortByLevel = true;
+                  _sortAsc = true;
+                } else if (_sortByLevel && _sortAsc) {
                   _sortAsc = false;
                 } else {
                   _sortByMsg = false;
+                  _sortByLevel = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortByMsg ? Icons.sort_by_alpha : Icons.sort),
+            icon: Icon(_sortByLevel
+                ? Icons.low_priority
+                : (_sortByMsg ? Icons.sort_by_alpha : Icons.sort)),
           ),
 
 

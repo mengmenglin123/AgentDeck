@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.59
+
+- Logs: sort cycle time → message → level
+- Audit: sort cycle time → action → level
+- Cron: sort by schedule vs name
+- MCP: sort by status vs name
+
 ## 0.1.58
 
 - Host Dashboard: text filter for capability chips

@@ -28,6 +28,7 @@ class _CronScreenState extends State<CronScreen> {
   /// all | on | off
   String _enabled = 'all';
   bool _wrapLines = false;
+  bool _sortBySchedule = false;
   bool _sortAsc = true;
   final _scroll = ScrollController();
   Timer? _timer;
@@ -100,6 +101,12 @@ class _CronScreenState extends State<CronScreen> {
     }
     final list = it.toList();
     list.sort((a, b) {
+      if (_sortBySchedule) {
+        final sa = (a['schedule'] ?? '').toString().toLowerCase();
+        final sb = (b['schedule'] ?? '').toString().toLowerCase();
+        final c = sa.compareTo(sb);
+        if (c != 0) return _sortAsc ? c : -c;
+      }
       final na = (a['name'] ?? a['id'] ?? '').toString().toLowerCase();
       final nb = (b['name'] ?? b['id'] ?? '').toString().toLowerCase();
       final c = na.compareTo(nb);
@@ -189,9 +196,27 @@ class _CronScreenState extends State<CronScreen> {
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
-            tooltip: _sortAsc ? 'Sort Z→A' : 'Sort A→Z',
-            onPressed: () => setState(() => _sortAsc = !_sortAsc),
-            icon: Icon(_sortAsc ? Icons.sort_by_alpha : Icons.sort),
+            tooltip: _sortBySchedule
+                ? (_sortAsc ? 'Schedule Z→A' : 'Schedule A→Z')
+                : (_sortAsc ? 'Name Z→A' : 'Name A→Z'),
+            onPressed: () {
+              setState(() {
+                if (!_sortBySchedule && _sortAsc) {
+                  _sortAsc = false;
+                } else if (!_sortBySchedule && !_sortAsc) {
+                  _sortBySchedule = true;
+                  _sortAsc = true;
+                } else if (_sortBySchedule && _sortAsc) {
+                  _sortAsc = false;
+                } else {
+                  _sortBySchedule = false;
+                  _sortAsc = true;
+                }
+              });
+            },
+            icon: Icon(_sortBySchedule
+                ? Icons.schedule
+                : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
