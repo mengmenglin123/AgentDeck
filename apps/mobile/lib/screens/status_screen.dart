@@ -40,7 +40,6 @@ class _StatusScreenState extends State<StatusScreen> {
   bool _autoRefresh = true;
   final _scroll = ScrollController();
 
-
   String _valueTypeLabel(dynamic v) {
     if (v == null) return 'null';
     if (v is bool) return 'bool';
@@ -125,27 +124,31 @@ class _StatusScreenState extends State<StatusScreen> {
       'version: ${_status['version'] ?? '—'}',
       if (_status['hermes'] is Map)
         'hermes: ${(_status['hermes'] as Map)['adapter'] ?? '—'}'
-        ' process=${(_status['hermes'] as Map)['process']}'
-        ' ${(_status['hermes'] as Map)['note'] ?? ''}',
+            ' process=${(_status['hermes'] as Map)['process']}'
+            ' ${(_status['hermes'] as Map)['note'] ?? ''}',
       'uptime: ${_fmtUptime(_status['uptime_seconds'])}',
       'projects: ${_status['projects_count'] ?? '—'}',
       'sessions: ${_status['sessions_count'] ?? '—'}',
       'active_runs: ${_status['active_runs'] ?? '—'}',
-      if (c.lastTestLatencyMs != null) 'last_test_latency_ms: ${c.lastTestLatencyMs}',
+      if (c.lastTestLatencyMs != null)
+        'last_test_latency_ms: ${c.lastTestLatencyMs}',
       if (caps.isNotEmpty) 'capabilities: $caps',
       if (_status['bridge_adapters'] is List)
         'bridge_adapters: ${(_status['bridge_adapters'] as List).map((e) => e is Map ? (e['platform'] ?? e).toString() : '$e').join('|')}',
       if (_error != null) 'status_error: $_error',
-      if (c.lastHealthOkAt != null) 'last_health_ok: ${c.lastHealthOkAt!.toIso8601String()}',
+      if (c.lastHealthOkAt != null)
+        'last_health_ok: ${c.lastHealthOkAt!.toIso8601String()}',
       if (c.lastHealthError != null) 'last_health_error: ${c.lastHealthError}',
     ].join('\n');
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Status summary copied (no token)'), duration: Duration(seconds: 1)),
+      const SnackBar(
+        content: Text('Status summary copied (no token)'),
+        duration: Duration(seconds: 1),
+      ),
     );
   }
-
 
   Future<void> _copyCsv(ConnectionController c) async {
     final cfg = c.saved;
@@ -155,13 +158,16 @@ class _StatusScreenState extends State<StatusScreen> {
       final raw = v == null ? '' : '$v'.replaceAll('"', '""');
       buf.writeln('$k,"$raw"');
     }
+
     if (cfg != null) {
       row('host', cfg.host);
       row('mgmt', cfg.mgmtBaseUrl);
       row('bridge', cfg.bridgeWsUrlRedacted);
     }
-    if (c.lastTestLatencyMs != null) row('last_test_latency_ms', c.lastTestLatencyMs);
-    if (c.lastHealthOkAt != null) row('last_health_ok', c.lastHealthOkAt!.toIso8601String());
+    if (c.lastTestLatencyMs != null)
+      row('last_test_latency_ms', c.lastTestLatencyMs);
+    if (c.lastHealthOkAt != null)
+      row('last_health_ok', c.lastHealthOkAt!.toIso8601String());
     for (final e in _status.entries) {
       final v = e.value;
       if (v is List) {
@@ -176,7 +182,10 @@ class _StatusScreenState extends State<StatusScreen> {
     await Clipboard.setData(ClipboardData(text: buf.toString()));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Copied status CSV'), duration: Duration(seconds: 1)),
+      const SnackBar(
+        content: Text('Copied status CSV'),
+        duration: Duration(seconds: 1),
+      ),
     );
   }
 
@@ -186,8 +195,10 @@ class _StatusScreenState extends State<StatusScreen> {
       if (cfg != null) 'host': cfg.host,
       if (cfg != null) 'mgmt': cfg.mgmtBaseUrl,
       if (cfg != null) 'bridge': cfg.bridgeWsUrlRedacted,
-      if (c.lastTestLatencyMs != null) 'last_test_latency_ms': c.lastTestLatencyMs,
-      if (c.lastHealthOkAt != null) 'last_health_ok': c.lastHealthOkAt!.toIso8601String(),
+      if (c.lastTestLatencyMs != null)
+        'last_test_latency_ms': c.lastTestLatencyMs,
+      if (c.lastHealthOkAt != null)
+        'last_health_ok': c.lastHealthOkAt!.toIso8601String(),
       'status': _status,
       if (_error != null) 'error': _error,
     };
@@ -195,11 +206,12 @@ class _StatusScreenState extends State<StatusScreen> {
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Status JSON copied (tokens redacted)'), duration: Duration(seconds: 1)),
+      const SnackBar(
+        content: Text('Status JSON copied (tokens redacted)'),
+        duration: Duration(seconds: 1),
+      ),
     );
   }
-
-
 
   String _fmtStatusValue(dynamic v) {
     final s = '$v';
@@ -238,13 +250,17 @@ class _StatusScreenState extends State<StatusScreen> {
     final barColor = _loading && status.isEmpty
         ? Colors.amber
         : (_error != null
-            ? cs.error
-            : (c.healthDegraded ? Colors.orange : (healthy ? Colors.green : Colors.orange)));
+              ? cs.error
+              : (c.healthDegraded
+                    ? Colors.orange
+                    : (healthy ? Colors.green : Colors.orange)));
     final barLabel = _loading && status.isEmpty
         ? 'Probing…'
         : (_error != null
-            ? 'Status error'
-            : (c.healthDegraded ? 'Health degraded' : (healthy ? 'Host healthy' : 'Waiting')));
+              ? 'Status error'
+              : (c.healthDegraded
+                    ? 'Health degraded'
+                    : (healthy ? 'Host healthy' : 'Waiting')));
 
     return Scaffold(
       appBar: AppBar(
@@ -271,7 +287,9 @@ class _StatusScreenState extends State<StatusScreen> {
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
           IconButton(
-            tooltip: _relativeTs ? 'Absolute timestamps' : 'Relative timestamps',
+            tooltip: _relativeTs
+                ? 'Absolute timestamps'
+                : 'Relative timestamps',
             onPressed: () => setState(() => _relativeTs = !_relativeTs),
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
@@ -279,15 +297,18 @@ class _StatusScreenState extends State<StatusScreen> {
             tooltip: _sortByKey
                 ? (_sortAsc ? 'Keys Z→A' : 'Keys A→Z')
                 : (_sortByType
-                    ? (_sortAsc ? 'Type Z→A' : 'Type A→Z')
-                    : (_sortByValue
-                        ? (_sortAsc ? 'Values Z→A' : 'Values A→Z')
-                        : (_sortAsc ? 'Keys Z→A' : 'Keys A→Z'))),
+                      ? (_sortAsc ? 'Type Z→A' : 'Type A→Z')
+                      : (_sortByValue
+                            ? (_sortAsc ? 'Values Z→A' : 'Values A→Z')
+                            : (_sortAsc ? 'Keys Z→A' : 'Keys A→Z'))),
             onPressed: () {
               setState(() {
                 if (!_sortByValue && !_sortByType && !_sortByKey && _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortByValue && !_sortByType && !_sortByKey && !_sortAsc) {
+                } else if (!_sortByValue &&
+                    !_sortByType &&
+                    !_sortByKey &&
+                    !_sortAsc) {
                   _sortByValue = true;
                   _sortByType = false;
                   _sortByKey = false;
@@ -316,21 +337,26 @@ class _StatusScreenState extends State<StatusScreen> {
                 }
               });
             },
-            icon: Icon(_sortByKey
-                ? Icons.vpn_key_outlined
-                : (_sortByType
-                    ? Icons.category_outlined
-                    : (_sortByValue
-                        ? Icons.text_fields
-                        : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))),
+            icon: Icon(
+              _sortByKey
+                  ? Icons.vpn_key_outlined
+                  : (_sortByType
+                        ? Icons.category_outlined
+                        : (_sortByValue
+                              ? Icons.text_fields
+                              : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))),
+            ),
           ),
-
 
           IconButton(
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
-              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+              _scroll.animateTo(
+                0,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
             },
             icon: const Icon(Icons.vertical_align_top),
           ),
@@ -347,19 +373,24 @@ class _StatusScreenState extends State<StatusScreen> {
             icon: const Icon(Icons.vertical_align_bottom),
           ),
 
-
           IconButton(
             tooltip: 'Refresh',
             onPressed: _loading ? null : _refresh,
             icon: const Icon(Icons.refresh),
           ),
           IconButton(
-            tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Resume auto-refresh',
+            tooltip: _autoRefresh
+                ? 'Pause auto-refresh'
+                : 'Resume auto-refresh',
             onPressed: () {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
             },
-            icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
+            icon: Icon(
+              _autoRefresh
+                  ? Icons.pause_circle_outline
+                  : Icons.play_circle_outline,
+            ),
           ),
           IconButton(
             tooltip: 'Disconnect',
@@ -399,161 +430,266 @@ class _StatusScreenState extends State<StatusScreen> {
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
-        controller: _scroll,
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(20),
-        children: [
-          Card(
-            color: barColor.withOpacity(0.12),
-            child: ListTile(
-              leading: Icon(
-                healthy && !c.healthDegraded ? Icons.favorite : Icons.monitor_heart_outlined,
-                color: barColor,
-              ),
-              title: Text(barLabel, style: TextStyle(fontWeight: FontWeight.w600, color: barColor)),
-              subtitle: Text(
-                _error ?? 'Mgmt ${cfg.mgmtBaseUrl}',
-                style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
-              ),
-              trailing: TextButton(onPressed: _loading ? null : _refresh, child: const Text('Check')),
-            ),
-          ),
-          if (_loading) const LinearProgressIndicator(minHeight: 2),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.dns_outlined),
-            title: Text(cfg.host),
-            subtitle: Text(
-              'Mgmt ${cfg.mgmtBaseUrl}\nBridge ${cfg.bridgeWsUrlRedacted}',
-            ),
-            isThreeLine: true,
-          ),
-          Card(
-            child: ListTile(
-              leading: Icon(
-                c.lastHealthError == null ? Icons.health_and_safety_outlined : Icons.report_gmailerrorred_outlined,
-                color: c.lastHealthError == null ? Colors.green : cs.error,
-              ),
-              title: const Text('Last health probe'),
-              subtitle: Text(
-                [
-                  if (c.lastHealthOkAt != null)
-                    'OK at ${c.lastHealthOkAt!.toLocal().toIso8601String()}',
-                  if (c.lastHealthError != null)
-                    'Error: ${c.lastHealthError}',
-                  if (c.lastHealthOkAt == null && c.lastHealthError == null)
-                    'No probe yet',
-                ].join('\n'),
-              ),
-              isThreeLine: true,
-              trailing: c.lastHealthError == null
-                  ? null
-                  : IconButton(
-                      tooltip: 'Copy error',
-                      icon: const Icon(Icons.copy, size: 18),
-                      onPressed: () async {
-                        await Clipboard.setData(ClipboardData(text: c.lastHealthError ?? ''));
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Health error copied'), duration: Duration(seconds: 1)),
-                          );
-                        }
-                      },
-                    ),
-            ),
-            ListTile(
-              leading: Icon(
-                Icons.speed,
-                color: c.lastTestLatencyMs == null ? cs.outline : cs.primary,
-              ),
-              title: const Text('Last connect test'),
-              subtitle: Text(
-                c.lastTestLatencyMs == null
-                    ? 'No Test & connect latency yet'
-                    : '${c.lastTestLatencyMs} ms (GET /status during connect)',
-              ),
-            ),
-
-          ),
-          const Divider(),
-          Text('Snapshot', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              Chip(label: Text('version ${status['version'] ?? '—'}')),
-              if (status['hermes'] is Map)
-                Chip(
-                  avatar: const Icon(Icons.psychology_alt_outlined, size: 16),
-                  label: Text(
-                    'hermes ${((status['hermes'] as Map)['adapter'] ?? '—')}'
-                    '${((status['hermes'] as Map)['process'] == true) ? ' · live' : ' · no process'}',
+          controller: _scroll,
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(20),
+          children: [
+            Card(
+              color: barColor.withOpacity(0.12),
+              child: ListTile(
+                leading: Icon(
+                  healthy && !c.healthDegraded
+                      ? Icons.favorite
+                      : Icons.monitor_heart_outlined,
+                  color: barColor,
+                ),
+                title: Text(
+                  barLabel,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: barColor,
                   ),
                 ),
-              Chip(label: Text('uptime ${_fmtUptime(status['uptime_seconds'])}')),
-              Chip(label: Text('projects ${status['projects_count'] ?? '—'}')),
-              Chip(label: Text('sessions ${status['sessions_count'] ?? '—'}')),
-              Chip(label: Text('runs ${status['active_runs'] ?? '—'}')),
-            ],
-          ),
-          if (status['bridge_adapters'] is List &&
-              (status['bridge_adapters'] as List).isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text('Bridge adapters', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 6),
-            ...[
-              for (final raw in (status['bridge_adapters'] as List))
-                if (raw is Map)
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(
-                      (raw['status']?.toString() == 'mock')
-                          ? Icons.science_outlined
-                          : Icons.cable,
-                      size: 20,
+                subtitle: Text(
+                  _error ?? 'Mgmt ${cfg.mgmtBaseUrl}',
+                  style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+                ),
+                trailing: TextButton(
+                  onPressed: _loading ? null : _refresh,
+                  child: const Text('Check'),
+                ),
+              ),
+            ),
+            if (_loading) const LinearProgressIndicator(minHeight: 2),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.dns_outlined),
+              title: Text(cfg.host),
+              subtitle: Text(
+                'Mgmt ${cfg.mgmtBaseUrl}\nBridge ${cfg.bridgeWsUrlRedacted}',
+              ),
+              isThreeLine: true,
+            ),
+            Card(
+              child: ListTile(
+                leading: Icon(
+                  c.lastHealthError == null
+                      ? Icons.health_and_safety_outlined
+                      : Icons.report_gmailerrorred_outlined,
+                  color: c.lastHealthError == null ? Colors.green : cs.error,
+                ),
+                title: const Text('Last health probe'),
+                subtitle: Text(
+                  [
+                    if (c.lastHealthOkAt != null)
+                      'OK at ${c.lastHealthOkAt!.toLocal().toIso8601String()}',
+                    if (c.lastHealthError != null)
+                      'Error: ${c.lastHealthError}',
+                    if (c.lastHealthOkAt == null && c.lastHealthError == null)
+                      'No probe yet',
+                  ].join('\n'),
+                ),
+                isThreeLine: true,
+                trailing: c.lastHealthError == null
+                    ? null
+                    : IconButton(
+                        tooltip: 'Copy error',
+                        icon: const Icon(Icons.copy, size: 18),
+                        onPressed: () async {
+                          await Clipboard.setData(
+                            ClipboardData(text: c.lastHealthError ?? ''),
+                          );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Health error copied'),
+                                duration: Duration(seconds: 1),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.speed,
+                  color: c.lastTestLatencyMs == null ? cs.outline : cs.primary,
+                ),
+                title: const Text('Last connect test'),
+                subtitle: Text(
+                  c.lastTestLatencyMs == null
+                      ? 'No Test & connect latency yet'
+                      : '${c.lastTestLatencyMs} ms (GET /status during connect)',
+                ),
+              ),
+            ),
+            const Divider(),
+            Text('Snapshot', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                Chip(label: Text('version ${status['version'] ?? '—'}')),
+                if (status['hermes'] is Map)
+                  Chip(
+                    avatar: const Icon(Icons.psychology_alt_outlined, size: 16),
+                    label: Text(
+                      'hermes ${((status['hermes'] as Map)['adapter'] ?? '—')}'
+                      '${((status['hermes'] as Map)['process'] == true) ? ' · live' : ' · no process'}',
                     ),
-                    title: Text(
-                      '${raw['platform'] ?? '—'}'
-                      '${raw['project'] != null ? ' · ${raw['project']}' : ''}',
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                    subtitle: Text(
-                      [
-                        if (raw['status'] != null) 'status=${raw['status']}',
-                        if (raw['capabilities'] is List)
-                          (raw['capabilities'] as List).join(', '),
-                      ].where((s) => s.toString().isNotEmpty).join(' · '),
-                      style: const TextStyle(fontSize: 11),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  )
-                else
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text('$raw', style: const TextStyle(fontSize: 13)),
                   ),
+                Chip(
+                  label: Text('uptime ${_fmtUptime(status['uptime_seconds'])}'),
+                ),
+                Chip(
+                  label: Text('projects ${status['projects_count'] ?? '—'}'),
+                ),
+                Chip(
+                  label: Text('sessions ${status['sessions_count'] ?? '—'}'),
+                ),
+                Chip(label: Text('runs ${status['active_runs'] ?? '—'}')),
+              ],
+            ),
+            if (status['bridge_adapters'] is List &&
+                (status['bridge_adapters'] as List).isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Bridge adapters',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 6),
+              ...[
+                for (final raw in (status['bridge_adapters'] as List))
+                  if (raw is Map)
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        (raw['status']?.toString() == 'mock')
+                            ? Icons.science_outlined
+                            : Icons.cable,
+                        size: 20,
+                      ),
+                      title: Text(
+                        '${raw['platform'] ?? '—'}'
+                        '${raw['project'] != null ? ' · ${raw['project']}' : ''}',
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                      subtitle: Text(
+                        [
+                          if (raw['status'] != null) 'status=${raw['status']}',
+                          if (raw['capabilities'] is List)
+                            (raw['capabilities'] as List).join(', '),
+                        ].where((s) => s.toString().isNotEmpty).join(' · '),
+                        style: const TextStyle(fontSize: 11),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    )
+                  else
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('$raw', style: const TextStyle(fontSize: 13)),
+                    ),
+              ],
             ],
-          ],
-          if (caps.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text('Capabilities', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 6),
+            if (caps.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Capabilities',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: _capFilterCtrl,
+                decoration: InputDecoration(
+                  isDense: true,
+                  prefixIcon: IconButton(
+                    tooltip: _queryRegex
+                        ? (_queryCase
+                              ? 'Regex · case on (long-press: plain filter)'
+                              : 'Regex · case off (long-press: plain filter)')
+                        : (_queryCase
+                              ? 'Case-sensitive (long-press: regex)'
+                              : 'Case-insensitive (long-press: regex)'),
+                    icon: Icon(
+                      _queryRegex
+                          ? Icons.code
+                          : (_queryCase ? Icons.text_fields : Icons.search),
+                      size: 18,
+                    ),
+                    onPressed: () => setState(() => _queryCase = !_queryCase),
+                    onLongPress: () =>
+                        setState(() => _queryRegex = !_queryRegex),
+                  ),
+                  hintText: _queryRegex
+                      ? (_queryCase
+                            ? 'Filter (regex · case)'
+                            : 'Filter (regex)')
+                      : (_queryCase
+                            ? 'Filter (case-sensitive)'
+                            : 'Filter capabilities'),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: _capQuery.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _capFilterCtrl.clear();
+                            setState(() => _capQuery = '');
+                          },
+                        ),
+                ),
+                onChanged: (v) => setState(() => _capQuery = v),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final cap in caps)
+                    if (() {
+                      final rawCq = _capQuery.trim();
+                      if (rawCq.isEmpty) return true;
+                      final hayRaw = '$cap';
+                      if (_queryRegex) {
+                        try {
+                          return RegExp(
+                            rawCq,
+                            caseSensitive: _queryCase,
+                          ).hasMatch(hayRaw);
+                        } catch (_) {
+                          return false;
+                        }
+                      }
+                      final cq = _queryCase ? rawCq : rawCq.toLowerCase();
+                      final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
+                      return hay.contains(cq);
+                    }())
+                      Chip(
+                        label: Text(
+                          '$cap',
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                      ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 16),
             TextField(
-              controller: _capFilterCtrl,
+              controller: _keyFilterCtrl,
               decoration: InputDecoration(
                 isDense: true,
                 prefixIcon: IconButton(
                   tooltip: _queryRegex
                       ? (_queryCase
-                          ? 'Regex · case on (long-press: plain filter)'
-                          : 'Regex · case off (long-press: plain filter)')
+                            ? 'Regex · case on (long-press: plain filter)'
+                            : 'Regex · case off (long-press: plain filter)')
                       : (_queryCase
-                          ? 'Case-sensitive (long-press: regex)'
-                          : 'Case-insensitive (long-press: regex)'),
+                            ? 'Case-sensitive (long-press: regex)'
+                            : 'Case-insensitive (long-press: regex)'),
                   icon: Icon(
                     _queryRegex
                         ? Icons.code
@@ -565,208 +701,178 @@ class _StatusScreenState extends State<StatusScreen> {
                 ),
                 hintText: _queryRegex
                     ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
-                    : (_queryCase ? 'Filter (case-sensitive)' : 'Filter capabilities'),
+                    : (_queryCase
+                          ? 'Filter (case-sensitive)'
+                          : 'Filter keys / values'),
                 border: const OutlineInputBorder(),
-                suffixIcon: _capQuery.isEmpty
+                suffixIcon: _keyQuery.isEmpty
                     ? null
                     : IconButton(
                         icon: const Icon(Icons.clear, size: 18),
                         onPressed: () {
-                          _capFilterCtrl.clear();
-                          setState(() => _capQuery = '');
+                          _keyFilterCtrl.clear();
+                          setState(() => _keyQuery = '');
                         },
                       ),
               ),
-              onChanged: (v) => setState(() => _capQuery = v),
+              onChanged: (v) => setState(() => _keyQuery = v),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Wrap(
               spacing: 6,
               runSpacing: 6,
               children: [
-                for (final cap in caps)
-                  if (() {
-                    final rawCq = _capQuery.trim();
-                    if (rawCq.isEmpty) return true;
-                    final hayRaw = '$cap';
+                FilterChip(
+                  visualDensity: VisualDensity.compact,
+                  label: const Text('Wrap', style: TextStyle(fontSize: 11)),
+                  selected: _wrapLines,
+                  onSelected: (v) => setState(() => _wrapLines = v),
+                ),
+                FilterChip(
+                  visualDensity: VisualDensity.compact,
+                  label: const Text('Regex', style: TextStyle(fontSize: 11)),
+                  selected: _queryRegex,
+                  onSelected: (v) => setState(() => _queryRegex = v),
+                ),
+                FilterChip(
+                  visualDensity: VisualDensity.compact,
+                  label: const Text('Case', style: TextStyle(fontSize: 11)),
+                  selected: _queryCase,
+                  onSelected: (v) => setState(() => _queryCase = v),
+                ),
+                FilterChip(
+                  visualDensity: VisualDensity.compact,
+                  label: const Text('Auto', style: TextStyle(fontSize: 11)),
+                  selected: _autoRefresh,
+                  onSelected: (v) {
+                    setState(() => _autoRefresh = v);
+                    _armTimer();
+                  },
+                ),
+                for (final t in const [
+                  '',
+                  'string',
+                  'number',
+                  'bool',
+                  'list',
+                  'map',
+                  'null',
+                ])
+                  FilterChip(
+                    visualDensity: VisualDensity.compact,
+                    label: Text(
+                      t.isEmpty ? 'Any type' : t,
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    selected: _typeFilter == t,
+                    onSelected: (_) => setState(() => _typeFilter = t),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Raw /status keys',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            if (status.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text('No status payload yet.'),
+              )
+            else
+              ...(() {
+                final rawQ = _keyQuery.trim();
+                final q = _queryCase ? rawQ : rawQ.toLowerCase();
+                var entries = status.entries.toList();
+                if (_typeFilter.isNotEmpty) {
+                  entries = entries
+                      .where((e) => _valueTypeLabel(e.value) == _typeFilter)
+                      .toList();
+                }
+                if (rawQ.isNotEmpty) {
+                  entries = entries.where((e) {
+                    final hayRaw = '${e.key} ${e.value}';
                     if (_queryRegex) {
                       try {
-                        return RegExp(rawCq, caseSensitive: _queryCase).hasMatch(hayRaw);
+                        return RegExp(
+                          rawQ,
+                          caseSensitive: _queryCase,
+                        ).hasMatch(hayRaw);
                       } catch (_) {
                         return false;
                       }
                     }
-                    final cq = _queryCase ? rawCq : rawCq.toLowerCase();
-                    final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
-                    return hay.contains(cq);
-                  }())
-                    Chip(label: Text('$cap', style: const TextStyle(fontSize: 11))),
-              ],
+                    final k = _queryCase ? e.key : e.key.toLowerCase();
+                    final v = _queryCase
+                        ? '${e.value}'
+                        : '${e.value}'.toLowerCase();
+                    return k.contains(q) || v.contains(q);
+                  }).toList();
+                }
+                entries.sort((a, b) {
+                  if (_sortByKey) {
+                    final c = a.key.toLowerCase().compareTo(
+                      b.key.toLowerCase(),
+                    );
+                    if (c != 0) return _sortAsc ? c : -c;
+                  } else if (_sortByType) {
+                    final c = _valueTypeLabel(
+                      a.value,
+                    ).compareTo(_valueTypeLabel(b.value));
+                    if (c != 0) return _sortAsc ? c : -c;
+                  } else if (_sortByValue) {
+                    final c = '${a.value}'.toLowerCase().compareTo(
+                      '${b.value}'.toLowerCase(),
+                    );
+                    if (c != 0) return _sortAsc ? c : -c;
+                  }
+                  final c = a.key.toLowerCase().compareTo(b.key.toLowerCase());
+                  return _sortAsc ? c : -c;
+                });
+                return entries;
+              })().map(
+                (e) => ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(e.key),
+                  subtitle: Text(
+                    _fmtStatusValue(e.value),
+                    maxLines: _wrapLines ? 12 : 2,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: true,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SessionsScreen()),
+                );
+              },
+              icon: const Icon(Icons.chat_bubble_outline),
+              label: const Text('Open sessions'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const HostDashboardScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.dashboard_outlined),
+              label: const Text('Host dashboard'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () => c.disconnect(),
+              icon: const Icon(Icons.edit),
+              label: const Text('Edit connection'),
             ),
           ],
-          const SizedBox(height: 16),
-          TextField(
-            controller: _keyFilterCtrl,
-            decoration: InputDecoration(
-              isDense: true,
-              prefixIcon: IconButton(
-                tooltip: _queryRegex
-                    ? (_queryCase
-                        ? 'Regex · case on (long-press: plain filter)'
-                        : 'Regex · case off (long-press: plain filter)')
-                    : (_queryCase
-                        ? 'Case-sensitive (long-press: regex)'
-                        : 'Case-insensitive (long-press: regex)'),
-                icon: Icon(
-                  _queryRegex
-                      ? Icons.code
-                      : (_queryCase ? Icons.text_fields : Icons.search),
-                  size: 18,
-                ),
-                onPressed: () => setState(() => _queryCase = !_queryCase),
-                onLongPress: () => setState(() => _queryRegex = !_queryRegex),
-              ),
-              hintText: _queryRegex
-                  ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
-                  : (_queryCase ? 'Filter (case-sensitive)' : 'Filter keys / values'),
-              border: const OutlineInputBorder(),
-              suffixIcon: _keyQuery.isEmpty
-                  ? null
-                  : IconButton(
-                      icon: const Icon(Icons.clear, size: 18),
-                      onPressed: () {
-                        _keyFilterCtrl.clear();
-                        setState(() => _keyQuery = '');
-                      },
-                    ),
-            ),
-            onChanged: (v) => setState(() => _keyQuery = v),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              FilterChip(
-                visualDensity: VisualDensity.compact,
-                label: const Text('Wrap', style: TextStyle(fontSize: 11)),
-                selected: _wrapLines,
-                onSelected: (v) => setState(() => _wrapLines = v),
-              ),
-              FilterChip(
-                visualDensity: VisualDensity.compact,
-                label: const Text('Regex', style: TextStyle(fontSize: 11)),
-                selected: _queryRegex,
-                onSelected: (v) => setState(() => _queryRegex = v),
-              ),
-              FilterChip(
-                visualDensity: VisualDensity.compact,
-                label: const Text('Case', style: TextStyle(fontSize: 11)),
-                selected: _queryCase,
-                onSelected: (v) => setState(() => _queryCase = v),
-              ),
-              for (final t in const ['', 'string', 'number', 'bool', 'list', 'map', 'null'])
-                FilterChip(
-                  visualDensity: VisualDensity.compact,
-                  label: Text(
-                    t.isEmpty ? 'Any type' : t,
-                    style: const TextStyle(fontSize: 11),
-                  ),
-                  selected: _typeFilter == t,
-                  onSelected: (_) => setState(() => _typeFilter = t),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text('Raw /status keys', style: Theme.of(context).textTheme.titleSmall),
-          if (status.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text('No status payload yet.'),
-            )
-          else
-            ...(() {
-              final rawQ = _keyQuery.trim();
-              final q = _queryCase ? rawQ : rawQ.toLowerCase();
-              var entries = status.entries.toList();
-              if (_typeFilter.isNotEmpty) {
-                entries = entries
-                    .where((e) => _valueTypeLabel(e.value) == _typeFilter)
-                    .toList();
-              }
-              if (rawQ.isNotEmpty) {
-                entries = entries
-                    .where((e) {
-                      final hayRaw = '${e.key} ${e.value}';
-                      if (_queryRegex) {
-                        try {
-                          return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
-                        } catch (_) {
-                          return false;
-                        }
-                      }
-                      final k = _queryCase ? e.key : e.key.toLowerCase();
-                      final v = _queryCase ? '${e.value}' : '${e.value}'.toLowerCase();
-                      return k.contains(q) || v.contains(q);
-                    })
-                    .toList();
-              }
-              entries.sort((a, b) {
-                if (_sortByKey) {
-                  final c = a.key.toLowerCase().compareTo(b.key.toLowerCase());
-                  if (c != 0) return _sortAsc ? c : -c;
-                } else if (_sortByType) {
-                  final c = _valueTypeLabel(a.value).compareTo(_valueTypeLabel(b.value));
-                  if (c != 0) return _sortAsc ? c : -c;
-                } else if (_sortByValue) {
-                  final c = '${a.value}'.toLowerCase().compareTo('${b.value}'.toLowerCase());
-                  if (c != 0) return _sortAsc ? c : -c;
-                }
-                final c = a.key.toLowerCase().compareTo(b.key.toLowerCase());
-                return _sortAsc ? c : -c;
-              });
-              return entries;
-            })().map(
-              (e) => ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                title: Text(e.key),
-                subtitle: Text(
-                  _fmtStatusValue(e.value),
-                  maxLines: _wrapLines ? 12 : 2,
-                  overflow: TextOverflow.ellipsis,
-                  softWrap: true,
-                ),
-              ),
-            ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SessionsScreen()),
-              );
-            },
-            icon: const Icon(Icons.chat_bubble_outline),
-            label: const Text('Open sessions'),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const HostDashboardScreen()),
-              );
-            },
-            icon: const Icon(Icons.dashboard_outlined),
-            label: const Text('Host dashboard'),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => c.disconnect(),
-            icon: const Icon(Icons.edit),
-            label: const Text('Edit connection'),
-          ),
-        ],
-      ),
+        ),
       ),
     );
   }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.157
+
+- Auto refresh FilterChips on skills/status/workspace screens (completes all screens)
+- MarkdownLite `<footer>` + `<hgroup>`
+- Mock true/false/unset (+ help/which/type lockstep)
+
 ## 0.1.156
 
 - Auto refresh FilterChips on mcp/memory/sessions screens

@@ -45,8 +45,8 @@ class _SkillsScreenState extends State<SkillsScreen> {
   void initState() {
     super.initState();
     _load();
-      WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
-}
+    WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
+  }
 
   @override
   void dispose() {
@@ -82,7 +82,8 @@ class _SkillsScreenState extends State<SkillsScreen> {
       final src = (s['source'] ?? '').toString().toLowerCase();
       if (_source.isNotEmpty) {
         if (_source == 'other') {
-          final known = src.contains('builtin') ||
+          final known =
+              src.contains('builtin') ||
               src.contains('built-in') ||
               src.contains('user') ||
               src.contains('project') ||
@@ -96,7 +97,8 @@ class _SkillsScreenState extends State<SkillsScreen> {
       if (_category.isNotEmpty) {
         final cat = (s['category'] ?? '').toString().toLowerCase();
         if (_category == 'other') {
-          final known = cat.contains('github') ||
+          final known =
+              cat.contains('github') ||
               cat.contains('software') ||
               cat.contains('autonomous') ||
               cat.contains('memory') ||
@@ -113,7 +115,8 @@ class _SkillsScreenState extends State<SkillsScreen> {
             : (s['tags'] ?? s['labels'] ?? '');
         final tags = tagsRaw.toString().toLowerCase();
         if (_tag == 'other') {
-          final known = tags.contains('hermes') ||
+          final known =
+              tags.contains('hermes') ||
               tags.contains('git') ||
               tags.contains('pr') ||
               tags.contains('debug') ||
@@ -147,6 +150,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
         if (t is List) return t.map((e) => '$e').join(' ').toLowerCase();
         return (t ?? '').toString().toLowerCase();
       }
+
       if (_sortByName) {
         final na = (a['name'] ?? a['id'] ?? '').toString().toLowerCase();
         final nb = (b['name'] ?? b['id'] ?? '').toString().toLowerCase();
@@ -156,34 +160,55 @@ class _SkillsScreenState extends State<SkillsScreen> {
         int enOf(Map x) {
           final v = x['enabled'] ?? x['active'] ?? x['disabled'];
           if (v is bool) {
-            if (x.containsKey('disabled') && !x.containsKey('enabled') && !x.containsKey('active')) {
+            if (x.containsKey('disabled') &&
+                !x.containsKey('enabled') &&
+                !x.containsKey('active')) {
               return v ? 0 : 1;
             }
             return v ? 1 : 0;
           }
           final s = (v ?? '').toString().toLowerCase();
-          if (s == 'true' || s == '1' || s == 'yes' || s == 'enabled' || s == 'active') return 1;
-          if (s == 'false' || s == '0' || s == 'no' || s == 'disabled') return 0;
+          if (s == 'true' ||
+              s == '1' ||
+              s == 'yes' ||
+              s == 'enabled' ||
+              s == 'active')
+            return 1;
+          if (s == 'false' || s == '0' || s == 'no' || s == 'disabled')
+            return 0;
           return -1;
         }
+
         final c = enOf(a).compareTo(enOf(b));
         if (c != 0) return _sortAsc ? -c : c; // asc => enabled first
       } else if (_sortByPath) {
-        final pa = (a['path'] ?? a['file'] ?? a['slug'] ?? '').toString().toLowerCase();
-        final pb = (b['path'] ?? b['file'] ?? b['slug'] ?? '').toString().toLowerCase();
+        final pa = (a['path'] ?? a['file'] ?? a['slug'] ?? '')
+            .toString()
+            .toLowerCase();
+        final pb = (b['path'] ?? b['file'] ?? b['slug'] ?? '')
+            .toString()
+            .toLowerCase();
         final c = pa.compareTo(pb);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByTags) {
         final c = tagsOf(a).compareTo(tagsOf(b));
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortById) {
-        final ia = (a['id'] ?? a['slug'] ?? a['name'] ?? '').toString().toLowerCase();
-        final ib = (b['id'] ?? b['slug'] ?? b['name'] ?? '').toString().toLowerCase();
+        final ia = (a['id'] ?? a['slug'] ?? a['name'] ?? '')
+            .toString()
+            .toLowerCase();
+        final ib = (b['id'] ?? b['slug'] ?? b['name'] ?? '')
+            .toString()
+            .toLowerCase();
         final c = ia.compareTo(ib);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByDesc) {
-        final da = (a['description'] ?? a['summary'] ?? '').toString().toLowerCase();
-        final db = (b['description'] ?? b['summary'] ?? '').toString().toLowerCase();
+        final da = (a['description'] ?? a['summary'] ?? '')
+            .toString()
+            .toLowerCase();
+        final db = (b['description'] ?? b['summary'] ?? '')
+            .toString()
+            .toLowerCase();
         final c = da.compareTo(db);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortBySource) {
@@ -220,8 +245,8 @@ class _SkillsScreenState extends State<SkillsScreen> {
           items.isEmpty
               ? 'Skills (readonly)'
               : (items.length == skills.length
-                  ? 'Skills (${items.length})'
-                  : 'Skills (${items.length}/${skills.length})'),
+                    ? 'Skills (${items.length})'
+                    : 'Skills (${items.length}/${skills.length})'),
         ),
         actions: [
           IconButton(
@@ -232,8 +257,10 @@ class _SkillsScreenState extends State<SkillsScreen> {
                     final buf = StringBuffer();
                     for (final s in items) {
                       if (s is Map) {
-                        final name = (s['name'] ?? s['id'] ?? 'skill').toString();
-                        final desc = (s['description'] ?? s['summary'] ?? '').toString();
+                        final name = (s['name'] ?? s['id'] ?? 'skill')
+                            .toString();
+                        final desc = (s['description'] ?? s['summary'] ?? '')
+                            .toString();
                         buf.writeln('## $name');
                         if (desc.isNotEmpty) buf.writeln(desc);
                         buf.writeln();
@@ -241,10 +268,15 @@ class _SkillsScreenState extends State<SkillsScreen> {
                         buf.writeln('$s');
                       }
                     }
-                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    await Clipboard.setData(
+                      ClipboardData(text: buf.toString()),
+                    );
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Copied ${items.length} skills'), duration: const Duration(seconds: 1)),
+                        SnackBar(
+                          content: Text('Copied ${items.length} skills'),
+                          duration: const Duration(seconds: 1),
+                        ),
                       );
                     }
                   },
@@ -259,10 +291,18 @@ class _SkillsScreenState extends State<SkillsScreen> {
                     buf.writeln('name,source,category,version,description');
                     for (final s in items) {
                       if (s is Map) {
-                        final name = (s['name'] ?? s['id'] ?? 'skill').toString().replaceAll(',', ';');
-                        final source = (s['source'] ?? '').toString().replaceAll(',', ';');
-                        final category = (s['category'] ?? '').toString().replaceAll(',', ';');
-                        final version = (s['version'] ?? '').toString().replaceAll(',', ';');
+                        final name = (s['name'] ?? s['id'] ?? 'skill')
+                            .toString()
+                            .replaceAll(',', ';');
+                        final source = (s['source'] ?? '')
+                            .toString()
+                            .replaceAll(',', ';');
+                        final category = (s['category'] ?? '')
+                            .toString()
+                            .replaceAll(',', ';');
+                        final version = (s['version'] ?? '')
+                            .toString()
+                            .replaceAll(',', ';');
                         final desc = (s['description'] ?? s['summary'] ?? '')
                             .toString()
                             .replaceAll(',', ';')
@@ -272,7 +312,9 @@ class _SkillsScreenState extends State<SkillsScreen> {
                         buf.writeln('${'$s'.replaceAll(',', ';')},,,,');
                       }
                     }
-                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    await Clipboard.setData(
+                      ClipboardData(text: buf.toString()),
+                    );
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -288,23 +330,43 @@ class _SkillsScreenState extends State<SkillsScreen> {
             tooltip: _sortByName
                 ? (_sortAsc ? 'Name Z→A' : 'Name A→Z')
                 : (_sortByEnabled
-                    ? (_sortAsc ? 'Enabled first' : 'Disabled first')
-                    : (_sortByPath
-                        ? (_sortAsc ? 'Path Z→A' : 'Path A→Z')
-                        : (_sortByTags
-                            ? (_sortAsc ? 'Tags Z→A' : 'Tags A→Z')
-                            : (_sortById
-                                ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
-                                : (_sortByDesc
-                                    ? (_sortAsc ? 'Description Z→A' : 'Description A→Z')
-                                    : (_sortBySource
-                                        ? (_sortAsc ? 'Source Z→A' : 'Source A→Z')
-                                        : (_sortAsc ? 'Name Z→A' : 'Name A→Z'))))))),
+                      ? (_sortAsc ? 'Enabled first' : 'Disabled first')
+                      : (_sortByPath
+                            ? (_sortAsc ? 'Path Z→A' : 'Path A→Z')
+                            : (_sortByTags
+                                  ? (_sortAsc ? 'Tags Z→A' : 'Tags A→Z')
+                                  : (_sortById
+                                        ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                                        : (_sortByDesc
+                                              ? (_sortAsc
+                                                    ? 'Description Z→A'
+                                                    : 'Description A→Z')
+                                              : (_sortBySource
+                                                    ? (_sortAsc
+                                                          ? 'Source Z→A'
+                                                          : 'Source A→Z')
+                                                    : (_sortAsc
+                                                          ? 'Name Z→A'
+                                                          : 'Name A→Z'))))))),
             onPressed: () {
               setState(() {
-                if (!_sortBySource && !_sortByDesc && !_sortById && !_sortByTags && !_sortByPath && !_sortByEnabled && !_sortByName && _sortAsc) {
+                if (!_sortBySource &&
+                    !_sortByDesc &&
+                    !_sortById &&
+                    !_sortByTags &&
+                    !_sortByPath &&
+                    !_sortByEnabled &&
+                    !_sortByName &&
+                    _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortBySource && !_sortByDesc && !_sortById && !_sortByTags && !_sortByPath && !_sortByEnabled && !_sortByName && !_sortAsc) {
+                } else if (!_sortBySource &&
+                    !_sortByDesc &&
+                    !_sortById &&
+                    !_sortByTags &&
+                    !_sortByPath &&
+                    !_sortByEnabled &&
+                    !_sortByName &&
+                    !_sortAsc) {
                   _sortBySource = true;
                   _sortByDesc = false;
                   _sortById = false;
@@ -393,21 +455,26 @@ class _SkillsScreenState extends State<SkillsScreen> {
                 }
               });
             },
-            icon: Icon(_sortByName
-                ? Icons.sort_by_alpha
-                : (_sortByEnabled
-                    ? Icons.toggle_on_outlined
-                    : (_sortByPath
-                        ? Icons.folder_open
-                        : (_sortByTags
-                            ? Icons.sell_outlined
-                            : (_sortById
-                                ? Icons.tag
-                                : (_sortByDesc
-                                    ? Icons.notes
-                                    : (_sortBySource
-                                        ? Icons.source_outlined
-                                        : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))))))),
+            icon: Icon(
+              _sortByName
+                  ? Icons.sort_by_alpha
+                  : (_sortByEnabled
+                        ? Icons.toggle_on_outlined
+                        : (_sortByPath
+                              ? Icons.folder_open
+                              : (_sortByTags
+                                    ? Icons.sell_outlined
+                                    : (_sortById
+                                          ? Icons.tag
+                                          : (_sortByDesc
+                                                ? Icons.notes
+                                                : (_sortBySource
+                                                      ? Icons.source_outlined
+                                                      : (_sortAsc
+                                                            ? Icons
+                                                                  .sort_by_alpha
+                                                            : Icons.sort))))))),
+            ),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
@@ -419,7 +486,11 @@ class _SkillsScreenState extends State<SkillsScreen> {
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
-              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+              _scroll.animateTo(
+                0,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
             },
             icon: const Icon(Icons.vertical_align_top),
           ),
@@ -441,226 +512,274 @@ class _SkillsScreenState extends State<SkillsScreen> {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
             },
-            icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
+            icon: Icon(
+              _autoRefresh
+                  ? Icons.pause_circle_outline
+                  : Icons.play_circle_outline,
+            ),
           ),
 
-
-          IconButton(onPressed: loading ? null : _load, icon: const Icon(Icons.refresh)),
+          IconButton(
+            onPressed: loading ? null : _load,
+            icon: const Icon(Icons.refresh),
+          ),
         ],
       ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : error != null
-              ? Center(child: Text(error!))
-              : Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                      child: Wrap(
-                        spacing: 8,
-                        children: [
-                          for (final f in const [
-                            ('', 'All'),
-                            ('builtin', 'Builtin'),
-                            ('user', 'User'),
-                            ('project', 'Project'),
-                            ('plugin', 'Plugin'),
-                            ('host', 'Host'),
-                            ('other', 'Other'),
-                          ])
-                            FilterChip(
-                              label: Text(f.$2, style: const TextStyle(fontSize: 12)),
-                              selected: _source == f.$1,
-                              onSelected: (_) => setState(() => _source = f.$1),
-                              visualDensity: VisualDensity.compact,
-                            ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: [
-                          for (final f in const [
-                            ('', 'Any category'),
-                            ('autonomous', 'autonomous'),
-                            ('github', 'github'),
-                            ('software', 'software'),
-                            ('memory', 'memory'),
-                            ('devops', 'devops'),
-                            ('research', 'research'),
-                            ('other', 'other'),
-                          ])
-                            FilterChip(
-                              label: Text(f.$2, style: const TextStyle(fontSize: 11)),
-                              selected: _category == f.$1,
-                              onSelected: (_) => setState(() => _category = f.$1),
-                              visualDensity: VisualDensity.compact,
-                            ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: [
-                          for (final f in const [
-                            ('', 'Any tag'),
-                            ('hermes', 'hermes'),
-                            ('git', 'git'),
-                            ('debug', 'debug'),
-                            ('plan', 'plan'),
-                            ('memory', 'memory'),
-                            ('other', 'other'),
-                          ])
-                            FilterChip(
-                              label: Text(f.$2, style: const TextStyle(fontSize: 11)),
-                              selected: _tag == f.$1,
-                              onSelected: (_) => setState(() => _tag = f.$1),
-                              visualDensity: VisualDensity.compact,
-                            ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: [
-                          FilterChip(
-                            label: const Text('Wrap', style: TextStyle(fontSize: 11)),
-                            selected: _wrapLines,
-                            onSelected: (v) => setState(() => _wrapLines = v),
-                            visualDensity: VisualDensity.compact,
+          ? Center(child: Text(error!))
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                  child: Wrap(
+                    spacing: 8,
+                    children: [
+                      for (final f in const [
+                        ('', 'All'),
+                        ('builtin', 'Builtin'),
+                        ('user', 'User'),
+                        ('project', 'Project'),
+                        ('plugin', 'Plugin'),
+                        ('host', 'Host'),
+                        ('other', 'Other'),
+                      ])
+                        FilterChip(
+                          label: Text(
+                            f.$2,
+                            style: const TextStyle(fontSize: 12),
                           ),
-                          FilterChip(
-                            label: const Text('Regex', style: TextStyle(fontSize: 11)),
-                            selected: _queryRegex,
-                            onSelected: (v) => setState(() => _queryRegex = v),
-                            visualDensity: VisualDensity.compact,
-                          ),
-                          FilterChip(
-                            label: const Text('Case', style: TextStyle(fontSize: 11)),
-                            selected: _queryCase,
-                            onSelected: (v) => setState(() => _queryCase = v),
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-                      child: TextField(
-                        controller: _q,
-                        decoration: InputDecoration(
-                          hintText: _queryRegex
-                              ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
-                              : (_queryCase ? 'Filter (case-sensitive)' : 'Filter name / description / source'),
-                          isDense: true,
-                          border: const OutlineInputBorder(),
-                          prefixIcon: IconButton(
-                            tooltip: _queryRegex
-                                ? (_queryCase
-                                    ? 'Regex · case on (long-press: plain filter)'
-                                    : 'Regex · case off (long-press: plain filter)')
-                                : (_queryCase
-                                    ? 'Case-sensitive (long-press: regex)'
-                                    : 'Case-insensitive (long-press: regex)'),
-                            icon: Icon(
-                              _queryRegex
-                                  ? Icons.code
-                                  : (_queryCase ? Icons.text_fields : Icons.search),
-                              size: 18,
-                            ),
-                            onPressed: () => setState(() => _queryCase = !_queryCase),
-                            onLongPress: () => setState(() => _queryRegex = !_queryRegex),
-                          ),
-                          suffixIcon: _query.isEmpty
-                              ? null
-                              : IconButton(
-                                  icon: const Icon(Icons.clear, size: 18),
-                                  onPressed: () {
-                                    _q.clear();
-                                    setState(() => _query = '');
-                                  },
-                                ),
+                          selected: _source == f.$1,
+                          onSelected: (_) => setState(() => _source = f.$1),
+                          visualDensity: VisualDensity.compact,
                         ),
-                        onChanged: (v) => setState(() => _query = v),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      for (final f in const [
+                        ('', 'Any category'),
+                        ('autonomous', 'autonomous'),
+                        ('github', 'github'),
+                        ('software', 'software'),
+                        ('memory', 'memory'),
+                        ('devops', 'devops'),
+                        ('research', 'research'),
+                        ('other', 'other'),
+                      ])
+                        FilterChip(
+                          label: Text(
+                            f.$2,
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          selected: _category == f.$1,
+                          onSelected: (_) => setState(() => _category = f.$1),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      for (final f in const [
+                        ('', 'Any tag'),
+                        ('hermes', 'hermes'),
+                        ('git', 'git'),
+                        ('debug', 'debug'),
+                        ('plan', 'plan'),
+                        ('memory', 'memory'),
+                        ('other', 'other'),
+                      ])
+                        FilterChip(
+                          label: Text(
+                            f.$2,
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          selected: _tag == f.$1,
+                          onSelected: (_) => setState(() => _tag = f.$1),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      FilterChip(
+                        label: const Text(
+                          'Wrap',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                        selected: _wrapLines,
+                        onSelected: (v) => setState(() => _wrapLines = v),
+                        visualDensity: VisualDensity.compact,
                       ),
+                      FilterChip(
+                        label: const Text(
+                          'Regex',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                        selected: _queryRegex,
+                        onSelected: (v) => setState(() => _queryRegex = v),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      FilterChip(
+                        label: const Text(
+                          'Case',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                        selected: _queryCase,
+                        onSelected: (v) => setState(() => _queryCase = v),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      FilterChip(
+                        label: const Text(
+                          'Auto',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                        selected: _autoRefresh,
+                        onSelected: (v) {
+                          setState(() => _autoRefresh = v);
+                          _armTimer();
+                        },
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                  child: TextField(
+                    controller: _q,
+                    decoration: InputDecoration(
+                      hintText: _queryRegex
+                          ? (_queryCase
+                                ? 'Filter (regex · case)'
+                                : 'Filter (regex)')
+                          : (_queryCase
+                                ? 'Filter (case-sensitive)'
+                                : 'Filter name / description / source'),
+                      isDense: true,
+                      border: const OutlineInputBorder(),
+                      prefixIcon: IconButton(
+                        tooltip: _queryRegex
+                            ? (_queryCase
+                                  ? 'Regex · case on (long-press: plain filter)'
+                                  : 'Regex · case off (long-press: plain filter)')
+                            : (_queryCase
+                                  ? 'Case-sensitive (long-press: regex)'
+                                  : 'Case-insensitive (long-press: regex)'),
+                        icon: Icon(
+                          _queryRegex
+                              ? Icons.code
+                              : (_queryCase ? Icons.text_fields : Icons.search),
+                          size: 18,
+                        ),
+                        onPressed: () =>
+                            setState(() => _queryCase = !_queryCase),
+                        onLongPress: () =>
+                            setState(() => _queryRegex = !_queryRegex),
+                      ),
+                      suffixIcon: _query.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                _q.clear();
+                                setState(() => _query = '');
+                              },
+                            ),
                     ),
-                    Expanded(
-                      child: skills.isEmpty
-                          ? const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(24),
-                                child: Text(
-                                  'Host has no GET /skills (or empty).\nMock Host returns sample skills.',
-                                  textAlign: TextAlign.center,
+                    onChanged: (v) => setState(() => _query = v),
+                  ),
+                ),
+                Expanded(
+                  child: skills.isEmpty
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24),
+                            child: Text(
+                              'Host has no GET /skills (or empty).\nMock Host returns sample skills.',
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        )
+                      : items.isEmpty
+                      ? const Center(child: Text('No skills match filter'))
+                      : RefreshIndicator(
+                          onRefresh: _load,
+                          child: ListView.separated(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            controller: _scroll,
+                            itemCount: items.length,
+                            separatorBuilder: (_, __) =>
+                                const Divider(height: 1),
+                            itemBuilder: (context, i) {
+                              final s = items[i];
+                              final name = (s['name'] ?? 'skill').toString();
+                              final desc = (s['description'] ?? '').toString();
+                              final source = (s['source'] ?? '').toString();
+                              final category = (s['category'] ?? '').toString();
+                              final version = (s['version'] ?? '').toString();
+                              final meta = [
+                                if (category.isNotEmpty) category,
+                                if (source.isNotEmpty) source,
+                                if (version.isNotEmpty) version,
+                              ].join(' · ');
+                              return ListTile(
+                                leading: const Icon(Icons.extension),
+                                title: Text(name),
+                                subtitle: Text(
+                                  [
+                                    if (desc.isNotEmpty) desc,
+                                    if (meta.isNotEmpty) meta,
+                                  ].join('\n'),
+                                  maxLines: _wrapLines ? 8 : 3,
+                                  overflow: TextOverflow.ellipsis,
+                                  softWrap: true,
                                 ),
-                              ),
-                            )
-                          : items.isEmpty
-                              ? const Center(child: Text('No skills match filter'))
-                              : RefreshIndicator(
-                    onRefresh: _load,
-                    child: ListView.separated(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      controller: _scroll,
-                                  itemCount: items.length,
-                                  separatorBuilder: (_, __) => const Divider(height: 1),
-                                  itemBuilder: (context, i) {
-                                    final s = items[i];
-                                    final name = (s['name'] ?? 'skill').toString();
-                                    final desc = (s['description'] ?? '').toString();
-                                    final source = (s['source'] ?? '').toString();
-                                    final category = (s['category'] ?? '').toString();
-                                    final version = (s['version'] ?? '').toString();
-                                    final meta = [
-                                      if (category.isNotEmpty) category,
-                                      if (source.isNotEmpty) source,
-                                      if (version.isNotEmpty) version,
-                                    ].join(' · ');
-                                    return ListTile(
-                                      leading: const Icon(Icons.extension),
-                                      title: Text(name),
-                                      subtitle: Text(
-                                        [
-                                          if (desc.isNotEmpty) desc,
-                                          if (meta.isNotEmpty) meta,
-                                        ].join('\n'),
-                                        maxLines: _wrapLines ? 8 : 3,
-                                        overflow: TextOverflow.ellipsis,
-                                        softWrap: true,
-                                      ),
-                                      isThreeLine: desc.isNotEmpty && meta.isNotEmpty,
-                                      trailing: IconButton(
-                                        tooltip: 'Copy',
-                                        icon: const Icon(Icons.copy, size: 18),
-                                        onPressed: () async {
-                                          await Clipboard.setData(
-                                            ClipboardData(text: '$name\n$desc\n$meta'.trim()),
-                                          );
-                                          if (context.mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(
-                                                content: Text('Skill copied'),
-                                                duration: Duration(seconds: 1),
-                                              ),
-                                            );
-                                          }
-                                        },
+                                isThreeLine: desc.isNotEmpty && meta.isNotEmpty,
+                                trailing: IconButton(
+                                  tooltip: 'Copy',
+                                  icon: const Icon(Icons.copy, size: 18),
+                                  onPressed: () async {
+                                    await Clipboard.setData(
+                                      ClipboardData(
+                                        text: '$name\n$desc\n$meta'.trim(),
                                       ),
                                     );
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Skill copied'),
+                                          duration: Duration(seconds: 1),
+                                        ),
+                                      );
+                                    }
                                   },
-                                )),
-                    ),
-                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                 ),
+              ],
+            ),
     );
   }
 }

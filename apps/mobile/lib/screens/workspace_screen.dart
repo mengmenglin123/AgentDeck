@@ -32,6 +32,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   String _filter = '';
   bool _queryCase = false;
   bool _queryRegex = false;
+
   /// name ascending when true; dirs always first
   bool _wrapLines = false;
   bool _sortAsc = true;
@@ -44,9 +45,11 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   bool _sortByBranch = false;
   bool _sortByStatus = false;
   bool _sortByChildren = false;
+
   /// all | dir | file
   String _typeFilter = 'all';
   bool _hideEmpty = false;
+
   /// empty=all; md|dart|py|json|other
   String _extFilter = '';
   final _scroll = ScrollController();
@@ -58,8 +61,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     super.initState();
     _client = MgmtClient(config: widget.config);
     _load();
-      WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
-}
+    WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
+  }
 
   @override
   void dispose() {
@@ -68,7 +71,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     _filterCtrl.dispose();
     super.dispose();
   }
-
 
   List<Map> get _visibleEntries {
     final node = _node;
@@ -81,7 +83,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       if (_typeFilter == 'dir' && type != 'dir') continue;
       if (_typeFilter == 'file' && type == 'dir') continue;
       if (_hideEmpty && type == 'dir') {
-        final children = e['children'] ?? e['entries'] ?? e['count'] ?? e['size'];
+        final children =
+            e['children'] ?? e['entries'] ?? e['count'] ?? e['size'];
         if (children is List && children.isEmpty) continue;
         if (children is num && children == 0) continue;
         if (children == null) {
@@ -116,7 +119,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         final hayRaw = '$nameRaw $typeRaw';
         if (_queryRegex) {
           try {
-            if (!RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw)) continue;
+            if (!RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw))
+              continue;
           } catch (_) {
             continue;
           }
@@ -133,7 +137,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       final rd = rank(a).compareTo(rank(b));
       if (rd != 0) return rd;
       int mtimeOf(Map e) {
-        final v = e['mtime'] ?? e['modified'] ?? e['updated'] ?? e['updated_at'];
+        final v =
+            e['mtime'] ?? e['modified'] ?? e['updated'] ?? e['updated_at'];
         if (v is num) {
           final n = v.toDouble();
           return n > 1e12 ? n.round() : (n * 1000).round();
@@ -141,6 +146,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         final p = DateTime.tryParse(v?.toString() ?? '');
         return p?.millisecondsSinceEpoch ?? 0;
       }
+
       if (_sortByChildren) {
         int childOf(Map x) {
           final v = x['children'] ?? x['entries'] ?? x['count'];
@@ -148,6 +154,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
           if (v is num) return v.round();
           return int.tryParse(v?.toString() ?? '') ?? -1;
         }
+
         final c = childOf(a).compareTo(childOf(b));
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByStatus) {
@@ -169,6 +176,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
           if (s == 'false' || s == '0' || s == 'no' || s == 'clean') return 0;
           return -1;
         }
+
         final c = dirtyOf(a).compareTo(dirtyOf(b));
         if (c != 0) return _sortAsc ? -c : c; // asc => dirty first
       } else if (_sortByName) {
@@ -177,13 +185,21 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         final c = na.compareTo(nb);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByType) {
-        final ta = (a['type'] ?? a['kind'] ?? a['mime'] ?? a['extension'] ?? '').toString().toLowerCase();
-        final tb = (b['type'] ?? b['kind'] ?? b['mime'] ?? b['extension'] ?? '').toString().toLowerCase();
+        final ta = (a['type'] ?? a['kind'] ?? a['mime'] ?? a['extension'] ?? '')
+            .toString()
+            .toLowerCase();
+        final tb = (b['type'] ?? b['kind'] ?? b['mime'] ?? b['extension'] ?? '')
+            .toString()
+            .toLowerCase();
         final c = ta.compareTo(tb);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByPath) {
-        final pa = (a['path'] ?? a['full_path'] ?? a['name'] ?? '').toString().toLowerCase();
-        final pb = (b['path'] ?? b['full_path'] ?? b['name'] ?? '').toString().toLowerCase();
+        final pa = (a['path'] ?? a['full_path'] ?? a['name'] ?? '')
+            .toString()
+            .toLowerCase();
+        final pb = (b['path'] ?? b['full_path'] ?? b['name'] ?? '')
+            .toString()
+            .toLowerCase();
         final c = pa.compareTo(pb);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByMtime) {
@@ -217,10 +233,12 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       acc = acc.isEmpty ? parts[i] : (acc + '/' + parts[i]);
       final target = acc;
       final last = i == parts.length - 1;
-      chips.add(const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 2),
-        child: Icon(Icons.chevron_right, size: 16),
-      ));
+      chips.add(
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 2),
+          child: Icon(Icons.chevron_right, size: 16),
+        ),
+      );
       chips.add(
         ActionChip(
           label: Text(parts[i]),
@@ -316,7 +334,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               await Clipboard.setData(ClipboardData(text: p));
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Copied $p'), duration: const Duration(seconds: 1)),
+                  SnackBar(
+                    content: Text('Copied $p'),
+                    duration: const Duration(seconds: 1),
+                  ),
                 );
               }
             },
@@ -332,7 +353,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                 final name = e['name']?.toString() ?? '';
                 final typ = e['type']?.toString() ?? '';
                 if (name.isEmpty) continue;
-                list.add((typ == 'dir' || typ == 'directory' ? 'd ' : 'f ') + name);
+                list.add(
+                  (typ == 'dir' || typ == 'directory' ? 'd ' : 'f ') + name,
+                );
               }
               if (list.length <= 1 && !isFile) {
                 list.add('(empty)');
@@ -344,7 +367,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Copied listing (' + (list.length - 1).toString() + ')'),
+                    content: Text(
+                      'Copied listing (' + (list.length - 1).toString() + ')',
+                    ),
                     duration: const Duration(seconds: 1),
                   ),
                 );
@@ -371,7 +396,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Copied listing CSV (${_visibleEntries.length})'),
+                  content: Text(
+                    'Copied listing CSV (${_visibleEntries.length})',
+                  ),
                   duration: const Duration(seconds: 1),
                 ),
               );
@@ -383,7 +410,11 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
-              _scroll.animateTo(0, duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+              _scroll.animateTo(
+                0,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
             },
             icon: const Icon(Icons.vertical_align_top),
           ),
@@ -405,35 +436,68 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
             },
-            icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
+            icon: Icon(
+              _autoRefresh
+                  ? Icons.pause_circle_outline
+                  : Icons.play_circle_outline,
+            ),
           ),
-
 
           IconButton(
             tooltip: _sortByChildren
                 ? (_sortAsc ? 'Children many→few' : 'Children few→many')
                 : (_sortByStatus
-                    ? (_sortAsc ? 'Status Z→A' : 'Status A→Z')
-                    : (_sortByBranch
-                    ? (_sortAsc ? 'Branch Z→A' : 'Branch A→Z')
-                    : (_sortByDirty
-                        ? (_sortAsc ? 'Dirty first' : 'Clean first')
-                        : (_sortByName
-                            ? (_sortAsc ? 'Name Z→A (dirs first)' : 'Name A→Z (dirs first)')
-                            : (_sortByType
-                                ? (_sortAsc ? 'Type Z→A (dirs first)' : 'Type A→Z (dirs first)')
-                                : (_sortByPath
-                                    ? (_sortAsc ? 'Path Z→A (dirs first)' : 'Path A→Z (dirs first)')
-                                    : (_sortByMtime
-                                        ? (_sortAsc ? 'Mtime new→old' : 'Mtime old→new')
-                                        : (_sortBySize
-                                            ? (_sortAsc ? 'Size large→small' : 'Size small→large')
-                                            : (_sortAsc ? 'Sort Z→A (dirs first)' : 'Sort A→Z (dirs first)'))))))))),
+                      ? (_sortAsc ? 'Status Z→A' : 'Status A→Z')
+                      : (_sortByBranch
+                            ? (_sortAsc ? 'Branch Z→A' : 'Branch A→Z')
+                            : (_sortByDirty
+                                  ? (_sortAsc ? 'Dirty first' : 'Clean first')
+                                  : (_sortByName
+                                        ? (_sortAsc
+                                              ? 'Name Z→A (dirs first)'
+                                              : 'Name A→Z (dirs first)')
+                                        : (_sortByType
+                                              ? (_sortAsc
+                                                    ? 'Type Z→A (dirs first)'
+                                                    : 'Type A→Z (dirs first)')
+                                              : (_sortByPath
+                                                    ? (_sortAsc
+                                                          ? 'Path Z→A (dirs first)'
+                                                          : 'Path A→Z (dirs first)')
+                                                    : (_sortByMtime
+                                                          ? (_sortAsc
+                                                                ? 'Mtime new→old'
+                                                                : 'Mtime old→new')
+                                                          : (_sortBySize
+                                                                ? (_sortAsc
+                                                                      ? 'Size large→small'
+                                                                      : 'Size small→large')
+                                                                : (_sortAsc
+                                                                      ? 'Sort Z→A (dirs first)'
+                                                                      : 'Sort A→Z (dirs first)'))))))))),
             onPressed: () {
               setState(() {
-                if (!_sortBySize && !_sortByMtime && !_sortByPath && !_sortByType && !_sortByName && !_sortByDirty && !_sortByBranch && !_sortByStatus && !_sortByChildren && _sortAsc) {
+                if (!_sortBySize &&
+                    !_sortByMtime &&
+                    !_sortByPath &&
+                    !_sortByType &&
+                    !_sortByName &&
+                    !_sortByDirty &&
+                    !_sortByBranch &&
+                    !_sortByStatus &&
+                    !_sortByChildren &&
+                    _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortBySize && !_sortByMtime && !_sortByPath && !_sortByType && !_sortByName && !_sortByDirty && !_sortByBranch && !_sortByStatus && !_sortByChildren && !_sortAsc) {
+                } else if (!_sortBySize &&
+                    !_sortByMtime &&
+                    !_sortByPath &&
+                    !_sortByType &&
+                    !_sortByName &&
+                    !_sortByDirty &&
+                    !_sortByBranch &&
+                    !_sortByStatus &&
+                    !_sortByChildren &&
+                    !_sortAsc) {
                   _sortBySize = true;
                   _sortByMtime = false;
                   _sortByPath = false;
@@ -564,25 +628,32 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                 }
               });
             },
-            icon: Icon(_sortByChildren
-                ? Icons.account_tree_outlined
-                : (_sortByStatus
-                    ? Icons.flag_outlined
-                    : (_sortByBranch
-                    ? Icons.call_split
-                    : (_sortByDirty
-                        ? Icons.change_circle_outlined
-                        : (_sortByName
-                            ? Icons.sort_by_alpha
-                            : (_sortByType
-                                ? Icons.category_outlined
-                                : (_sortByPath
-                                    ? Icons.route
-                                    : (_sortByMtime
-                                        ? Icons.schedule
-                                        : (_sortBySize
-                                            ? Icons.data_usage
-                                            : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))))))))),
+            icon: Icon(
+              _sortByChildren
+                  ? Icons.account_tree_outlined
+                  : (_sortByStatus
+                        ? Icons.flag_outlined
+                        : (_sortByBranch
+                              ? Icons.call_split
+                              : (_sortByDirty
+                                    ? Icons.change_circle_outlined
+                                    : (_sortByName
+                                          ? Icons.sort_by_alpha
+                                          : (_sortByType
+                                                ? Icons.category_outlined
+                                                : (_sortByPath
+                                                      ? Icons.route
+                                                      : (_sortByMtime
+                                                            ? Icons.schedule
+                                                            : (_sortBySize
+                                                                  ? Icons
+                                                                        .data_usage
+                                                                  : (_sortAsc
+                                                                        ? Icons
+                                                                              .sort_by_alpha
+                                                                        : Icons
+                                                                              .sort))))))))),
+            ),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
@@ -599,7 +670,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                     await Clipboard.setData(ClipboardData(text: text));
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('File content copied'), duration: Duration(seconds: 1)),
+                        const SnackBar(
+                          content: Text('File content copied'),
+                          duration: Duration(seconds: 1),
+                        ),
                       );
                     }
                   },
@@ -615,19 +689,26 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                     final buf = StringBuffer();
                     buf.writeln('branch: ${g['branch'] ?? '—'}');
                     buf.writeln('dirty: ${g['dirty'] ?? g['is_dirty'] ?? '—'}');
-                    buf.writeln('ahead: ${g['ahead'] ?? '—'} behind: ${g['behind'] ?? '—'}');
+                    buf.writeln(
+                      'ahead: ${g['ahead'] ?? '—'} behind: ${g['behind'] ?? '—'}',
+                    );
                     buf.writeln('changes: ${files.length}');
                     for (final f in files.whereType<Map>()) {
                       final path = (f['path'] ?? f['file'] ?? '').toString();
-                      final status = (f['status'] ?? f['code'] ?? '').toString();
+                      final status = (f['status'] ?? f['code'] ?? '')
+                          .toString();
                       if (path.isEmpty) continue;
                       buf.writeln('$status $path');
                     }
-                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    await Clipboard.setData(
+                      ClipboardData(text: buf.toString()),
+                    );
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Git summary copied (${files.length} files)'),
+                          content: Text(
+                            'Git summary copied (${files.length} files)',
+                          ),
                           duration: const Duration(seconds: 1),
                         ),
                       );
@@ -654,7 +735,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               color: cs.errorContainer,
               child: ListTile(
                 dense: true,
-                title: Text(_error!, style: TextStyle(color: cs.onErrorContainer, fontSize: 12)),
+                title: Text(
+                  _error!,
+                  style: TextStyle(color: cs.onErrorContainer, fontSize: 12),
+                ),
               ),
             ),
           if (_loading) const LinearProgressIndicator(minHeight: 2),
@@ -680,7 +764,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                     visualDensity: VisualDensity.compact,
                   ),
                 FilterChip(
-                  label: const Text('Hide empty', style: TextStyle(fontSize: 12)),
+                  label: const Text(
+                    'Hide empty',
+                    style: TextStyle(fontSize: 12),
+                  ),
                   selected: _hideEmpty,
                   onSelected: (_) => setState(() => _hideEmpty = !_hideEmpty),
                   visualDensity: VisualDensity.compact,
@@ -701,6 +788,15 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   label: const Text('Case', style: TextStyle(fontSize: 11)),
                   selected: _queryCase,
                   onSelected: (_) => setState(() => _queryCase = !_queryCase),
+                  visualDensity: VisualDensity.compact,
+                ),
+                FilterChip(
+                  label: const Text('Auto', style: TextStyle(fontSize: 11)),
+                  selected: _autoRefresh,
+                  onSelected: (_) {
+                    setState(() => _autoRefresh = !_autoRefresh);
+                    _armTimer();
+                  },
                   visualDensity: VisualDensity.compact,
                 ),
               ],
@@ -733,7 +829,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
           ListTile(
             dense: true,
             leading: const Icon(Icons.folder_open, size: 20),
-            title: Text(_path.isEmpty ? '/' : '/$_path', style: const TextStyle(fontFamily: 'monospace')),
+            title: Text(
+              _path.isEmpty ? '/' : '/$_path',
+              style: const TextStyle(fontFamily: 'monospace'),
+            ),
             subtitle: Text(
               _git == null
                   ? 'readonly host tree'
@@ -748,7 +847,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               child: const Text('Diff'),
             ),
           ),
-          if (_git != null && (_git!['files'] is List) && (_git!['files'] as List).isNotEmpty)
+          if (_git != null &&
+              (_git!['files'] is List) &&
+              (_git!['files'] as List).isNotEmpty)
             SizedBox(
               height: 36,
               child: ListView(
@@ -762,7 +863,10 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                         visualDensity: VisualDensity.compact,
                         label: Text(
                           '${f['status'] ?? '?'} ${f['path'] ?? ''}',
-                          style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontFamily: 'monospace',
+                          ),
                         ),
                         onPressed: () => _openDiff(f['path']?.toString()),
                       ),
@@ -778,18 +882,22 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                 controller: _filterCtrl,
                 decoration: InputDecoration(
                   hintText: _queryRegex
-                      ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
-                      : (_queryCase ? 'Filter (case-sensitive)' : 'Filter files in this folder'),
+                      ? (_queryCase
+                            ? 'Filter (regex · case)'
+                            : 'Filter (regex)')
+                      : (_queryCase
+                            ? 'Filter (case-sensitive)'
+                            : 'Filter files in this folder'),
                   isDense: true,
                   border: const OutlineInputBorder(),
                   prefixIcon: IconButton(
                     tooltip: _queryRegex
                         ? (_queryCase
-                            ? 'Regex · case on (long-press: plain filter)'
-                            : 'Regex · case off (long-press: plain filter)')
+                              ? 'Regex · case on (long-press: plain filter)'
+                              : 'Regex · case off (long-press: plain filter)')
                         : (_queryCase
-                            ? 'Case-sensitive (long-press: regex)'
-                            : 'Case-insensitive (long-press: regex)'),
+                              ? 'Case-sensitive (long-press: regex)'
+                              : 'Case-insensitive (long-press: regex)'),
                     icon: Icon(
                       _queryRegex
                           ? Icons.code
@@ -797,7 +905,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                       size: 18,
                     ),
                     onPressed: () => setState(() => _queryCase = !_queryCase),
-                    onLongPress: () => setState(() => _queryRegex = !_queryRegex),
+                    onLongPress: () =>
+                        setState(() => _queryRegex = !_queryRegex),
                   ),
                   suffixIcon: _filter.isEmpty
                       ? null
@@ -816,88 +925,107 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             child: RefreshIndicator(
               onRefresh: () => _load(),
               child: isFile
-                ? ListView(
-                    controller: _scroll,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      if ((node?['content']?.toString() ?? '').isNotEmpty &&
-                          (_path.endsWith('.md') || _path.endsWith('.markdown')))
-                        MarkdownLite(data: node?['content']?.toString() ?? '')
-                      else if ((node?['content']?.toString() ?? '').isNotEmpty &&
-                          _codeLangFor(_path) != null)
-                        MarkdownLite(
-                          data: '```${_codeLangFor(_path)}\n${node?['content']?.toString() ?? ''}\n```',
-                        )
-                      else
-                        SelectableText(
-                          node?['content']?.toString() ?? '',
-                          style: const TextStyle(fontFamily: 'monospace', fontSize: 13, height: 1.35),
-                        ),
-                    ],
-                  )
-                : ListView(
-                    controller: _scroll,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    children: [
-                      if (_path.isNotEmpty)
-                        ListTile(
-                          leading: const Icon(Icons.arrow_upward),
-                          title: const Text('..'),
-                          onTap: () => _load(path: parent ?? ''),
-                        ),
-                      if (entries.isEmpty && !_loading)
-                        const ListTile(title: Text('Empty directory')),
-                      if (entries.isNotEmpty &&
-                          _filter.trim().isNotEmpty &&
-                          _visibleEntries.isEmpty)
-                        const ListTile(title: Text('No entries match filter')),
-                      for (final e in _visibleEntries)
-                        ListTile(
-                          leading: Icon(
-                            e['type'] == 'dir' ? Icons.folder : Icons.insert_drive_file_outlined,
+                  ? ListView(
+                      controller: _scroll,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        if ((node?['content']?.toString() ?? '').isNotEmpty &&
+                            (_path.endsWith('.md') ||
+                                _path.endsWith('.markdown')))
+                          MarkdownLite(data: node?['content']?.toString() ?? '')
+                        else if ((node?['content']?.toString() ?? '')
+                                .isNotEmpty &&
+                            _codeLangFor(_path) != null)
+                          MarkdownLite(
+                            data:
+                                '```${_codeLangFor(_path)}\n${node?['content']?.toString() ?? ''}\n```',
+                          )
+                        else
+                          SelectableText(
+                            node?['content']?.toString() ?? '',
+                            style: const TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 13,
+                              height: 1.35,
+                            ),
                           ),
-                          title: Text(e['name']?.toString() ?? ''),
-                          subtitle: e['type'] == 'file'
-                              ? Text(
-                                  '${e['size'] ?? '?'} B · ${e['name'] ?? ''}',
-                                  style: const TextStyle(fontSize: 11),
-                                  maxLines: _wrapLines ? 4 : 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  softWrap: true,
-                                )
-                              : Text(
-                                  'directory · ${e['name'] ?? ''}',
-                                  style: const TextStyle(fontSize: 11),
-                                  maxLines: _wrapLines ? 4 : 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  softWrap: true,
-                                ),
-                          onTap: () => _openEntry(e),
-                          onLongPress: () async {
-                            final name = e['name']?.toString() ?? '';
-                            final p = _path.isEmpty ? name : '$_path/$name';
-                            await Clipboard.setData(ClipboardData(text: p));
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Copied $p'), duration: const Duration(seconds: 1)),
-                              );
-                            }
-                          },
-                          trailing: e['type'] == 'file'
-                              ? IconButton(
-                                  tooltip: 'Diff',
-                                  icon: const Icon(Icons.difference_outlined, size: 18),
-                                  onPressed: () {
-                                    final name = e['name']?.toString() ?? '';
-                                    final p = _path.isEmpty ? name : '$_path/$name';
-                                    _openDiff(p);
-                                  },
-                                )
-                              : null,
-                        ),
-                    ],
-                  ),
+                      ],
+                    )
+                  : ListView(
+                      controller: _scroll,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: [
+                        if (_path.isNotEmpty)
+                          ListTile(
+                            leading: const Icon(Icons.arrow_upward),
+                            title: const Text('..'),
+                            onTap: () => _load(path: parent ?? ''),
+                          ),
+                        if (entries.isEmpty && !_loading)
+                          const ListTile(title: Text('Empty directory')),
+                        if (entries.isNotEmpty &&
+                            _filter.trim().isNotEmpty &&
+                            _visibleEntries.isEmpty)
+                          const ListTile(
+                            title: Text('No entries match filter'),
+                          ),
+                        for (final e in _visibleEntries)
+                          ListTile(
+                            leading: Icon(
+                              e['type'] == 'dir'
+                                  ? Icons.folder
+                                  : Icons.insert_drive_file_outlined,
+                            ),
+                            title: Text(e['name']?.toString() ?? ''),
+                            subtitle: e['type'] == 'file'
+                                ? Text(
+                                    '${e['size'] ?? '?'} B · ${e['name'] ?? ''}',
+                                    style: const TextStyle(fontSize: 11),
+                                    maxLines: _wrapLines ? 4 : 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    softWrap: true,
+                                  )
+                                : Text(
+                                    'directory · ${e['name'] ?? ''}',
+                                    style: const TextStyle(fontSize: 11),
+                                    maxLines: _wrapLines ? 4 : 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    softWrap: true,
+                                  ),
+                            onTap: () => _openEntry(e),
+                            onLongPress: () async {
+                              final name = e['name']?.toString() ?? '';
+                              final p = _path.isEmpty ? name : '$_path/$name';
+                              await Clipboard.setData(ClipboardData(text: p));
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Copied $p'),
+                                    duration: const Duration(seconds: 1),
+                                  ),
+                                );
+                              }
+                            },
+                            trailing: e['type'] == 'file'
+                                ? IconButton(
+                                    tooltip: 'Diff',
+                                    icon: const Icon(
+                                      Icons.difference_outlined,
+                                      size: 18,
+                                    ),
+                                    onPressed: () {
+                                      final name = e['name']?.toString() ?? '';
+                                      final p = _path.isEmpty
+                                          ? name
+                                          : '$_path/$name';
+                                      _openDiff(p);
+                                    },
+                                  )
+                                : null,
+                          ),
+                      ],
+                    ),
             ),
           ),
         ],

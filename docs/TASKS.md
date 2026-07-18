@@ -646,6 +646,9 @@
 - [x] **P4-3be** Auto refresh chips: mcp/memory/sessions (0.1.156)
 - [x] **P4-5bh** MarkdownLite `<section>` + `<article>` + `<header>` (0.1.156)
 - [x] **P4-1bf** Mock ulimit/finger/nologin (0.1.156)
+- [x] **P4-3bf** Auto refresh chips: skills/status/workspace (0.1.157)
+- [x] **P4-5bi** MarkdownLite `<footer>` + `<hgroup>` (0.1.157)
+- [x] **P4-1bg** Mock true/false/unset (0.1.157)
 
 ## P4 — 远期
 
