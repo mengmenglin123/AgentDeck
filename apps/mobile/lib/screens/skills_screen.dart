@@ -27,6 +27,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
   bool _queryRegex = false;
   String _source = '';
   String _category = '';
+  String _tag = ''; // empty=all
   bool _wrapLines = false;
   bool _sortBySource = false;
   bool _sortByDesc = false;
@@ -103,6 +104,24 @@ class _SkillsScreenState extends State<SkillsScreen> {
               cat.contains('research');
           if (known) return false;
         } else if (!cat.contains(_category)) {
+          return false;
+        }
+      }
+      if (_tag.isNotEmpty) {
+        final tagsRaw = s['tags'] is List
+            ? (s['tags'] as List).join(' ')
+            : (s['tags'] ?? s['labels'] ?? '');
+        final tags = tagsRaw.toString().toLowerCase();
+        if (_tag == 'other') {
+          final known = tags.contains('hermes') ||
+              tags.contains('git') ||
+              tags.contains('pr') ||
+              tags.contains('debug') ||
+              tags.contains('plan') ||
+              tags.contains('memory') ||
+              tags.contains('console');
+          if (known) return false;
+        } else if (!tags.contains(_tag)) {
           return false;
         }
       }
@@ -478,6 +497,30 @@ class _SkillsScreenState extends State<SkillsScreen> {
                               label: Text(f.$2, style: const TextStyle(fontSize: 11)),
                               selected: _category == f.$1,
                               onSelected: (_) => setState(() => _category = f.$1),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          for (final f in const [
+                            ('', 'Any tag'),
+                            ('hermes', 'hermes'),
+                            ('git', 'git'),
+                            ('debug', 'debug'),
+                            ('plan', 'plan'),
+                            ('memory', 'memory'),
+                            ('other', 'other'),
+                          ])
+                            FilterChip(
+                              label: Text(f.$2, style: const TextStyle(fontSize: 11)),
+                              selected: _tag == f.$1,
+                              onSelected: (_) => setState(() => _tag = f.$1),
                               visualDensity: VisualDensity.compact,
                             ),
                         ],

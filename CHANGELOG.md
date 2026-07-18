@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.127
+
+- Skills tag filter chips
+- MarkdownLite HTML `<mark>`
+- Mock cksum/sum/expand (+ help/which/type lockstep)
+
 ## 0.1.126
 
 - Diff path-prefix filter chips
