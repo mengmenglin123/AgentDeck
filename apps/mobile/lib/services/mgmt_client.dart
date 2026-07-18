@@ -409,7 +409,7 @@ class MgmtClient {
     late http.Response resp;
     try {
       if (method == 'GET' && _legacyGet != null) {
-        resp = await _legacyGet!(url, headers: headers).timeout(const Duration(seconds: 12));
+        resp = await _legacyGet(url, headers: headers).timeout(const Duration(seconds: 12));
       } else {
         resp = await _send(method, url, headers: headers, body: rawBody)
             .timeout(const Duration(seconds: 12));

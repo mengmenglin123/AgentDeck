@@ -412,7 +412,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                     final buf = StringBuffer();
                     for (final a in agents) {
                       if (a is Map) {
-                        final m = Map<String, dynamic>.from(a as Map);
+                        final m = Map<String, dynamic>.from(a as dynamic);
                         buf.writeln('agent: ${m['name'] ?? m['id'] ?? m}');
                         buf.writeln('  $m');
                       } else {
@@ -448,7 +448,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                     buf.writeln('kind,name,id,extra');
                     for (final a in agents) {
                       if (a is Map) {
-                        final m = Map<String, dynamic>.from(a as Map);
+                        final m = Map<String, dynamic>.from(a as dynamic);
                         final name = '${m['name'] ?? ''}'.replaceAll(',', ';');
                         final id = '${m['id'] ?? ''}'.replaceAll(',', ';');
                         final extra = '${m['model'] ?? m['provider'] ?? m['status'] ?? ''}'.replaceAll(',', ';');

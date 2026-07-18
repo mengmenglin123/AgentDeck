@@ -256,7 +256,6 @@ class _SkillsScreenState extends State<SkillsScreen> {
                 : () async {
                     final buf = StringBuffer();
                     for (final s in items) {
-                      if (s is Map) {
                         final name = (s['name'] ?? s['id'] ?? 'skill')
                             .toString();
                         final desc = (s['description'] ?? s['summary'] ?? '')
@@ -264,9 +263,6 @@ class _SkillsScreenState extends State<SkillsScreen> {
                         buf.writeln('## $name');
                         if (desc.isNotEmpty) buf.writeln(desc);
                         buf.writeln();
-                      } else {
-                        buf.writeln('$s');
-                      }
                     }
                     await Clipboard.setData(
                       ClipboardData(text: buf.toString()),
@@ -290,7 +286,6 @@ class _SkillsScreenState extends State<SkillsScreen> {
                     final buf = StringBuffer();
                     buf.writeln('name,source,category,version,description');
                     for (final s in items) {
-                      if (s is Map) {
                         final name = (s['name'] ?? s['id'] ?? 'skill')
                             .toString()
                             .replaceAll(',', ';');
@@ -308,9 +303,6 @@ class _SkillsScreenState extends State<SkillsScreen> {
                             .replaceAll(',', ';')
                             .replaceAll('\n', ' ');
                         buf.writeln('$name,$source,$category,$version,$desc');
-                      } else {
-                        buf.writeln('${'$s'.replaceAll(',', ';')},,,,');
-                      }
                     }
                     await Clipboard.setData(
                       ClipboardData(text: buf.toString()),

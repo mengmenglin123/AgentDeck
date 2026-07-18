@@ -243,16 +243,12 @@ class _McpScreenState extends State<McpScreen> {
                 : () async {
                     final buf = StringBuffer();
                     for (final s in items) {
-                      if (s is Map) {
                         final name = (s['name'] ?? s['id'] ?? 'mcp').toString();
                         final desc = (s['description'] ?? s['url'] ?? s['command'] ?? '').toString();
                         buf.writeln('## $name');
                         if (desc.isNotEmpty) buf.writeln(desc);
                         buf.writeln('$s');
                         buf.writeln();
-                      } else {
-                        buf.writeln('$s');
-                      }
                     }
                     await Clipboard.setData(ClipboardData(text: buf.toString()));
                     if (mounted) {
@@ -271,7 +267,6 @@ class _McpScreenState extends State<McpScreen> {
                     final buf = StringBuffer();
                     buf.writeln('name,status,description');
                     for (final s in items) {
-                      if (s is Map) {
                         final name = (s['name'] ?? s['id'] ?? 'mcp').toString().replaceAll(',', ';');
                         final status = (s['status'] ?? s['state'] ?? '').toString().replaceAll(',', ';');
                         final desc = (s['description'] ?? s['url'] ?? s['command'] ?? '')
@@ -279,9 +274,6 @@ class _McpScreenState extends State<McpScreen> {
                             .replaceAll(',', ';')
                             .replaceAll('\n', ' ');
                         buf.writeln('$name,$status,$desc');
-                      } else {
-                        buf.writeln('${'$s'.replaceAll(',', ';')},,');
-                      }
                     }
                     await Clipboard.setData(ClipboardData(text: buf.toString()));
                     if (mounted) {

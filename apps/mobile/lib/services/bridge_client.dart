@@ -43,7 +43,7 @@ class BridgeClient {
     final uri = Uri.parse(config.bridgeWsUrl);
     try {
       final channel = _connector != null
-          ? _connector!(uri)
+          ? _connector(uri)
           : WebSocketChannel.connect(uri);
       _channel = channel;
       _sub = channel.stream.listen(
