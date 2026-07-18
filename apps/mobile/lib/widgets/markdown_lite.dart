@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings (h1–h6), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5/h6, abbr, mark, spoiler, kbd, sup/sub, underline, del, autolink, strike, inline code, bold/italic.
+/// Covers headings (h1–h6), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5/h6, abbr, mark, spoiler, kbd, sup/sub, underline, del, ins, s, autolink, strike, inline code, bold/italic.
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -602,7 +602,7 @@ class MarkdownLite extends StatelessWidget {
   static TextSpan _inline(String text, TextStyle base) {
     final spans = <InlineSpan>[];
     final re = RegExp(
-          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<del>[^<]+</del>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
+          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
             );
     var i = 0;
     for (final m in re.allMatches(text)) {
@@ -676,6 +676,30 @@ class MarkdownLite extends StatelessWidget {
         ));
       } else if (tok.startsWith('<del>') && tok.endsWith('</del>')) {
         final body = tok.substring(5, tok.length - 6);
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            decoration: TextDecoration.lineThrough,
+            color: base.color?.withOpacity(0.7),
+          ),
+        ));
+      } else if (tok.startsWith('<ins>') && tok.endsWith('</ins>')) {
+        // HTML insert marker
+        final body = tok.substring(5, tok.length - 6);
+        final prior = base.decoration;
+        final deco = prior == null || prior == TextDecoration.none
+            ? TextDecoration.underline
+            : TextDecoration.combine(<TextDecoration>[prior, TextDecoration.underline]);
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            decoration: deco,
+            color: base.color?.withOpacity(0.95),
+          ),
+        ));
+      } else if (tok.startsWith('<s>') && tok.endsWith('</s>')) {
+        // HTML strike alias of del
+        final body = tok.substring(3, tok.length - 4);
         spans.add(TextSpan(
           text: body,
           style: base.copyWith(

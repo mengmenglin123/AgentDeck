@@ -34,6 +34,8 @@ class _AgentsScreenState extends State<AgentsScreen> {
   String _statusFilter = '';
   /// Adapter filter: '' | mock | hermes | claude | codex | other
   String _adapter = '';
+  /// Model filter: '' | gpt | claude | codex | gemini | other
+  String _model = '';
   bool _wrapLines = false;
   bool _sortByType = false;
   bool _sortByModel = false;
@@ -146,11 +148,35 @@ class _AgentsScreenState extends State<AgentsScreen> {
         return false;
       }
     }
+    if (_model.isNotEmpty) {
+      final mk = _agentModelKey(a);
+      if (_model == 'other') {
+        const known = [
+          'gpt',
+          'claude',
+          'sonnet',
+          'opus',
+          'haiku',
+          'codex',
+          'o1',
+          'o3',
+          'gemini',
+          'deepseek',
+          'qwen',
+          'mimo',
+          'minimax',
+        ];
+        if (known.any((k) => mk.contains(k))) return false;
+      } else if (!mk.contains(_model.toLowerCase())) {
+        return false;
+      }
+    }
     final rawQ = _query.trim();
     final q = _queryCase ? rawQ : rawQ.toLowerCase();
     if (rawQ.isEmpty) return true;
     final adapterHay = _agentAdapterKey(a);
-    final hayRaw = '${_agentTitle(a)} ${_agentSub(a)} $adapterHay';
+    final modelHay = _agentModelKey(a);
+    final hayRaw = '${_agentTitle(a)} ${_agentSub(a)} $adapterHay $modelHay';
     if (_queryRegex) {
       try {
         return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
@@ -816,6 +842,31 @@ class _AgentsScreenState extends State<AgentsScreen> {
                     selected: _adapter == f.$1,
                     onSelected: (_) => setState(() {
                       _adapter = (_adapter == f.$1) ? '' : f.$1;
+                    }),
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: [
+                for (final f in const [
+                  ('', 'Any model'),
+                  ('gpt', 'gpt'),
+                  ('claude', 'claude'),
+                  ('codex', 'codex'),
+                  ('gemini', 'gemini'),
+                  ('other', 'other'),
+                ])
+                  FilterChip(
+                    visualDensity: VisualDensity.compact,
+                    label: Text(f.$2, style: const TextStyle(fontSize: 11)),
+                    selected: _model == f.$1,
+                    onSelected: (_) => setState(() {
+                      _model = (_model == f.$1) ? '' : f.$1;
                     }),
                   ),
               ],

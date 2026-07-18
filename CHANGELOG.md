@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.119
+
+- Agents model filter chips
+- MarkdownLite `<ins>` + `<s>`
+- Mock arch/getconf/numfmt (+ help/which/type lockstep)
+
 ## 0.1.118
 
 - Agents adapter filter chips

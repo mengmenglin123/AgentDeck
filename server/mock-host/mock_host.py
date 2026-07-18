@@ -834,7 +834,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -911,7 +911,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         known = {
             "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date",
             "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help",
-            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type", "expr", "test", "factor", "bc", "nproc",
+            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1468,7 +1468,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
                 "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find",
                 "seq", "sort", "base64", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev",
                 "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum",
-                                "sha256sum", "expr", "test", "factor", "bc", "nproc",
+                                "sha256sum", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt",
                             }
             if name.split()[0] in builtins:
                 out(f"{name.split()[0]} is a shell builtin\n", done=True, exit_code=0)
@@ -2043,6 +2043,66 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
                     out("bc: division by zero\n", done=True, exit_code=1)
                 except Exception:
                     out("bc: (mock) expression error\n", done=True, exit_code=1)
+
+    elif lower == "arch":
+        # mock fixed arch (demo only — not real arch)
+        out("x86_64\n", done=True, exit_code=0)
+    elif lower.startswith("getconf ") or lower == "getconf":
+        # mock getconf: only a few keys (NPROCESSORS_ONLN / PAGE_SIZE family)
+        parts = data.strip().split()
+        if len(parts) < 2:
+            out("getconf: missing operand\nUsage: getconf NAME\n", done=True, exit_code=1)
+        else:
+            key = parts[1]
+            if key in {"NPROCESSORS_ONLN", "_NPROCESSORS_ONLN"}:
+                out("4\n", done=True, exit_code=0)
+            elif key in {"PAGE_SIZE", "PAGESIZE"}:
+                out("4096\n", done=True, exit_code=0)
+            else:
+                out("getconf: (mock) unknown key\n", done=True, exit_code=1)
+    elif lower.startswith("numfmt ") or lower == "numfmt":
+        # mock numfmt: simple humanize --to=iec (1024) / --to=si (1000)
+        parts = data.strip().split()
+        to = "iec"
+        n_raw = None
+        if len(parts) == 1:
+            out("numfmt: missing operand\n", done=True, exit_code=1)
+        else:
+            i = 1
+            while i < len(parts):
+                p = parts[i]
+                if p.startswith("--to="):
+                    to = p.split("=", 1)[1].lower()
+                    i += 1
+                elif p == "--to" and i + 1 < len(parts):
+                    to = parts[i + 1].lower()
+                    i += 2
+                else:
+                    n_raw = p
+                    break
+            if n_raw is None:
+                out("numfmt: missing operand\n", done=True, exit_code=1)
+            else:
+                try:
+                    n = int(n_raw)
+                except ValueError:
+                    out("numfmt: invalid number\n", done=True, exit_code=1)
+                else:
+                    if to not in {"iec", "si"}:
+                        out("numfmt: (mock) unsupported --to\n", done=True, exit_code=1)
+                    else:
+                        base = 1024 if to == "iec" else 1000
+                        units = ["", "K", "M", "G", "T", "P"]
+                        v = float(abs(n))
+                        u = 0
+                        while v >= base and u < len(units) - 1:
+                            v /= base
+                            u += 1
+                        sign = "-" if n < 0 else ""
+                        if u == 0:
+                            out(f"{sign}{int(v)}\n", done=True, exit_code=0)
+                        else:
+                            out(f"{sign}{v:.1f}{units[u]}\n", done=True, exit_code=0)
 
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)
