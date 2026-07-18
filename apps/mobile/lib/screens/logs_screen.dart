@@ -33,6 +33,7 @@ class _LogsScreenState extends State<LogsScreen> {
   bool _sortByLevel = false;
   bool _sortAsc = true;
   bool _autoRefresh = false;
+  bool _relativeTs = false;
 
   @override
   void initState() {
@@ -131,6 +132,27 @@ class _LogsScreenState extends State<LogsScreen> {
       return _newestFirst ? -c : c;
     });
     return list;
+  }
+
+  String _fmtWhen(dynamic ts) {
+    DateTime? dt;
+    if (ts is int) {
+      final ms = ts > 1e12 ? ts : ts * 1000;
+      dt = DateTime.fromMillisecondsSinceEpoch(ms.round()).toLocal();
+    } else if (ts is num) {
+      final n = ts.toDouble();
+      final ms = n > 1e12 ? n.round() : (n * 1000).round();
+      dt = DateTime.fromMillisecondsSinceEpoch(ms).toLocal();
+    } else {
+      dt = DateTime.tryParse(ts?.toString() ?? '')?.toLocal();
+    }
+    if (dt == null) return '$ts';
+    if (!_relativeTs) return dt.toIso8601String();
+    final d = DateTime.now().difference(dt);
+    if (d.inSeconds < 60) return '${d.inSeconds}s ago';
+    if (d.inMinutes < 60) return '${d.inMinutes}m ago';
+    if (d.inHours < 48) return '${d.inHours}h ago';
+    return '${d.inDays}d ago';
   }
 
   Color _levelColor(String level, ColorScheme cs) {
@@ -286,6 +308,12 @@ class _LogsScreenState extends State<LogsScreen> {
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
           ),
+          IconButton(
+            tooltip: _relativeTs ? 'Absolute timestamps' : 'Relative timestamps',
+            onPressed: () => setState(() => _relativeTs = !_relativeTs),
+            icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
+          ),
+
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],
       ),
@@ -357,9 +385,7 @@ class _LogsScreenState extends State<LogsScreen> {
                       final level = '${e['level'] ?? 'info'}';
                       final msg = '${e['message'] ?? ''}';
                       final ts = e['ts'];
-                      final when = ts is int
-                          ? DateTime.fromMillisecondsSinceEpoch(ts * 1000).toLocal().toIso8601String()
-                          : '$ts';
+                      final when = _fmtWhen(ts);
                       final color = _levelColor(level, cs);
                       return Container(
                         decoration: BoxDecoration(

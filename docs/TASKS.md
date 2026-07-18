@@ -289,6 +289,11 @@
 | P3-219 | Cron 按 kind 排序循环 | [x] |
 | P3-220 | Chat role 过滤 chips | [x] |
 
+| P3-221 | MCP 按 tools 数量排序 | [x] |
+| P3-222 | Status / Host 按 value 排序 | [x] |
+| P3-223 | Terminal find 区分大小写 | [x] |
+| P3-224 | Logs 相对时间戳 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

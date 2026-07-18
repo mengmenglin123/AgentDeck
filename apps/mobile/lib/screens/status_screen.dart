@@ -26,6 +26,7 @@ class _StatusScreenState extends State<StatusScreen> {
   Timer? _timer;
   bool _wrapLines = false;
   bool _sortAsc = true;
+  bool _sortByValue = false;
   String _keyQuery = '';
   String _capQuery = '';
   final _capFilterCtrl = TextEditingController();
@@ -224,9 +225,27 @@ class _StatusScreenState extends State<StatusScreen> {
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
           IconButton(
-            tooltip: _sortAsc ? 'Sort keys Z→A' : 'Sort keys A→Z',
-            onPressed: () => setState(() => _sortAsc = !_sortAsc),
-            icon: Icon(_sortAsc ? Icons.sort_by_alpha : Icons.sort),
+            tooltip: _sortByValue
+                ? (_sortAsc ? 'Values Z→A' : 'Values A→Z')
+                : (_sortAsc ? 'Keys Z→A' : 'Keys A→Z'),
+            onPressed: () {
+              setState(() {
+                if (!_sortByValue && _sortAsc) {
+                  _sortAsc = false;
+                } else if (!_sortByValue && !_sortAsc) {
+                  _sortByValue = true;
+                  _sortAsc = true;
+                } else if (_sortByValue && _sortAsc) {
+                  _sortAsc = false;
+                } else {
+                  _sortByValue = false;
+                  _sortAsc = true;
+                }
+              });
+            },
+            icon: Icon(_sortByValue
+                ? Icons.text_fields
+                : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)),
           ),
 
 
@@ -467,6 +486,10 @@ class _StatusScreenState extends State<StatusScreen> {
                     .toList();
               }
               entries.sort((a, b) {
+                if (_sortByValue) {
+                  final c = '${a.value}'.toLowerCase().compareTo('${b.value}'.toLowerCase());
+                  if (c != 0) return _sortAsc ? c : -c;
+                }
                 final c = a.key.toLowerCase().compareTo(b.key.toLowerCase());
                 return _sortAsc ? c : -c;
               });

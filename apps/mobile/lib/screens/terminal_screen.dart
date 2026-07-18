@@ -45,6 +45,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
   bool _showTs = false;
   final _findCtrl = TextEditingController();
   String _findQuery = '';
+  bool _findCase = false;
 
   @override
   void initState() {
@@ -285,14 +286,17 @@ class _TerminalScreenState extends State<TerminalScreen> {
 
   String get _displayBuffer {
     final full = _buf.toString();
-    final q = _findQuery.trim().toLowerCase();
+    final rawQ = _findQuery.trim();
+    final q = _findCase ? rawQ : rawQ.toLowerCase();
     var lines = full.split('\n');
     // Drop trailing empty from final newline for consistent processing.
     if (lines.isNotEmpty && lines.last.isEmpty) {
       lines = lines.sublist(0, lines.length - 1);
     }
     if (q.isNotEmpty) {
-      lines = lines.where((l) => l.toLowerCase().contains(q)).toList();
+      lines = lines
+          .where((l) => (_findCase ? l : l.toLowerCase()).contains(q))
+          .toList();
       if (lines.isEmpty) return '(no lines match find: $_findQuery)\n';
     }
     if (_showTs) {
@@ -530,10 +534,19 @@ class _TerminalScreenState extends State<TerminalScreen> {
                 controller: _findCtrl,
                 style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
                 decoration: InputDecoration(
-                  hintText: 'Find in local buffer (client-only)',
+                  hintText: _findCase
+                      ? 'Find (case-sensitive, client-only)'
+                      : 'Find in local buffer (client-only)',
                   isDense: true,
                   border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.search, size: 18),
+                  prefixIcon: IconButton(
+                    tooltip: _findCase ? 'Case-sensitive on' : 'Case-insensitive',
+                    icon: Icon(
+                      _findCase ? Icons.text_fields : Icons.search,
+                      size: 18,
+                    ),
+                    onPressed: () => setState(() => _findCase = !_findCase),
+                  ),
                   suffixIcon: _findQuery.isEmpty
                       ? null
                       : IconButton(

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.62
+
+- MCP: sort by tool count
+- Status / Host Dashboard: sort keys by value
+- Terminal: case-sensitive find toggle
+- Logs: relative timestamps toggle
+
 ## 0.1.61
 
 - Settings: filter preference tiles by text
