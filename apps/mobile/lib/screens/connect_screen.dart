@@ -242,6 +242,35 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   },
             icon: const Icon(Icons.ios_share_outlined),
           ),
+          IconButton(
+            tooltip: 'Copy profiles CSV',
+            onPressed: controller.profiles.isEmpty
+                ? null
+                : () async {
+                    final buf = StringBuffer();
+                    buf.writeln('id,name,host,bridge_port,mgmt_port,use_tls,note');
+                    for (final p in controller.profiles) {
+                      final id = p.id.replaceAll('"', '""');
+                      final name = p.name.replaceAll('"', '""');
+                      final host = p.config.host.replaceAll('"', '""');
+                      final note = (p.note ?? '').replaceAll('"', '""');
+                      buf.writeln(
+                        '"$id","$name","$host",${p.config.bridgePort},${p.config.mgmtPort},${p.config.useTls},"$note"',
+                      );
+                    }
+                    await Clipboard.setData(ClipboardData(text: buf.toString()));
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Copied profiles CSV (${controller.profiles.length})'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    }
+                  },
+            icon: const Icon(Icons.table_chart_outlined),
+          ),
+
 
           IconButton(
             tooltip: 'Import pairing URI',

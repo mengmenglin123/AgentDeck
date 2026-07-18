@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.51
+
+- Host Dashboard: pause/resume auto-refresh
+- Status: wrap/clamp raw status values
+- Connect: copy profiles CSV (no tokens)
+- Agents: wrap/clamp list details
+
 ## 0.1.50
 
 - Pairing: copy public CSV (no tokens)

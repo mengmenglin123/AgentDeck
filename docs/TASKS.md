@@ -234,6 +234,11 @@
 | P3-175 | Settings 复制 About/版本信息 | [x] |
 | P3-176 | Terminal buffer 导出 CSV 行 | [x] |
 
+| P3-177 | Host Dashboard 暂停自动刷新 | [x] |
+| P3-178 | Status 详情换行/截断 | [x] |
+| P3-179 | Connect 导出 profiles CSV（无 token） | [x] |
+| P3-180 | Agents 列表详情换行/截断 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

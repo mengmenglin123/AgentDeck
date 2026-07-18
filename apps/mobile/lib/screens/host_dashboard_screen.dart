@@ -31,6 +31,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
   String? _error;
   bool _loading = true;
   Timer? _timer;
+  bool _autoRefresh = true;
   final _scroll = ScrollController();
   DateTime? _lastOk;
   String _capFilter = '';
@@ -53,7 +54,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
 
   void _armTimer() {
     _timer?.cancel();
-    if (!mounted) return;
+    if (!mounted || !_autoRefresh) return;
     final sec = context.read<AppSettingsController>().dashboardRefreshSec;
     if (sec <= 0) return;
     _timer = Timer.periodic(Duration(seconds: sec), (_) {
@@ -169,7 +170,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final armed = _timer != null;
-      final want = refreshSec > 0;
+      final want = refreshSec > 0 && _autoRefresh;
       if (armed != want || (want && _timer?.isActive != true)) {
         _armTimer();
       }
@@ -178,7 +179,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          refreshSec > 0 ? 'Host status · auto ${refreshSec}s' : 'Host status',
+          _autoRefresh && refreshSec > 0 ? 'Host status · auto ${refreshSec}s' : 'Host status',
         ),
         actions: [
           IconButton(
@@ -216,6 +217,15 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
             },
             icon: const Icon(Icons.vertical_align_bottom),
           ),
+          IconButton(
+            tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
+            onPressed: () {
+              setState(() => _autoRefresh = !_autoRefresh);
+              _armTimer();
+            },
+            icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
+          ),
+
 
 
 

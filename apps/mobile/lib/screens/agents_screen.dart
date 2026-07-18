@@ -29,6 +29,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
   String _query = '';
   /// all | agents | platforms | projects
   String _section = 'all';
+  bool _wrapLines = false;
   bool _sortAsc = true;
   final _scroll = ScrollController();
   Timer? _timer;
@@ -258,6 +259,12 @@ class _AgentsScreenState extends State<AgentsScreen> {
             icon: Icon(_sortAsc ? Icons.sort_by_alpha : Icons.sort),
           ),
           IconButton(
+            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            onPressed: () => setState(() => _wrapLines = !_wrapLines),
+            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
+          ),
+
+          IconButton(
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
@@ -363,7 +370,12 @@ class _AgentsScreenState extends State<AgentsScreen> {
                           dense: true,
                           leading: const Icon(Icons.smart_toy_outlined),
                           title: Text(_agentTitle(a)),
-                          subtitle: Text(_agentSub(a)),
+                          subtitle: Text(
+                            _agentSub(a),
+                            maxLines: _wrapLines ? 8 : 2,
+                            overflow: TextOverflow.ellipsis,
+                            softWrap: true,
+                          ),
                           trailing: IconButton(
                             tooltip: 'Copy',
                             icon: const Icon(Icons.copy, size: 18),
@@ -409,6 +421,9 @@ class _AgentsScreenState extends State<AgentsScreen> {
                       subtitle: Text(
                         'agent=${p['agent_type']} · sessions=${p['sessions_count']}'
                         '${(p['note'] != null && '${p['note']}'.isNotEmpty) ? '\n${p['note']}' : ''}',
+                        maxLines: _wrapLines ? 8 : 2,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: true,
                       ),
                       isThreeLine: (p['note'] != null && '${p['note']}'.isNotEmpty),
                       trailing: Text(

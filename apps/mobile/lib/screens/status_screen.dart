@@ -24,6 +24,7 @@ class _StatusScreenState extends State<StatusScreen> {
   String? _error;
   Map<String, dynamic> _status = const {};
   Timer? _timer;
+  bool _wrapLines = false;
   bool _autoRefresh = true;
   final _scroll = ScrollController();
 
@@ -211,6 +212,12 @@ class _StatusScreenState extends State<StatusScreen> {
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
+            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            onPressed: () => setState(() => _wrapLines = !_wrapLines),
+            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
+          ),
+
+          IconButton(
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
@@ -396,7 +403,12 @@ class _StatusScreenState extends State<StatusScreen> {
                 dense: true,
                 contentPadding: EdgeInsets.zero,
                 title: Text(e.key),
-                subtitle: Text('${e.value}'),
+                subtitle: Text(
+                  '${e.value}',
+                  maxLines: _wrapLines ? 12 : 2,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
+                ),
               ),
             ),
           const SizedBox(height: 16),
