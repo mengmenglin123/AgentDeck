@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.92
+
+- Sessions sort by live
+- MCP explicit name sort
+- Status / Host Dashboard explicit key sort
+
 ## 0.1.91
 
 - Agents capabilities count sort

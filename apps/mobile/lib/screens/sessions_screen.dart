@@ -426,6 +426,10 @@ class _SessionsScreenState extends State<SessionsScreen> {
           final rc = (a.running ? 1 : 0).compareTo(b.running ? 1 : 0);
           if (rc != 0) return dir(-rc); // running first in default dir
           return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
+        case 'live':
+          final lc = (a.live ? 1 : 0).compareTo(b.live ? 1 : 0);
+          if (lc != 0) return dir(-lc); // live first
+          return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
         case 'recent':
           final ar = _recentRank[a.sessionKey];
           final br = _recentRank[b.sessionKey];
@@ -980,6 +984,10 @@ class _SessionsScreenState extends State<SessionsScreen> {
                             PopupMenuItem(value: 'key', child: Text('Sort: Key')),
                             PopupMenuItem(value: 'platform', child: Text('Sort: Platform')),
                             PopupMenuItem(value: 'agent', child: Text('Sort: Agent')),
+                            PopupMenuItem(value: 'mode', child: Text('Sort: Mode')),
+                            PopupMenuItem(value: 'workdir', child: Text('Sort: Workdir')),
+                            PopupMenuItem(value: 'running', child: Text('Sort: Running')),
+                            PopupMenuItem(value: 'live', child: Text('Sort: Live')),
                           ],
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -998,6 +1006,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                   'mode': 'Mode',
                                   'workdir': 'Workdir',
                                   'running': 'Running',
+                                  'live': 'Live',
                                 }[settings.sessionSort] ??
                                     'Updated',
                                 style: const TextStyle(fontSize: 12),

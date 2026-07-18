@@ -439,6 +439,11 @@
 | P3-339 | Sessions 按 workdir 排序 | [x] |
 | P3-340 | Sessions 按 running 排序 | [x] |
 
+| P3-341 | Sessions 按 live 排序 | [x] |
+| P3-342 | MCP 显式 name 排序 | [x] |
+| P3-343 | Status 显式 key 排序 | [x] |
+| P3-344 | Host Dashboard 显式 key 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |
