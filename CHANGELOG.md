@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.70
+
+- Logs: sort by logger/source
+- Memory: relative timestamps toggle
+- Sessions: sort by model
+- Settings: case-sensitive pref filter
+
 ## 0.1.69
 
 - Audit: relative timestamps toggle

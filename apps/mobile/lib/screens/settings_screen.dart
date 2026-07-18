@@ -17,6 +17,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _scroll = ScrollController();
   bool _wrapLines = false;
   String _prefQuery = '';
+  bool _prefCase = false;
   final _prefFilterCtrl = TextEditingController();
 
   @override
@@ -27,8 +28,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   bool _matchPref(String title, [String subtitle = '']) {
-    final q = _prefQuery.trim().toLowerCase();
-    if (q.isEmpty) return true;
+    final raw = _prefQuery.trim();
+    if (raw.isEmpty) return true;
+    if (_prefCase) {
+      return title.contains(raw) || subtitle.contains(raw);
+    }
+    final q = raw.toLowerCase();
     return title.toLowerCase().contains(q) || subtitle.toLowerCase().contains(q);
   }
 
@@ -86,8 +91,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             controller: _prefFilterCtrl,
             decoration: InputDecoration(
               isDense: true,
-              prefixIcon: const Icon(Icons.search, size: 18),
-              hintText: 'Filter settings',
+              prefixIcon: IconButton(
+                tooltip: _prefCase ? 'Case-sensitive on' : 'Case-insensitive',
+                icon: Icon(
+                  _prefCase ? Icons.text_fields : Icons.search,
+                  size: 18,
+                ),
+                onPressed: () => setState(() => _prefCase = !_prefCase),
+              ),
+              hintText: _prefCase ? 'Filter settings (case-sensitive)' : 'Filter settings',
               border: const OutlineInputBorder(),
               suffixIcon: _prefQuery.isEmpty
                   ? null
@@ -178,6 +190,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ('title', 'Title'),
                   ('project', 'Project'),
                   ('created', 'Created'),
+                  ('model', 'Model'),
                 ])
                   ChoiceChip(
                     label: Text(e.$2),
@@ -346,13 +359,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.tag),
             title: const Text('App version'),
-            subtitle: _sub('0.1.69+69 · console only · protocol Mock/self-host'),
+            subtitle: _sub('0.1.70+70 · console only · protocol Mock/self-host'),
             trailing: IconButton(
               tooltip: 'Copy about',
               icon: const Icon(Icons.copy_outlined),
               onPressed: () async {
                 const text =
-                    'HuanHermes App 0.1.69+69\nconsole only · protocol Mock/self-host\nNo agent loop on device · tokens never in about text';
+                    'HuanHermes App 0.1.70+70\nconsole only · protocol Mock/self-host\nNo agent loop on device · tokens never in about text';
                 await Clipboard.setData(const ClipboardData(text: text));
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -386,6 +399,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return 'By project then title';
       case 'created':
         return 'By created time (newest first)';
+      case 'model':
+        return 'By model then title';
       case 'recent':
         return 'By recently opened on this device (pins still first)';
       default:

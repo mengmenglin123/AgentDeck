@@ -32,6 +32,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
   bool _sortByContent = false;
   bool _sortByConfidence = false;
   bool _sortAsc = true;
+  bool _relativeTs = false;
   bool _newestFirst = true;
   final _scroll = ScrollController();
   Timer? _timer;
@@ -167,6 +168,31 @@ class _MemoryScreenState extends State<MemoryScreen> {
     });
   }
 
+
+  String _fmtMemTs(Map m) {
+    final v = m['updated_at'] ?? m['created_at'] ?? m['ts'] ?? m['time'];
+    DateTime? dt;
+    if (v is num) {
+      final n = v.toDouble();
+      final ms = n > 1e12 ? n.round() : (n * 1000).round();
+      dt = DateTime.fromMillisecondsSinceEpoch(ms).toLocal();
+    } else {
+      dt = DateTime.tryParse(v?.toString() ?? '')?.toLocal();
+    }
+    if (dt == null) return '';
+    if (!_relativeTs) {
+      return dt.toIso8601String().replaceFirst('T', ' ').substring(0, 19);
+    }
+    final d = DateTime.now().difference(dt);
+    if (d.isNegative) {
+      return dt.toIso8601String().replaceFirst('T', ' ').substring(0, 19);
+    }
+    if (d.inSeconds < 60) return '${d.inSeconds}s ago';
+    if (d.inMinutes < 60) return '${d.inMinutes}m ago';
+    if (d.inHours < 48) return '${d.inHours}h ago';
+    return '${d.inDays}d ago';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -238,6 +264,11 @@ class _MemoryScreenState extends State<MemoryScreen> {
             tooltip: _newestFirst ? 'Oldest first' : 'Newest first',
             onPressed: () => setState(() => _newestFirst = !_newestFirst),
             icon: Icon(_newestFirst ? Icons.arrow_downward : Icons.arrow_upward),
+          ),
+          IconButton(
+            tooltip: _relativeTs ? 'Absolute timestamps' : 'Relative timestamps',
+            onPressed: () => setState(() => _relativeTs = !_relativeTs),
+            icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
           IconButton(
             tooltip: _sortByConfidence
@@ -456,7 +487,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
                           ),
                           title: Text(title),
                           subtitle: Text(
-                            '[$scope/$type${conf.isNotEmpty ? ' · $conf' : ''}]\n'
+                            '[$scope/$type${conf.isNotEmpty ? ' · $conf' : ''}${_fmtMemTs(m).isNotEmpty ? ' · ${_fmtMemTs(m)}' : ''}]\n'
                             '${_wrapLines ? content : (content.length > 160 ? '${content.substring(0, 160)}…' : content)}',
                             maxLines: _wrapLines ? 12 : 4,
                             overflow: TextOverflow.ellipsis,

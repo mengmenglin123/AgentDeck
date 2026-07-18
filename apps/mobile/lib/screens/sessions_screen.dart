@@ -387,6 +387,10 @@ class _SessionsScreenState extends State<SessionsScreen> {
           return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
         case 'created':
           return dir((b.createdAt ?? b.updatedAt ?? 0).compareTo(a.createdAt ?? a.updatedAt ?? 0));
+        case 'model':
+          final mc = (a.model ?? '').toLowerCase().compareTo((b.model ?? '').toLowerCase());
+          if (mc != 0) return dir(mc);
+          return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
         case 'recent':
           final ar = _recentRank[a.sessionKey];
           final br = _recentRank[b.sessionKey];
@@ -919,6 +923,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                             PopupMenuItem(value: 'title', child: Text('Sort: Title')),
                             PopupMenuItem(value: 'project', child: Text('Sort: Project')),
                             PopupMenuItem(value: 'created', child: Text('Sort: Created')),
+                            PopupMenuItem(value: 'model', child: Text('Sort: Model')),
                           ],
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -929,6 +934,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                   'title': 'Title',
                                   'project': 'Project',
                                   'created': 'Created',
+                                  'model': 'Model',
                                   'recent': 'Recent',
                                 }[settings.sessionSort] ??
                                     'Updated',

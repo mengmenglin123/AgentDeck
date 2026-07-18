@@ -329,6 +329,11 @@
 | P3-251 | Chat regex 搜索 | [x] |
 | P3-252 | Cron 按 next_run 排序 | [x] |
 
+| P3-253 | Logs 按 logger 排序 | [x] |
+| P3-254 | Memory 相对时间戳 | [x] |
+| P3-255 | Sessions 按 model 排序 | [x] |
+| P3-256 | Settings 过滤区分大小写 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |
