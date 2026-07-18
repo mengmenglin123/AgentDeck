@@ -479,6 +479,9 @@
 - [x] **P4-4d** Terminal resume reconnect + Reconnect action (0.1.99)
 - [x] **P4-2b** Pairing paste card (public, no tokens) (0.1.99)
 - [x] **P4-3c** Mock skills category/version + hermes reply tasks (0.1.99)
+- [x] **P4-5f** MarkdownLite strikethrough (0.1.100)
+- [x] **P4-3d** Agents caps/note + Status hermes chip; mock status/activity seed (0.1.100)
+- [x] **P4-4e** In-app permission SnackBar (system notifications still future) (0.1.100)
 
 ## P4 — 远期
 
@@ -486,9 +489,9 @@
 |----|------|------|
 | P4-1 | 真远程 PTY（App 推送 cols/rows + Mock 记忆几何；真 ioctl/shell 仍远期） | [~] |
 | P4-2 | 相机扫码配对（剪贴板 URI + paste card 已有；真相机仍远期） | [~] |
-| P4-3 | Host 真 Hermes adapter（Mock agents/memory/tool 已加深；真进程仍远期） | [~] |
-| P4-4 | 通知 / 后台重连（Chat+Terminal resume/reconnect 已有；系统通知仍远期） | [~] |
-| P4-5 | 更完整代码高亮 / 真文件选择器（着色+表格/任务/链接/行号/附件 chip 已有；真 file_picker 仍远期） | [~] |
+| P4-3 | Host 真 Hermes adapter（Mock status/agents/skills/memory 已加深；真进程仍远期） | [~] |
+| P4-4 | 通知 / 后台重连（resume/reconnect + 应用内 permission snack 已有；系统通知仍远期） | [~] |
+| P4-5 | 更完整代码高亮 / 真文件选择器（着色+表格/任务/链接/删除线/行号/附件 chip 已有；真 file_picker 仍远期） | [~] |
 
 ## 验收命令
 

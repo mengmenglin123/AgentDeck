@@ -108,9 +108,15 @@ class _AgentsScreenState extends State<AgentsScreen> {
   String _agentSub(dynamic a) {
     if (a is Map) {
       final parts = <String>[];
-      for (final k in ['type', 'agent_type', 'status', 'model', 'provider', 'description', 'version']) {
+      for (final k in ['type', 'agent_type', 'status', 'model', 'provider', 'description', 'version', 'note']) {
         final v = a[k];
         if (v != null && '$v'.isNotEmpty) parts.add('$k=$v');
+      }
+      final caps = a['capabilities'] ?? a['caps'];
+      if (caps is List && caps.isNotEmpty) {
+        parts.add('caps=${caps.map((e) => '$e').join(',')}');
+      } else if (caps != null && '$caps'.isNotEmpty) {
+        parts.add('caps=$caps');
       }
       return parts.isEmpty ? 'Host agent entry' : parts.join(' · ');
     }
@@ -837,7 +843,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                           title: Text(_agentTitle(a)),
                           subtitle: Text(
                             _agentSub(a),
-                            maxLines: _wrapLines ? 8 : 2,
+                            maxLines: _wrapLines ? 10 : 3,
                             overflow: TextOverflow.ellipsis,
                             softWrap: true,
                           ),

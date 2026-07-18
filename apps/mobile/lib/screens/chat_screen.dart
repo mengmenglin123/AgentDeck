@@ -37,6 +37,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   final _scroll = ScrollController();
   final List<Map<String, dynamic>> _pendingImages = [];
   final List<Map<String, dynamic>> _pendingFiles = [];
+  int _permMsgCount = 0;
+  DateTime? _lastPermissionSnackAt;
   bool _searchOpen = false;
   final _searchCtrl = TextEditingController();
   String _searchQ = '';
@@ -138,16 +140,25 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   void _onChat() {
     if (!mounted) return;
+    final permN = _chat.messages.where((m) => m.role == 'permission').length;
+    if (permN > _permMsgCount) {
+      _permMsgCount = permN;
+      final now = DateTime.now();
+      final last = _lastPermissionSnackAt;
+      if (last == null || now.difference(last).inSeconds >= 2) {
+        _lastPermissionSnackAt = now;
+        // In-app notice only (system notifications remain P4).
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          const SnackBar(
+            content: Text('Permission required — review buttons in chat'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } else {
+      _permMsgCount = permN;
+    }
     setState(() {});
-    if (!_stickToBottom) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_scroll.hasClients || !_stickToBottom) return;
-      _scroll.animateTo(
-        _scroll.position.maxScrollExtent + 80,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-      );
-    });
   }
 
   @override

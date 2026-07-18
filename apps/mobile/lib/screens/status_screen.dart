@@ -122,6 +122,10 @@ class _StatusScreenState extends State<StatusScreen> {
       'mgmt: ${cfg.mgmtBaseUrl}',
       'bridge: ${cfg.bridgeWsUrlRedacted}',
       'version: ${_status['version'] ?? '—'}',
+      if (_status['hermes'] is Map)
+        'hermes: ${(_status['hermes'] as Map)['adapter'] ?? '—'}'
+        ' process=${(_status['hermes'] as Map)['process']}'
+        ' ${(_status['hermes'] as Map)['note'] ?? ''}',
       'uptime: ${_fmtUptime(_status['uptime_seconds'])}',
       'projects: ${_status['projects_count'] ?? '—'}',
       'sessions: ${_status['sessions_count'] ?? '—'}',
@@ -476,6 +480,14 @@ class _StatusScreenState extends State<StatusScreen> {
             runSpacing: 8,
             children: [
               Chip(label: Text('version ${status['version'] ?? '—'}')),
+              if (status['hermes'] is Map)
+                Chip(
+                  avatar: const Icon(Icons.psychology_alt_outlined, size: 16),
+                  label: Text(
+                    'hermes ${((status['hermes'] as Map)['adapter'] ?? '—')}'
+                    '${((status['hermes'] as Map)['process'] == true) ? ' · live' : ' · no process'}',
+                  ),
+                ),
               Chip(label: Text('uptime ${_fmtUptime(status['uptime_seconds'])}')),
               Chip(label: Text('projects ${status['projects_count'] ?? '—'}')),
               Chip(label: Text('sessions ${status['sessions_count'] ?? '—'}')),

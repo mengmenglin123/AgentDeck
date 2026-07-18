@@ -337,6 +337,26 @@ def activity_push(kind: str, summary: str, **extra: Any) -> None:
             del ACTIVITY_EVENTS[: len(ACTIVITY_EVENTS) - ACTIVITY_MAX]
 
 
+
+
+def seed_demo_activity() -> None:
+    """Idempotent demo events for Host activity screen (P4 console depth)."""
+    with ACTIVITY_LOCK:
+        if ACTIVITY_EVENTS:
+            return
+    samples = [
+        ("host.started", "Mock Host ready"),
+        ("hermes.adapter.mock", "Hermes project uses mock adapter (ADR-002)"),
+        ("bridge.listening", "Bridge WebSocket accepting console clients"),
+        ("terminal.geometry", "Default geometry 80x24 (client may resize)"),
+        ("security.pairing", "Pairing URI must never embed tokens"),
+    ]
+    for kind, summary in samples:
+        activity_push(kind, summary, source="mock-host", level="info")
+
+
+seed_demo_activity()
+
 def activity_list(limit: int = 50) -> List[Dict[str, Any]]:
     with ACTIVITY_LOCK:
         items = list(ACTIVITY_EVENTS)
@@ -868,7 +888,7 @@ def _handle_message(conn: socket.socket, msg: Dict[str, Any]) -> None:
             "| hermes | mock |\n"
             "| claude-code | mock |\n\n"
             "- [x] memory.search stub\n"
-            "- [ ] real Hermes process (Host adapter)\n"
+            "- [ ] ~~real process~~ still mock (Host adapter later)\n"
             "- [ ] system notifications\n\n"
             "Docs: [ADR-002](docs/adr/002-hermes-adapter.md)\n\n"
             "```dart\n"
@@ -1184,7 +1204,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                 {
                     "ok": True,
                     "data": {
-                        "version": "mock-0.1.13",
+                        "version": "mock-0.1.100",
                         "uptime_seconds": int(time.time() - START_TS),
                         "connected_platforms": ["bridge"],
                         "projects_count": len(PROJECTS),
@@ -1201,14 +1221,27 @@ class MgmtHandler(BaseHTTPRequestHandler):
                             "cron_readonly",
                             "diff_readonly",
                             "activity_readonly",
-                "logs_readonly",
+                            "logs_readonly",
+                            "agents_catalog",
                         ],
+                        "hermes": {
+                            "adapter": "mock",
+                            "process": False,
+                            "adr": "002",
+                            "note": "Bridge shape only — real Hermes process is Host-side later",
+                        },
                         "bridge_adapters": [
                             {
                                 "platform": "huanhermes-app",
                                 "project": "*",
                                 "capabilities": ["text", "buttons", "typing", "preview", "terminal"],
-                            }
+                            },
+                            {
+                                "platform": "hermes-mock",
+                                "project": "hermes",
+                                "capabilities": ["text", "buttons", "tools", "memory", "cancel"],
+                                "status": "mock",
+                            },
                         ],
                     },
                 },

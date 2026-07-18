@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.100
+
+- MarkdownLite strikethrough ~~text~~ (P4-5)
+- Agents subtitle note + capabilities; Status hermes adapter chip (P4-3)
+- In-app permission SnackBar (not system notifications) (P4-4)
+- Mock status hermes block + activity seed events (P4-3/P4-4 surface)
+
 ## 0.1.99
 
 - MarkdownLite task lists + richer link display (P4-5)
