@@ -26,6 +26,8 @@ class _StatusScreenState extends State<StatusScreen> {
   Timer? _timer;
   bool _wrapLines = false;
   bool _sortAsc = true;
+  String _keyQuery = '';
+  final _keyFilterCtrl = TextEditingController();
   bool _autoRefresh = true;
   final _scroll = ScrollController();
 
@@ -40,6 +42,7 @@ class _StatusScreenState extends State<StatusScreen> {
 
   @override
   void dispose() {
+    _keyFilterCtrl.dispose();
     _timer?.cancel();
     _scroll.dispose();
     super.dispose();
@@ -398,6 +401,26 @@ class _StatusScreenState extends State<StatusScreen> {
             ),
           ],
           const SizedBox(height: 16),
+          TextField(
+            controller: _keyFilterCtrl,
+            decoration: InputDecoration(
+              isDense: true,
+              prefixIcon: const Icon(Icons.search, size: 18),
+              hintText: 'Filter keys / values',
+              border: const OutlineInputBorder(),
+              suffixIcon: _keyQuery.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: () {
+                        _keyFilterCtrl.clear();
+                        setState(() => _keyQuery = '');
+                      },
+                    ),
+            ),
+            onChanged: (v) => setState(() => _keyQuery = v),
+          ),
+          const SizedBox(height: 8),
           Text('Raw /status keys', style: Theme.of(context).textTheme.titleSmall),
           if (status.isEmpty)
             const Padding(
@@ -406,11 +429,19 @@ class _StatusScreenState extends State<StatusScreen> {
             )
           else
             ...(() {
-              final entries = status.entries.toList()
-                ..sort((a, b) {
-                  final c = a.key.toLowerCase().compareTo(b.key.toLowerCase());
-                  return _sortAsc ? c : -c;
-                });
+              final q = _keyQuery.trim().toLowerCase();
+              var entries = status.entries.toList();
+              if (q.isNotEmpty) {
+                entries = entries
+                    .where((e) =>
+                        e.key.toLowerCase().contains(q) ||
+                        '${e.value}'.toLowerCase().contains(q))
+                    .toList();
+              }
+              entries.sort((a, b) {
+                final c = a.key.toLowerCase().compareTo(b.key.toLowerCase());
+                return _sortAsc ? c : -c;
+              });
               return entries;
             })().map(
               (e) => ListTile(

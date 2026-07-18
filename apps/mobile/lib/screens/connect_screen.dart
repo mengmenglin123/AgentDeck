@@ -24,6 +24,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
   late final TextEditingController _mgmtToken;
   bool _obscureBridge = true;
   bool _obscureMgmt = true;
+  bool _wrapLines = false;
   bool _useTls = false;
 
   @override
@@ -270,6 +271,12 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   },
             icon: const Icon(Icons.table_chart_outlined),
           ),
+          IconButton(
+            tooltip: _wrapLines ? 'Clamp health text' : 'Wrap health text',
+            onPressed: () => setState(() => _wrapLines = !_wrapLines),
+            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
+          ),
+
 
 
           IconButton(
@@ -311,7 +318,11 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 children: controller.profiles.map((p) {
                   final selected = p.id == controller.activeProfileId;
                   return FilterChip(
-                    label: Text(p.name),
+                    label: Text(
+                      p.name,
+                      maxLines: _wrapLines ? 2 : 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     selected: selected,
                     onSelected: busy
                         ? null
@@ -534,7 +545,12 @@ class _ConnectionStatusBanner extends StatelessWidget {
         dense: true,
         leading: Icon(icon, color: color),
         title: Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: color)),
-        subtitle: Text(subtitle, maxLines: 3, overflow: TextOverflow.ellipsis),
+        subtitle: Text(
+          subtitle,
+          maxLines: _wrapLines ? 8 : 3,
+          overflow: TextOverflow.ellipsis,
+          softWrap: true,
+        ),
       ),
     );
   }

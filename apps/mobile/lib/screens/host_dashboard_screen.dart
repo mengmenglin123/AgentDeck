@@ -33,6 +33,8 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
   Timer? _timer;
   bool _wrapLines = false;
   bool _sortAsc = true;
+  String _keyQuery = '';
+  final _keyFilterCtrl = TextEditingController();
   bool _autoRefresh = true;
   final _scroll = ScrollController();
   DateTime? _lastOk;
@@ -49,6 +51,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
 
   @override
   void dispose() {
+    _keyFilterCtrl.dispose();
     _scroll.dispose();
     _timer?.cancel();
     super.dispose();
@@ -498,11 +501,44 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                 ExpansionTile(
                   title: const Text('Raw /status'),
                   children: [
-                    for (final e in (_status.entries.toList()
-                        ..sort((a, b) {
-                          final c = a.key.toLowerCase().compareTo(b.key.toLowerCase());
-                          return _sortAsc ? c : -c;
-                        })))
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: TextField(
+                        controller: _keyFilterCtrl,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          prefixIcon: const Icon(Icons.search, size: 18),
+                          hintText: 'Filter keys / values',
+                          border: const OutlineInputBorder(),
+                          suffixIcon: _keyQuery.isEmpty
+                              ? null
+                              : IconButton(
+                                  icon: const Icon(Icons.clear, size: 18),
+                                  onPressed: () {
+                                    _keyFilterCtrl.clear();
+                                    setState(() => _keyQuery = '');
+                                  },
+                                ),
+                        ),
+                        onChanged: (v) => setState(() => _keyQuery = v),
+                      ),
+                    ),
+                    for (final e in (() {
+                      final q = _keyQuery.trim().toLowerCase();
+                      var entries = _status.entries.toList();
+                      if (q.isNotEmpty) {
+                        entries = entries
+                            .where((e) =>
+                                e.key.toLowerCase().contains(q) ||
+                                '${e.value}'.toLowerCase().contains(q))
+                            .toList();
+                      }
+                      entries.sort((a, b) {
+                        final c = a.key.toLowerCase().compareTo(b.key.toLowerCase());
+                        return _sortAsc ? c : -c;
+                      });
+                      return entries;
+                    })())
                       ListTile(
                         dense: true,
                         title: Text(e.key),

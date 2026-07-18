@@ -254,6 +254,11 @@
 | P3-191 | Memory 标题 A→Z/Z→A 排序 | [x] |
 | P3-192 | Chat 长消息 clamp/expand | [x] |
 
+| P3-193 | Status raw keys 过滤 | [x] |
+| P3-194 | Host Dashboard raw /status 过滤 | [x] |
+| P3-195 | Connect 健康/档案文案换行截断 | [x] |
+| P3-196 | Activity 按 kind A→Z/Z→A 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

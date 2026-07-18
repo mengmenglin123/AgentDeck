@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.55
+
+- Status: filter raw keys / values
+- Host Dashboard: filter raw /status keys
+- Connect: wrap / clamp health text and profile labels
+- Activity: sort by kind A→Z / Z→A (with time fallback)
+
 ## 0.1.54
 
 - Status: sort keys A→Z / Z→A
