@@ -155,6 +155,27 @@ class _SessionsScreenState extends State<SessionsScreen> {
     );
   }
 
+
+  Future<void> _copyVisibleCsv(List<SessionInfo> list) async {
+    if (list.isEmpty) return;
+    final buf = StringBuffer();
+    buf.writeln('title,project,session_key,pinned,archived,note');
+    for (final s in list) {
+      final title = s.displayTitle.replaceAll('"', '""');
+      final project = s.project.replaceAll('"', '""');
+      final key = s.sessionKey.replaceAll('"', '""');
+      final pinned = _pinned.contains(s.sessionKey) ? '1' : '0';
+      final archived = _archived.contains(s.sessionKey) ? '1' : '0';
+      final note = (_noteMap[s.sessionKey] ?? '').replaceAll('"', '""');
+      buf.writeln('"$title","$project","$key",$pinned,$archived,"$note"');
+    }
+    await Clipboard.setData(ClipboardData(text: buf.toString()));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Copied CSV (${list.length})'), duration: const Duration(seconds: 1)),
+    );
+  }
+
   Future<void> _exportVisibleMeta(List<SessionInfo> list) async {
     if (list.isEmpty) return;
     final buf = StringBuffer('# HuanHermes sessions export (${list.length})\n');
@@ -560,6 +581,16 @@ class _SessionsScreenState extends State<SessionsScreen> {
                 },
                 icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
               ),
+              IconButton(
+                tooltip: 'Copy CSV',
+                onPressed: () {
+                  final list = _filtered(sessions.sessions);
+                  if (list.isEmpty) return;
+                  _copyVisibleCsv(list);
+                },
+                icon: const Icon(Icons.table_chart_outlined),
+              ),
+
 
 
               PopupMenuButton<String>(
@@ -580,6 +611,9 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       break;
                     case 'export_list':
                       _exportVisibleMeta(_filtered(sessions.sessions));
+                      return;
+                    case 'csv_list':
+                      _copyVisibleCsv(_filtered(sessions.sessions));
                       return;
                     case 'settings':
                       page = const SettingsScreen();
@@ -618,6 +652,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   PopupMenuItem(value: 'agents', child: Text('Agents')),
                   PopupMenuItem(value: 'logs', child: Text('Host logs')),
                   PopupMenuItem(value: 'export_list', child: Text('Export visible list')),
+                      PopupMenuItem(value: 'csv_list', child: Text('Copy visible CSV')),
                   PopupMenuItem(value: 'settings', child: Text('Settings')),
                   PopupMenuItem(value: 'workspace', child: Text('Workspace')),
                   PopupMenuItem(value: 'diff', child: Text('Git diff')),

@@ -26,6 +26,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
   String _scope = 'all';
   String _type = 'all';
   String _q = '';
+  bool _wrapLines = false;
   bool _newestFirst = true;
   final _scroll = ScrollController();
   Timer? _timer;
@@ -198,6 +199,12 @@ class _MemoryScreenState extends State<MemoryScreen> {
             icon: Icon(_newestFirst ? Icons.arrow_downward : Icons.arrow_upward),
           ),
           IconButton(
+            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            onPressed: () => setState(() => _wrapLines = !_wrapLines),
+            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
+          ),
+
+          IconButton(
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
@@ -347,7 +354,10 @@ class _MemoryScreenState extends State<MemoryScreen> {
                           title: Text(title),
                           subtitle: Text(
                             '[$scope/$type${conf.isNotEmpty ? ' · $conf' : ''}]\n'
-                            '${content.length > 160 ? '${content.substring(0, 160)}…' : content}',
+                            '${_wrapLines ? content : (content.length > 160 ? '${content.substring(0, 160)}…' : content)}',
+                            maxLines: _wrapLines ? 12 : 4,
+                            overflow: TextOverflow.ellipsis,
+                            softWrap: true,
                           ),
                           isThreeLine: true,
                           trailing: IconButton(

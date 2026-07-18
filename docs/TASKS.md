@@ -224,6 +224,11 @@
 | P3-167 | Diff 文件列表 CSV | [x] |
 | P3-168 | Chat 复制可见消息全文 | [x] |
 
+| P3-169 | Activity 详情换行/截断 | [x] |
+| P3-170 | Memory 内容预览换行/截断 | [x] |
+| P3-171 | Workspace 目录列表 CSV | [x] |
+| P3-172 | Sessions 可见列表 CSV（无 token） | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

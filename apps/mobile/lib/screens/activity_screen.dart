@@ -33,6 +33,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   List<Map<String, dynamic>> _events = [];
   String _query = '';
   String _kind = '';
+  bool _wrapLines = false;
   bool _newestFirst = true;
   Timer? _timer;
   bool _autoRefresh = false;
@@ -260,6 +261,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
             icon: Icon(_newestFirst ? Icons.arrow_downward : Icons.arrow_upward),
           ),
           IconButton(
+            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            onPressed: () => setState(() => _wrapLines = !_wrapLines),
+            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
+          ),
+
+          IconButton(
             tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
             onPressed: () {
               setState(() => _autoRefresh = !_autoRefresh);
@@ -368,7 +375,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
                       final resolvable = ref != null && _resolveSession(ref) != null;
                       return ListTile(
                         leading: Icon(_icon(kind)),
-                        title: Text(summary.isEmpty ? kind : summary),
+                        title: Text(
+                          summary.isEmpty ? kind : summary,
+                          maxLines: _wrapLines ? 8 : 2,
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: true,
+                        ),
                         subtitle: Text(
                           [
                             kind,

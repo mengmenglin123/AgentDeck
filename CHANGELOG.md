@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.49
+
+- Activity: wrap / clamp event titles
+- Memory: wrap / clamp content preview
+- Workspace: copy listing CSV
+- Sessions: copy visible meta CSV (no tokens)
+
 ## 0.1.48
 
 - Sessions: auto-refresh toggle (dashboard interval)

@@ -231,6 +231,33 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             icon: const Icon(Icons.playlist_add_check_outlined),
           ),
           IconButton(
+            tooltip: 'Copy listing CSV',
+            onPressed: () async {
+              final buf = StringBuffer();
+              buf.writeln('name,type,size,path');
+              final base = _path.isEmpty ? '' : _path;
+              for (final e in _visibleEntries) {
+                final name = (e['name'] ?? '').toString().replaceAll('"', '""');
+                final typ = (e['type'] ?? '').toString().replaceAll('"', '""');
+                final size = e['size'] ?? '';
+                final rel = base.isEmpty ? name : '$base/$name';
+                final path = rel.replaceAll('"', '""');
+                if (name.isEmpty) continue;
+                buf.writeln('"$name","$typ",$size,"$path"');
+              }
+              await Clipboard.setData(ClipboardData(text: buf.toString()));
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Copied listing CSV (${_visibleEntries.length})'),
+                  duration: const Duration(seconds: 1),
+                ),
+              );
+            },
+            icon: const Icon(Icons.table_chart_outlined),
+          ),
+
+          IconButton(
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
