@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.148
+
+- Skills view FilterChips (wrap / regex / case)
+- MarkdownLite `<canvas>` + `<svg>`
+- Mock toe/reset/resize (+ help/which/type lockstep)
+
 ## 0.1.147
 
 - Agents view FilterChips (wrap / regex / case)
