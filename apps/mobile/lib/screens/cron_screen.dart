@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import '../models/connection_config.dart';
+import '../services/app_settings_controller.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 
@@ -26,15 +29,19 @@ class _CronScreenState extends State<CronScreen> {
   String _enabled = 'all';
   bool _sortAsc = true;
   final _scroll = ScrollController();
+  Timer? _timer;
+  bool _autoRefresh = false;
 
   @override
   void initState() {
     super.initState();
     _load();
-  }
+      WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
+}
 
   @override
   void dispose() {
+    _timer?.cancel();
     _scroll.dispose();
     _q.dispose();
     super.dispose();
@@ -98,6 +105,17 @@ class _CronScreenState extends State<CronScreen> {
       return _sortAsc ? c : -c;
     });
     return list;
+  }
+
+  void _armTimer() {
+    _timer?.cancel();
+    if (!_autoRefresh || !mounted) return;
+    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
+    if (sec <= 0) return;
+    _timer = Timer.periodic(Duration(seconds: sec), (_) {
+      if (!mounted || _loading) return;
+      _load();
+    });
   }
 
   @override
@@ -194,6 +212,15 @@ class _CronScreenState extends State<CronScreen> {
             },
             icon: const Icon(Icons.vertical_align_bottom),
           ),
+          IconButton(
+            tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
+            onPressed: () {
+              setState(() => _autoRefresh = !_autoRefresh);
+              _armTimer();
+            },
+            icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
+          ),
+
 
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],

@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import '../models/connection_config.dart';
+import '../services/app_settings_controller.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 
@@ -25,6 +28,8 @@ class _MemoryScreenState extends State<MemoryScreen> {
   String _q = '';
   bool _newestFirst = true;
   final _scroll = ScrollController();
+  Timer? _timer;
+  bool _autoRefresh = false;
   List<Map<String, dynamic>> _items = [];
   final _search = TextEditingController();
 
@@ -32,10 +37,12 @@ class _MemoryScreenState extends State<MemoryScreen> {
   void initState() {
     super.initState();
     _load();
-  }
+      WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
+}
 
   @override
   void dispose() {
+    _timer?.cancel();
     _scroll.dispose();
     _search.dispose();
     super.dispose();
@@ -105,6 +112,17 @@ class _MemoryScreenState extends State<MemoryScreen> {
         _error = Security.redactText(e.toString());
       });
     }
+  }
+
+  void _armTimer() {
+    _timer?.cancel();
+    if (!_autoRefresh || !mounted) return;
+    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
+    if (sec <= 0) return;
+    _timer = Timer.periodic(Duration(seconds: sec), (_) {
+      if (!mounted || _loading) return;
+      _load();
+    });
   }
 
   @override
@@ -199,6 +217,15 @@ class _MemoryScreenState extends State<MemoryScreen> {
             },
             icon: const Icon(Icons.vertical_align_bottom),
           ),
+          IconButton(
+            tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
+            onPressed: () {
+              setState(() => _autoRefresh = !_autoRefresh);
+              _armTimer();
+            },
+            icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
+          ),
+
 
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh)),
         ],

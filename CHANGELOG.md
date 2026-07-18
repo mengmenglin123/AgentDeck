@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.45
+
+- Skills: auto-refresh toggle (dashboard interval)
+- Cron: auto-refresh toggle (dashboard interval)
+- Memory: auto-refresh toggle (dashboard interval)
+- Workspace: auto-refresh toggle (dashboard interval)
+
 ## 0.1.44
 
 - Activity: jump to top / end
