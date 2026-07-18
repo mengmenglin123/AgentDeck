@@ -434,6 +434,11 @@
 | P3-335 | Cron 按 last_run 排序 | [x] |
 | P3-336 | Sessions 按 platform / agent 排序 | [x] |
 
+| P3-337 | Agents 按 capabilities 数量排序 | [x] |
+| P3-338 | Sessions 按 mode 排序 | [x] |
+| P3-339 | Sessions 按 workdir 排序 | [x] |
+| P3-340 | Sessions 按 running 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

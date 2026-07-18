@@ -43,6 +43,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
   bool _sortBySessions = false;
   bool _sortByCwd = false;
   bool _sortByNote = false;
+  bool _sortByCaps = false;
   bool _sortAsc = true;
   final _scroll = ScrollController();
   Timer? _timer;
@@ -195,7 +196,19 @@ class _AgentsScreenState extends State<AgentsScreen> {
   List<dynamic> get _filteredAgents {
     final list = _agents.where(_matchAgent).toList();
     list.sort((a, b) {
-      if (_sortByNote) {
+      if (_sortByCaps) {
+        int capsOf(Map x) {
+          final v = x['capabilities'] ?? x['caps'];
+          if (v is List) return v.length;
+          if (v is Map) return v.length;
+          if (v is num) return v.round();
+          final s = (v ?? '').toString().trim();
+          if (s.isEmpty) return 0;
+          return s.split(RegExp(r'[,\s]+')).where((e) => e.isNotEmpty).length;
+        }
+        final c = capsOf(a).compareTo(capsOf(b));
+        if (c != 0) return _sortAsc ? c : -c;
+      } else if (_sortByNote) {
         final na = (a['note'] ?? a['notes'] ?? a['description'] ?? a['remark'] ?? '').toString().toLowerCase();
         final nb = (b['note'] ?? b['notes'] ?? b['description'] ?? b['remark'] ?? '').toString().toLowerCase();
         final c = na.compareTo(nb);
@@ -391,32 +404,34 @@ class _AgentsScreenState extends State<AgentsScreen> {
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
-            tooltip: _sortByNote
-                ? (_sortAsc ? 'Note Z→A' : 'Note A→Z')
-                : (_sortByCwd
-                    ? (_sortAsc ? 'Cwd Z→A' : 'Cwd A→Z')
-                    : (_sortBySessions
-                        ? (_sortAsc ? 'Sessions many→few' : 'Sessions few→many')
-                        : (_sortByProvider
-                            ? (_sortAsc ? 'Provider Z→A' : 'Provider A→Z')
-                            : (_sortById
-                                ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
-                                : (_sortByProject
-                                    ? (_sortAsc ? 'Project Z→A' : 'Project A→Z')
-                                    : (_sortByPlatform
-                                        ? (_sortAsc ? 'Platform Z→A' : 'Platform A→Z')
-                                        : (_sortByStatus
-                                            ? (_sortAsc ? 'Status Z→A' : 'Status A→Z')
-                                            : (_sortByModel
-                                                ? (_sortAsc ? 'Model Z→A' : 'Model A→Z')
-                                                : (_sortByType
-                                                    ? (_sortAsc ? 'Type Z→A' : 'Type A→Z')
-                                                    : (_sortAsc ? 'Name Z→A' : 'Name A→Z')))))))))),
+            tooltip: _sortByCaps
+                ? (_sortAsc ? 'Capabilities many→few' : 'Capabilities few→many')
+                : (_sortByNote
+                    ? (_sortAsc ? 'Note Z→A' : 'Note A→Z')
+                    : (_sortByCwd
+                        ? (_sortAsc ? 'Cwd Z→A' : 'Cwd A→Z')
+                        : (_sortBySessions
+                            ? (_sortAsc ? 'Sessions many→few' : 'Sessions few→many')
+                            : (_sortByProvider
+                                ? (_sortAsc ? 'Provider Z→A' : 'Provider A→Z')
+                                : (_sortById
+                                    ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                                    : (_sortByProject
+                                        ? (_sortAsc ? 'Project Z→A' : 'Project A→Z')
+                                        : (_sortByPlatform
+                                            ? (_sortAsc ? 'Platform Z→A' : 'Platform A→Z')
+                                            : (_sortByStatus
+                                                ? (_sortAsc ? 'Status Z→A' : 'Status A→Z')
+                                                : (_sortByModel
+                                                    ? (_sortAsc ? 'Model Z→A' : 'Model A→Z')
+                                                    : (_sortByType
+                                                        ? (_sortAsc ? 'Type Z→A' : 'Type A→Z')
+                                                        : (_sortAsc ? 'Name Z→A' : 'Name A→Z'))))))))))),
             onPressed: () {
               setState(() {
-                if (!_sortByType && !_sortByModel && !_sortByStatus && !_sortByPlatform && !_sortByProject && !_sortById && !_sortByProvider && !_sortBySessions && !_sortByCwd && !_sortByNote && _sortAsc) {
+                if (!_sortByType && !_sortByModel && !_sortByStatus && !_sortByPlatform && !_sortByProject && !_sortById && !_sortByProvider && !_sortBySessions && !_sortByCwd && !_sortByNote && !_sortByCaps && _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortByType && !_sortByModel && !_sortByStatus && !_sortByPlatform && !_sortByProject && !_sortById && !_sortByProvider && !_sortBySessions && !_sortByCwd && !_sortByNote && !_sortAsc) {
+                } else if (!_sortByType && !_sortByModel && !_sortByStatus && !_sortByPlatform && !_sortByProject && !_sortById && !_sortByProvider && !_sortBySessions && !_sortByCwd && !_sortByNote && !_sortByCaps && !_sortAsc) {
                   _sortByType = true;
                   _sortByModel = false;
                   _sortByStatus = false;
@@ -427,6 +442,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortBySessions = false;
                   _sortByCwd = false;
                   _sortByNote = false;
+                  _sortByCaps = false;
                   _sortAsc = true;
                 } else if (_sortByType && _sortAsc) {
                   _sortAsc = false;
@@ -441,6 +457,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortBySessions = false;
                   _sortByCwd = false;
                   _sortByNote = false;
+                  _sortByCaps = false;
                   _sortAsc = true;
                 } else if (_sortByModel && _sortAsc) {
                   _sortAsc = false;
@@ -455,6 +472,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortBySessions = false;
                   _sortByCwd = false;
                   _sortByNote = false;
+                  _sortByCaps = false;
                   _sortAsc = true;
                 } else if (_sortByStatus && _sortAsc) {
                   _sortAsc = false;
@@ -469,6 +487,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortBySessions = false;
                   _sortByCwd = false;
                   _sortByNote = false;
+                  _sortByCaps = false;
                   _sortAsc = true;
                 } else if (_sortByPlatform && _sortAsc) {
                   _sortAsc = false;
@@ -483,6 +502,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortBySessions = false;
                   _sortByCwd = false;
                   _sortByNote = false;
+                  _sortByCaps = false;
                   _sortAsc = true;
                 } else if (_sortByProject && _sortAsc) {
                   _sortAsc = false;
@@ -497,6 +517,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortBySessions = false;
                   _sortByCwd = false;
                   _sortByNote = false;
+                  _sortByCaps = false;
                   _sortAsc = true;
                 } else if (_sortById && _sortAsc) {
                   _sortAsc = false;
@@ -511,6 +532,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortBySessions = false;
                   _sortByCwd = false;
                   _sortByNote = false;
+                  _sortByCaps = false;
                   _sortAsc = true;
                 } else if (_sortByProvider && _sortAsc) {
                   _sortAsc = false;
@@ -525,6 +547,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortBySessions = true;
                   _sortByCwd = false;
                   _sortByNote = false;
+                  _sortByCaps = false;
                   _sortAsc = false; // many first
                 } else if (_sortBySessions && !_sortAsc) {
                   _sortAsc = true;
@@ -539,6 +562,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortBySessions = false;
                   _sortByCwd = true;
                   _sortByNote = false;
+                  _sortByCaps = false;
                   _sortAsc = true;
                 } else if (_sortByCwd && _sortAsc) {
                   _sortAsc = false;
@@ -553,9 +577,25 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortBySessions = false;
                   _sortByCwd = false;
                   _sortByNote = true;
+                  _sortByCaps = false;
                   _sortAsc = true;
                 } else if (_sortByNote && _sortAsc) {
                   _sortAsc = false;
+                } else if (_sortByNote && !_sortAsc) {
+                  _sortByType = false;
+                  _sortByModel = false;
+                  _sortByStatus = false;
+                  _sortByPlatform = false;
+                  _sortByProject = false;
+                  _sortById = false;
+                  _sortByProvider = false;
+                  _sortBySessions = false;
+                  _sortByCwd = false;
+                  _sortByNote = false;
+                  _sortByCaps = true;
+                  _sortAsc = false; // many first
+                } else if (_sortByCaps && !_sortAsc) {
+                  _sortAsc = true;
                 } else {
                   _sortByType = false;
                   _sortByModel = false;
@@ -567,31 +607,34 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortBySessions = false;
                   _sortByCwd = false;
                   _sortByNote = false;
+                  _sortByCaps = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortByNote
-                ? Icons.sticky_note_2_outlined
-                : (_sortByCwd
-                    ? Icons.folder_outlined
-                    : (_sortBySessions
-                        ? Icons.forum_outlined
-                        : (_sortByProvider
-                            ? Icons.hub_outlined
-                            : (_sortById
-                                ? Icons.tag
-                                : (_sortByProject
-                                    ? Icons.folder_special_outlined
-                                    : (_sortByPlatform
-                                        ? Icons.devices_other_outlined
-                                        : (_sortByStatus
-                                            ? Icons.flag_outlined
-                                            : (_sortByModel
-                                                ? Icons.memory_outlined
-                                                : (_sortByType
-                                                    ? Icons.category_outlined
-                                                    : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))))))))))),
+            icon: Icon(_sortByCaps
+                ? Icons.extension_outlined
+                : (_sortByNote
+                    ? Icons.sticky_note_2_outlined
+                    : (_sortByCwd
+                        ? Icons.folder_outlined
+                        : (_sortBySessions
+                            ? Icons.forum_outlined
+                            : (_sortByProvider
+                                ? Icons.hub_outlined
+                                : (_sortById
+                                    ? Icons.tag
+                                    : (_sortByProject
+                                        ? Icons.folder_special_outlined
+                                        : (_sortByPlatform
+                                            ? Icons.devices_other_outlined
+                                            : (_sortByStatus
+                                                ? Icons.flag_outlined
+                                                : (_sortByModel
+                                                    ? Icons.memory_outlined
+                                                    : (_sortByType
+                                                        ? Icons.category_outlined
+                                                        : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))))))))))),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',

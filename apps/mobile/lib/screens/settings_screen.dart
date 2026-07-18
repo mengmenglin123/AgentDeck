@@ -215,6 +215,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ('key', 'Key'),
                   ('platform', 'Platform'),
                   ('agent', 'Agent'),
+                  ('mode', 'Mode'),
+                  ('workdir', 'Workdir'),
+                  ('running', 'Running'),
                 ])
                   ChoiceChip(
                     label: Text(e.$2),
@@ -383,13 +386,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.tag),
             title: const Text('App version'),
-            subtitle: _sub('0.1.90+90 · console only · protocol Mock/self-host'),
+            subtitle: _sub('0.1.91+91 · console only · protocol Mock/self-host'),
             trailing: IconButton(
               tooltip: 'Copy about',
               icon: const Icon(Icons.copy_outlined),
               onPressed: () async {
                 const text =
-                    'HuanHermes App 0.1.90+90\nconsole only · protocol Mock/self-host\nNo agent loop on device · tokens never in about text';
+                    'HuanHermes App 0.1.91+91\nconsole only · protocol Mock/self-host\nNo agent loop on device · tokens never in about text';
                 await Clipboard.setData(const ClipboardData(text: text));
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -431,6 +434,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return 'By platform then title';
       case 'agent':
         return 'By agent type then title';
+      case 'mode':
+        return 'By mode then title';
+      case 'workdir':
+        return 'By workdir then title';
+      case 'running':
+        return 'Running first (then title)';
       case 'recent':
         return 'By recently opened on this device (pins still first)';
       default:

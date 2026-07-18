@@ -414,6 +414,18 @@ class _SessionsScreenState extends State<SessionsScreen> {
           final ac = (a.agentType ?? '').toLowerCase().compareTo((b.agentType ?? '').toLowerCase());
           if (ac != 0) return dir(ac);
           return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
+        case 'mode':
+          final mc = (a.mode ?? '').toLowerCase().compareTo((b.mode ?? '').toLowerCase());
+          if (mc != 0) return dir(mc);
+          return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
+        case 'workdir':
+          final wc = (a.workdir ?? '').toLowerCase().compareTo((b.workdir ?? '').toLowerCase());
+          if (wc != 0) return dir(wc);
+          return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
+        case 'running':
+          final rc = (a.running ? 1 : 0).compareTo(b.running ? 1 : 0);
+          if (rc != 0) return dir(-rc); // running first in default dir
+          return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
         case 'recent':
           final ar = _recentRank[a.sessionKey];
           final br = _recentRank[b.sessionKey];
@@ -983,6 +995,9 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                   'recent': 'Recent',
                                   'platform': 'Platform',
                                   'agent': 'Agent',
+                                  'mode': 'Mode',
+                                  'workdir': 'Workdir',
+                                  'running': 'Running',
                                 }[settings.sessionSort] ??
                                     'Updated',
                                 style: const TextStyle(fontSize: 12),

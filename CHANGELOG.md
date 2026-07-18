@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.91
+
+- Agents capabilities count sort
+- Sessions sort by mode / workdir / running
+
 ## 0.1.90
 
 - Workspace dirty / branch sort
