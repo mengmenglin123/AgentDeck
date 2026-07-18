@@ -42,6 +42,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   bool _sortByDirty = false;
   bool _sortByBranch = false;
   bool _sortByStatus = false;
+  bool _sortByChildren = false;
   /// all | dir | file
   String _typeFilter = 'all';
   bool _hideEmpty = false;
@@ -116,7 +117,16 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         final p = DateTime.tryParse(v?.toString() ?? '');
         return p?.millisecondsSinceEpoch ?? 0;
       }
-      if (_sortByStatus) {
+      if (_sortByChildren) {
+        int childOf(Map x) {
+          final v = x['children'] ?? x['entries'] ?? x['count'];
+          if (v is List) return v.length;
+          if (v is num) return v.round();
+          return int.tryParse(v?.toString() ?? '') ?? -1;
+        }
+        final c = childOf(a).compareTo(childOf(b));
+        if (c != 0) return _sortAsc ? c : -c;
+      } else if (_sortByStatus) {
         final sa = (a['status'] ?? a['code'] ?? '').toString().toLowerCase();
         final sb = (b['status'] ?? b['code'] ?? '').toString().toLowerCase();
         final c = sa.compareTo(sb);
@@ -376,9 +386,11 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
 
           IconButton(
-            tooltip: _sortByStatus
-                ? (_sortAsc ? 'Status Z→A' : 'Status A→Z')
-                : (_sortByBranch
+            tooltip: _sortByChildren
+                ? (_sortAsc ? 'Children many→few' : 'Children few→many')
+                : (_sortByStatus
+                    ? (_sortAsc ? 'Status Z→A' : 'Status A→Z')
+                    : (_sortByBranch
                     ? (_sortAsc ? 'Branch Z→A' : 'Branch A→Z')
                     : (_sortByDirty
                         ? (_sortAsc ? 'Dirty first' : 'Clean first')
@@ -392,12 +404,12 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                                         ? (_sortAsc ? 'Mtime new→old' : 'Mtime old→new')
                                         : (_sortBySize
                                             ? (_sortAsc ? 'Size large→small' : 'Size small→large')
-                                            : (_sortAsc ? 'Sort Z→A (dirs first)' : 'Sort A→Z (dirs first)')))))))),
+                                            : (_sortAsc ? 'Sort Z→A (dirs first)' : 'Sort A→Z (dirs first)'))))))))),
             onPressed: () {
               setState(() {
-                if (!_sortBySize && !_sortByMtime && !_sortByPath && !_sortByType && !_sortByName && !_sortByDirty && !_sortByBranch && !_sortByStatus && _sortAsc) {
+                if (!_sortBySize && !_sortByMtime && !_sortByPath && !_sortByType && !_sortByName && !_sortByDirty && !_sortByBranch && !_sortByStatus && !_sortByChildren && _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortBySize && !_sortByMtime && !_sortByPath && !_sortByType && !_sortByName && !_sortByDirty && !_sortByBranch && !_sortByStatus && !_sortAsc) {
+                } else if (!_sortBySize && !_sortByMtime && !_sortByPath && !_sortByType && !_sortByName && !_sortByDirty && !_sortByBranch && !_sortByStatus && !_sortByChildren && !_sortAsc) {
                   _sortBySize = true;
                   _sortByMtime = false;
                   _sortByPath = false;
@@ -406,6 +418,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   _sortByDirty = false;
                   _sortByBranch = false;
                   _sortByStatus = false;
+                  _sortByChildren = false;
                   _sortAsc = true;
                 } else if (_sortBySize && _sortAsc) {
                   _sortAsc = false;
@@ -418,6 +431,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   _sortByDirty = false;
                   _sortByBranch = false;
                   _sortByStatus = false;
+                  _sortByChildren = false;
                   _sortAsc = true;
                 } else if (_sortByMtime && _sortAsc) {
                   _sortAsc = false;
@@ -430,6 +444,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   _sortByDirty = false;
                   _sortByBranch = false;
                   _sortByStatus = false;
+                  _sortByChildren = false;
                   _sortAsc = true;
                 } else if (_sortByPath && _sortAsc) {
                   _sortAsc = false;
@@ -442,6 +457,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   _sortByDirty = false;
                   _sortByBranch = false;
                   _sortByStatus = false;
+                  _sortByChildren = false;
                   _sortAsc = true;
                 } else if (_sortByType && _sortAsc) {
                   _sortAsc = false;
@@ -454,6 +470,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   _sortByDirty = false;
                   _sortByBranch = false;
                   _sortByStatus = false;
+                  _sortByChildren = false;
                   _sortAsc = true;
                 } else if (_sortByName && _sortAsc) {
                   _sortAsc = false;
@@ -466,6 +483,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   _sortByDirty = true;
                   _sortByBranch = false;
                   _sortByStatus = false;
+                  _sortByChildren = false;
                   _sortAsc = true;
                 } else if (_sortByDirty && _sortAsc) {
                   _sortAsc = false;
@@ -478,6 +496,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   _sortByDirty = false;
                   _sortByBranch = true;
                   _sortByStatus = false;
+                  _sortByChildren = false;
                   _sortAsc = true;
                 } else if (_sortByBranch && _sortAsc) {
                   _sortAsc = false;
@@ -490,9 +509,23 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   _sortByDirty = false;
                   _sortByBranch = false;
                   _sortByStatus = true;
+                  _sortByChildren = false;
                   _sortAsc = true;
                 } else if (_sortByStatus && _sortAsc) {
                   _sortAsc = false;
+                } else if (_sortByStatus && !_sortAsc) {
+                  _sortBySize = false;
+                  _sortByMtime = false;
+                  _sortByPath = false;
+                  _sortByType = false;
+                  _sortByName = false;
+                  _sortByDirty = false;
+                  _sortByBranch = false;
+                  _sortByStatus = false;
+                  _sortByChildren = true;
+                  _sortAsc = false;
+                } else if (_sortByChildren && !_sortAsc) {
+                  _sortAsc = true;
                 } else {
                   _sortBySize = false;
                   _sortByMtime = false;
@@ -502,13 +535,16 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   _sortByDirty = false;
                   _sortByBranch = false;
                   _sortByStatus = false;
+                  _sortByChildren = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortByStatus
-                ? Icons.flag_outlined
-                : (_sortByBranch
+            icon: Icon(_sortByChildren
+                ? Icons.account_tree_outlined
+                : (_sortByStatus
+                    ? Icons.flag_outlined
+                    : (_sortByBranch
                     ? Icons.call_split
                     : (_sortByDirty
                         ? Icons.change_circle_outlined
@@ -522,7 +558,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                                         ? Icons.schedule
                                         : (_sortBySize
                                             ? Icons.data_usage
-                                            : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))))))))),
+                                            : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))))))))),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',

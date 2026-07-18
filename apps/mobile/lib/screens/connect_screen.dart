@@ -288,9 +288,11 @@ class _ConnectScreenState extends State<ConnectScreen> {
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
           IconButton(
-            tooltip: _sortMode == 'id'
-                ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
-                : (_sortMode == 'platform'
+            tooltip: _sortMode == 'deviceId'
+                ? (_sortAsc ? 'Device id Z→A' : 'Device id A→Z')
+                : (_sortMode == 'id'
+                    ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                    : (_sortMode == 'platform'
                     ? (_sortAsc ? 'Platform Z→A' : 'Platform A→Z')
                     : (_sortMode == 'tls'
                         ? (_sortAsc ? 'TLS first' : 'Plain first')
@@ -304,7 +306,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
                                         ? (_sortAsc ? 'Host Z→A' : 'Host A→Z')
                                         : (_sortMode == 'updated'
                                             ? (_sortAsc ? 'Updated new→old' : 'Updated old→new')
-                                            : (_sortAsc ? 'Name Z→A' : 'Name A→Z')))))))),
+                                            : (_sortAsc ? 'Name Z→A' : 'Name A→Z'))))))))),
             onPressed: () {
               setState(() {
                 if (_sortMode == 'name' && _sortAsc) {
@@ -349,15 +351,22 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   _sortAsc = true;
                 } else if (_sortMode == 'id' && _sortAsc) {
                   _sortAsc = false;
+                } else if (_sortMode == 'id' && !_sortAsc) {
+                  _sortMode = 'deviceId';
+                  _sortAsc = true;
+                } else if (_sortMode == 'deviceId' && _sortAsc) {
+                  _sortAsc = false;
                 } else {
                   _sortMode = 'name';
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortMode == 'id'
-                ? Icons.tag
-                : (_sortMode == 'platform'
+            icon: Icon(_sortMode == 'deviceId'
+                ? Icons.phonelink_setup
+                : (_sortMode == 'id'
+                    ? Icons.tag
+                    : (_sortMode == 'platform'
                     ? Icons.devices_other_outlined
                     : (_sortMode == 'tls'
                         ? Icons.lock_outline
@@ -371,7 +380,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
                                         ? Icons.dns_outlined
                                         : (_sortMode == 'updated'
                                             ? Icons.schedule
-                                            : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))))))))),
+                                            : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))))))))),
           ),
 
           IconButton(
@@ -562,6 +571,11 @@ class _ConnectScreenState extends State<ConnectScreen> {
                       }
                     } else if (_sortMode == 'id') {
                       c = a.id.toLowerCase().compareTo(b.id.toLowerCase());
+                      if (c == 0) {
+                        c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+                      }
+                    } else if (_sortMode == 'deviceId') {
+                      c = a.config.deviceId.toLowerCase().compareTo(b.config.deviceId.toLowerCase());
                       if (c == 0) {
                         c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
                       }

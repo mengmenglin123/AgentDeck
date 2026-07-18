@@ -386,7 +386,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
         : 'updated';
     list.sort((a, b) {
       int dir(int c) => _sortAsc ? c : -c;
-      if (sortMode != 'pinned') {
+      if (sortMode != 'pinned' && sortMode != 'archived') {
         final ap = _pinned.contains(a.sessionKey) ? 0 : 1;
         final bp = _pinned.contains(b.sessionKey) ? 0 : 1;
         if (ap != bp) return ap.compareTo(bp);
@@ -443,6 +443,18 @@ class _SessionsScreenState extends State<SessionsScreen> {
           final pb = _pinned.contains(b.sessionKey) ? 1 : 0;
           final pc = pa.compareTo(pb);
           if (pc != 0) return dir(-pc); // pinned first by default dir
+          return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
+        case 'note':
+          final na = (_noteMap[a.sessionKey] ?? '').toLowerCase();
+          final nb = (_noteMap[b.sessionKey] ?? '').toLowerCase();
+          final nc = na.compareTo(nb);
+          if (nc != 0) return dir(nc);
+          return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
+        case 'archived':
+          final aa = _archived.contains(a.sessionKey) ? 1 : 0;
+          final ab = _archived.contains(b.sessionKey) ? 1 : 0;
+          final ac = aa.compareTo(ab);
+          if (ac != 0) return dir(-ac); // archived first by default dir
           return dir(a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase()));
         case 'recent':
           final ar = _recentRank[a.sessionKey];
@@ -1004,6 +1016,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
                             PopupMenuItem(value: 'live', child: Text('Sort: Live')),
                             PopupMenuItem(value: 'last', child: Text('Sort: Last msg')),
                             PopupMenuItem(value: 'pinned', child: Text('Sort: Pinned')),
+                            PopupMenuItem(value: 'note', child: Text('Sort: Note')),
+                            PopupMenuItem(value: 'archived', child: Text('Sort: Archived')),
                           ],
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -1025,6 +1039,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                   'live': 'Live',
                                   'last': 'Last msg',
                                   'pinned': 'Pinned',
+                                  'note': 'Note',
+                                  'archived': 'Archived',
                                 }[settings.sessionSort] ??
                                     'Updated',
                                 style: const TextStyle(fontSize: 12),

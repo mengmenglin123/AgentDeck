@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.95
+
+- Sessions note and archived sort modes
+- Connect deviceId sort
+- Workspace children-count sort
+
 ## 0.1.94
 
 - Sessions last-message and pinned sort modes

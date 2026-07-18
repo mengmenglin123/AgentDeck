@@ -456,6 +456,12 @@
 - [x] **P3-351** Connect platform sort (0.1.94)
 - [x] **P3-352** Connect profile id sort (0.1.94)
 
+
+- [x] **P3-353** Sessions note sort (0.1.95)
+- [x] **P3-354** Sessions archived sort (0.1.95)
+- [x] **P3-355** Connect deviceId sort (0.1.95)
+- [x] **P3-356** Workspace children-count sort (0.1.95)
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |
