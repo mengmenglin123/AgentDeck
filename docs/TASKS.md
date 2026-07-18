@@ -444,6 +444,12 @@
 | P3-343 | Status 显式 key 排序 | [x] |
 | P3-344 | Host Dashboard 显式 key 排序 | [x] |
 
+
+- [x] **P3-345** Workspace status sort (0.1.93)
+- [x] **P3-346** Diff basename sort (0.1.93)
+- [x] **P3-347** Agents version sort (0.1.93)
+- [x] **P3-348** Activity priority sort (0.1.93)
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

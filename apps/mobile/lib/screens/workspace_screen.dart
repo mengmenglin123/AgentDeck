@@ -41,6 +41,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   bool _sortByName = false;
   bool _sortByDirty = false;
   bool _sortByBranch = false;
+  bool _sortByStatus = false;
   /// all | dir | file
   String _typeFilter = 'all';
   bool _hideEmpty = false;
@@ -115,7 +116,12 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         final p = DateTime.tryParse(v?.toString() ?? '');
         return p?.millisecondsSinceEpoch ?? 0;
       }
-      if (_sortByBranch) {
+      if (_sortByStatus) {
+        final sa = (a['status'] ?? a['code'] ?? '').toString().toLowerCase();
+        final sb = (b['status'] ?? b['code'] ?? '').toString().toLowerCase();
+        final c = sa.compareTo(sb);
+        if (c != 0) return _sortAsc ? c : -c;
+      } else if (_sortByBranch) {
         final ba = (a['branch'] ?? '').toString().toLowerCase();
         final bb = (b['branch'] ?? '').toString().toLowerCase();
         final c = ba.compareTo(bb);
@@ -370,26 +376,28 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
 
           IconButton(
-            tooltip: _sortByBranch
-                ? (_sortAsc ? 'Branch Z→A' : 'Branch A→Z')
-                : (_sortByDirty
-                    ? (_sortAsc ? 'Dirty first' : 'Clean first')
-                    : (_sortByName
-                        ? (_sortAsc ? 'Name Z→A (dirs first)' : 'Name A→Z (dirs first)')
-                        : (_sortByType
-                            ? (_sortAsc ? 'Type Z→A (dirs first)' : 'Type A→Z (dirs first)')
-                            : (_sortByPath
-                                ? (_sortAsc ? 'Path Z→A (dirs first)' : 'Path A→Z (dirs first)')
-                                : (_sortByMtime
-                                    ? (_sortAsc ? 'Mtime new→old' : 'Mtime old→new')
-                                    : (_sortBySize
-                                        ? (_sortAsc ? 'Size large→small' : 'Size small→large')
-                                        : (_sortAsc ? 'Sort Z→A (dirs first)' : 'Sort A→Z (dirs first)'))))))),
+            tooltip: _sortByStatus
+                ? (_sortAsc ? 'Status Z→A' : 'Status A→Z')
+                : (_sortByBranch
+                    ? (_sortAsc ? 'Branch Z→A' : 'Branch A→Z')
+                    : (_sortByDirty
+                        ? (_sortAsc ? 'Dirty first' : 'Clean first')
+                        : (_sortByName
+                            ? (_sortAsc ? 'Name Z→A (dirs first)' : 'Name A→Z (dirs first)')
+                            : (_sortByType
+                                ? (_sortAsc ? 'Type Z→A (dirs first)' : 'Type A→Z (dirs first)')
+                                : (_sortByPath
+                                    ? (_sortAsc ? 'Path Z→A (dirs first)' : 'Path A→Z (dirs first)')
+                                    : (_sortByMtime
+                                        ? (_sortAsc ? 'Mtime new→old' : 'Mtime old→new')
+                                        : (_sortBySize
+                                            ? (_sortAsc ? 'Size large→small' : 'Size small→large')
+                                            : (_sortAsc ? 'Sort Z→A (dirs first)' : 'Sort A→Z (dirs first)')))))))),
             onPressed: () {
               setState(() {
-                if (!_sortBySize && !_sortByMtime && !_sortByPath && !_sortByType && !_sortByName && !_sortByDirty && !_sortByBranch && _sortAsc) {
+                if (!_sortBySize && !_sortByMtime && !_sortByPath && !_sortByType && !_sortByName && !_sortByDirty && !_sortByBranch && !_sortByStatus && _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortBySize && !_sortByMtime && !_sortByPath && !_sortByType && !_sortByName && !_sortByDirty && !_sortByBranch && !_sortAsc) {
+                } else if (!_sortBySize && !_sortByMtime && !_sortByPath && !_sortByType && !_sortByName && !_sortByDirty && !_sortByBranch && !_sortByStatus && !_sortAsc) {
                   _sortBySize = true;
                   _sortByMtime = false;
                   _sortByPath = false;
@@ -397,6 +405,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   _sortByName = false;
                   _sortByDirty = false;
                   _sortByBranch = false;
+                  _sortByStatus = false;
                   _sortAsc = true;
                 } else if (_sortBySize && _sortAsc) {
                   _sortAsc = false;
@@ -408,6 +417,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   _sortByName = false;
                   _sortByDirty = false;
                   _sortByBranch = false;
+                  _sortByStatus = false;
                   _sortAsc = true;
                 } else if (_sortByMtime && _sortAsc) {
                   _sortAsc = false;
@@ -419,6 +429,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   _sortByName = false;
                   _sortByDirty = false;
                   _sortByBranch = false;
+                  _sortByStatus = false;
                   _sortAsc = true;
                 } else if (_sortByPath && _sortAsc) {
                   _sortAsc = false;
@@ -430,6 +441,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   _sortByName = false;
                   _sortByDirty = false;
                   _sortByBranch = false;
+                  _sortByStatus = false;
                   _sortAsc = true;
                 } else if (_sortByType && _sortAsc) {
                   _sortAsc = false;
@@ -441,6 +453,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   _sortByName = true;
                   _sortByDirty = false;
                   _sortByBranch = false;
+                  _sortByStatus = false;
                   _sortAsc = true;
                 } else if (_sortByName && _sortAsc) {
                   _sortAsc = false;
@@ -452,6 +465,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   _sortByName = false;
                   _sortByDirty = true;
                   _sortByBranch = false;
+                  _sortByStatus = false;
                   _sortAsc = true;
                 } else if (_sortByDirty && _sortAsc) {
                   _sortAsc = false;
@@ -463,8 +477,21 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   _sortByName = false;
                   _sortByDirty = false;
                   _sortByBranch = true;
+                  _sortByStatus = false;
                   _sortAsc = true;
                 } else if (_sortByBranch && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortByBranch && !_sortAsc) {
+                  _sortBySize = false;
+                  _sortByMtime = false;
+                  _sortByPath = false;
+                  _sortByType = false;
+                  _sortByName = false;
+                  _sortByDirty = false;
+                  _sortByBranch = false;
+                  _sortByStatus = true;
+                  _sortAsc = true;
+                } else if (_sortByStatus && _sortAsc) {
                   _sortAsc = false;
                 } else {
                   _sortBySize = false;
@@ -474,25 +501,28 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   _sortByName = false;
                   _sortByDirty = false;
                   _sortByBranch = false;
+                  _sortByStatus = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortByBranch
-                ? Icons.call_split
-                : (_sortByDirty
-                    ? Icons.change_circle_outlined
-                    : (_sortByName
-                        ? Icons.sort_by_alpha
-                        : (_sortByType
-                            ? Icons.category_outlined
-                            : (_sortByPath
-                                ? Icons.route
-                                : (_sortByMtime
-                                    ? Icons.schedule
-                                    : (_sortBySize
-                                        ? Icons.data_usage
-                                        : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))))))),
+            icon: Icon(_sortByStatus
+                ? Icons.flag_outlined
+                : (_sortByBranch
+                    ? Icons.call_split
+                    : (_sortByDirty
+                        ? Icons.change_circle_outlined
+                        : (_sortByName
+                            ? Icons.sort_by_alpha
+                            : (_sortByType
+                                ? Icons.category_outlined
+                                : (_sortByPath
+                                    ? Icons.route
+                                    : (_sortByMtime
+                                        ? Icons.schedule
+                                        : (_sortBySize
+                                            ? Icons.data_usage
+                                            : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))))))))),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.93
+
+- Workspace status sort
+- Diff basename sort
+- Agents version sort
+- Activity priority sort
+
 ## 0.1.92
 
 - Sessions sort by live

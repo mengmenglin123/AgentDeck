@@ -44,6 +44,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
   bool _sortByCwd = false;
   bool _sortByNote = false;
   bool _sortByCaps = false;
+  bool _sortByVersion = false;
   bool _sortAsc = true;
   final _scroll = ScrollController();
   Timer? _timer;
@@ -196,7 +197,12 @@ class _AgentsScreenState extends State<AgentsScreen> {
   List<dynamic> get _filteredAgents {
     final list = _agents.where(_matchAgent).toList();
     list.sort((a, b) {
-      if (_sortByCaps) {
+      if (_sortByVersion) {
+        final va = (a['version'] ?? a['ver'] ?? a['agent_version'] ?? '').toString().toLowerCase();
+        final vb = (b['version'] ?? b['ver'] ?? b['agent_version'] ?? '').toString().toLowerCase();
+        final c = va.compareTo(vb);
+        if (c != 0) return _sortAsc ? c : -c;
+      } else if (_sortByCaps) {
         int capsOf(Map x) {
           final v = x['capabilities'] ?? x['caps'];
           if (v is List) return v.length;
@@ -404,9 +410,11 @@ class _AgentsScreenState extends State<AgentsScreen> {
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
-            tooltip: _sortByCaps
-                ? (_sortAsc ? 'Capabilities many→few' : 'Capabilities few→many')
-                : (_sortByNote
+            tooltip: _sortByVersion
+                ? (_sortAsc ? 'Version Z→A' : 'Version A→Z')
+                : (_sortByCaps
+                    ? (_sortAsc ? 'Capabilities many→few' : 'Capabilities few→many')
+                    : (_sortByNote
                     ? (_sortAsc ? 'Note Z→A' : 'Note A→Z')
                     : (_sortByCwd
                         ? (_sortAsc ? 'Cwd Z→A' : 'Cwd A→Z')
@@ -426,12 +434,12 @@ class _AgentsScreenState extends State<AgentsScreen> {
                                                     ? (_sortAsc ? 'Model Z→A' : 'Model A→Z')
                                                     : (_sortByType
                                                         ? (_sortAsc ? 'Type Z→A' : 'Type A→Z')
-                                                        : (_sortAsc ? 'Name Z→A' : 'Name A→Z'))))))))))),
+                                                        : (_sortAsc ? 'Name Z→A' : 'Name A→Z')))))))))))),
             onPressed: () {
               setState(() {
-                if (!_sortByType && !_sortByModel && !_sortByStatus && !_sortByPlatform && !_sortByProject && !_sortById && !_sortByProvider && !_sortBySessions && !_sortByCwd && !_sortByNote && !_sortByCaps && _sortAsc) {
+                if (!_sortByType && !_sortByModel && !_sortByStatus && !_sortByPlatform && !_sortByProject && !_sortById && !_sortByProvider && !_sortBySessions && !_sortByCwd && !_sortByNote && !_sortByCaps && !_sortByVersion && _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortByType && !_sortByModel && !_sortByStatus && !_sortByPlatform && !_sortByProject && !_sortById && !_sortByProvider && !_sortBySessions && !_sortByCwd && !_sortByNote && !_sortByCaps && !_sortAsc) {
+                } else if (!_sortByType && !_sortByModel && !_sortByStatus && !_sortByPlatform && !_sortByProject && !_sortById && !_sortByProvider && !_sortBySessions && !_sortByCwd && !_sortByNote && !_sortByCaps && !_sortByVersion && !_sortAsc) {
                   _sortByType = true;
                   _sortByModel = false;
                   _sortByStatus = false;
@@ -443,6 +451,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortByCwd = false;
                   _sortByNote = false;
                   _sortByCaps = false;
+                  _sortByVersion = false;
                   _sortAsc = true;
                 } else if (_sortByType && _sortAsc) {
                   _sortAsc = false;
@@ -458,6 +467,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortByCwd = false;
                   _sortByNote = false;
                   _sortByCaps = false;
+                  _sortByVersion = false;
                   _sortAsc = true;
                 } else if (_sortByModel && _sortAsc) {
                   _sortAsc = false;
@@ -473,6 +483,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortByCwd = false;
                   _sortByNote = false;
                   _sortByCaps = false;
+                  _sortByVersion = false;
                   _sortAsc = true;
                 } else if (_sortByStatus && _sortAsc) {
                   _sortAsc = false;
@@ -488,6 +499,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortByCwd = false;
                   _sortByNote = false;
                   _sortByCaps = false;
+                  _sortByVersion = false;
                   _sortAsc = true;
                 } else if (_sortByPlatform && _sortAsc) {
                   _sortAsc = false;
@@ -503,6 +515,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortByCwd = false;
                   _sortByNote = false;
                   _sortByCaps = false;
+                  _sortByVersion = false;
                   _sortAsc = true;
                 } else if (_sortByProject && _sortAsc) {
                   _sortAsc = false;
@@ -518,6 +531,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortByCwd = false;
                   _sortByNote = false;
                   _sortByCaps = false;
+                  _sortByVersion = false;
                   _sortAsc = true;
                 } else if (_sortById && _sortAsc) {
                   _sortAsc = false;
@@ -533,6 +547,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortByCwd = false;
                   _sortByNote = false;
                   _sortByCaps = false;
+                  _sortByVersion = false;
                   _sortAsc = true;
                 } else if (_sortByProvider && _sortAsc) {
                   _sortAsc = false;
@@ -548,6 +563,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortByCwd = false;
                   _sortByNote = false;
                   _sortByCaps = false;
+                  _sortByVersion = false;
                   _sortAsc = false; // many first
                 } else if (_sortBySessions && !_sortAsc) {
                   _sortAsc = true;
@@ -563,6 +579,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortByCwd = true;
                   _sortByNote = false;
                   _sortByCaps = false;
+                  _sortByVersion = false;
                   _sortAsc = true;
                 } else if (_sortByCwd && _sortAsc) {
                   _sortAsc = false;
@@ -578,6 +595,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortByCwd = false;
                   _sortByNote = true;
                   _sortByCaps = false;
+                  _sortByVersion = false;
                   _sortAsc = true;
                 } else if (_sortByNote && _sortAsc) {
                   _sortAsc = false;
@@ -596,6 +614,22 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortAsc = false; // many first
                 } else if (_sortByCaps && !_sortAsc) {
                   _sortAsc = true;
+                } else if (_sortByCaps && _sortAsc) {
+                  _sortByType = false;
+                  _sortByModel = false;
+                  _sortByStatus = false;
+                  _sortByPlatform = false;
+                  _sortByProject = false;
+                  _sortById = false;
+                  _sortByProvider = false;
+                  _sortBySessions = false;
+                  _sortByCwd = false;
+                  _sortByNote = false;
+                  _sortByCaps = false;
+                  _sortByVersion = true;
+                  _sortAsc = true;
+                } else if (_sortByVersion && _sortAsc) {
+                  _sortAsc = false;
                 } else {
                   _sortByType = false;
                   _sortByModel = false;
@@ -608,13 +642,16 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   _sortByCwd = false;
                   _sortByNote = false;
                   _sortByCaps = false;
+                  _sortByVersion = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortByCaps
-                ? Icons.extension_outlined
-                : (_sortByNote
+            icon: Icon(_sortByVersion
+                ? Icons.numbers
+                : (_sortByCaps
+                    ? Icons.extension_outlined
+                    : (_sortByNote
                     ? Icons.sticky_note_2_outlined
                     : (_sortByCwd
                         ? Icons.folder_outlined
@@ -634,7 +671,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                                                     ? Icons.memory_outlined
                                                     : (_sortByType
                                                         ? Icons.category_outlined
-                                                        : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))))))))))),
+                                                        : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))))))))))))),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
