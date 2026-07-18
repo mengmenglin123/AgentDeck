@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.125
+
+- Workspace extension filter chips
+- MarkdownLite `<code>` + `<i>`
+- Mock join/split/getent (+ help/which/type lockstep)
+
 ## 0.1.124
 
 - Cron last_status filter chips

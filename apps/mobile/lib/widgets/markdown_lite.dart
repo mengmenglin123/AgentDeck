@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings (h1–h6), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5/h6, abbr, mark, spoiler, kbd, sup/sub, underline, del, ins, s, small, cite, q, var, samp, dfn, em, strong, b, autolink, strike, inline code, bold/italic, bold-italic (***).
+/// Covers headings (h1–h6), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5/h6, abbr, mark, spoiler, kbd, sup/sub, underline, del, ins, s, small, cite, q, var, samp, dfn, em, strong, b, code, i, autolink, strike, inline code, bold/italic, bold-italic (***).
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -602,7 +602,7 @@ class MarkdownLite extends StatelessWidget {
   static TextSpan _inline(String text, TextStyle base) {
     final spans = <InlineSpan>[];
     final re = RegExp(
-          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<small>[^<]+</small>|<cite>[^<]+</cite>|<q>[^<]+</q>|<var>[^<]+</var>|<samp>[^<]+</samp>|<dfn>[^<]+</dfn>|<em>[^<]+</em>|<strong>[^<]+</strong>|<b>[^<]+</b>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
+          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<small>[^<]+</small>|<cite>[^<]+</cite>|<q>[^<]+</q>|<var>[^<]+</var>|<samp>[^<]+</samp>|<dfn>[^<]+</dfn>|<em>[^<]+</em>|<strong>[^<]+</strong>|<b>[^<]+</b>|<code>[^<]+</code>|<i>[^<]+</i>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
             );
     var i = 0;
     for (final m in re.allMatches(text)) {
@@ -787,6 +787,25 @@ class MarkdownLite extends StatelessWidget {
         spans.add(TextSpan(
           text: body,
           style: base.copyWith(fontWeight: FontWeight.w700),
+        ));
+      } else if (tok.startsWith('<code>') && tok.endsWith('</code>')) {
+        // HTML code alias of `inline code`
+        final body = tok.substring(6, tok.length - 7);
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            fontFamily: 'monospace',
+            backgroundColor: base.backgroundColor ?? const Color(0x22000000),
+          ),
+        ));
+      } else if (tok.startsWith('<i>') && tok.endsWith('</i>')) {
+        // HTML i alias of *italic*
+        final body = tok.substring(3, tok.length - 4);
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            fontStyle: FontStyle.italic,
+          ),
         ));
       } else if (tok.toLowerCase().startsWith('<abbr')) {
         final titleM = RegExp(r'title="([^"]*)"', caseSensitive: false).firstMatch(tok);

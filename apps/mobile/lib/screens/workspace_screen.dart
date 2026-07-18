@@ -47,6 +47,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   /// all | dir | file
   String _typeFilter = 'all';
   bool _hideEmpty = false;
+  /// empty=all; md|dart|py|json|other
+  String _extFilter = '';
   final _scroll = ScrollController();
   Timer? _timer;
   bool _autoRefresh = false;
@@ -85,6 +87,27 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         if (children == null) {
           final emptyFlag = e['empty'];
           if (emptyFlag == true) continue;
+        }
+      }
+      // Extension filter applies to files only; dirs always pass.
+      if (_extFilter.isNotEmpty && type != 'dir') {
+        final name = (e['name'] ?? '').toString().toLowerCase();
+        if (_extFilter == 'other') {
+          if (name.endsWith('.md') ||
+              name.endsWith('.dart') ||
+              name.endsWith('.py') ||
+              name.endsWith('.json') ||
+              name.endsWith('.yaml') ||
+              name.endsWith('.yml') ||
+              name.endsWith('.txt') ||
+              name.endsWith('.sh')) {
+            continue;
+          }
+        } else {
+          final needle = _extFilter.startsWith('.')
+              ? _extFilter.toLowerCase()
+              : '.${_extFilter.toLowerCase()}';
+          if (!name.endsWith(needle)) continue;
         }
       }
       if (rawQ.isNotEmpty) {
@@ -662,6 +685,29 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   onSelected: (_) => setState(() => _hideEmpty = !_hideEmpty),
                   visualDensity: VisualDensity.compact,
                 ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: [
+                for (final f in const [
+                  ('', 'Any ext'),
+                  ('md', 'md'),
+                  ('dart', 'dart'),
+                  ('py', 'py'),
+                  ('json', 'json'),
+                  ('other', 'other'),
+                ])
+                  FilterChip(
+                    label: Text(f.$2, style: const TextStyle(fontSize: 11)),
+                    selected: _extFilter == f.$1,
+                    onSelected: (_) => setState(() => _extFilter = f.$1),
+                    visualDensity: VisualDensity.compact,
+                  ),
               ],
             ),
           ),
