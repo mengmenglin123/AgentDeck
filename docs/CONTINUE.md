@@ -25,7 +25,7 @@
 | 项 | 值 |
 |----|-----|
 | 功能版本 | **0.1.117+117** |
-| 功能 commit | **(see git after push)** |
+| 功能 commit | **`ecf8dbb`** |
 | HEAD 文档 | 含 CONTINUE 松版（见 git log） |
 | 下一功能刀 | **0.1.118** |
 | P3 | 收口 |
