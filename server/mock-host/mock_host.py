@@ -487,6 +487,29 @@ def activity_push(kind: str, summary: str, **extra: Any) -> None:
         "summary": summary,
         **extra,
     }
+    # defaults for console filter chips when caller omits
+    if "level" not in evt:
+        k = (kind or "").lower()
+        if "error" in k or "fail" in k:
+            evt["level"] = "error"
+        elif "warn" in k or "security" in k:
+            evt["level"] = "warn"
+        elif "debug" in k or "geometry" in k:
+            evt["level"] = "debug"
+        else:
+            evt["level"] = "info"
+    if "source" not in evt:
+        k = (kind or "").lower()
+        if "hermes" in k:
+            evt["source"] = "hermes"
+        elif "bridge" in k:
+            evt["source"] = "bridge"
+        elif "terminal" in k:
+            evt["source"] = "terminal"
+        elif "session" in k or "chat" in k:
+            evt["source"] = "session"
+        else:
+            evt["source"] = "mock-host"
     with ACTIVITY_LOCK:
         ACTIVITY_EVENTS.append(evt)
         if len(ACTIVITY_EVENTS) > ACTIVITY_MAX:
@@ -501,14 +524,15 @@ def seed_demo_activity() -> None:
         if ACTIVITY_EVENTS:
             return
     samples = [
-        ("host.started", "Mock Host ready", "info"),
-        ("hermes.adapter.mock", "Hermes project uses mock adapter (ADR-002)", "info"),
-        ("bridge.listening", "Bridge WebSocket accepting console clients", "info"),
-        ("terminal.geometry", "Default geometry 80x24 (client may resize)", "debug"),
-        ("security.pairing", "Pairing URI must never embed tokens", "warn"),
+        ("host.started", "Mock Host ready", "info", "mock-host"),
+        ("hermes.adapter.mock", "Hermes project uses mock adapter (ADR-002)", "info", "hermes"),
+        ("bridge.listening", "Bridge WebSocket accepting console clients", "info", "bridge"),
+        ("terminal.geometry", "Default geometry 80x24 (client may resize)", "debug", "terminal"),
+        ("security.pairing", "Pairing URI must never embed tokens", "warn", "session"),
+        ("session.seed", "Demo session catalog loaded", "info", "session"),
     ]
-    for kind, summary, level in samples:
-        activity_push(kind, summary, source="mock-host", level=level)
+    for kind, summary, level, source in samples:
+        activity_push(kind, summary, source=source, level=level)
 
 
 seed_demo_activity()
@@ -810,7 +834,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, jq, md5sum, sha1sum, sha256sum, base64, file, type, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -887,7 +911,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         known = {
             "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date",
             "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help",
-            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type",
+            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type", "expr", "test",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1442,7 +1466,9 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
                 "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree",
                 "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath",
                 "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find",
-                "seq", "sort", "base64", "file", "uniq", "type",
+                "seq", "sort", "base64", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev",
+                "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum",
+                "sha256sum", "expr", "test",
             }
             if name.split()[0] in builtins:
                 out(f"{name.split()[0]} is a shell builtin\n", done=True, exit_code=0)
@@ -1831,6 +1857,119 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             out("xargs: (mock) missing command\n", done=True, exit_code=1)
         else:
             out(" ".join(cmd_parts) + "\n", done=True, exit_code=0)
+    elif lower.startswith("od ") or lower == "od":
+        # mock octal dump (first 64 bytes)
+        parts = data.strip().split()
+        targets = [p for p in parts[1:] if not p.startswith("-")]
+        if not targets:
+            out("od: missing file operand\n", done=True, exit_code=1)
+        else:
+            st_od = _session_state(sk)
+            wd = (st_od.get("workdir") or "/workspace").replace("/workspace", "").lstrip("/")
+            path = targets[0]
+            rel = path
+            if not path.startswith("/"):
+                rel = (wd + "/" + path).strip("/") if wd else path
+            else:
+                rel = path.replace("/workspace", "").lstrip("/")
+            node, cleaned = _ws_resolve(rel)
+            if node is None or node.get("type") != "file":
+                out(f"od: {path}: No such file or directory\n", done=True, exit_code=1)
+            else:
+                raw = (node.get("content") or "")[:64].encode("utf-8", errors="replace")
+                lines = []
+                for off in range(0, len(raw), 8):
+                    chunk = raw[off : off + 8]
+                    octs = " ".join(f"{b:03o}" for b in chunk)
+                    lines.append(f"{off:07o} {octs}")
+                out(("\n".join(lines) + ("\n" if lines else "")), done=True, exit_code=0)
+    elif lower.startswith("expr ") or lower == "expr":
+        # mock: expr N + M / - / *  (integers only)
+        parts = data.strip().split()
+        if len(parts) < 4:
+            out("expr: (mock) usage: expr N OP M\n", done=True, exit_code=1)
+        else:
+            try:
+                a = int(parts[1])
+                op = parts[2]
+                b = int(parts[3])
+                if op == "+":
+                    r = a + b
+                elif op == "-":
+                    r = a - b
+                elif op in {"*", "\\*", "x"}:
+                    r = a * b
+                elif op == "/":
+                    if b == 0:
+                        out("expr: division by zero\n", done=True, exit_code=2)
+                        r = None
+                    else:
+                        r = a // b
+                elif op == "%":
+                    if b == 0:
+                        out("expr: division by zero\n", done=True, exit_code=2)
+                        r = None
+                    else:
+                        r = a % b
+                else:
+                    out(f"expr: (mock) unsupported op {op}\n", done=True, exit_code=1)
+                    r = None
+                if r is not None:
+                    out(f"{r}\n", done=True, exit_code=0)
+            except Exception:
+                out("expr: non-integer argument\n", done=True, exit_code=1)
+    elif lower.startswith("test ") or lower == "test" or lower.startswith("[ ") or lower == "[":
+        # mock test/[ : -n/-z string, -eq/-ne/-lt/-gt numbers, -f/-d path
+        raw = data.strip()
+        if raw.startswith("["):
+            raw = raw[1:].strip()
+            if raw.endswith("]"):
+                raw = raw[:-1].strip()
+        elif raw.lower().startswith("test"):
+            raw = raw[4:].strip()
+        parts = raw.split()
+        if not parts:
+            out("", done=True, exit_code=1)
+        else:
+            ok = False
+            try:
+                if parts[0] == "-n" and len(parts) >= 2:
+                    ok = len(parts[1]) > 0
+                elif parts[0] == "-z" and len(parts) >= 2:
+                    ok = len(parts[1]) == 0
+                elif parts[0] in {"-f", "-d"} and len(parts) >= 2:
+                    st_t = _session_state(sk)
+                    wd = (st_t.get("workdir") or "/workspace").replace("/workspace", "").lstrip("/")
+                    path = parts[1]
+                    rel = path
+                    if not path.startswith("/"):
+                        rel = (wd + "/" + path).strip("/") if wd else path
+                    else:
+                        rel = path.replace("/workspace", "").lstrip("/")
+                    node, _ = _ws_resolve(rel)
+                    if parts[0] == "-f":
+                        ok = bool(node and node.get("type") == "file")
+                    else:
+                        ok = bool(node and node.get("type") == "dir") or (rel == "" or path in {"/workspace", "."})
+                elif len(parts) >= 3 and parts[1] in {"-eq", "-ne", "-lt", "-gt", "-le", "-ge"}:
+                    a = int(parts[0])
+                    b = int(parts[2])
+                    op = parts[1]
+                    ok = {
+                        "-eq": a == b,
+                        "-ne": a != b,
+                        "-lt": a < b,
+                        "-gt": a > b,
+                        "-le": a <= b,
+                        "-ge": a >= b,
+                    }[op]
+                elif len(parts) >= 3 and parts[1] in {"=", "!="}:
+                    ok = (parts[0] == parts[2]) if parts[1] == "=" else (parts[0] != parts[2])
+                else:
+                    ok = bool(parts[0])
+            except Exception:
+                ok = False
+            out("", done=True, exit_code=0 if ok else 1)
 
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings, lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4, abbr, mark, spoiler, kbd, sup/sub, autolink, strike, inline code, bold/italic.
+/// Covers headings (h1–h5), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5, abbr, mark, spoiler, kbd, sup/sub, underline, autolink, strike, inline code, bold/italic.
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -114,6 +114,11 @@ class MarkdownLite extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 3, bottom: 2),
               child: SelectableText.rich(_inline(b.text, base.copyWith(fontSize: 14, fontWeight: FontWeight.w600))),
+            )
+          else if (b.kind == _BlockKind.h5)
+            Padding(
+              padding: const EdgeInsets.only(top: 2, bottom: 1),
+              child: SelectableText.rich(_inline(b.text, base.copyWith(fontSize: 13, fontWeight: FontWeight.w600))),
             )
           else if (b.kind == _BlockKind.task)
             Padding(
@@ -334,6 +339,8 @@ class MarkdownLite extends StatelessWidget {
         }
         out.add(_Block(_BlockKind.details, buf.toString()));
         continue;
+      } else if (t.startsWith('##### ')) {
+        out.add(_Block(_BlockKind.h5, t.substring(6)));
       } else if (t.startsWith('#### ')) {
         out.add(_Block(_BlockKind.h4, t.substring(5)));
       } else if (t.startsWith('### ')) {
@@ -588,8 +595,8 @@ class MarkdownLite extends StatelessWidget {
   static TextSpan _inline(String text, TextStyle base) {
     final spans = <InlineSpan>[];
     final re = RegExp(
-      r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
-    );
+          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
+        );
     var i = 0;
     for (final m in re.allMatches(text)) {
       if (m.start > i) {
@@ -651,6 +658,15 @@ class MarkdownLite extends StatelessWidget {
             color: base.color?.withOpacity(0.85),
           ),
         ));
+      } else if (tok.startsWith('<u>') && tok.endsWith('</u>')) {
+        final body = tok.substring(3, tok.length - 4);
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            decoration: TextDecoration.underline,
+            color: base.color,
+          ),
+        ));
       } else if (tok.toLowerCase().startsWith('<abbr')) {
         final titleM = RegExp(r'title="([^"]*)"', caseSensitive: false).firstMatch(tok);
         final titleM2 = RegExp(r"title='([^']*)'", caseSensitive: false).firstMatch(tok);
@@ -684,7 +700,7 @@ class MarkdownLite extends StatelessWidget {
   }
 }
 
-enum _BlockKind { para, h1, h2, h3, h4, list, task, code, quote, callout, blank, hr, table, details, footnote }
+enum _BlockKind { para, h1, h2, h3, h4, h5, list, task, code, quote, callout, blank, hr, table, details, footnote }
 
 class _Block {
   const _Block(this.kind, this.text, {this.lang, this.checked, this.marker});

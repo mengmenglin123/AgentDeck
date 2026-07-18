@@ -36,6 +36,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   bool _queryRegex = false;
   String _kind = '';
   String _level = '';
+  String _source = '';
   bool _wrapLines = false;
   bool _newestFirst = true;
   bool _sortByKind = false;
@@ -206,6 +207,22 @@ class _ActivityScreenState extends State<ActivityScreen> {
             .toString()
             .toLowerCase();
         if (!lv.contains(_level.toLowerCase())) return false;
+      }
+      if (_source.isNotEmpty) {
+        final src = (e['source'] ?? e['origin'] ?? e['channel'] ?? e['provider'] ?? '')
+            .toString()
+            .toLowerCase();
+        if (_source == 'other') {
+          final known = src.contains('mock') ||
+              src.contains('bridge') ||
+              src.contains('session') ||
+              src.contains('terminal') ||
+              src.contains('hermes') ||
+              src.contains('host');
+          if (known) return false;
+        } else if (!src.contains(_source.toLowerCase())) {
+          return false;
+        }
       }
       if (rawQ.isEmpty) return true;
       final hayRaw =
@@ -642,6 +659,29 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     label: Text(f.$2, style: const TextStyle(fontSize: 11)),
                     selected: _level == f.$1,
                     onSelected: (_) => setState(() => _level = f.$1),
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                for (final f in const [
+                  ('', 'Any source'),
+                  ('mock-host', 'mock-host'),
+                  ('bridge', 'bridge'),
+                  ('session', 'session'),
+                  ('terminal', 'terminal'),
+                  ('hermes', 'hermes'),
+                  ('other', 'other'),
+                ])
+                  FilterChip(
+                    label: Text(f.$2, style: const TextStyle(fontSize: 11)),
+                    selected: _source == f.$1,
+                    onSelected: (_) => setState(() => _source = f.$1),
                     visualDensity: VisualDensity.compact,
                   ),
               ],

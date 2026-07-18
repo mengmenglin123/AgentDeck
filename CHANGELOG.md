@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.117
+
+- Activity source filter chips + diversified seed sources
+- MarkdownLite h5 + `<u>` underline
+- Mock od/expr/test (+ type/which/help lockstep)
+
 ## 0.1.116
 
 - Sessions agent_type filter chips
