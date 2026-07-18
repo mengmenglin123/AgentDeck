@@ -414,6 +414,11 @@
 | P3-319 | Diff 显式 path 排序 | [x] |
 | P3-320 | Agents 按 cwd 排序 | [x] |
 
+| P3-321 | MCP 按 command 排序 | [x] |
+| P3-322 | Activity 按 channel 排序 | [x] |
+| P3-323 | Agents 按 note 排序 | [x] |
+| P3-324 | Workspace 显式 name 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

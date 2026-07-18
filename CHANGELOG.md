@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.87
+
+- MCP command sort
+- Activity channel sort
+- Agents note sort
+- Workspace explicit name sort
+
 ## 0.1.86
 
 - Status / Host value-type sort
