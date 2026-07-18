@@ -542,6 +542,24 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                     // full-width search sits above chips via parent Column if present;
                     FilterChip(
                       visualDensity: VisualDensity.compact,
+                      label: const Text('Wrap', style: TextStyle(fontSize: 11)),
+                      selected: _wrapLines,
+                      onSelected: (v) => setState(() => _wrapLines = v),
+                    ),
+                    FilterChip(
+                      visualDensity: VisualDensity.compact,
+                      label: const Text('Regex', style: TextStyle(fontSize: 11)),
+                      selected: _queryRegex,
+                      onSelected: (v) => setState(() => _queryRegex = v),
+                    ),
+                    FilterChip(
+                      visualDensity: VisualDensity.compact,
+                      label: const Text('Case', style: TextStyle(fontSize: 11)),
+                      selected: _queryCase,
+                      onSelected: (v) => setState(() => _queryCase = v),
+                    ),
+                    FilterChip(
+                      visualDensity: VisualDensity.compact,
                       label: const Text('All', style: TextStyle(fontSize: 11)),
                       selected: _capFilter.isEmpty,
                       onSelected: (_) => setState(() => _capFilter = ''),
@@ -714,6 +732,24 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                         spacing: 6,
                         runSpacing: 6,
                         children: [
+                          FilterChip(
+                            visualDensity: VisualDensity.compact,
+                            label: const Text('Wrap', style: TextStyle(fontSize: 11)),
+                            selected: _wrapLines,
+                            onSelected: (v) => setState(() => _wrapLines = v),
+                          ),
+                          FilterChip(
+                            visualDensity: VisualDensity.compact,
+                            label: const Text('Regex', style: TextStyle(fontSize: 11)),
+                            selected: _queryRegex,
+                            onSelected: (v) => setState(() => _queryRegex = v),
+                          ),
+                          FilterChip(
+                            visualDensity: VisualDensity.compact,
+                            label: const Text('Case', style: TextStyle(fontSize: 11)),
+                            selected: _queryCase,
+                            onSelected: (v) => setState(() => _queryCase = v),
+                          ),
                           for (final t in const ['', 'string', 'number', 'bool', 'list', 'map', 'null'])
                             FilterChip(
                               visualDensity: VisualDensity.compact,

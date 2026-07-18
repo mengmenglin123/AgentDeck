@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.143
+
+- Host dashboard FilterChips (wrap / regex / case)
+- MarkdownLite `<applet>` + `<noembed>`
+- Mock diff3/pr/sha512sum (+ help/which/type lockstep)
+
 ## 0.1.142
 
 - Activity view FilterChips (wrap / regex / case)

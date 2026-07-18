@@ -481,13 +481,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.tag),
             title: const Text('App version'),
-            subtitle: _sub('0.1.142+142 · console only · protocol Mock/self-host'),
+            subtitle: _sub('0.1.143+143 · console only · protocol Mock/self-host'),
             trailing: IconButton(
               tooltip: 'Copy about',
               icon: const Icon(Icons.copy_outlined),
               onPressed: () async {
                 const text =
-                    'HuanHermes App 0.1.142+142\nconsole only · protocol Mock/self-host\nNo agent loop on device · tokens never in about text';
+                    'HuanHermes App 0.1.143+143\nconsole only · protocol Mock/self-host\nNo agent loop on device · tokens never in about text';
                 await Clipboard.setData(const ClipboardData(text: text));
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
