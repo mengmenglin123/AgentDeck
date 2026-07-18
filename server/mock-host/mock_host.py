@@ -834,7 +834,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -911,7 +911,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         known = {
             "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date",
             "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help",
-            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type", "expr", "test",
+            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type", "expr", "test", "factor", "bc", "nproc",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1468,8 +1468,8 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
                 "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find",
                 "seq", "sort", "base64", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev",
                 "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum",
-                "sha256sum", "expr", "test",
-            }
+                                "sha256sum", "expr", "test", "factor", "bc", "nproc",
+                            }
             if name.split()[0] in builtins:
                 out(f"{name.split()[0]} is a shell builtin\n", done=True, exit_code=0)
             else:
@@ -1970,6 +1970,79 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             except Exception:
                 ok = False
             out("", done=True, exit_code=0 if ok else 1)
+
+    elif lower == "nproc" or lower == "nproc --all":
+        # mock fixed CPU count (demo only — not real nproc)
+        out("4\n", done=True, exit_code=0)
+    elif lower.startswith("factor ") or lower == "factor":
+        # mock factor: trial division; refuse |N| > 10**12
+        parts = data.strip().split()
+        if len(parts) < 2:
+            out("factor: missing operand\nUsage: factor NUMBER\n", done=True, exit_code=1)
+        else:
+            raw_n = parts[1]
+            try:
+                n = int(raw_n)
+            except ValueError:
+                out(f"factor: '{raw_n}' is not a valid positive integer\n", done=True, exit_code=1)
+            else:
+                if abs(n) > 10**12:
+                    out(f"factor: '{raw_n}' is too large (mock cap 10^12)\n", done=True, exit_code=1)
+                elif n == 0:
+                    out("0:\n", done=True, exit_code=0)
+                else:
+                    # factor positive magnitude; keep sign only for display of original
+                    m = abs(n)
+                    factors: List[int] = []
+                    d = 2
+                    while d * d <= m:
+                        while m % d == 0:
+                            factors.append(d)
+                            m //= d
+                        d += 1 if d == 2 else 2
+                    if m > 1:
+                        factors.append(m)
+                    out(f"{n}: {' '.join(str(p) for p in factors)}\n", done=True, exit_code=0)
+    elif lower.startswith("bc ") or lower == "bc" or lower.startswith("bc -e ") or lower.startswith("bc -e"):
+        # simple mock calculator: integers + - * / % and parentheses via sanitized eval
+        raw = data.strip()
+        expr = ""
+        # support: bc EXPR | bc -e EXPR | bc -e 'EXPR'
+        if lower == "bc":
+            expr = ""
+        else:
+            rest = raw[2:].strip()  # after "bc"
+            if rest.lower().startswith("-e"):
+                rest = rest[2:].strip()
+            # strip one layer of matching quotes
+            if (rest.startswith("'") and rest.endswith("'")) or (rest.startswith('"') and rest.endswith('"')):
+                if len(rest) >= 2:
+                    rest = rest[1:-1]
+            expr = rest
+        # join is already via rest; allow spaces in expression
+        if not expr or not expr.strip():
+            out("bc: (mock) empty expression\n", done=True, exit_code=1)
+        else:
+            sanitized = expr.strip()
+            if not re.fullmatch(r"[0-9+\-*/%() \t]+", sanitized):
+                out("bc: (mock) invalid characters (only digits and + - * / % ( ) allowed)\n", done=True, exit_code=1)
+            else:
+                try:
+                    # integer-only arithmetic; use // for / via custom? keep Python / for floats then int if whole
+                    # Prefer integer ops: replace bare / with // only between numbers is hard; eval then require int
+                    val = eval(sanitized, {"__builtins__": {}}, {})  # noqa: S307 — sanitized digits/ops only
+                    if isinstance(val, float):
+                        if val != int(val):
+                            # still report float as int truncation? reject non-int results for mock simplicity
+                            out(f"{val}\n", done=True, exit_code=0)
+                        else:
+                            out(f"{int(val)}\n", done=True, exit_code=0)
+                    else:
+                        out(f"{int(val)}\n", done=True, exit_code=0)
+                except ZeroDivisionError:
+                    out("bc: division by zero\n", done=True, exit_code=1)
+                except Exception:
+                    out("bc: (mock) expression error\n", done=True, exit_code=1)
 
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)

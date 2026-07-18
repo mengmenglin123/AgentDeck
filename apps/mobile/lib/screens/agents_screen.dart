@@ -32,6 +32,8 @@ class _AgentsScreenState extends State<AgentsScreen> {
   /// all | agents | platforms | projects
   String _section = 'all';
   String _statusFilter = '';
+  /// Adapter filter: '' | mock | hermes | claude | codex | other
+  String _adapter = '';
   bool _wrapLines = false;
   bool _sortByType = false;
   bool _sortByModel = false;
@@ -123,15 +125,32 @@ class _AgentsScreenState extends State<AgentsScreen> {
     return 'Host agent entry';
   }
 
+  String _agentAdapterKey(dynamic a) {
+    if (a is Map) {
+      return (a['adapter'] ?? a['runtime'] ?? a['backend'] ?? '').toString().toLowerCase();
+    }
+    return '';
+  }
+
   bool _matchAgent(dynamic a) {
     if (_statusFilter.isNotEmpty) {
       final st = _agentStatusKey(a);
       if (st != _statusFilter) return false;
     }
+    if (_adapter.isNotEmpty) {
+      final ad = _agentAdapterKey(a);
+      if (_adapter == 'other') {
+        const known = ['mock', 'hermes', 'claude', 'codex', 'cc'];
+        if (known.any((k) => ad.contains(k))) return false;
+      } else if (!ad.contains(_adapter.toLowerCase())) {
+        return false;
+      }
+    }
     final rawQ = _query.trim();
     final q = _queryCase ? rawQ : rawQ.toLowerCase();
     if (rawQ.isEmpty) return true;
-    final hayRaw = '${_agentTitle(a)} ${_agentSub(a)}';
+    final adapterHay = _agentAdapterKey(a);
+    final hayRaw = '${_agentTitle(a)} ${_agentSub(a)} $adapterHay';
     if (_queryRegex) {
       try {
         return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
@@ -777,6 +796,31 @@ class _AgentsScreenState extends State<AgentsScreen> {
                 ),
               ),
             ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: [
+                for (final f in const [
+                  ('', 'Any adapter'),
+                  ('mock', 'mock'),
+                  ('hermes', 'hermes'),
+                  ('claude', 'claude'),
+                  ('codex', 'codex'),
+                  ('other', 'other'),
+                ])
+                  FilterChip(
+                    visualDensity: VisualDensity.compact,
+                    label: Text(f.$2, style: const TextStyle(fontSize: 11)),
+                    selected: _adapter == f.$1,
+                    onSelected: (_) => setState(() {
+                      _adapter = (_adapter == f.$1) ? '' : f.$1;
+                    }),
+                  ),
+              ],
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
             child: TextField(

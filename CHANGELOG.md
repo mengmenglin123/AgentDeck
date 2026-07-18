@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.118
+
+- Agents adapter filter chips
+- MarkdownLite h6 + `<del>`
+- Mock nproc/factor/bc (+ help/which/type lockstep)
+
 ## 0.1.117
 
 - Activity source filter chips + diversified seed sources
