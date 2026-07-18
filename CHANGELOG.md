@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.52
+
+- Skills: wrap/clamp list details
+- MCP: wrap/clamp list details
+- Cron: wrap/clamp list details
+- Workspace: wrap/clamp path/entry details
+
 ## 0.1.51
 
 - Host Dashboard: pause/resume auto-refresh

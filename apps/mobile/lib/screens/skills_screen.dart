@@ -24,6 +24,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
   final _q = TextEditingController();
   String _query = '';
   String _source = '';
+  bool _wrapLines = false;
   bool _sortAsc = true;
   final _scroll = ScrollController();
   Timer? _timer;
@@ -181,6 +182,12 @@ class _SkillsScreenState extends State<SkillsScreen> {
             icon: Icon(_sortAsc ? Icons.sort_by_alpha : Icons.sort),
           ),
           IconButton(
+            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            onPressed: () => setState(() => _wrapLines = !_wrapLines),
+            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
+          ),
+
+          IconButton(
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
@@ -294,6 +301,9 @@ class _SkillsScreenState extends State<SkillsScreen> {
                                       title: Text(name),
                                       subtitle: Text(
                                         [if (desc.isNotEmpty) desc, if (source.isNotEmpty) source].join('\n'),
+                                        maxLines: _wrapLines ? 8 : 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        softWrap: true,
                                       ),
                                       isThreeLine: desc.isNotEmpty && source.isNotEmpty,
                                       trailing: IconButton(

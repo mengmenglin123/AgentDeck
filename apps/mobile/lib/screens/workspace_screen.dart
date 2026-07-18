@@ -30,6 +30,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   final _filterCtrl = TextEditingController();
   String _filter = '';
   /// name ascending when true; dirs always first
+  bool _wrapLines = false;
   bool _sortAsc = true;
   /// all | dir | file
   String _typeFilter = 'all';
@@ -293,6 +294,12 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             icon: Icon(_sortAsc ? Icons.arrow_downward : Icons.arrow_upward),
           ),
           IconButton(
+            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            onPressed: () => setState(() => _wrapLines = !_wrapLines),
+            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
+          ),
+
+          IconButton(
             tooltip: 'Copy content',
             onPressed: !isFile
                 ? null
@@ -394,6 +401,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   ? 'readonly host tree'
                   : 'git ${_git!['branch'] ?? '?'} · ${(_git!['files'] as List?)?.length ?? 0} changes (mock)',
               style: const TextStyle(fontSize: 11),
+              maxLines: _wrapLines ? 6 : 2,
+              overflow: TextOverflow.ellipsis,
+              softWrap: true,
             ),
             trailing: TextButton(
               onPressed: () => _openDiff(),
@@ -484,8 +494,20 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                           ),
                           title: Text(e['name']?.toString() ?? ''),
                           subtitle: e['type'] == 'file'
-                              ? Text('${e['size'] ?? '?'} B', style: const TextStyle(fontSize: 11))
-                              : const Text('directory', style: TextStyle(fontSize: 11)),
+                              ? Text(
+                                  '${e['size'] ?? '?'} B · ${e['name'] ?? ''}',
+                                  style: const TextStyle(fontSize: 11),
+                                  maxLines: _wrapLines ? 4 : 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  softWrap: true,
+                                )
+                              : Text(
+                                  'directory · ${e['name'] ?? ''}',
+                                  style: const TextStyle(fontSize: 11),
+                                  maxLines: _wrapLines ? 4 : 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  softWrap: true,
+                                ),
                           onTap: () => _openEntry(e),
                           onLongPress: () async {
                             final name = e['name']?.toString() ?? '';

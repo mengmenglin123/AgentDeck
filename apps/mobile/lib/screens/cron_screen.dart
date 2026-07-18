@@ -27,6 +27,7 @@ class _CronScreenState extends State<CronScreen> {
   String _query = '';
   /// all | on | off
   String _enabled = 'all';
+  bool _wrapLines = false;
   bool _sortAsc = true;
   final _scroll = ScrollController();
   Timer? _timer;
@@ -193,6 +194,12 @@ class _CronScreenState extends State<CronScreen> {
             icon: Icon(_sortAsc ? Icons.sort_by_alpha : Icons.sort),
           ),
           IconButton(
+            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            onPressed: () => setState(() => _wrapLines = !_wrapLines),
+            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
+          ),
+
+          IconButton(
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
@@ -301,7 +308,12 @@ class _CronScreenState extends State<CronScreen> {
                               color: enabled ? Colors.green : Colors.grey,
                             ),
                             title: Text(name),
-                            subtitle: Text(sub),
+                            subtitle: Text(
+                              sub,
+                              maxLines: _wrapLines ? 8 : 2,
+                              overflow: TextOverflow.ellipsis,
+                              softWrap: true,
+                            ),
                             isThreeLine: true,
                             trailing: Text(enabled ? 'on' : 'off'),
                             onLongPress: () async {
