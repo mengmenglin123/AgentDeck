@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 
 import '../models/connection_config.dart';
 import '../models/session_info.dart';
+import '../services/app_settings_controller.dart';
 import '../services/bridge_client.dart';
 import '../services/terminal_history_store.dart';
 import '../utils/security.dart';
@@ -59,7 +61,20 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
     _buf.writeln('↑/↓ local history · device only');
     _buf.writeln('');
     _loadHistory();
+    try {
+      final s = context.read<AppSettingsController>();
+      _termScale = s.terminalFontScale.clamp(0.85, 1.4);
+    } catch (_) {}
     _connect();
+  }
+
+
+  Future<void> _setTermScale(double v) async {
+    final nv = v.clamp(0.85, 1.4);
+    setState(() => _termScale = nv);
+    try {
+      await context.read<AppSettingsController>().setTerminalFontScale(nv);
+    } catch (_) {}
   }
 
   Future<void> _loadHistory() async {
@@ -450,14 +465,14 @@ class _TerminalScreenState extends State<TerminalScreen> with WidgetsBindingObse
             tooltip: 'Smaller text',
             onPressed: _termScale <= 0.85
                 ? null
-                : () => setState(() => _termScale = (_termScale - 0.1).clamp(0.85, 1.4)),
+                : () => _setTermScale(_termScale - 0.1),
             icon: const Icon(Icons.text_decrease),
           ),
           IconButton(
             tooltip: 'Larger text',
             onPressed: _termScale >= 1.4
                 ? null
-                : () => setState(() => _termScale = (_termScale + 0.1).clamp(0.85, 1.4)),
+                : () => _setTermScale(_termScale + 0.1),
             icon: const Icon(Icons.text_increase),
           ),
           IconButton(

@@ -16,6 +16,7 @@ class AppSettingsController extends ChangeNotifier {
   static const _kChatFont = 'huanhermes.chat_font_scale.v1';
   static const _kAutoReconnect = 'huanhermes.auto_reconnect.v1';
   static const _kMaxReconnect = 'huanhermes.max_reconnect_attempts.v1';
+  static const _kTermFont = 'huanhermes.terminal_font_scale.v1';
 
   /// 0.85 | 1.0 | 1.15 | 1.3
   double textScale = 1.0;
@@ -53,6 +54,9 @@ class AppSettingsController extends ChangeNotifier {
   /// Max silent reconnect attempts (1–10). Default 5.
   int maxReconnectAttempts = 5;
 
+  /// Terminal body font scale: 0.85–1.4. Device-local.
+  double terminalFontScale = 1.0;
+
   Future<void> load() async {
     final p = await SharedPreferences.getInstance();
     textScale = p.getDouble(_kScale) ?? 1.0;
@@ -76,6 +80,10 @@ class AppSettingsController extends ChangeNotifier {
     maxReconnectAttempts = p.getInt(_kMaxReconnect) ?? 5;
     if (maxReconnectAttempts < 1 || maxReconnectAttempts > 10) {
       maxReconnectAttempts = 5;
+    }
+    terminalFontScale = p.getDouble(_kTermFont) ?? 1.0;
+    if (terminalFontScale < 0.85 || terminalFontScale > 1.4) {
+      terminalFontScale = 1.0;
     }
     notifyListeners();
   }
@@ -164,6 +172,13 @@ class AppSettingsController extends ChangeNotifier {
     await p.setInt(_kMaxReconnect, maxReconnectAttempts);
   }
 
+  Future<void> setTerminalFontScale(double v) async {
+    terminalFontScale = v.clamp(0.85, 1.4);
+    notifyListeners();
+    final p = await SharedPreferences.getInstance();
+    await p.setDouble(_kTermFont, terminalFontScale);
+  }
+
   /// Fire a light impact when haptics are enabled.
 
   /// Reset console prefs to defaults (device-local only; does not touch host tokens).
@@ -180,6 +195,7 @@ class AppSettingsController extends ChangeNotifier {
     chatFontScale = 1.0;
     autoReconnect = true;
     maxReconnectAttempts = 5;
+    terminalFontScale = 1.0;
     notifyListeners();
     final p = await SharedPreferences.getInstance();
     await p.setDouble(_kScale, textScale);
@@ -194,6 +210,7 @@ class AppSettingsController extends ChangeNotifier {
     await p.setDouble(_kChatFont, chatFontScale);
     await p.setBool(_kAutoReconnect, autoReconnect);
     await p.setInt(_kMaxReconnect, maxReconnectAttempts);
+    await p.setDouble(_kTermFont, terminalFontScale);
   }
 
   void buzzLight() {

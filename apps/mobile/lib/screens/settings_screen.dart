@@ -342,6 +342,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
+          if (_matchPref('Terminal text size', 'term scale'))
+          ListTile(
+            leading: const Icon(Icons.terminal),
+            title: const Text('Terminal text size'),
+            subtitle: Text('Mono scale · ${settings.terminalFontScale.toStringAsFixed(2)}x'),
+          ),
+          if (_matchPref('Terminal text size', 'term scale'))
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                for (final s in const [0.85, 1.0, 1.15, 1.3])
+                  ChoiceChip(
+                    label: Text('${s}x'),
+                    selected: (settings.terminalFontScale - s).abs() < 0.001,
+                    onSelected: (_) => settings.setTerminalFontScale(s),
+                  ),
+              ],
+            ),
+          ),
           const Divider(height: 28),
           if (_matchPref('Device data', 'prefs reset'))
           Text('Device data', style: Theme.of(context).textTheme.titleSmall),
@@ -367,6 +388,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 'mono_chat: ${settings.monoChat}',
                 'auto_reconnect: ${settings.autoReconnect}',
                 'max_reconnect_attempts: ${settings.maxReconnectAttempts}',
+                'terminal_font_scale: ${settings.terminalFontScale}',
               ].join('\n');
               await Clipboard.setData(ClipboardData(text: text));
               if (context.mounted) {
@@ -424,13 +446,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.tag),
             title: const Text('App version'),
-            subtitle: _sub('0.1.100+100 · console only · protocol Mock/self-host'),
+            subtitle: _sub('0.1.101+101 · console only · protocol Mock/self-host'),
             trailing: IconButton(
               tooltip: 'Copy about',
               icon: const Icon(Icons.copy_outlined),
               onPressed: () async {
                 const text =
-                    'HuanHermes App 0.1.100+100\nconsole only · protocol Mock/self-host\nNo agent loop on device · tokens never in about text';
+                    'HuanHermes App 0.1.101+101\nconsole only · protocol Mock/self-host\nNo agent loop on device · tokens never in about text';
                 await Clipboard.setData(const ClipboardData(text: text));
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(

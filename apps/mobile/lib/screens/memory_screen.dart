@@ -80,7 +80,8 @@ class _MemoryScreenState extends State<MemoryScreen> {
         }
       }
       if (rawQ.isEmpty) return true;
-      final hayRaw = '${m['title']} ${m['id']} ${m['content']} ${m['scope']} ${m['type']}';
+      final tags = m['tags'] is List ? (m['tags'] as List).join(' ') : '${m['tags'] ?? ''}';
+      final hayRaw = '${m['title']} ${m['id']} ${m['content']} ${m['scope']} ${m['type']} $tags';
       if (_queryRegex) {
         try {
           return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
@@ -619,14 +620,18 @@ class _MemoryScreenState extends State<MemoryScreen> {
                         final scope = (m['scope'] ?? '').toString();
                         final type = (m['type'] ?? '').toString();
                         final conf = (m['confidence'] ?? '').toString();
-                        final full = '# $title\n\nscope: $scope\ntype: $type\nconfidence: $conf\n\n$content';
+                        final tags = m['tags'] is List
+                            ? (m['tags'] as List).map((e) => e.toString()).where((e) => e.isNotEmpty).join(', ')
+                            : (m['tags']?.toString() ?? '');
+                        final full = '# $title\n\nscope: $scope\ntype: $type\nconfidence: $conf'
+                            '${tags.isNotEmpty ? '\ntags: $tags' : ''}\n\n$content';
                         return ListTile(
                           leading: Icon(
                             scope == 'project' ? Icons.folder_special_outlined : Icons.psychology_outlined,
                           ),
                           title: Text(title),
                           subtitle: Text(
-                            '[$scope/$type${conf.isNotEmpty ? ' · $conf' : ''}${_fmtMemTs(m).isNotEmpty ? ' · ${_fmtMemTs(m)}' : ''}]\n'
+                            '[$scope/$type${conf.isNotEmpty ? ' · $conf' : ''}${_fmtMemTs(m).isNotEmpty ? ' · ${_fmtMemTs(m)}' : ''}${tags.isNotEmpty ? ' · $tags' : ''}]\n'
                             '${_wrapLines ? content : (content.length > 160 ? '${content.substring(0, 160)}…' : content)}',
                             maxLines: _wrapLines ? 12 : 4,
                             overflow: TextOverflow.ellipsis,

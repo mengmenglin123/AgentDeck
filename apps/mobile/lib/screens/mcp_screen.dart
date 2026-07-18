@@ -113,7 +113,7 @@ class _McpScreenState extends State<McpScreen> {
       if (rawQ.isEmpty) return true;
       final tools = s['tools'] is List ? (s['tools'] as List).join(' ') : '';
       final hayRaw =
-          '${s['name']} ${s['description']} ${s['status']} ${s['transport']} ${s['url']} ${s['command']} $tools';
+          '${s['name']} ${s['description']} ${s['status']} ${s['kind']} ${s['note']} ${s['transport']} ${s['url']} ${s['command']} $tools';
       if (_queryRegex) {
         try {
           return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
@@ -602,7 +602,9 @@ class _McpScreenState extends State<McpScreen> {
                                     : '';
                                 final sub = [
                                   if (s['description'] != null) s['description'].toString(),
+                                  if (s['kind'] != null) 'kind: ${s['kind']}',
                                   if (s['status'] != null) 'status: ${s['status']}',
+                                  if (s['note'] != null) 'note: ${s['note']}',
                                   if (tools.isNotEmpty) 'tools: $tools',
                                 ].where((e) => e.isNotEmpty).join('\n');
                                 return Card(

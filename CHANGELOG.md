@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.101
+
+- Settings terminal font scale (device-local) wired into Terminal screen
+- Mock memory hermes entries + tags in Memory UI; MCP hermes-memory/skills catalog
+- Mock agents claude-code/codex capabilities + MCP kind/note fields
+
 ## 0.1.100
 
 - MarkdownLite strikethrough ~~text~~ (P4-5)
