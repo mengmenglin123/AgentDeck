@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.86
+
+- Status / Host value-type sort
+- Diff explicit path sort
+- Agents cwd sort
+
 ## 0.1.85
 
 - Agents provider + sessions_count sort

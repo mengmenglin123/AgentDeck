@@ -409,6 +409,11 @@
 | P3-315 | Connect 按 TLS 排序 | [x] |
 | P3-316 | Activity 按 type 排序 | [x] |
 
+| P3-317 | Status 按 value type 排序 | [x] |
+| P3-318 | Host Dashboard 按 value type 排序 | [x] |
+| P3-319 | Diff 显式 path 排序 | [x] |
+| P3-320 | Agents 按 cwd 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

@@ -27,6 +27,7 @@ class _StatusScreenState extends State<StatusScreen> {
   bool _wrapLines = false;
   bool _sortAsc = true;
   bool _sortByValue = false;
+  bool _sortByType = false;
   bool _queryCase = false;
   bool _queryRegex = false;
   bool _relativeTs = false;
@@ -36,6 +37,16 @@ class _StatusScreenState extends State<StatusScreen> {
   final _keyFilterCtrl = TextEditingController();
   bool _autoRefresh = true;
   final _scroll = ScrollController();
+
+
+  String _valueTypeLabel(dynamic v) {
+    if (v == null) return 'null';
+    if (v is bool) return 'bool';
+    if (v is num) return 'number';
+    if (v is List) return 'list';
+    if (v is Map) return 'map';
+    return 'string';
+  }
 
   @override
   void initState() {
@@ -257,27 +268,39 @@ class _StatusScreenState extends State<StatusScreen> {
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
           IconButton(
-            tooltip: _sortByValue
-                ? (_sortAsc ? 'Values Z→A' : 'Values A→Z')
-                : (_sortAsc ? 'Keys Z→A' : 'Keys A→Z'),
+            tooltip: _sortByType
+                ? (_sortAsc ? 'Type Z→A' : 'Type A→Z')
+                : (_sortByValue
+                    ? (_sortAsc ? 'Values Z→A' : 'Values A→Z')
+                    : (_sortAsc ? 'Keys Z→A' : 'Keys A→Z')),
             onPressed: () {
               setState(() {
-                if (!_sortByValue && _sortAsc) {
+                if (!_sortByValue && !_sortByType && _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortByValue && !_sortAsc) {
+                } else if (!_sortByValue && !_sortByType && !_sortAsc) {
                   _sortByValue = true;
+                  _sortByType = false;
                   _sortAsc = true;
                 } else if (_sortByValue && _sortAsc) {
                   _sortAsc = false;
+                } else if (_sortByValue && !_sortAsc) {
+                  _sortByValue = false;
+                  _sortByType = true;
+                  _sortAsc = true;
+                } else if (_sortByType && _sortAsc) {
+                  _sortAsc = false;
                 } else {
                   _sortByValue = false;
+                  _sortByType = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortByValue
-                ? Icons.text_fields
-                : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)),
+            icon: Icon(_sortByType
+                ? Icons.category_outlined
+                : (_sortByValue
+                    ? Icons.text_fields
+                    : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))),
           ),
 
 
@@ -578,7 +601,10 @@ class _StatusScreenState extends State<StatusScreen> {
                     .toList();
               }
               entries.sort((a, b) {
-                if (_sortByValue) {
+                if (_sortByType) {
+                  final c = _valueTypeLabel(a.value).compareTo(_valueTypeLabel(b.value));
+                  if (c != 0) return _sortAsc ? c : -c;
+                } else if (_sortByValue) {
                   final c = '${a.value}'.toLowerCase().compareTo('${b.value}'.toLowerCase());
                   if (c != 0) return _sortAsc ? c : -c;
                 }
