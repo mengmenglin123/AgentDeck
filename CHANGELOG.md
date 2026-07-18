@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.138
+
+- Status view FilterChips (wrap / regex / case)
+- MarkdownLite `<dir>` + `<menu>`
+- Mock ldconfig/uuidgen/seq (+ help/which/type lockstep)
+
 ## 0.1.137
 
 - Chat search/tools FilterChips (regex / case / tools)
