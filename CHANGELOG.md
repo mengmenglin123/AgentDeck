@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.159
+
+- Mock bash/sh/exit/logout/source/set (+ help/which/type lockstep)
+- Mock tar/gzip/gunzip/zip/unzip (+ help/which/type lockstep)
+- Mock curl/wget/ssh/scp/rsync/ping (+ help/which/type lockstep)
+
 ## 0.1.158
 
 - Mock cp/mv/rm/chmod/chown/chgrp (+ help/which/type lockstep)

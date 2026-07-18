@@ -652,6 +652,9 @@
 - [x] **P4-1bh** Mock cp/mv/rm/chmod/chown/chgrp (0.1.158)
 - [x] **P4-1bi** Mock less/more/awk/sed (0.1.158)
 - [x] **P4-1bj** Mock kill/jobs/bg/fg (0.1.158)
+- [x] **P4-1bk** Mock bash/sh/exit/logout/source/set (0.1.159)
+- [x] **P4-1bl** Mock tar/gzip/gunzip/zip/unzip (0.1.159)
+- [x] **P4-1bm** Mock curl/wget/ssh/scp/rsync/ping (0.1.159)
 
 ## P4 — 远期
 

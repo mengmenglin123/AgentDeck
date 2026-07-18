@@ -834,7 +834,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, locale, umask, readlink, cksum, sum, expand, unexpand, tac, namei, dir, vdir, tsort, pathchk, mktemp, sync, link, ln, truncate, install, shred, timeout, nice, nohup, watch, stdbuf, flock, ionice, taskset, prlimit, chroot, unshare, nsenter, setpriv, capsh, runcon, ldd, ldconfig, uuidgen, df, free, ps, uptime, true, false, printf, sleep, touch, rmdir, mkfifo, getopt, strings, csplit, diff, patch, sdiff, diff3, pr, sha512sum, base32, sha224sum, sha384sum, dircolors, tput, tset, tabs, script, scriptreplay, infocmp, toe, reset, resize, login, mesg, write, wall, newgrp, su, sudo, chfn, chsh, passwd, lastlog, lastb, faillog, chage, ulimit, finger, nologin, ulimit, finger, nologin, kill, jobs, bg, fg, unset, history, alias, unalias, cp, mv, rm, chmod, chown, chgrp, less, more, awk, sed, kill, jobs, bg, fg, echo <text>, stty, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, locale, umask, readlink, cksum, sum, expand, unexpand, tac, namei, dir, vdir, tsort, pathchk, mktemp, sync, link, ln, truncate, install, shred, timeout, nice, nohup, watch, stdbuf, flock, ionice, taskset, prlimit, chroot, unshare, nsenter, setpriv, capsh, runcon, ldd, ldconfig, uuidgen, df, free, ps, uptime, true, false, printf, sleep, touch, rmdir, mkfifo, getopt, strings, csplit, diff, patch, sdiff, diff3, pr, sha512sum, base32, sha224sum, sha384sum, dircolors, tput, tset, tabs, script, scriptreplay, infocmp, toe, reset, resize, login, mesg, write, wall, newgrp, su, sudo, chfn, chsh, passwd, lastlog, lastb, faillog, chage, ulimit, finger, nologin, ulimit, finger, nologin, bash, logout, source, tar, gzip, gunzip, zip, unzip, curl, wget, ssh, rsync, ping, kill, jobs, bg, fg, unset, history, alias, unalias, cp, mv, rm, chmod, chown, chgrp, less, more, awk, sed, kill, jobs, bg, fg, echo <text>, stty, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -932,6 +932,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         name = data.strip()[6:].strip()
         known = {
             "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "file", "type", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch", "stdbuf", "flock", "ionice", "taskset", "prlimit", "chroot", "unshare", "nsenter", "setpriv", "capsh", "runcon", "ldd", "ldconfig", "uuidgen", "rmdir", "mkfifo", "getopt", "strings", "csplit", "diff", "patch", "sdiff", "pr", "dircolors", "tput", "tset", "tabs", "script", "scriptreplay", "infocmp", "toe", "reset", "resize", "login", "mesg", "write", "wall", "newgrp", "su", "sudo", "chfn", "chsh", "passwd", "lastlog", "lastb", "faillog", "chage", "ulimit", "finger", "nologin", "unset", "alias", "unalias", "kill", "jobs", "bg", "fg", "less", "more", "awk", "sed", "cp", "mv", "rm", "chmod", "chown", "chgrp",
+            "bash", "sh", "exit", "logout", "source", "set", "tar", "gzip", "gunzip", "zip", "unzip", "curl", "wget", "ssh", "scp", "rsync", "ping",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1550,6 +1551,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         else:
             builtins = {
                 "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "export", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch", "stdbuf", "flock", "ionice", "taskset", "prlimit", "chroot", "unshare", "nsenter", "setpriv", "capsh", "runcon", "ldd", "ldconfig", "uuidgen", "rmdir", "mkfifo", "getopt", "strings", "csplit", "diff", "patch", "sdiff", "pr", "dircolors", "tput", "tset", "tabs", "script", "scriptreplay", "infocmp", "toe", "reset", "resize", "login", "mesg", "write", "wall", "newgrp", "su", "sudo", "chfn", "chsh", "passwd", "lastlog", "lastb", "faillog", "chage", "ulimit", "finger", "nologin", "unset", "alias", "unalias", "kill", "jobs", "bg", "fg", "less", "more", "awk", "sed", "cp", "mv", "rm", "chmod", "chown", "chgrp",
+                "bash", "sh", "exit", "logout", "source", "set", "tar", "gzip", "gunzip", "zip", "unzip", "curl", "wget", "ssh", "scp", "rsync", "ping",
                             }
             if name.split()[0] in builtins:
                 out(f"{name.split()[0]} is a shell builtin\n", done=True, exit_code=0)
@@ -3360,6 +3362,68 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
     elif lower == "fg" or lower.startswith("fg "):
         # mock fg: bare or with args — print foreground job, exit 0 (demo)
         out("[1]+ sleep 100\n", done=True, exit_code=0)
+    # --- shell/session (demo only) ---
+    elif lower == "bash" or lower.startswith("bash "):
+        pass  # demo: no real shell
+    elif lower == "sh" or lower.startswith("sh "):
+        pass  # demo: no real shell
+    elif lower.startswith("exit") or lower == "exit":
+        out("exit\n", done=True, exit_code=0)
+    elif lower == "logout" or lower.startswith("logout "):
+        out("logout\n", done=True, exit_code=0)
+    elif lower.startswith("source "):
+        pass  # demo: no real sourcing
+    elif lower == "source":
+        out("source: filename argument required\n", done=True, exit_code=1)
+    elif lower == "set" or lower.startswith("set "):
+        out("BASH=/bin/bash\nBASHOPTS=cmdhist:complete_fullquote\nHOME=/home/mock\nHOSTNAME=mock-host\nLANG=en_US.UTF-8\nPATH=/usr/local/bin:/usr/bin:/bin\nPWD=/home/mock\nSHELL=/bin/bash\nUSER=mock\n", done=True, exit_code=0)
+    # --- archive/compression (demo only) ---
+    elif lower.startswith("tar "):
+        pass  # demo: no real archive
+    elif lower == "tar":
+        out("tar: Cowardly refusing to create an empty archive\nTry \'tar --help\' for more information.\n", done=True, exit_code=2)
+    elif lower.startswith("gzip "):
+        pass  # demo
+    elif lower == "gzip":
+        out("gzip: compressed data not read from terminal\n", done=True, exit_code=1)
+    elif lower.startswith("gunzip "):
+        pass  # demo
+    elif lower == "gunzip":
+        out("gunzip: compressed data not read from terminal\n", done=True, exit_code=1)
+    elif lower.startswith("zip "):
+        pass  # demo
+    elif lower == "zip":
+        out("zip error: Nothing to do!\n", done=True, exit_code=12)
+    elif lower.startswith("unzip "):
+        pass  # demo
+    elif lower == "unzip":
+        out("unzip: missing archive name\n", done=True, exit_code=1)
+    # --- network (demo only) ---
+    elif lower.startswith("curl "):
+        pass  # demo: no real HTTP
+    elif lower == "curl":
+        out("curl: try \'curl --help\' for more information\n", done=True, exit_code=2)
+    elif lower.startswith("wget "):
+        pass  # demo: no real download
+    elif lower == "wget":
+        out("wget: missing URL\n", done=True, exit_code=1)
+    elif lower.startswith("ssh ") or lower == "ssh":
+        out("ssh: connect to host mock-host port 22: Connection refused\n", done=True, exit_code=255)
+    elif lower.startswith("scp "):
+        pass  # demo
+    elif lower == "scp":
+        out("usage: scp [-346BCpqrTv] [-c cipher] [-F ssh_config] source target\n", done=True, exit_code=1)
+    elif lower.startswith("rsync "):
+        pass  # demo
+    elif lower == "rsync":
+        out("rsync: missing operand\n", done=True, exit_code=1)
+    elif lower.startswith("ping ") or lower == "ping":
+        if lower == "ping" or lower == "ping ":
+            out("ping: usage error: Destination address required\n", done=True, exit_code=1)
+        else:
+            out("PING localhost (127.0.0.1) 56(84) bytes of data.\n64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.010 ms\n\n--- localhost ping statistics ---\n1 packets transmitted, 1 received, 0% packet loss\n", done=True, exit_code=0)
+
+
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)
     elif lower in {"clear", "cls"}:
