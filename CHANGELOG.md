@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.161
+
+- Newest FilterChips on activity/logs/memory screens
+
+
 ## 0.1.160
 
 - Mock ip/netstat/traceroute (+ help/which/type lockstep)

@@ -656,6 +656,7 @@
 - [x] **P4-1bl** Mock tar/gzip/gunzip/zip/unzip (0.1.159)
 - [x] **P4-1bm** Mock curl/wget/ssh/scp/rsync/ping (0.1.159)
 - [x] **P4-1bn** Mock ip/netstat/traceroute (0.1.160)
+- [x] **P4-3bg** Newest chips: activity/logs/memory (0.1.161)
 
 ## P4 — 远期
 

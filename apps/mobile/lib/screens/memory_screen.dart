@@ -621,6 +621,12 @@ class _MemoryScreenState extends State<MemoryScreen> {
                   },
                   visualDensity: VisualDensity.compact,
                 ),
+                FilterChip(
+                  label: const Text('Newest', style: TextStyle(fontSize: 11)),
+                  selected: _newestFirst,
+                  onSelected: (v) => setState(() => _newestFirst = v),
+                  visualDensity: VisualDensity.compact,
+                ),
               ],
             ),
           ),
