@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.146
+
+- Cron view FilterChips (wrap / regex / case)
+- MarkdownLite `<track>` + `<video>`
+- Mock tput/tset/tabs (+ help/which/type lockstep)
+
 ## 0.1.145
 
 - Workspace view FilterChips (wrap / regex / case)
