@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.150
+
+- Diff view FilterChips (wrap / regex / case)
+- MarkdownLite `<iframe>` + `<portal>`
+- Mock id/login/mesg (+ help/which/type lockstep)
+
 ## 0.1.149
 
 - Chat view FilterChips (wrap / regex / case)

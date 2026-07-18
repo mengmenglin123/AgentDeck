@@ -584,6 +584,34 @@ class _DiffScreenState extends State<DiffScreen> {
               ),
             ),
           if (_files.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  FilterChip(
+                    visualDensity: VisualDensity.compact,
+                    label: const Text('Wrap', style: TextStyle(fontSize: 11)),
+                    selected: _wrapLines,
+                    onSelected: (v) => setState(() => _wrapLines = v),
+                  ),
+                  FilterChip(
+                    visualDensity: VisualDensity.compact,
+                    label: const Text('Regex', style: TextStyle(fontSize: 11)),
+                    selected: _diffRegex,
+                    onSelected: (v) => setState(() => _diffRegex = v),
+                  ),
+                  FilterChip(
+                    visualDensity: VisualDensity.compact,
+                    label: const Text('Case', style: TextStyle(fontSize: 11)),
+                    selected: _diffCase,
+                    onSelected: (v) => setState(() => _diffCase = v),
+                  ),
+                ],
+              ),
+            ),
+          if (_files.isNotEmpty)
             SizedBox(
               height: 48,
               child: ListView.separated(
