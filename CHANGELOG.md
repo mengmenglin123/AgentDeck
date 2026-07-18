@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.111
+
+- Activity level filter chips (info/warn/error/debug)
+- Agents subtitle shows adapter/process; hermes agent mock fields
+- Mock date +FMT, sort/export/env session vars; head/tail -n
+
 ## 0.1.110
 
 - Status screen Bridge adapters list + copy summary

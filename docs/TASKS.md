@@ -509,6 +509,8 @@
 - [x] **P4-3k** Status Bridge adapters UI + copy (0.1.110)
 - [x] **P4-5o** MarkdownLite <kbd> (0.1.110)
 - [x] **P4-1l** Mock terminal grep/find/seq (0.1.110)
+- [x] **P4-3l** Activity level chips; agents adapter/process fields (0.1.111)
+- [x] **P4-1m** Mock date+FMT, sort/export/env, head/tail -n (0.1.111)
 
 ## P4 — 远期
 

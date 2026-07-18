@@ -35,6 +35,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   bool _queryCase = false;
   bool _queryRegex = false;
   String _kind = '';
+  String _level = '';
   bool _wrapLines = false;
   bool _newestFirst = true;
   bool _sortByKind = false;
@@ -199,6 +200,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
         } else if (!kind.contains(_kind)) {
           return false;
         }
+      }
+      if (_level.isNotEmpty) {
+        final lv = (e['level'] ?? e['severity'] ?? e['priority'] ?? '')
+            .toString()
+            .toLowerCase();
+        if (!lv.contains(_level.toLowerCase())) return false;
       }
       if (rawQ.isEmpty) return true;
       final hayRaw =
@@ -614,6 +621,27 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     label: Text(f.$2, style: const TextStyle(fontSize: 12)),
                     selected: _kind == f.$1,
                     onSelected: (_) => setState(() => _kind = f.$1),
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                for (final f in const [
+                  ('', 'Any level'),
+                  ('info', 'info'),
+                  ('warn', 'warn'),
+                  ('error', 'error'),
+                  ('debug', 'debug'),
+                ])
+                  FilterChip(
+                    label: Text(f.$2, style: const TextStyle(fontSize: 11)),
+                    selected: _level == f.$1,
+                    onSelected: (_) => setState(() => _level = f.$1),
                     visualDensity: VisualDensity.compact,
                   ),
               ],

@@ -805,7 +805,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -882,7 +882,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         known = {
             "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date",
             "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help",
-            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq",
+            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -898,13 +898,31 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         out("uid=1000(huanhermes-mock) gid=1000(mock) groups=1000(mock)\n", done=True, exit_code=0)
     elif lower.startswith("cat ") or lower.startswith("head ") or lower.startswith("tail ") or lower.startswith("wc "):
         st_c = _session_state(sk)
-        parts = data.strip().split(None, 1)
+        parts = data.strip().split()
         cmd = parts[0].lower() if parts else "cat"
-        arg = parts[1].strip() if len(parts) > 1 else ""
-        # strip simple flags like -n
-        while arg.startswith("-"):
-            bits = arg.split(None, 1)
-            arg = bits[1] if len(bits) > 1 else ""
+        n_lines = 10
+        arg_tokens = parts[1:] if len(parts) > 1 else []
+        path_bits = []
+        i = 0
+        while i < len(arg_tokens):
+            t = arg_tokens[i]
+            if t in {"-n", "--lines"} and i + 1 < len(arg_tokens):
+                try:
+                    n_lines = max(1, min(500, int(arg_tokens[i + 1])))
+                except Exception:
+                    pass
+                i += 2
+                continue
+            if t.startswith("-n") and len(t) > 2 and t[2:].isdigit():
+                n_lines = max(1, min(500, int(t[2:])))
+                i += 1
+                continue
+            if t.startswith("-") and t not in {"-"}:
+                i += 1
+                continue
+            path_bits.append(t)
+            i += 1
+        arg = " ".join(path_bits)
         path = arg or "(empty)"
         wd = st_c.get("workdir") or "/workspace"
         # resolve relative to workdir
@@ -923,25 +941,53 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
                 words = len(content.split())
                 out(f"{lines} {words} {len(content)} {cleaned or path}\n", done=True, exit_code=0)
             elif cmd == "head":
-                out("\n".join(content.splitlines()[:10]) + ("\n" if content else ""), done=True, exit_code=0)
+                out("\n".join(content.splitlines()[:n_lines]) + ("\n" if content else ""), done=True, exit_code=0)
             elif cmd == "tail":
-                out("\n".join(content.splitlines()[-10:]) + ("\n" if content else ""), done=True, exit_code=0)
+                out("\n".join(content.splitlines()[-n_lines:]) + ("\n" if content else ""), done=True, exit_code=0)
             else:
                 out(content if content.endswith("\n") or not content else content + "\n", done=True, exit_code=0)
-    elif lower in {"date", "date -u"}:
-        out(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()) + "\n", done=True, exit_code=0)
+    elif lower == "date" or lower.startswith("date ") or lower.startswith("date+"):
+        # Limited date formats (mock): default ISO; supports -u and +FMT subset
+        use_utc = "-u" in lower.split() or lower.startswith("date -u")
+        fmt = None
+        raw = data.strip()
+        if "+" in raw:
+            fmt = raw[raw.index("+") + 1 :].strip()
+        tstruct = time.gmtime() if use_utc else time.localtime()
+        if not fmt:
+            out(time.strftime("%Y-%m-%dT%H:%M:%SZ" if use_utc else "%Y-%m-%d %H:%M:%S %z", tstruct) + "\n", done=True, exit_code=0)
+        else:
+            # map common tokens
+            mapping = {
+                "%Y": "%Y", "%m": "%m", "%d": "%d", "%H": "%H", "%M": "%M", "%S": "%S",
+                "%F": "%Y-%m-%d", "%T": "%H:%M:%S", "%s": str(int(time.time())),
+            }
+            out_s = fmt
+            if "%s" in out_s:
+                out_s = out_s.replace("%s", str(int(time.mktime(tstruct)) if not use_utc else int(time.time())))
+            try:
+                # convert remaining via strftime if looks like strftime
+                py_fmt = out_s
+                for k in ("%F", "%T", "%Y", "%m", "%d", "%H", "%M", "%S"):
+                    pass
+                rendered = time.strftime(py_fmt.replace("%F", "%Y-%m-%d").replace("%T", "%H:%M:%S"), tstruct)
+                out(rendered + "\n", done=True, exit_code=0)
+            except Exception:
+                out(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()) + "\n", done=True, exit_code=0)
     elif lower in {"env", "printenv"}:
         st_e = _session_state(sk)
-        out(
-            f"TERM=huanhermes-mock\n"
-            f"USER=huanhermes-mock\n"
-            f"PWD={st_e.get('workdir') or '/workspace'}\n"
-            f"COLUMNS={st_e.get('term_cols') or 80}\n"
-            f"LINES={st_e.get('term_rows') or 24}\n"
-            f"HH_SESSION={sk}\n",
-            done=True,
-            exit_code=0,
-        )
+        lines = [
+            "TERM=huanhermes-mock",
+            "USER=huanhermes-mock",
+            f"PWD={st_e.get('workdir') or '/workspace'}",
+            f"COLUMNS={st_e.get('term_cols') or 80}",
+            f"LINES={st_e.get('term_rows') or 24}",
+            f"HH_SESSION={sk}",
+        ]
+        extra = st_e.get("env") if isinstance(st_e.get("env"), dict) else {}
+        for k in sorted(extra.keys()):
+            lines.append(f"{k}={extra[k]}")
+        out("\n".join(lines) + "\n", done=True, exit_code=0)
     elif lower in {"stty size", "stty", "tty size", "size"}:
         st_g = _session_state(sk)
         cols_g = st_g.get("term_cols") or 80
@@ -1253,6 +1299,39 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             out("\n".join(vals) + ("\n" if vals else ""), done=True, exit_code=0)
         except Exception:
             out("seq: invalid arguments\n", done=True, exit_code=1)
+
+
+    elif lower.startswith("sort") or lower == "sort":
+        # sort lines from stdin not available — sort mock list args or help
+        args = data.strip().split(None, 1)
+        payload = args[1] if len(args) > 1 else ""
+        if not payload:
+            out("sort: (mock) pass space-separated tokens to sort\n", done=True, exit_code=0)
+        else:
+            # if multiline use lines else tokens
+            if "\n" in payload:
+                lines = payload.splitlines()
+            else:
+                lines = payload.split()
+            reverse = "-r" in lower
+            lines = sorted(lines, reverse=reverse)
+            out("\n".join(lines) + ("\n" if lines else ""), done=True, exit_code=0)
+    elif lower.startswith("export "):
+        # mock env set — session-local only
+        assign = data.strip()[7:].strip()
+        if "=" not in assign:
+            out("export: mock expects NAME=value\n", done=True, exit_code=1)
+        else:
+            name, _, val = assign.partition("=")
+            name = name.strip()
+            val = val.strip().strip("'\"")
+            st_x = _session_state(sk)
+            env = st_x.setdefault("env", {})
+            if not isinstance(env, dict):
+                env = {}
+                st_x["env"] = env
+            env[name] = val
+            out("", done=True, exit_code=0)
 
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)
@@ -1760,7 +1839,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                 {
                     "ok": True,
                     "data": {
-                        "version": "mock-0.1.110",
+                        "version": "mock-0.1.111",
                         "uptime_seconds": int(time.time() - START_TS),
                         "connected_platforms": ["bridge"],
                         "projects_count": len(PROJECTS),
@@ -1879,7 +1958,9 @@ class MgmtHandler(BaseHTTPRequestHandler):
                                 "model": "mock-hermes",
                                 "provider": "mock",
                                 "version": "0.1-mock",
-                                "capabilities": ["stream", "tools", "cancel", "memory"],
+                                "adapter": "mock",
+                                "process": False,
+                                "capabilities": ["stream", "tools", "cancel", "memory", "skills", "mcp"],
                                 "description": "Mock Hermes shape (ADR-002); Host maps Bridge → real process later",
                                 "note": "Not a live Hermes agent loop",
                             },

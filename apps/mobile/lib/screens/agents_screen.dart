@@ -108,7 +108,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
   String _agentSub(dynamic a) {
     if (a is Map) {
       final parts = <String>[];
-      for (final k in ['type', 'agent_type', 'status', 'model', 'provider', 'description', 'version', 'note']) {
+      for (final k in ['type', 'agent_type', 'status', 'model', 'provider', 'adapter', 'process', 'description', 'version', 'note']) {
         final v = a[k];
         if (v != null && '$v'.isNotEmpty) parts.add('$k=$v');
       }
