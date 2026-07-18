@@ -649,6 +649,9 @@
 - [x] **P4-3bf** Auto refresh chips: skills/status/workspace (0.1.157)
 - [x] **P4-5bi** MarkdownLite `<footer>` + `<hgroup>` (0.1.157)
 - [x] **P4-1bg** Mock true/false/unset (0.1.157)
+- [x] **P4-1bh** Mock cp/mv/rm/chmod/chown/chgrp (0.1.158)
+- [x] **P4-1bi** Mock less/more/awk/sed (0.1.158)
+- [x] **P4-1bj** Mock kill/jobs/bg/fg (0.1.158)
 
 ## P4 — 远期
 

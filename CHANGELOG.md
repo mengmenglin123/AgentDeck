@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.158
+
+- Mock cp/mv/rm/chmod/chown/chgrp (+ help/which/type lockstep)
+- Mock less/more/awk/sed (+ help/which/type lockstep)
+- Mock kill/jobs/bg/fg (+ help/which/type lockstep)
+
 ## 0.1.157
 
 - Auto refresh FilterChips on skills/status/workspace screens (completes all screens)

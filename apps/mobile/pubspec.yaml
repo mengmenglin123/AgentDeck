@@ -1,7 +1,7 @@
 name: huanhermes_app
 description: HuanHermes remote console for Claude Code / Codex / Hermes hosts.
 publish_to: "none"
-version: 0.1.157+157
+version: 0.1.158+158
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
