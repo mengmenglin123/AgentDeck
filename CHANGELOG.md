@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.63
+
+- Workspace: sort by mtime (name → size → mtime)
+- Connect: profiles sort by host / updatedAt
+- Agents: status FilterChips from Host data
+- Skills: sort by description
+
 ## 0.1.62
 
 - MCP: sort by tool count

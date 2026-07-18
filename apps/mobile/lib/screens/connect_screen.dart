@@ -26,6 +26,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
   bool _obscureMgmt = true;
   bool _wrapLines = false;
   bool _sortAsc = true;
+  /// name | host | updated
+  String _sortMode = 'name';
   final _scroll = ScrollController();
   bool _useTls = false;
 
@@ -280,9 +282,36 @@ class _ConnectScreenState extends State<ConnectScreen> {
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
           IconButton(
-            tooltip: _sortAsc ? 'Profiles Z→A' : 'Profiles A→Z',
-            onPressed: () => setState(() => _sortAsc = !_sortAsc),
-            icon: Icon(_sortAsc ? Icons.sort_by_alpha : Icons.sort),
+            tooltip: _sortMode == 'host'
+                ? (_sortAsc ? 'Host Z→A' : 'Host A→Z')
+                : (_sortMode == 'updated'
+                    ? (_sortAsc ? 'Updated new→old' : 'Updated old→new')
+                    : (_sortAsc ? 'Profiles Z→A' : 'Profiles A→Z')),
+            onPressed: () {
+              setState(() {
+                if (_sortMode == 'name' && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortMode == 'name' && !_sortAsc) {
+                  _sortMode = 'host';
+                  _sortAsc = true;
+                } else if (_sortMode == 'host' && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortMode == 'host' && !_sortAsc) {
+                  _sortMode = 'updated';
+                  _sortAsc = true;
+                } else if (_sortMode == 'updated' && _sortAsc) {
+                  _sortAsc = false;
+                } else {
+                  _sortMode = 'name';
+                  _sortAsc = true;
+                }
+              });
+            },
+            icon: Icon(_sortMode == 'host'
+                ? Icons.dns_outlined
+                : (_sortMode == 'updated'
+                    ? Icons.schedule
+                    : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))),
           ),
 
           IconButton(
@@ -349,7 +378,20 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 runSpacing: 8,
                 children: (List.of(controller.profiles)
                   ..sort((a, b) {
-                    final c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+                    int c;
+                    if (_sortMode == 'host') {
+                      c = a.config.host.toLowerCase().compareTo(b.config.host.toLowerCase());
+                      if (c == 0) {
+                        c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+                      }
+                    } else if (_sortMode == 'updated') {
+                      c = a.updatedAt.compareTo(b.updatedAt);
+                      if (c == 0) {
+                        c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+                      }
+                    } else {
+                      c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+                    }
                     return _sortAsc ? c : -c;
                   }))
                   .map((p) {

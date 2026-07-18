@@ -33,6 +33,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   bool _wrapLines = false;
   bool _sortAsc = true;
   bool _sortBySize = false;
+  bool _sortByMtime = false;
   /// all | dir | file
   String _typeFilter = 'all';
   final _scroll = ScrollController();
@@ -75,7 +76,19 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     list.sort((a, b) {
       final rd = rank(a).compareTo(rank(b));
       if (rd != 0) return rd;
-      if (_sortBySize) {
+      int mtimeOf(Map e) {
+        final v = e['mtime'] ?? e['modified'] ?? e['updated'] ?? e['updated_at'];
+        if (v is num) {
+          final n = v.toDouble();
+          return n > 1e12 ? n.round() : (n * 1000).round();
+        }
+        final p = DateTime.tryParse(v?.toString() ?? '');
+        return p?.millisecondsSinceEpoch ?? 0;
+      }
+      if (_sortByMtime) {
+        final c = mtimeOf(a).compareTo(mtimeOf(b));
+        if (c != 0) return _sortAsc ? c : -c;
+      } else if (_sortBySize) {
         final sa = (a['size'] is num) ? (a['size'] as num).toInt() : -1;
         final sb = (b['size'] is num) ? (b['size'] as num).toInt() : -1;
         final c = sa.compareTo(sb);
@@ -296,27 +309,39 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
 
           IconButton(
-            tooltip: _sortBySize
-                ? (_sortAsc ? 'Size large→small' : 'Size small→large')
-                : (_sortAsc ? 'Sort Z→A (dirs first)' : 'Sort A→Z (dirs first)'),
+            tooltip: _sortByMtime
+                ? (_sortAsc ? 'Mtime new→old' : 'Mtime old→new')
+                : (_sortBySize
+                    ? (_sortAsc ? 'Size large→small' : 'Size small→large')
+                    : (_sortAsc ? 'Sort Z→A (dirs first)' : 'Sort A→Z (dirs first)')),
             onPressed: () {
               setState(() {
-                if (!_sortBySize && _sortAsc) {
+                if (!_sortBySize && !_sortByMtime && _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortBySize && !_sortAsc) {
+                } else if (!_sortBySize && !_sortByMtime && !_sortAsc) {
                   _sortBySize = true;
+                  _sortByMtime = false;
                   _sortAsc = true;
                 } else if (_sortBySize && _sortAsc) {
                   _sortAsc = false;
+                } else if (_sortBySize && !_sortAsc) {
+                  _sortBySize = false;
+                  _sortByMtime = true;
+                  _sortAsc = true;
+                } else if (_sortByMtime && _sortAsc) {
+                  _sortAsc = false;
                 } else {
                   _sortBySize = false;
+                  _sortByMtime = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortBySize
-                ? Icons.data_usage
-                : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)),
+            icon: Icon(_sortByMtime
+                ? Icons.schedule
+                : (_sortBySize
+                    ? Icons.data_usage
+                    : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',

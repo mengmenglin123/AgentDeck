@@ -29,6 +29,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
   String _query = '';
   /// all | agents | platforms | projects
   String _section = 'all';
+  String _statusFilter = '';
   bool _wrapLines = false;
   bool _sortByType = false;
   bool _sortAsc = true;
@@ -104,6 +105,10 @@ class _AgentsScreenState extends State<AgentsScreen> {
   }
 
   bool _matchAgent(dynamic a) {
+    if (_statusFilter.isNotEmpty) {
+      final st = _agentStatusKey(a);
+      if (st != _statusFilter) return false;
+    }
     final q = _query.trim().toLowerCase();
     if (q.isEmpty) return true;
     return '${_agentTitle(a)} ${_agentSub(a)}'.toLowerCase().contains(q);
@@ -114,6 +119,23 @@ class _AgentsScreenState extends State<AgentsScreen> {
     if (q.isEmpty) return true;
     final caps = ((p['capabilities'] as List?) ?? const []).join(' ');
     return '${p['name']} ${p['agent_type']} ${p['note']} $caps'.toLowerCase().contains(q);
+  }
+
+  String _agentStatusKey(dynamic a) {
+    if (a is Map) {
+      return (a['status'] ?? a['state'] ?? a['phase'] ?? '').toString().toLowerCase();
+    }
+    return '';
+  }
+
+  List<String> get _statusOptions {
+    final set = <String>{};
+    for (final a in _agents) {
+      final s = _agentStatusKey(a);
+      if (s.isNotEmpty) set.add(s);
+    }
+    final list = set.toList()..sort();
+    return list;
   }
 
   String _agentTypeKey(dynamic a) {
@@ -354,6 +376,38 @@ class _AgentsScreenState extends State<AgentsScreen> {
               ],
             ),
           ),
+          if (_statusOptions.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: FilterChip(
+                        visualDensity: VisualDensity.compact,
+                        label: const Text('Any status', style: TextStyle(fontSize: 11)),
+                        selected: _statusFilter.isEmpty,
+                        onSelected: (_) => setState(() => _statusFilter = ''),
+                      ),
+                    ),
+                    for (final s in _statusOptions)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: FilterChip(
+                          visualDensity: VisualDensity.compact,
+                          label: Text(s, style: const TextStyle(fontSize: 11)),
+                          selected: _statusFilter == s,
+                          onSelected: (_) => setState(() {
+                            _statusFilter = _statusFilter == s ? '' : s;
+                          }),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
             child: TextField(

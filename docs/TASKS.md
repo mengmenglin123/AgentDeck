@@ -294,6 +294,11 @@
 | P3-223 | Terminal find 区分大小写 | [x] |
 | P3-224 | Logs 相对时间戳 | [x] |
 
+| P3-225 | Workspace 按 mtime 排序 | [x] |
+| P3-226 | Connect 档案 host/updated 排序 | [x] |
+| P3-227 | Agents status chips 过滤 | [x] |
+| P3-228 | Skills 按 description 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |
