@@ -834,7 +834,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, locale, umask, readlink, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -909,7 +909,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
     elif lower.startswith("which "):
         name = data.strip()[6:].strip()
         known = {
-            "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent",
+            "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1460,7 +1460,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             out("type: missing operand\n", done=True, exit_code=1)
         else:
             builtins = {
-                "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "export", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "base64", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent",
+                "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "export", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "base64", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink",
                             }
             if name.split()[0] in builtins:
                 out(f"{name.split()[0]} is a shell builtin\n", done=True, exit_code=0)
@@ -2342,6 +2342,67 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
                 out("huan:x:1000:\n", done=True, exit_code=0)
             else:
                 out(f"getent: {db} {key}: not found\n", done=True, exit_code=1)
+
+
+    elif lower == "locale" or lower.startswith("locale "):
+        # mock locale: fixed C.UTF-8 env dump / -a list (demo)
+        parts = data.strip().split()
+        if len(parts) == 1:
+            out("LANG=C.UTF-8\nLC_ALL=C.UTF-8\n", done=True, exit_code=0)
+        elif len(parts) == 2 and parts[1] == "-a":
+            out("C\nC.UTF-8\nen_US.UTF-8\n", done=True, exit_code=0)
+        else:
+            out("locale: usage: locale [-a]\n", done=True, exit_code=1)
+    elif lower == "umask" or lower.startswith("umask "):
+        # mock umask: report 0022; set is no-op for valid octal mode
+        parts = data.strip().split()
+        if len(parts) == 1:
+            out("0022\n", done=True, exit_code=0)
+        elif len(parts) == 2 and re.fullmatch(r"0?[0-7]{3}", parts[1]):
+            out("", done=True, exit_code=0)
+        else:
+            out("umask: invalid mode\n", done=True, exit_code=1)
+    elif lower.startswith("readlink ") or lower == "readlink":
+        # mock readlink: echo path; -f -> /workspace-style absolute cleaned path
+        parts = data.strip().split()
+        if len(parts) < 2:
+            out("readlink: missing operand\n", done=True, exit_code=1)
+        else:
+            flags = set()
+            path_bits = []
+            for p in parts[1:]:
+                if p in ("-f", "-n", "--"):
+                    if p != "--":
+                        flags.add(p)
+                    continue
+                if p.startswith("-") and path_bits == []:
+                    # ignore other short flags in mock
+                    continue
+                path_bits.append(p)
+            if not path_bits:
+                out("readlink: missing operand\n", done=True, exit_code=1)
+            else:
+                target = path_bits[0]
+                if "-f" in flags:
+                    # cleaned absolute under /workspace style
+                    if target.startswith("/"):
+                        cleaned = "/" + "/".join(x for x in target.split("/") if x and x != ".")
+                    else:
+                        cleaned = "/workspace/" + "/".join(x for x in target.split("/") if x and x != ".")
+                    # collapse .. simply by skipping (mock)
+                    segs = []
+                    for seg in cleaned.split("/"):
+                        if seg == "" or seg == ".":
+                            continue
+                        if seg == "..":
+                            if segs:
+                                segs.pop()
+                            continue
+                        segs.append(seg)
+                    cleaned = "/" + "/".join(segs) if segs else "/"
+                    out(cleaned + "\n", done=True, exit_code=0)
+                else:
+                    out(target + "\n", done=True, exit_code=0)
 
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)

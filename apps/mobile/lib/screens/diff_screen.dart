@@ -46,6 +46,7 @@ class _DiffScreenState extends State<DiffScreen> {
   bool _fileCase = false;
   bool _fileRegex = false;
   String _statusFilter = '';
+  String _pathPrefix = ''; // empty = all
 
   @override
   void initState() {
@@ -94,6 +95,34 @@ class _DiffScreenState extends State<DiffScreen> {
     return list;
   }
 
+  List<String> get _pathPrefixOptions {
+    final set = <String>{};
+    for (final f in _files) {
+      final p = '${f['path'] ?? ''}'.replaceAll('\\', '/');
+      if (p.isEmpty) continue;
+      final i = p.indexOf('/');
+      if (i <= 0) continue;
+      final seg = p.substring(0, i);
+      if (seg.isNotEmpty) set.add(seg);
+    }
+    final list = set.toList()..sort();
+    if (list.length > 8) return list.sublist(0, 8);
+    return list;
+  }
+
+  bool _pathMatchesPrefix(String path, String prefix) {
+    if (prefix.isEmpty) return true;
+    final p = path.replaceAll('\\', '/');
+    final pref = prefix;
+    final pl = p.toLowerCase();
+    final prefl = pref.toLowerCase();
+    return pl.startsWith(prefl) ||
+        pl.contains('/$prefl/') ||
+        pl.startsWith('$prefl/') ||
+        p.startsWith('$pref/') ||
+        p.contains('/$pref/');
+  }
+
   List<Map<String, dynamic>> get _visibleFiles {
     final raw = _fileFilter.trim();
     final q = _fileCase ? raw : raw.toLowerCase();
@@ -115,6 +144,11 @@ class _DiffScreenState extends State<DiffScreen> {
     }
     if (_statusFilter.isNotEmpty) {
       list = list.where((f) => _fileStatus(f) == _statusFilter).toList();
+    }
+    if (_pathPrefix.isNotEmpty) {
+      list = list
+          .where((f) => _pathMatchesPrefix('${f['path'] ?? ''}', _pathPrefix))
+          .toList();
     }
     list.sort((a, b) {
       int addsOf(Map x) {
@@ -519,6 +553,31 @@ class _DiffScreenState extends State<DiffScreen> {
                       selected: _statusFilter == s,
                       onSelected: (_) => setState(() {
                         _statusFilter = _statusFilter == s ? '' : s;
+                      }),
+                    ),
+                ],
+              ),
+            ),
+          if (_files.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 6, 8, 0),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  FilterChip(
+                    visualDensity: VisualDensity.compact,
+                    label: const Text('Any path', style: TextStyle(fontSize: 11)),
+                    selected: _pathPrefix.isEmpty,
+                    onSelected: (_) => setState(() => _pathPrefix = ''),
+                  ),
+                  for (final pref in _pathPrefixOptions)
+                    FilterChip(
+                      visualDensity: VisualDensity.compact,
+                      label: Text(pref, style: const TextStyle(fontSize: 11)),
+                      selected: _pathPrefix == pref,
+                      onSelected: (_) => setState(() {
+                        _pathPrefix = _pathPrefix == pref ? '' : pref;
                       }),
                     ),
                 ],

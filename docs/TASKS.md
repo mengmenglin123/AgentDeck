@@ -553,6 +553,9 @@
 - [x] **P4-3z** Workspace extension filter chips (0.1.125)
 - [x] **P4-5ac** MarkdownLite `<code>` + `<i>` (0.1.125)
 - [x] **P4-1aa** Mock join/split/getent (0.1.125)
+- [x] **P4-3aa** Diff path-prefix filter chips (0.1.126)
+- [x] **P4-5ad** MarkdownLite `<big>` + `<tt>` (0.1.126)
+- [x] **P4-1ab** Mock locale/umask/readlink (0.1.126)
 
 ## P4 — 远期
 
@@ -562,7 +565,7 @@
 | P4-2 | 相机扫码配对（剪贴板 URI + paste card 已有；真相机仍远期） | [~] |
 | P4-3 | Host 真 Hermes adapter（Mock workspace/git/diff/memory/MCP/status/activity/agents 已加深；真进程仍远期） | [~] |
 | P4-4 | 通知 / 后台重连（resume/reconnect + permission/reconnected snack 已有；系统通知仍远期） | [~] |
-| P4-5 | 更完整代码高亮 / 真文件选择器（着色+表格/任务/有序/引用/链接/autolink/图alt/callout/details/footnotes/h4/h5/h6/abbr/mark/spoiler/kbd/sup/sub/u/del/ins/s/small/***/cite/q/var/samp/dfn/em/strong/b/code/i/删除线/行号/附件 preset 已有；真 file_picker 仍远期） | [~] |
+| P4-5 | 更完整代码高亮 / 真文件选择器（着色+表格/任务/有序/引用/链接/autolink/图alt/callout/details/footnotes/h4/h5/h6/abbr/mark/spoiler/kbd/sup/sub/u/del/ins/s/small/***/cite/q/var/samp/dfn/em/strong/b/code/i/big/tt/删除线/行号/附件 preset 已有；真 file_picker 仍远期） | [~] |
 
 ## 验收命令
 

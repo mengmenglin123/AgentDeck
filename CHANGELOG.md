@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.126
+
+- Diff path-prefix filter chips
+- MarkdownLite `<big>` + `<tt>`
+- Mock locale/umask/readlink (+ help/which/type lockstep)
+
 ## 0.1.125
 
 - Workspace extension filter chips
