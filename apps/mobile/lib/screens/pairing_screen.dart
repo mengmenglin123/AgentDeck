@@ -27,6 +27,8 @@ class _PairingScreenState extends State<PairingScreen> {
   bool _wrapLines = false;
   String _payloadQuery = '';
   bool _payloadCase = false;
+  bool _payloadSortAsc = true;
+  bool _payloadSorted = false;
   final _payloadFilterCtrl = TextEditingController();
   bool _autoRefresh = false;
   final _scroll = ScrollController();
@@ -112,13 +114,20 @@ class _PairingScreenState extends State<PairingScreen> {
   String get _payloadText {
     final raw = Security.redactText(data.toString());
     final rawQ = _payloadQuery.trim();
-    if (rawQ.isEmpty) return raw;
-    final q = _payloadCase ? rawQ : rawQ.toLowerCase();
-    final lines = raw
-        .split('\n')
-        .where((l) => (_payloadCase ? l : l.toLowerCase()).contains(q))
-        .toList();
-    if (lines.isEmpty) return '(no payload lines match: $_payloadQuery)';
+    var lines = raw.split('\n');
+    if (rawQ.isNotEmpty) {
+      final q = _payloadCase ? rawQ : rawQ.toLowerCase();
+      lines = lines
+          .where((l) => (_payloadCase ? l : l.toLowerCase()).contains(q))
+          .toList();
+      if (lines.isEmpty) return '(no payload lines match: $_payloadQuery)';
+    }
+    if (_payloadSorted) {
+      lines = List<String>.from(lines)
+        ..sort((a, b) => _payloadSortAsc
+            ? a.toLowerCase().compareTo(b.toLowerCase())
+            : b.toLowerCase().compareTo(a.toLowerCase()));
+    }
     return lines.join('\n');
   }
 
@@ -191,9 +200,27 @@ class _PairingScreenState extends State<PairingScreen> {
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
-
-
-
+          IconButton(
+            tooltip: !_payloadSorted
+                ? 'Sort payload lines'
+                : (_payloadSortAsc ? 'Payload Z→A' : 'Payload A→Z'),
+            onPressed: () {
+              setState(() {
+                if (!_payloadSorted) {
+                  _payloadSorted = true;
+                  _payloadSortAsc = true;
+                } else if (_payloadSortAsc) {
+                  _payloadSortAsc = false;
+                } else {
+                  _payloadSorted = false;
+                  _payloadSortAsc = true;
+                }
+              });
+            },
+            icon: Icon(!_payloadSorted
+                ? Icons.sort
+                : (_payloadSortAsc ? Icons.sort_by_alpha : Icons.sort)),
+          ),
           IconButton(
             tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
             onPressed: () {

@@ -28,6 +28,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
   bool _sortBySource = false;
   bool _sortByDesc = false;
   bool _sortById = false;
+  bool _sortByTags = false;
   bool _sortAsc = true;
   final _scroll = ScrollController();
   Timer? _timer;
@@ -85,11 +86,24 @@ class _SkillsScreenState extends State<SkillsScreen> {
         }
       }
       if (q.isEmpty) return true;
-      final hay = '${s['name']} ${s['description']} ${s['source']}'.toLowerCase();
+      final tags = s['tags'] is List
+          ? (s['tags'] as List).join(' ')
+          : (s['tags'] ?? s['labels'] ?? '');
+      final hay =
+          '${s['name']} ${s['description']} ${s['source']} ${s['id']} ${s['path']} $tags'
+              .toLowerCase();
       return hay.contains(q);
     }).toList();
     list.sort((a, b) {
-      if (_sortById) {
+      String tagsOf(Map x) {
+        final t = x['tags'] ?? x['labels'] ?? x['categories'];
+        if (t is List) return t.map((e) => '$e').join(' ').toLowerCase();
+        return (t ?? '').toString().toLowerCase();
+      }
+      if (_sortByTags) {
+        final c = tagsOf(a).compareTo(tagsOf(b));
+        if (c != 0) return _sortAsc ? c : -c;
+      } else if (_sortById) {
         final ia = (a['id'] ?? a['path'] ?? a['slug'] ?? '').toString().toLowerCase();
         final ib = (b['id'] ?? b['path'] ?? b['slug'] ?? '').toString().toLowerCase();
         final c = ia.compareTo(ib);
@@ -196,21 +210,24 @@ class _SkillsScreenState extends State<SkillsScreen> {
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
-            tooltip: _sortById
-                ? (_sortAsc ? 'Id/path Z→A' : 'Id/path A→Z')
-                : (_sortByDesc
-                    ? (_sortAsc ? 'Description Z→A' : 'Description A→Z')
-                    : (_sortBySource
-                        ? (_sortAsc ? 'Source Z→A' : 'Source A→Z')
-                        : (_sortAsc ? 'Name Z→A' : 'Name A→Z'))),
+            tooltip: _sortByTags
+                ? (_sortAsc ? 'Tags Z→A' : 'Tags A→Z')
+                : (_sortById
+                    ? (_sortAsc ? 'Id/path Z→A' : 'Id/path A→Z')
+                    : (_sortByDesc
+                        ? (_sortAsc ? 'Description Z→A' : 'Description A→Z')
+                        : (_sortBySource
+                            ? (_sortAsc ? 'Source Z→A' : 'Source A→Z')
+                            : (_sortAsc ? 'Name Z→A' : 'Name A→Z')))),
             onPressed: () {
               setState(() {
-                if (!_sortBySource && !_sortByDesc && !_sortById && _sortAsc) {
+                if (!_sortBySource && !_sortByDesc && !_sortById && !_sortByTags && _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortBySource && !_sortByDesc && !_sortById && !_sortAsc) {
+                } else if (!_sortBySource && !_sortByDesc && !_sortById && !_sortByTags && !_sortAsc) {
                   _sortBySource = true;
                   _sortByDesc = false;
                   _sortById = false;
+                  _sortByTags = false;
                   _sortAsc = true;
                 } else if (_sortBySource && _sortAsc) {
                   _sortAsc = false;
@@ -218,6 +235,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
                   _sortBySource = false;
                   _sortByDesc = true;
                   _sortById = false;
+                  _sortByTags = false;
                   _sortAsc = true;
                 } else if (_sortByDesc && _sortAsc) {
                   _sortAsc = false;
@@ -225,24 +243,36 @@ class _SkillsScreenState extends State<SkillsScreen> {
                   _sortBySource = false;
                   _sortByDesc = false;
                   _sortById = true;
+                  _sortByTags = false;
                   _sortAsc = true;
                 } else if (_sortById && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortById && !_sortAsc) {
+                  _sortBySource = false;
+                  _sortByDesc = false;
+                  _sortById = false;
+                  _sortByTags = true;
+                  _sortAsc = true;
+                } else if (_sortByTags && _sortAsc) {
                   _sortAsc = false;
                 } else {
                   _sortBySource = false;
                   _sortByDesc = false;
                   _sortById = false;
+                  _sortByTags = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortById
-                ? Icons.tag
-                : (_sortByDesc
-                    ? Icons.notes
-                    : (_sortBySource
-                        ? Icons.source_outlined
-                        : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))),
+            icon: Icon(_sortByTags
+                ? Icons.sell_outlined
+                : (_sortById
+                    ? Icons.tag
+                    : (_sortByDesc
+                        ? Icons.notes
+                        : (_sortBySource
+                            ? Icons.source_outlined
+                            : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))))),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',

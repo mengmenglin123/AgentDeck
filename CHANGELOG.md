@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.71
+
+- Pairing: sort payload lines A↔Z
+- Agents: sort by status
+- Skills: sort by tags + search tags
+- Diff: sort files by additions
+
 ## 0.1.70
 
 - Logs: sort by logger/source

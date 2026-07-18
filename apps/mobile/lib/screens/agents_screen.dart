@@ -33,6 +33,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
   bool _wrapLines = false;
   bool _sortByType = false;
   bool _sortByModel = false;
+  bool _sortByStatus = false;
   bool _sortAsc = true;
   final _scroll = ScrollController();
   Timer? _timer;
@@ -156,7 +157,10 @@ class _AgentsScreenState extends State<AgentsScreen> {
   List<dynamic> get _filteredAgents {
     final list = _agents.where(_matchAgent).toList();
     list.sort((a, b) {
-      if (_sortByModel) {
+      if (_sortByStatus) {
+        final c = _agentStatusKey(a).compareTo(_agentStatusKey(b));
+        if (c != 0) return _sortAsc ? c : -c;
+      } else if (_sortByModel) {
         final c = _agentModelKey(a).compareTo(_agentModelKey(b));
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByType) {
@@ -299,39 +303,53 @@ class _AgentsScreenState extends State<AgentsScreen> {
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
-            tooltip: _sortByModel
-                ? (_sortAsc ? 'Model Z→A' : 'Model A→Z')
-                : (_sortByType
-                    ? (_sortAsc ? 'Type Z→A' : 'Type A→Z')
-                    : (_sortAsc ? 'Name Z→A' : 'Name A→Z')),
+            tooltip: _sortByStatus
+                ? (_sortAsc ? 'Status Z→A' : 'Status A→Z')
+                : (_sortByModel
+                    ? (_sortAsc ? 'Model Z→A' : 'Model A→Z')
+                    : (_sortByType
+                        ? (_sortAsc ? 'Type Z→A' : 'Type A→Z')
+                        : (_sortAsc ? 'Name Z→A' : 'Name A→Z'))),
             onPressed: () {
               setState(() {
-                if (!_sortByType && !_sortByModel && _sortAsc) {
+                if (!_sortByType && !_sortByModel && !_sortByStatus && _sortAsc) {
                   _sortAsc = false;
-                } else if (!_sortByType && !_sortByModel && !_sortAsc) {
+                } else if (!_sortByType && !_sortByModel && !_sortByStatus && !_sortAsc) {
                   _sortByType = true;
                   _sortByModel = false;
+                  _sortByStatus = false;
                   _sortAsc = true;
                 } else if (_sortByType && _sortAsc) {
                   _sortAsc = false;
                 } else if (_sortByType && !_sortAsc) {
                   _sortByType = false;
                   _sortByModel = true;
+                  _sortByStatus = false;
                   _sortAsc = true;
                 } else if (_sortByModel && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortByModel && !_sortAsc) {
+                  _sortByType = false;
+                  _sortByModel = false;
+                  _sortByStatus = true;
+                  _sortAsc = true;
+                } else if (_sortByStatus && _sortAsc) {
                   _sortAsc = false;
                 } else {
                   _sortByType = false;
                   _sortByModel = false;
+                  _sortByStatus = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortByModel
-                ? Icons.memory
-                : (_sortByType
-                    ? Icons.category_outlined
-                    : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))),
+            icon: Icon(_sortByStatus
+                ? Icons.flag_outlined
+                : (_sortByModel
+                    ? Icons.memory_outlined
+                    : (_sortByType
+                        ? Icons.category_outlined
+                        : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',

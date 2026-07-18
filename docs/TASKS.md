@@ -334,6 +334,11 @@
 | P3-255 | Sessions 按 model 排序 | [x] |
 | P3-256 | Settings 过滤区分大小写 | [x] |
 
+| P3-257 | Pairing payload 行排序 | [x] |
+| P3-258 | Agents 按 status 排序 | [x] |
+| P3-259 | Skills 按 tags 排序 | [x] |
+| P3-260 | Diff 按 additions 排序 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |
