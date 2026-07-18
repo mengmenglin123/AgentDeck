@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.166
+
+- Real PTY support: HUAN_REAL_PTY=1 enables real shell with PTY
+- RealPtyManager: spawn/resize/cleanup real shell processes
+- Terminal resize forwarded to real PTY via ioctl
+- Falls back to mock when HUAN_REAL_PTY not set
+
+
 ## 0.1.165
 
 - QR code generation on pairing screen (share connection via QR)

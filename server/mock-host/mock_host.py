@@ -14,7 +14,12 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import fcntl
 import os
+import pty
+import select
+import struct
+import termios
 import re
 import socket
 import struct
@@ -753,6 +758,10 @@ def handle_bridge_client(conn: socket.socket, addr: Tuple[str, int]) -> None:
                     st_r["term_rows"] = int(msg.get("rows") or st_r.get("term_rows") or 24)
                 except (TypeError, ValueError):
                     st_r["term_rows"] = 24
+                # Apply resize to real PTY if active
+                pty_mgr_r = _get_pty_manager()
+                if pty_mgr_r is not None:
+                    pty_mgr_r.resize(sk_r, st_r["term_cols"], st_r["term_rows"])
                 ws_send_text(
                     conn,
                     json.dumps(
@@ -790,10 +799,137 @@ def handle_bridge_client(conn: socket.socket, addr: Tuple[str, int]) -> None:
 
 
 
+class RealPtyManager:
+    """Manages real PTY processes per session key.
+
+    When HUAN_REAL_PTY=1, spawns a real shell with PTY and pipes I/O
+    through the Bridge WebSocket terminal channel.
+    """
+
+    def __init__(self) -> None:
+        self._ptys: Dict[str, Dict[str, Any]] = {}
+
+    def get_or_spawn(self, sk: str, cols: int = 80, rows: int = 24) -> Dict[str, Any]:
+        """Get existing PTY or spawn a new shell for session key."""
+        if sk in self._ptys:
+            p = self._ptys[sk]
+            if p["proc"].poll() is None:
+                return p
+            # Process died, clean up
+            self._close(sk)
+
+        shell = os.environ.get("SHELL", "/bin/bash")
+        master_fd, slave_fd = pty.openpty()
+
+        # Set initial window size
+        winsize = struct.pack("HHHH", rows, cols, 0, 0)
+        fcntl.ioctl(slave_fd, termios.TIOCSWINSZ, winsize)
+
+        proc = subprocess.Popen(
+            [shell, "-l"],
+            stdin=slave_fd,
+            stdout=slave_fd,
+            stderr=slave_fd,
+            preexec_fn=os.setsid,
+            env={**os.environ, "TERM": "xterm-256color", "COLUMNS": str(cols), "LINES": str(rows)},
+        )
+        os.close(slave_fd)
+
+        # Set non-blocking
+        import fcntl as f
+        flags = fcntl.fcntl(master_fd, f.F_GETFL)
+        fcntl.fcntl(master_fd, f.F_SETFL, flags | os.O_NONBLOCK)
+
+        self._ptys[sk] = {
+            "master_fd": master_fd,
+            "proc": proc,
+            "cols": cols,
+            "rows": rows,
+        }
+        return self._ptys[sk]
+
+    def write(self, sk: str, data: str) -> None:
+        """Write data to PTY stdin."""
+        p = self._ptys.get(sk)
+        if p and p["proc"].poll() is None:
+            try:
+                os.write(p["master_fd"], data.encode("utf-8", errors="replace"))
+            except OSError:
+                self._close(sk)
+
+    def read(self, sk: str, timeout: float = 0.05) -> str:
+        """Read available data from PTY stdout (non-blocking)."""
+        p = self._ptys.get(sk)
+        if not p or p["proc"].poll() is not None:
+            return ""
+        chunks = []
+        try:
+            while True:
+                r, _, _ = select.select([p["master_fd"]], [], [], timeout)
+                if not r:
+                    break
+                chunk = os.read(p["master_fd"], 65536)
+                if not chunk:
+                    break
+                chunks.append(chunk.decode("utf-8", errors="replace"))
+                timeout = 0.01  # Shorter timeout for subsequent reads
+        except OSError:
+            pass
+        return "".join(chunks)
+
+    def resize(self, sk: str, cols: int, rows: int) -> None:
+        """Resize PTY window."""
+        p = self._ptys.get(sk)
+        if p and p["proc"].poll() is not None:
+            return
+        if p:
+            try:
+                winsize = struct.pack("HHHH", rows, cols, 0, 0)
+                fcntl.ioctl(p["master_fd"], termios.TIOCSWINSZ, winsize)
+                p["cols"] = cols
+                p["rows"] = rows
+            except OSError:
+                pass
+
+    def is_alive(self, sk: str) -> bool:
+        """Check if PTY process is still running."""
+        p = self._ptys.get(sk)
+        return p is not None and p["proc"].poll() is None
+
+    def _close(self, sk: str) -> None:
+        """Close PTY for a session."""
+        p = self._ptys.pop(sk, None)
+        if p:
+            try:
+                os.close(p["master_fd"])
+            except OSError:
+                pass
+            try:
+                p["proc"].terminate()
+            except OSError:
+                pass
+
+    def cleanup_all(self) -> None:
+        """Close all PTY processes."""
+        for sk in list(self._ptys.keys()):
+            self._close(sk)
+
+
+# Global PTY manager (initialized when HUAN_REAL_PTY=1)
+_pty_manager: Optional["RealPtyManager"] = None
+
+def _get_pty_manager() -> Optional["RealPtyManager"]:
+    global _pty_manager
+    if os.environ.get("HUAN_REAL_PTY") == "1" and _pty_manager is None:
+        _pty_manager = RealPtyManager()
+    return _pty_manager
+
+
 def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
     """Lightweight terminal channel over Bridge (not a full PTY).
 
     Host-side real shells would spawn PTY; Mock echoes + fake command results.
+    When HUAN_REAL_PTY=1, uses real PTY instead of mock.
     """
     sk = msg.get("session_key") or ""
     data = (msg.get("data") or msg.get("content") or "").rstrip("\r\n")
@@ -814,6 +950,24 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
 
     if not data:
         out("", done=True, exit_code=0)
+        return
+
+    # Real PTY mode: pipe to actual shell
+    pty_mgr = _get_pty_manager()
+    if pty_mgr is not None:
+        st = _session_state(sk)
+        cols = int(st.get("term_cols") or 80)
+        rows = int(st.get("term_rows") or 24)
+        pty_mgr.get_or_spawn(sk, cols=cols, rows=rows)
+        pty_mgr.write(sk, data + "\n")
+        # Read output with a small delay to let the shell process
+        import time
+        time.sleep(0.1)
+        output = pty_mgr.read(sk, timeout=0.2)
+        if output:
+            out(output)
+        done_flag = not pty_mgr.is_alive(sk)
+        out("", done=done_flag, exit_code=0 if not done_flag else None)
         return
 
     lower = data.strip().lower()
