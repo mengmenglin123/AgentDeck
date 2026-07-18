@@ -31,9 +31,9 @@
 | Host Cron 只读 | `/cron` | [x] |
 | 终端快捷 chips | Bridge `terminal_*` 演示级 | [x] |
 | Markdown 聊天气泡 | 内置 MarkdownLite（无额外 pub） | [x] |
-| 真 PTY / 相机扫码 | 远期 | [ ] |
+| 真 PTY / 相机扫码 | App 几何 resize 已有；真 PTY/扫码仍远期 | [~] |
 | Host 真 Hermes 进程 | ADR-002 Host adapter | [ ] |
-| 通知 / 后台重连策略 | 远期 | [ ] |
+| 通知 / 后台重连策略 | 前台 resume 重连已有；系统通知仍远期 | [~] |
 
 ## 迭代原则
 

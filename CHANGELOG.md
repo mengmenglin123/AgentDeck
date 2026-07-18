@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.96
+
+- MarkdownLite lightweight fenced-code token tint (P4-5 partial)
+- Chat foreground resume reconnect via AppLifecycle (P4-4 partial)
+- Terminal layout-driven cols/rows + Mock stty size (P4-1 protocol step)
+
 ## 0.1.95
 
 - Sessions note and archived sort modes

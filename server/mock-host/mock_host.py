@@ -542,15 +542,25 @@ def handle_bridge_client(conn: socket.socket, addr: Tuple[str, int]) -> None:
                 continue
 
             if mtype == "terminal_resize":
-                # acknowledged; no-op mock
+                # store geometry for demo; Host real PTY would apply ioctl
+                sk_r = msg.get("session_key") or ""
+                st_r = _session_state(sk_r)
+                try:
+                    st_r["term_cols"] = int(msg.get("cols") or st_r.get("term_cols") or 80)
+                except (TypeError, ValueError):
+                    st_r["term_cols"] = 80
+                try:
+                    st_r["term_rows"] = int(msg.get("rows") or st_r.get("term_rows") or 24)
+                except (TypeError, ValueError):
+                    st_r["term_rows"] = 24
                 ws_send_text(
                     conn,
                     json.dumps(
                         {
                             "type": "terminal_ack",
-                            "session_key": msg.get("session_key"),
-                            "cols": msg.get("cols"),
-                            "rows": msg.get("rows"),
+                            "session_key": sk_r,
+                            "cols": st_r["term_cols"],
+                            "rows": st_r["term_rows"],
                         }
                     ),
                 )
@@ -619,9 +629,13 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         out(f"(ack) {data.strip()}\n", done=True, exit_code=0)
         return
     if lower in {"help", "?"}:
+        st_h = _session_state(sk)
+        cols_h = st_h.get("term_cols") or 80
+        rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, ls, whoami, echo <text>, y/n, clear, exit\n"
+            "Commands: help, pwd, ls, whoami, echo <text>, stty size, y/n, clear, exit\n"
+            f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
             done=True,
@@ -634,6 +648,12 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         out("AGENTS.md\nREADME.md\nsrc/\n", done=True, exit_code=0)
     elif lower == "whoami":
         out("huanhermes-mock\n", done=True, exit_code=0)
+    elif lower in {"stty size", "stty", "tty size", "size"}:
+        st_g = _session_state(sk)
+        cols_g = st_g.get("term_cols") or 80
+        rows_g = st_g.get("term_rows") or 24
+        # stty size prints rows cols
+        out(f"{rows_g} {cols_g}\n", done=True, exit_code=0)
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)
     elif lower in {"clear", "cls"}:

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings, lists, fenced code (+lang/copy), inline code, bold/italic.
+/// Covers headings, lists, fenced code (+lang/copy + token tint), inline code, bold/italic.
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -76,12 +76,11 @@ class MarkdownLite extends StatelessWidget {
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-                    child: SelectableText(
-                      b.text,
-                      style: codeBase.copyWith(
+                    child: SelectableText.rich(
+                      _highlightCode(b.text, b.lang, codeBase.copyWith(
                         color: const Color(0xFFB2FF59),
                         backgroundColor: Colors.transparent,
-                      ),
+                      )),
                     ),
                   ),
                 ],
@@ -183,6 +182,109 @@ class MarkdownLite extends StatelessWidget {
       out.add(_Block(_BlockKind.code, codeBuf.toString().trimRight(), lang: lang));
     }
     return out;
+  }
+
+
+  /// Lightweight fenced-code token tint (no external highlighter deps).
+  /// Colors comments / strings / keywords for common langs; falls back to plain.
+  static TextSpan _highlightCode(String text, String? lang, TextStyle base) {
+    if (text.isEmpty) return TextSpan(text: text, style: base);
+    final kw = _keywordsFor(lang);
+    final spans = <TextSpan>[];
+    // Avoid nested quote hell: match line comments, block comments, strings, numbers, words.
+    final re = RegExp(
+      r'(//[^\n]*|/\*[\s\S]*?\*/|#[^\n]*|"[^"\\]*(?:\\.[^"\\]*)*"|'
+      r"'[^'\\]*(?:\\.[^'\\]*)*'|"
+      r'\b\d+(?:\.\d+)?\b|\b[A-Za-z_][\w]*\b)',
+      multiLine: true,
+    );
+    var i = 0;
+    for (final m in re.allMatches(text)) {
+      if (m.start > i) {
+        spans.add(TextSpan(text: text.substring(i, m.start), style: base));
+      }
+      final tok = m.group(0)!;
+      Color? color;
+      final isHashComment = tok.startsWith('#') &&
+          !(lang ?? '').toLowerCase().startsWith('dart') &&
+          !(lang ?? '').toLowerCase().startsWith('c');
+      if (tok.startsWith('//') || tok.startsWith('/*') || isHashComment) {
+        color = const Color(0xFF6A9955);
+      } else if ((tok.startsWith('"') && tok.endsWith('"')) ||
+          (tok.startsWith("'") && tok.endsWith("'"))) {
+        color = const Color(0xFFCE9178);
+      } else if (RegExp(r'^\d').hasMatch(tok)) {
+        color = const Color(0xFFB5CEA8);
+      } else if (kw.contains(tok)) {
+        color = const Color(0xFF569CD6);
+      }
+      spans.add(TextSpan(
+        text: tok,
+        style: color == null ? base : base.copyWith(color: color),
+      ));
+      i = m.end;
+    }
+    if (i < text.length) {
+      spans.add(TextSpan(text: text.substring(i), style: base));
+    }
+    return TextSpan(style: base, children: spans);
+  }
+
+  static Set<String> _keywordsFor(String? lang) {
+    final l = (lang ?? '').toLowerCase().trim();
+    const common = {
+      'if', 'else', 'for', 'while', 'return', 'class', 'true', 'false', 'null',
+      'import', 'from', 'def', 'function', 'const', 'var', 'let', 'new', 'try',
+      'catch', 'throw', 'async', 'await', 'switch', 'case', 'break', 'continue',
+      'void', 'int', 'string', 'bool', 'final', 'static', 'public', 'private',
+      'protected', 'extends', 'implements', 'interface', 'package', 'export',
+      'default', 'this', 'super', 'in', 'of', 'as', 'is', 'with', 'yield',
+    };
+    if (l.isEmpty || l == 'text' || l == 'plain') return common;
+    if (l == 'dart' || l == 'flutter') {
+      return {
+        ...common,
+        'widget', 'build', 'override', 'required', 'factory', 'mixin',
+        'typedef', 'enum', 'get', 'set', 'late', 'dynamic', 'abstract',
+      };
+    }
+    if (l == 'py' || l == 'python') {
+      return {
+        ...common,
+        'None', 'True', 'False', 'and', 'or', 'not', 'lambda', 'pass',
+        'raise', 'except', 'finally', 'elif', 'global', 'nonlocal', 'assert',
+        'del',
+      };
+    }
+    if (l == 'js' || l == 'ts' || l == 'javascript' || l == 'typescript') {
+      return {
+        ...common,
+        'typeof', 'instanceof', 'undefined', 'type', 'namespace', 'module',
+      };
+    }
+    if (l == 'go' || l == 'golang') {
+      return {
+        ...common,
+        'func', 'struct', 'map', 'chan', 'go', 'defer', 'range', 'select',
+        'make', 'nil',
+      };
+    }
+    if (l == 'rs' || l == 'rust') {
+      return {
+        ...common,
+        'fn', 'mut', 'impl', 'trait', 'mod', 'use', 'pub', 'crate', 'match',
+        'loop', 'where', 'move', 'ref', 'dyn',
+      };
+    }
+    if (l == 'sh' || l == 'bash' || l == 'shell' || l == 'zsh') {
+      return {
+        ...common,
+        'then', 'fi', 'do', 'done', 'elif', 'esac', 'local', 'echo', 'cd',
+        'pwd', 'exit', 'source',
+      };
+    }
+    if (l == 'json') return {'true', 'false', 'null'};
+    return common;
   }
 
   static TextSpan _inline(String text, TextStyle base) {

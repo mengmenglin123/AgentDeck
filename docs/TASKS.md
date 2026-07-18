@@ -462,15 +462,19 @@
 - [x] **P3-355** Connect deviceId sort (0.1.95)
 - [x] **P3-356** Workspace children-count sort (0.1.95)
 
+- [x] **P4-1a** Terminal layout cols/rows + Mock geometry/stty (0.1.96)
+- [x] **P4-4a** Chat AppLifecycle resume reconnect (0.1.96)
+- [x] **P4-5a** MarkdownLite fenced-code token tint (0.1.96)
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |
 |----|------|------|
-| P4-1 | 真远程 PTY | [ ] |
+| P4-1 | 真远程 PTY（App 推送 cols/rows + Mock 记忆几何；真 ioctl/shell 仍远期） | [~] |
 | P4-2 | 相机扫码配对 | [ ] |
 | P4-3 | Host 真 Hermes adapter | [ ] |
-| P4-4 | 通知 / 后台重连（App 前台重连已有；系统通知仍远期） | [~] |
-| P4-5 | 更完整代码高亮 / 真文件选择器附件（复制/lang 标签已有） | [~] |
+| P4-4 | 通知 / 后台重连（App 前台 resume 重连已有；系统通知仍远期） | [~] |
+| P4-5 | 更完整代码高亮 / 真文件选择器附件（token 着色已有；真 file_picker 仍远期） | [~] |
 
 ## 验收命令
 

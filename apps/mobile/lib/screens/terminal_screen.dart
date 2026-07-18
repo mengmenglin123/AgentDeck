@@ -47,6 +47,8 @@ class _TerminalScreenState extends State<TerminalScreen> {
   String _findQuery = '';
   bool _findCase = false;
   bool _findRegex = false;
+  int _termCols = 80;
+  int _termRows = 24;
 
   @override
   void initState() {
@@ -84,7 +86,11 @@ class _TerminalScreenState extends State<TerminalScreen> {
         await b.close();
         return;
       }
-      b.terminalResize(sessionKey: widget.session.sessionKey);
+      b.terminalResize(
+        sessionKey: widget.session.sessionKey,
+        cols: _termCols,
+        rows: _termRows,
+      );
       setState(() {
         _bridge = b;
         _connecting = false;
@@ -128,6 +134,37 @@ class _TerminalScreenState extends State<TerminalScreen> {
         setState(() => _busy = false);
       }
       return;
+    }
+  }
+
+
+  void _pushResize({int? cols, int? rows}) {
+    final c = cols ?? _termCols;
+    final r = rows ?? _termRows;
+    if (c == _termCols && r == _termRows && cols == null && rows == null) return;
+    _termCols = c.clamp(20, 240);
+    _termRows = r.clamp(5, 120);
+    final b = _bridge;
+    if (b == null) return;
+    try {
+      b.terminalResize(
+        sessionKey: widget.session.sessionKey,
+        cols: _termCols,
+        rows: _termRows,
+      );
+    } catch (_) {}
+  }
+
+  void _updateGeometryFromBox(BoxConstraints constraints) {
+    // Approx mono cell ~7.2x fontSize width, line height 1.35 * fontSize.
+    final fs = 13.0 * _termScale;
+    final cellW = fs * 0.62;
+    final cellH = fs * 1.35;
+    final cols = (constraints.maxWidth / cellW).floor().clamp(20, 240);
+    final rows = (constraints.maxHeight / cellH).floor().clamp(5, 120);
+    if (cols != _termCols || rows != _termRows) {
+      _pushResize(cols: cols, rows: rows);
+      if (mounted) setState(() {});
     }
   }
 
@@ -350,7 +387,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
             ),
             Expanded(
               child: Text(
-                'Terminal · ${widget.session.project}',
+                'Terminal · ${widget.session.project} · ${_termCols}x$_termRows',
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -584,35 +621,43 @@ class _TerminalScreenState extends State<TerminalScreen> {
               ),
             ),
           Expanded(
-            child: Container(
-              width: double.infinity,
-              color: Colors.black,
-              padding: const EdgeInsets.all(12),
-              child: SingleChildScrollView(
-                controller: _scroll,
-                scrollDirection: Axis.vertical,
-                child: SingleChildScrollView(
-                  scrollDirection: _wrapLines ? Axis.vertical : Axis.horizontal,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minWidth: MediaQuery.sizeOf(context).width - 24,
-                      maxWidth: _wrapLines
-                          ? MediaQuery.sizeOf(context).width - 24
-                          : double.infinity,
-                    ),
-                    child: SelectableText(
-                      _displayBuffer,
-                      softWrap: _wrapLines,
-                      style: TextStyle(
-                        fontFamily: 'monospace',
-                        fontSize: 13 * _termScale,
-                        color: const Color(0xFFB2FF59),
-                        height: 1.35,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
+                  _updateGeometryFromBox(constraints);
+                });
+                return Container(
+                  width: double.infinity,
+                  color: Colors.black,
+                  padding: const EdgeInsets.all(12),
+                  child: SingleChildScrollView(
+                    controller: _scroll,
+                    scrollDirection: Axis.vertical,
+                    child: SingleChildScrollView(
+                      scrollDirection: _wrapLines ? Axis.vertical : Axis.horizontal,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minWidth: MediaQuery.sizeOf(context).width - 24,
+                          maxWidth: _wrapLines
+                              ? MediaQuery.sizeOf(context).width - 24
+                              : double.infinity,
+                        ),
+                        child: SelectableText(
+                          _displayBuffer,
+                          softWrap: _wrapLines,
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 13 * _termScale,
+                            color: const Color(0xFFB2FF59),
+                            height: 1.35,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           ),
           SafeArea(

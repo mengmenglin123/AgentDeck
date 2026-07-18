@@ -31,7 +31,7 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   late final ChatController _chat;
   final _input = TextEditingController();
   final _scroll = ScrollController();
@@ -58,6 +58,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _chat = ChatController(config: widget.config, session: widget.session);
     try {
       _showTools = context.read<AppSettingsController>().showToolsDefault;
@@ -145,7 +146,18 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Foreground resume: kick Bridge reconnect when dropped (P4-4 partial).
+      if (!_chat.connected && !_chat.connecting) {
+        _chat.reconnectNow();
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _draftTimer?.cancel();
     _input.removeListener(_onDraftChanged);
     // flush latest draft
