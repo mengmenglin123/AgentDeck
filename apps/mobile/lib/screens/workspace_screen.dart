@@ -36,6 +36,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   bool _sortByMtime = false;
   /// all | dir | file
   String _typeFilter = 'all';
+  bool _hideEmpty = false;
   final _scroll = ScrollController();
   Timer? _timer;
   bool _autoRefresh = false;
@@ -66,6 +67,15 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       final type = (e['type'] ?? '').toString().toLowerCase();
       if (_typeFilter == 'dir' && type != 'dir') continue;
       if (_typeFilter == 'file' && type == 'dir') continue;
+      if (_hideEmpty && type == 'dir') {
+        final children = e['children'] ?? e['entries'] ?? e['count'] ?? e['size'];
+        if (children is List && children.isEmpty) continue;
+        if (children is num && children == 0) continue;
+        if (children == null) {
+          final emptyFlag = e['empty'];
+          if (emptyFlag == true) continue;
+        }
+      }
       if (q.isNotEmpty) {
         final name = (e['name'] ?? '').toString().toLowerCase();
         if (!name.contains(q) && !type.contains(q)) continue;
@@ -438,6 +448,12 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                     onSelected: (_) => setState(() => _typeFilter = f.$1),
                     visualDensity: VisualDensity.compact,
                   ),
+                FilterChip(
+                  label: const Text('Hide empty', style: TextStyle(fontSize: 12)),
+                  selected: _hideEmpty,
+                  onSelected: (_) => setState(() => _hideEmpty = !_hideEmpty),
+                  visualDensity: VisualDensity.compact,
+                ),
               ],
             ),
           ),

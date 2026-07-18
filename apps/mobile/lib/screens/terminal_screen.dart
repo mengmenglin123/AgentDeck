@@ -46,6 +46,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
   final _findCtrl = TextEditingController();
   String _findQuery = '';
   bool _findCase = false;
+  bool _findRegex = false;
 
   @override
   void initState() {
@@ -287,16 +288,25 @@ class _TerminalScreenState extends State<TerminalScreen> {
   String get _displayBuffer {
     final full = _buf.toString();
     final rawQ = _findQuery.trim();
-    final q = _findCase ? rawQ : rawQ.toLowerCase();
     var lines = full.split('\n');
     // Drop trailing empty from final newline for consistent processing.
     if (lines.isNotEmpty && lines.last.isEmpty) {
       lines = lines.sublist(0, lines.length - 1);
     }
-    if (q.isNotEmpty) {
-      lines = lines
-          .where((l) => (_findCase ? l : l.toLowerCase()).contains(q))
-          .toList();
+    if (rawQ.isNotEmpty) {
+      if (_findRegex) {
+        try {
+          final re = RegExp(rawQ, caseSensitive: _findCase);
+          lines = lines.where((l) => re.hasMatch(l)).toList();
+        } catch (_) {
+          return '(invalid regex: $_findQuery)\n';
+        }
+      } else {
+        final q = _findCase ? rawQ : rawQ.toLowerCase();
+        lines = lines
+            .where((l) => (_findCase ? l : l.toLowerCase()).contains(q))
+            .toList();
+      }
       if (lines.isEmpty) return '(no lines match find: $_findQuery)\n';
     }
     if (_showTs) {
@@ -534,18 +544,31 @@ class _TerminalScreenState extends State<TerminalScreen> {
                 controller: _findCtrl,
                 style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
                 decoration: InputDecoration(
-                  hintText: _findCase
-                      ? 'Find (case-sensitive, client-only)'
-                      : 'Find in local buffer (client-only)',
+                  hintText: _findRegex
+                      ? (_findCase
+                          ? 'Regex find (case-sensitive, client-only)'
+                          : 'Regex find (client-only)')
+                      : (_findCase
+                          ? 'Find (case-sensitive, client-only)'
+                          : 'Find in local buffer (client-only)'),
                   isDense: true,
                   border: const OutlineInputBorder(),
                   prefixIcon: IconButton(
-                    tooltip: _findCase ? 'Case-sensitive on' : 'Case-insensitive',
+                    tooltip: _findRegex
+                        ? (_findCase
+                            ? 'Regex · case on (long-press: plain find)'
+                            : 'Regex · case off (long-press: plain find)')
+                        : (_findCase
+                            ? 'Case-sensitive (long-press: regex)'
+                            : 'Case-insensitive (long-press: regex)'),
                     icon: Icon(
-                      _findCase ? Icons.text_fields : Icons.search,
+                      _findRegex
+                          ? Icons.code
+                          : (_findCase ? Icons.text_fields : Icons.search),
                       size: 18,
                     ),
                     onPressed: () => setState(() => _findCase = !_findCase),
+                    onLongPress: () => setState(() => _findRegex = !_findRegex),
                   ),
                   suffixIcon: _findQuery.isEmpty
                       ? null

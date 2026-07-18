@@ -27,6 +27,7 @@ class _StatusScreenState extends State<StatusScreen> {
   bool _wrapLines = false;
   bool _sortAsc = true;
   bool _sortByValue = false;
+  bool _relativeTs = false;
   String _keyQuery = '';
   String _capQuery = '';
   final _capFilterCtrl = TextEditingController();
@@ -178,6 +179,30 @@ class _StatusScreenState extends State<StatusScreen> {
   }
 
 
+
+  String _fmtStatusValue(dynamic v) {
+    final s = '$v';
+    if (!_relativeTs) return s;
+    DateTime? dt;
+    if (v is int) {
+      final ms = v > 1e12 ? v : v * 1000;
+      dt = DateTime.fromMillisecondsSinceEpoch(ms.round()).toLocal();
+    } else if (v is num) {
+      final n = v.toDouble();
+      final ms = n > 1e12 ? n.round() : (n * 1000).round();
+      dt = DateTime.fromMillisecondsSinceEpoch(ms).toLocal();
+    } else {
+      dt = DateTime.tryParse(s)?.toLocal();
+    }
+    if (dt == null) return s;
+    final d = DateTime.now().difference(dt);
+    if (d.isNegative) return s;
+    if (d.inSeconds < 60) return '${d.inSeconds}s ago';
+    if (d.inMinutes < 60) return '${d.inMinutes}m ago';
+    if (d.inHours < 48) return '${d.inHours}h ago';
+    return '${d.inDays}d ago';
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.watch<ConnectionController>();
@@ -223,6 +248,11 @@ class _StatusScreenState extends State<StatusScreen> {
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
+          ),
+          IconButton(
+            tooltip: _relativeTs ? 'Absolute timestamps' : 'Relative timestamps',
+            onPressed: () => setState(() => _relativeTs = !_relativeTs),
+            icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
           IconButton(
             tooltip: _sortByValue
@@ -500,7 +530,7 @@ class _StatusScreenState extends State<StatusScreen> {
                 contentPadding: EdgeInsets.zero,
                 title: Text(e.key),
                 subtitle: Text(
-                  '${e.value}',
+                  _fmtStatusValue(e.value),
                   maxLines: _wrapLines ? 12 : 2,
                   overflow: TextOverflow.ellipsis,
                   softWrap: true,

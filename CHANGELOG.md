@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.67
+
+- Status / Host: relative timestamps for status values
+- Workspace: hide empty directories chip
+- Terminal: regex find (long-press toggle)
+
 ## 0.1.66
 
 - Sessions: filter sessions that have local notes

@@ -314,6 +314,11 @@
 | P3-239 | Pairing payload 区分大小写过滤 | [x] |
 | P3-240 | Connect TLS/Plain chips | [x] |
 
+| P3-241 | Status 相对时间戳 | [x] |
+| P3-242 | Host Dashboard 相对时间戳 | [x] |
+| P3-243 | Workspace 隐藏空目录 | [x] |
+| P3-244 | Terminal regex find | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |
