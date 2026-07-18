@@ -31,6 +31,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
   String? _error;
   bool _loading = true;
   Timer? _timer;
+  bool _wrapLines = false;
   bool _autoRefresh = true;
   final _scroll = ScrollController();
   DateTime? _lastOk;
@@ -198,6 +199,12 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
+            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            onPressed: () => setState(() => _wrapLines = !_wrapLines),
+            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
+          ),
+
+          IconButton(
             tooltip: 'Jump to top',
             onPressed: () {
               if (!_scroll.hasClients) return;
@@ -252,6 +259,9 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                   subtitle: Text(
                     'Mgmt ${cfg.mgmtBaseUrl}\nBridge ${cfg.bridgeWsUrlRedacted}',
                     style: const TextStyle(fontSize: 12),
+                    maxLines: _wrapLines ? 6 : 2,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: true,
                   ),
                   isThreeLine: true,
                 ),
@@ -481,7 +491,12 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                       ListTile(
                         dense: true,
                         title: Text(e.key),
-                        subtitle: Text(Security.redactText('${e.value}')),
+                        subtitle: Text(
+                          Security.redactText('${e.value}'),
+                          maxLines: _wrapLines ? 12 : 2,
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: true,
+                        ),
                       ),
                   ],
                 ),

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.53
+
+- Pairing: wrap/clamp payload and host line
+- Host Dashboard: wrap/clamp status values
+- Sessions: wrap/clamp title and subtitle
+- Diff: files A→Z / Z→A sort
+
 ## 0.1.52
 
 - Skills: wrap/clamp list details

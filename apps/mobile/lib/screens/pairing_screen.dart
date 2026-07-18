@@ -24,6 +24,7 @@ class _PairingScreenState extends State<PairingScreen> {
   String? error;
   Map<String, dynamic> data = {};
   Timer? _timer;
+  bool _wrapLines = false;
   bool _autoRefresh = false;
   final _scroll = ScrollController();
 
@@ -168,6 +169,12 @@ class _PairingScreenState extends State<PairingScreen> {
             },
             icon: const Icon(Icons.table_chart_outlined),
           ),
+          IconButton(
+            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            onPressed: () => setState(() => _wrapLines = !_wrapLines),
+            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
+          ),
+
 
 
           IconButton(
@@ -224,6 +231,9 @@ class _PairingScreenState extends State<PairingScreen> {
                   child: Text(
                     'fingerprint · ${cfg.host}:${cfg.bridgePort}/${cfg.mgmtPort}',
                     style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant, fontFamily: 'monospace'),
+                    maxLines: _wrapLines ? 3 : 1,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: true,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -295,6 +305,7 @@ class _PairingScreenState extends State<PairingScreen> {
                 SelectableText(
                   Security.redactText(data.toString()),
                   style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+                  maxLines: _wrapLines ? null : 8,
                 ),
                 const SizedBox(height: 16),
                 Text(

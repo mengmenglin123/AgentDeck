@@ -28,6 +28,7 @@ class _DiffScreenState extends State<DiffScreen> {
   String _diff = '';
   bool _lineNums = true;
   bool _wrapLines = false;
+  bool _sortAsc = true;
   Timer? _timer;
   bool _autoRefresh = false;
   final _scroll = ScrollController();
@@ -69,8 +70,16 @@ class _DiffScreenState extends State<DiffScreen> {
 
   List<Map<String, dynamic>> get _visibleFiles {
     final q = _fileFilter.trim().toLowerCase();
-    if (q.isEmpty) return _files;
-    return _files.where((f) => '${f['path']}'.toLowerCase().contains(q)).toList();
+    final list = q.isEmpty
+        ? List<Map<String, dynamic>>.from(_files)
+        : _files.where((f) => '${f['path']}'.toLowerCase().contains(q)).toList();
+    list.sort((a, b) {
+      final pa = '${a['path']}'.toLowerCase();
+      final pb = '${b['path']}'.toLowerCase();
+      final c = pa.compareTo(pb);
+      return _sortAsc ? c : -c;
+    });
+    return list;
   }
 
 
@@ -191,6 +200,12 @@ class _DiffScreenState extends State<DiffScreen> {
             onPressed: () => setState(() => _lineNums = !_lineNums),
             icon: Icon(_lineNums ? Icons.format_list_numbered : Icons.format_list_bulleted),
           ),
+          IconButton(
+            tooltip: _sortAsc ? 'Sort Z→A' : 'Sort A→Z',
+            onPressed: () => setState(() => _sortAsc = !_sortAsc),
+            icon: Icon(_sortAsc ? Icons.sort_by_alpha : Icons.sort),
+          ),
+
           IconButton(
             tooltip: _wrapLines ? 'No wrap' : 'Wrap lines',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),

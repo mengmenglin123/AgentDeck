@@ -41,6 +41,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
   final _searchCtrl = TextEditingController();
   final _scroll = ScrollController();
   Timer? _timer;
+  bool _wrapLines = false;
   bool _autoRefresh = false;
   final _pins = SessionPinsStore();
   final _notes = SessionNotesStore();
@@ -590,6 +591,12 @@ class _SessionsScreenState extends State<SessionsScreen> {
                 },
                 icon: const Icon(Icons.table_chart_outlined),
               ),
+          IconButton(
+            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            onPressed: () => setState(() => _wrapLines = !_wrapLines),
+            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
+          ),
+
 
 
 
@@ -1083,7 +1090,12 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                           final tile = ListTile(
                                             selected: selected,
                                             visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
-                                            title: Text(s.displayTitle),
+                                            title: Text(
+                                              s.displayTitle,
+                                              maxLines: _wrapLines ? 4 : 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              softWrap: true,
+                                            ),
                                             subtitle: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
@@ -1093,6 +1105,9 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                     s.sessionKey,
                                                     if (note != null && note.isNotEmpty) '📝 $note',
                                                   ].join('\n'),
+                                                  maxLines: _wrapLines ? 8 : 3,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  softWrap: true,
                                                 ),
                                                 if (projCaps.isNotEmpty && !_selectMode) ...[
                                                   const SizedBox(height: 4),
