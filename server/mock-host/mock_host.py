@@ -810,7 +810,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, hexdump, xxd, jq, md5sum, sha1sum, sha256sum, base64, file, type, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, jq, md5sum, sha1sum, sha256sum, base64, file, type, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -887,7 +887,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         known = {
             "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date",
             "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help",
-            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "hexdump", "xxd", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type",
+            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1794,6 +1794,44 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
                             break
                     out(f"{n1} {n2} differ: byte {pos + 1}\n", done=True, exit_code=1)
 
+
+    elif lower.startswith("yes ") or lower == "yes":
+        # mock: print a few lines only (avoid infinite)
+        arg = data.strip()[3:].strip() if lower.startswith("yes") else ""
+        msg = arg if arg else "y"
+        out(("\n".join([msg] * 5) + "\n"), done=True, exit_code=0)
+    elif lower.startswith("tee ") or lower == "tee":
+        # mock: echo stdin-like args to output; "write" note only
+        parts = data.strip().split()
+        paths = [p for p in parts[1:] if not p.startswith("-")]
+        # remaining treated as content if no file resolve
+        content = " ".join(paths) if paths else ""
+        note = f"(mock tee wrote {len(content)} bytes"
+        if paths:
+            note += f" → {paths[0]}"
+        note += ")\n"
+        out((content + ("\n" if content and not content.endswith("\n") else "")) + note, done=True, exit_code=0)
+    elif lower.startswith("xargs ") or lower == "xargs":
+        # mock: xargs echo a b c  → echo a b c once
+        parts = data.strip().split()
+        # drop xargs flags
+        i = 1
+        cmd_parts = []
+        while i < len(parts):
+            t = parts[i]
+            if t.startswith("-") and t not in {"-"}:
+                if t in {"-n", "-I", "-i", "-d"} and i + 1 < len(parts):
+                    i += 2
+                    continue
+                i += 1
+                continue
+            cmd_parts = parts[i:]
+            break
+        if not cmd_parts:
+            out("xargs: (mock) missing command\n", done=True, exit_code=1)
+        else:
+            out(" ".join(cmd_parts) + "\n", done=True, exit_code=0)
+
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)
     elif lower in {"clear", "cls"}:
@@ -2300,7 +2338,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                 {
                     "ok": True,
                     "data": {
-                        "version": "mock-0.1.115",
+                        "version": "mock-0.1.116",
                         "uptime_seconds": int(time.time() - START_TS),
                         "connected_platforms": ["bridge"],
                         "projects_count": len(PROJECTS),

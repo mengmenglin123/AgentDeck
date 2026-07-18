@@ -57,6 +57,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
   Map<String, int> _recentRank = {};
   /// all | pinned | running | archived
   String _filter = 'all';
+  String _agent = '';
   bool _groupByProject = false;
   bool _selectMode = false;
   final Set<String> _selected = {};
@@ -363,6 +364,18 @@ class _SessionsScreenState extends State<SessionsScreen> {
       } else if (_filter == 'notes') {
         base = base.where((s) => (_noteMap[s.sessionKey] ?? '').trim().isNotEmpty);
       }
+    }
+    if (_agent.isNotEmpty) {
+      base = base.where((s) {
+        final a = (s.agentType ?? '').toLowerCase();
+        if (_agent == 'other') {
+          return a.isNotEmpty &&
+              !a.contains('hermes') &&
+              !a.contains('claude') &&
+              !a.contains('codex');
+        }
+        return a.contains(_agent);
+      });
     }
     if (rawQ.isNotEmpty) {
       base = base.where((s) {
@@ -990,6 +1003,19 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       onSelected: (v) => setState(() => _groupByProject = v),
                       visualDensity: VisualDensity.compact,
                     ),
+                    for (final f in const [
+                      ('', 'Any agent'),
+                      ('hermes', 'hermes'),
+                      ('claude', 'claude'),
+                      ('codex', 'codex'),
+                      ('other', 'other'),
+                    ])
+                      FilterChip(
+                        label: Text(f.$2, style: const TextStyle(fontSize: 11)),
+                        selected: _agent == f.$1,
+                        onSelected: (_) => setState(() => _agent = f.$1),
+                        visualDensity: VisualDensity.compact,
+                      ),
                     Builder(
                       builder: (context) {
                         final settings = context.watch<AppSettingsController>();

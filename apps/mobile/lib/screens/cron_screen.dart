@@ -29,6 +29,7 @@ class _CronScreenState extends State<CronScreen> {
   bool _queryRegex = false;
   /// all | on | off
   String _enabled = 'all';
+  String _kind = 'all';
   bool _wrapLines = false;
   bool _sortBySchedule = false;
   bool _sortByKind = false;
@@ -99,6 +100,15 @@ class _CronScreenState extends State<CronScreen> {
       it = it.where((j) => j['enabled'] == true);
     } else if (_enabled == 'off') {
       it = it.where((j) => j['enabled'] != true);
+    }
+    if (_kind != 'all' && _kind.isNotEmpty) {
+      it = it.where((j) {
+        final k = (j['kind'] ?? '').toString().toLowerCase();
+        if (_kind == 'other') {
+          return k.isNotEmpty && k != 'prompt' && k != 'http' && k != 'bash' && k != 'script';
+        }
+        return k.contains(_kind);
+      });
     }
     final rawQ = _query.trim();
     final q = _queryCase ? rawQ : rawQ.toLowerCase();
@@ -554,6 +564,28 @@ class _CronScreenState extends State<CronScreen> {
                     label: Text(f.$2, style: const TextStyle(fontSize: 12)),
                     selected: _enabled == f.$1,
                     onSelected: (_) => setState(() => _enabled = f.$1),
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                for (final f in const [
+                  ('all', 'Any kind'),
+                  ('prompt', 'prompt'),
+                  ('http', 'http'),
+                  ('bash', 'bash'),
+                  ('other', 'other'),
+                ])
+                  FilterChip(
+                    label: Text(f.$2, style: const TextStyle(fontSize: 11)),
+                    selected: _kind == f.$1,
+                    onSelected: (_) => setState(() => _kind = f.$1),
                     visualDensity: VisualDensity.compact,
                   ),
               ],

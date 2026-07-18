@@ -523,6 +523,9 @@
 - [x] **P4-3p** Memory tag filter chips (0.1.115)
 - [x] **P4-5s** MarkdownLite footnotes (0.1.115)
 - [x] **P4-1q** Mock tr/rev/cmp (0.1.115)
+- [x] **P4-3q** Sessions agent_type + cron kind filters (0.1.116)
+- [x] **P4-5t** MarkdownLite h4 + abbr (0.1.116)
+- [x] **P4-1r** Mock yes/tee/xargs (0.1.116)
 
 ## P4 — 远期
 
@@ -532,7 +535,7 @@
 | P4-2 | 相机扫码配对（剪贴板 URI + paste card 已有；真相机仍远期） | [~] |
 | P4-3 | Host 真 Hermes adapter（Mock workspace/git/diff/memory/MCP/status 已加深；真进程仍远期） | [~] |
 | P4-4 | 通知 / 后台重连（resume/reconnect + permission/reconnected snack 已有；系统通知仍远期） | [~] |
-| P4-5 | 更完整代码高亮 / 真文件选择器（着色+表格/任务/有序/引用/链接/autolink/图alt/callout/details/footnotes/mark/spoiler/kbd/sup/sub/删除线/行号/附件 preset 已有；真 file_picker 仍远期） | [~] |
+| P4-5 | 更完整代码高亮 / 真文件选择器（着色+表格/任务/有序/引用/链接/autolink/图alt/callout/details/footnotes/h4/abbr/mark/spoiler/kbd/sup/sub/删除线/行号/附件 preset 已有；真 file_picker 仍远期） | [~] |
 
 ## 验收命令
 

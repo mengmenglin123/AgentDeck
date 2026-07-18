@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings, lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, mark, spoiler, kbd, sup/sub, autolink, strike, inline code, bold/italic.
+/// Covers headings, lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4, abbr, mark, spoiler, kbd, sup/sub, autolink, strike, inline code, bold/italic.
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -109,6 +109,11 @@ class MarkdownLite extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 4, bottom: 2),
               child: SelectableText.rich(_inline(b.text, base.copyWith(fontSize: 15, fontWeight: FontWeight.w600))),
+            )
+          else if (b.kind == _BlockKind.h4)
+            Padding(
+              padding: const EdgeInsets.only(top: 3, bottom: 2),
+              child: SelectableText.rich(_inline(b.text, base.copyWith(fontSize: 14, fontWeight: FontWeight.w600))),
             )
           else if (b.kind == _BlockKind.task)
             Padding(
@@ -329,6 +334,8 @@ class MarkdownLite extends StatelessWidget {
         }
         out.add(_Block(_BlockKind.details, buf.toString()));
         continue;
+      } else if (t.startsWith('#### ')) {
+        out.add(_Block(_BlockKind.h4, t.substring(5)));
       } else if (t.startsWith('### ')) {
         out.add(_Block(_BlockKind.h3, t.substring(4)));
       } else if (t.startsWith('## ')) {
@@ -581,7 +588,7 @@ class MarkdownLite extends StatelessWidget {
   static TextSpan _inline(String text, TextStyle base) {
     final spans = <InlineSpan>[];
     final re = RegExp(
-      r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
+      r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
     );
     var i = 0;
     for (final m in re.allMatches(text)) {
@@ -644,104 +651,29 @@ class MarkdownLite extends StatelessWidget {
             color: base.color?.withOpacity(0.85),
           ),
         ));
-      } else if (tok.startsWith('`') && tok.endsWith('`')) {
+      } else if (tok.toLowerCase().startsWith('<abbr')) {
+        final titleM = RegExp(r'title="([^"]*)"', caseSensitive: false).firstMatch(tok);
+        final titleM2 = RegExp(r"title='([^']*)'", caseSensitive: false).firstMatch(tok);
+        final bodyM = RegExp(r'<abbr[^>]*>([^<]+)</abbr>', caseSensitive: false).firstMatch(tok);
+        final body = bodyM?.group(1) ?? tok;
+        final title = titleM?.group(1) ?? titleM2?.group(1) ?? '';
         spans.add(TextSpan(
-          text: tok.substring(1, tok.length - 1),
+          text: body,
           style: base.copyWith(
-            fontFamily: 'monospace',
-            backgroundColor: base.backgroundColor ?? const Color(0x22000000),
+            decoration: TextDecoration.underline,
+            decorationStyle: TextDecorationStyle.dotted,
+            color: base.color,
           ),
         ));
-      } else if ((tok.startsWith('**') && tok.endsWith('**')) || (tok.startsWith('__') && tok.endsWith('__'))) {
-        spans.add(TextSpan(
-          text: tok.substring(2, tok.length - 2),
-          style: base.copyWith(fontWeight: FontWeight.w700),
-        ));
-      } else if ((tok.startsWith('*') && tok.endsWith('*')) || (tok.startsWith('_') && tok.endsWith('_'))) {
-        spans.add(TextSpan(
-          text: tok.substring(1, tok.length - 1),
-          style: base.copyWith(fontStyle: FontStyle.italic),
-        ));
-      } else if (tok.startsWith('![')) {
-        final im = RegExp(r'!\[([^\]]*)\]\(([^)]+)\)').firstMatch(tok);
-        final rawAlt = im?.group(1) ?? '';
-        final alt = rawAlt.isEmpty ? 'image' : rawAlt;
-        final url = im?.group(2) ?? '';
-        // Console-safe: no network fetch / no file_picker; show alt + path only.
-        spans.add(TextSpan(
-          text: '🖼 $alt',
-          style: base.copyWith(
-            color: Colors.tealAccent.shade200,
-            fontFamily: 'monospace',
-            fontSize: (base.fontSize ?? 14) * 0.95,
-          ),
-        ));
-        if (url.isNotEmpty) {
+        if (title.isNotEmpty) {
           spans.add(TextSpan(
-            text: ' ($url)',
+            text: ' ($title)',
             style: base.copyWith(
-              color: base.color?.withOpacity(0.55),
-              fontSize: (base.fontSize ?? 14) * 0.85,
-              fontFamily: 'monospace',
+              fontSize: (base.fontSize ?? 14) * 0.8,
+              color: base.color?.withOpacity(0.65),
             ),
           ));
         }
-      } else if (tok.startsWith('[^') && tok.endsWith(']')) {
-        final id = tok.substring(2, tok.length - 1);
-        spans.add(TextSpan(
-          text: '[$id]',
-          style: base.copyWith(
-            fontSize: (base.fontSize ?? 14) * 0.75,
-            color: Colors.lightBlue,
-            fontWeight: FontWeight.w600,
-          ),
-        ));
-      } else if (tok.startsWith('[')) {
-        final lm = RegExp(r'\[([^\]]+)\]\(([^)]+)\)').firstMatch(tok);
-        final label = lm?.group(1) ?? tok;
-        final url = lm?.group(2) ?? '';
-        spans.add(TextSpan(
-          text: label,
-          style: base.copyWith(
-            color: Colors.lightBlue,
-            decoration: TextDecoration.underline,
-          ),
-        ));
-        if (url.isNotEmpty) {
-          spans.add(TextSpan(
-            text: ' ↗',
-            style: base.copyWith(color: Colors.lightBlue.withOpacity(0.7), fontSize: (base.fontSize ?? 14) * 0.85),
-          ));
-          // Keep URL as copyable plain trailing text (console-safe; no url_launcher dep).
-          spans.add(TextSpan(
-            text: ' ($url)',
-            style: base.copyWith(
-              color: base.color?.withOpacity(0.55),
-              fontSize: (base.fontSize ?? 14) * 0.85,
-              fontFamily: 'monospace',
-            ),
-          ));
-        }
-      } else if (tok.startsWith('http://') || tok.startsWith('https://')) {
-        // Bare URL autolink — console-safe (no url_launcher); show + keep copyable.
-        var url = tok;
-        while (url.isNotEmpty && '.,;:!?'.contains(url[url.length - 1])) {
-          url = url.substring(0, url.length - 1);
-        }
-        spans.add(TextSpan(
-          text: url,
-          style: base.copyWith(
-            color: Colors.lightBlue,
-            decoration: TextDecoration.underline,
-            fontFamily: 'monospace',
-            fontSize: (base.fontSize ?? 14) * 0.95,
-          ),
-        ));
-        if (url.length < tok.length) {
-          spans.add(TextSpan(text: tok.substring(url.length), style: base));
-        }
-      } else {
-        spans.add(TextSpan(text: tok, style: base));
       }
       i = m.end;
     }
@@ -752,7 +684,7 @@ class MarkdownLite extends StatelessWidget {
   }
 }
 
-enum _BlockKind { para, h1, h2, h3, list, task, code, quote, callout, blank, hr, table, details, footnote }
+enum _BlockKind { para, h1, h2, h3, h4, list, task, code, quote, callout, blank, hr, table, details, footnote }
 
 class _Block {
   const _Block(this.kind, this.text, {this.lang, this.checked, this.marker});

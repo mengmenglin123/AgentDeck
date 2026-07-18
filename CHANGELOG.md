@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.116
+
+- Sessions agent_type filter chips
+- Cron kind filter chips
+- MarkdownLite h4 + `<abbr title>`
+- Mock yes/tee/xargs
+
 ## 0.1.115
 
 - Memory tag filter chips
