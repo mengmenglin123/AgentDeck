@@ -36,6 +36,8 @@ class _AgentsScreenState extends State<AgentsScreen> {
   String _adapter = '';
   /// Model filter: '' | gpt | claude | codex | gemini | other
   String _model = '';
+  /// Platform filter: '' | telegram | discord | slack | feishu | other
+  String _platform = '';
   bool _wrapLines = false;
   bool _sortByType = false;
   bool _sortByModel = false;
@@ -171,12 +173,30 @@ class _AgentsScreenState extends State<AgentsScreen> {
         return false;
       }
     }
+    if (_platform.isNotEmpty) {
+      final pk = _agentPlatformKey(a);
+      if (_platform == 'other') {
+        const known = [
+          'telegram',
+          'discord',
+          'slack',
+          'feishu',
+          'whatsapp',
+          'local',
+          'mock',
+        ];
+        if (known.any((k) => pk.contains(k))) return false;
+      } else if (!pk.contains(_platform.toLowerCase())) {
+        return false;
+      }
+    }
     final rawQ = _query.trim();
     final q = _queryCase ? rawQ : rawQ.toLowerCase();
     if (rawQ.isEmpty) return true;
     final adapterHay = _agentAdapterKey(a);
     final modelHay = _agentModelKey(a);
-    final hayRaw = '${_agentTitle(a)} ${_agentSub(a)} $adapterHay $modelHay';
+    final platformHay = _agentPlatformKey(a);
+    final hayRaw = '${_agentTitle(a)} ${_agentSub(a)} $adapterHay $modelHay $platformHay';
     if (_queryRegex) {
       try {
         return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
@@ -867,6 +887,31 @@ class _AgentsScreenState extends State<AgentsScreen> {
                     selected: _model == f.$1,
                     onSelected: (_) => setState(() {
                       _model = (_model == f.$1) ? '' : f.$1;
+                    }),
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: [
+                for (final f in const [
+                  ('', 'Any platform'),
+                  ('telegram', 'telegram'),
+                  ('discord', 'discord'),
+                  ('slack', 'slack'),
+                  ('feishu', 'feishu'),
+                  ('other', 'other'),
+                ])
+                  FilterChip(
+                    visualDensity: VisualDensity.compact,
+                    label: Text(f.$2, style: const TextStyle(fontSize: 11)),
+                    selected: _platform == f.$1,
+                    onSelected: (_) => setState(() {
+                      _platform = (_platform == f.$1) ? '' : f.$1;
                     }),
                   ),
               ],

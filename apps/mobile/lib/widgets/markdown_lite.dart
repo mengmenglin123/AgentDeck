@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings (h1–h6), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5/h6, abbr, mark, spoiler, kbd, sup/sub, underline, del, ins, s, small, cite, q, autolink, strike, inline code, bold/italic, bold-italic (***).
+/// Covers headings (h1–h6), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5/h6, abbr, mark, spoiler, kbd, sup/sub, underline, del, ins, s, small, cite, q, var, samp, autolink, strike, inline code, bold/italic, bold-italic (***).
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -602,7 +602,7 @@ class MarkdownLite extends StatelessWidget {
   static TextSpan _inline(String text, TextStyle base) {
     final spans = <InlineSpan>[];
     final re = RegExp(
-          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<small>[^<]+</small>|<cite>[^<]+</cite>|<q>[^<]+</q>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
+          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<small>[^<]+</small>|<cite>[^<]+</cite>|<q>[^<]+</q>|<var>[^<]+</var>|<samp>[^<]+</samp>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
             );
     var i = 0;
     for (final m in re.allMatches(text)) {
@@ -731,6 +731,28 @@ class MarkdownLite extends StatelessWidget {
           text: '“$body”',
           style: base.copyWith(
             fontStyle: FontStyle.italic,
+          ),
+        ));
+      } else if (tok.startsWith('<var>') && tok.endsWith('</var>')) {
+        // HTML variable / placeholder name
+        final body = tok.substring(5, tok.length - 6);
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            fontStyle: FontStyle.italic,
+            fontFamily: 'monospace',
+            color: base.color?.withOpacity(0.88),
+          ),
+        ));
+      } else if (tok.startsWith('<samp>') && tok.endsWith('</samp>')) {
+        // HTML sample output
+        final body = tok.substring(6, tok.length - 7);
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            fontFamily: 'monospace',
+            backgroundColor: base.backgroundColor ?? const Color(0x22000000),
+            color: base.color?.withOpacity(0.9),
           ),
         ));
       } else if (tok.toLowerCase().startsWith('<abbr')) {

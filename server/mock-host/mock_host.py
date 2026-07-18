@@ -834,7 +834,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -911,7 +911,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         known = {
             "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date",
             "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help",
-            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who",
+            "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1468,7 +1468,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
                 "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find",
                 "seq", "sort", "base64", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev",
                 "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum",
-                                "sha256sum", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who",
+                                "sha256sum", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal",
                             }
             if name.split()[0] in builtins:
                 out(f"{name.split()[0]} is a shell builtin\n", done=True, exit_code=0)
@@ -2141,6 +2141,36 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
     elif lower == "who" or lower == "who am i":
         # mock fixed who line (demo only)
         out("huan pts/0 2026-07-18 07:00 (mock)\n", done=True, exit_code=0)
+
+    elif lower == "w":
+        # mock w summary (demo only)
+        out(
+            " 07:00:00 up 1 day,  1 user,  load average: 0.00, 0.00, 0.00\n"
+            "USER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT\n"
+            "huan     pts/0    mock             07:00    0.00s  0.00s  0.00s mock-sh\n",
+            done=True,
+            exit_code=0,
+        )
+    elif lower == "last":
+        out(
+            "huan     pts/0        mock             Sat Jul 18 07:00   still logged in\n"
+            "huan     pts/1        mock             Fri Jul 17 21:00 - 22:00  (01:00)\n"
+            "\nwtmp begins Fri Jul 17 00:00:00 2026\n",
+            done=True,
+            exit_code=0,
+        )
+    elif lower == "cal" or lower.startswith("cal "):
+        out(
+            "     July 2026\n"
+            "Su Mo Tu We Th Fr Sa\n"
+            "          1  2  3  4\n"
+            " 5  6  7  8  9 10 11\n"
+            "12 13 14 15 16 17 18\n"
+            "19 20 21 22 23 24 25\n"
+            "26 27 28 29 30 31\n",
+            done=True,
+            exit_code=0,
+        )
 
     elif lower.startswith("echo "):
         out(data.strip()[5:] + "\n", done=True, exit_code=0)

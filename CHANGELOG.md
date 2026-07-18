@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.122
+
+- Agents platform filter chips
+- MarkdownLite `<var>` + `<samp>`
+- Mock w/last/cal (+ help/which/type lockstep)
+
 ## 0.1.121
 
 - Sessions platform filter chips
