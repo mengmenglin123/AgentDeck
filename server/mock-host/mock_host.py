@@ -834,7 +834,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, locale, umask, readlink, cksum, sum, expand, unexpand, tac, namei, dir, vdir, tsort, pathchk, mktemp, sync, link, ln, truncate, install, shred, timeout, nice, nohup, watch, stdbuf, flock, ionice, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
+            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, locale, umask, readlink, cksum, sum, expand, unexpand, tac, namei, dir, vdir, tsort, pathchk, mktemp, sync, link, ln, truncate, install, shred, timeout, nice, nohup, watch, stdbuf, flock, ionice, taskset, prlimit, chroot, df, free, ps, uptime, true, false, printf, sleep, touch, history, echo <text>, stty size, y/n, clear, exit\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
@@ -909,7 +909,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
     elif lower.startswith("which "):
         name = data.strip()[6:].strip()
         known = {
-            "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch", "stdbuf", "flock", "ionice",
+            "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "base64", "file", "type", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch", "stdbuf", "flock", "ionice", "taskset", "prlimit", "chroot",
         }
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
@@ -1460,7 +1460,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
             out("type: missing operand\n", done=True, exit_code=1)
         else:
             builtins = {
-                "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "export", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "base64", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch", "stdbuf", "flock", "ionice",
+                "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "export", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "base64", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "md5sum", "sha1sum", "sha256sum", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch", "stdbuf", "flock", "ionice", "taskset", "prlimit", "chroot",
                             }
             if name.split()[0] in builtins:
                 out(f"{name.split()[0]} is a shell builtin\n", done=True, exit_code=0)
@@ -2716,6 +2716,56 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         cmd_parts = parts[i:]
         if not cmd_parts:
             out("ionice: missing operand\n", done=True, exit_code=1)
+        else:
+            out("", done=True, exit_code=0)
+
+    elif lower.startswith("taskset ") or lower == "taskset":
+        # mock taskset: taskset -c LIST CMD... or taskset MASK CMD; need CMD else 1; silent 0
+        parts = data.strip().split()
+        i = 1
+        used_c = False
+        if i < len(parts) and parts[i] == "-c":
+            used_c = True
+            i += 2  # skip -c and LIST (LIST may be missing → fail below)
+        rest = parts[i:]
+        if used_c:
+            if not rest:
+                out("taskset: missing operand\n", done=True, exit_code=1)
+            else:
+                out("", done=True, exit_code=0)
+        else:
+            # MASK CMD... form
+            if len(rest) < 2:
+                out("taskset: missing operand\n", done=True, exit_code=1)
+            else:
+                out("", done=True, exit_code=0)
+    elif lower.startswith("prlimit ") or lower == "prlimit":
+        # mock prlimit: bare or --pid N → fixed limits; CMD → silent 0; invalid --pid → 1
+        parts = data.strip().split()
+        limits = (
+            "RESOURCE SOFT HARD\n"
+            "NOFILE 1024 1048576\n"
+            "NPROC  4096 unlimited\n"
+            "AS     unlimited unlimited\n"
+        )
+        if len(parts) == 1:
+            out(limits, done=True, exit_code=0)
+        elif parts[1] == "--pid":
+            if len(parts) < 3 or not re.fullmatch(r"[0-9]+", parts[2]):
+                out("prlimit: invalid --pid\n", done=True, exit_code=1)
+            elif len(parts) == 3:
+                out(limits, done=True, exit_code=0)
+            else:
+                # --pid N CMD... silent success
+                out("", done=True, exit_code=0)
+        else:
+            # prlimit CMD... silent success
+            out("", done=True, exit_code=0)
+    elif lower.startswith("chroot ") or lower == "chroot":
+        # mock chroot: chroot NEWROOT [CMD...]; need NEWROOT else 1; silent 0
+        parts = data.strip().split()
+        if len(parts) < 2:
+            out("chroot: missing operand\n", done=True, exit_code=1)
         else:
             out("", done=True, exit_code=0)
 

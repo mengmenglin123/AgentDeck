@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.135
+
+- Connect query FilterChips (wrap / regex / case)
+- MarkdownLite `<blink>` + `<marquee>`
+- Mock taskset/prlimit/chroot (+ help/which/type lockstep)
+
 ## 0.1.134
 
 - Settings pref FilterChips (wrap / regex / case)
