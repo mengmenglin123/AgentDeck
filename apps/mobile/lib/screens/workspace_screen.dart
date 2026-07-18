@@ -293,6 +293,100 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     );
   }
 
+  Future<void> _gitCommit() async {
+    final msgCtrl = TextEditingController();
+    final msg = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Git Commit'),
+        content: TextField(
+          controller: msgCtrl,
+          decoration: const InputDecoration(
+            hintText: 'Commit message',
+            border: OutlineInputBorder(),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, msgCtrl.text.trim()),
+            child: const Text('Commit'),
+          ),
+        ],
+      ),
+    );
+    if (msg == null || msg.isEmpty) return;
+    try {
+      final result = await _client.gitCommit(message: msg);
+      if (!mounted) return;
+      final sha = result['data']?['sha'] ?? '?';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Committed: $sha'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Commit failed: $e'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _gitPush() async {
+    try {
+      final result = await _client.gitPush();
+      if (!mounted) return;
+      final output = result['data']?['output'] ?? 'Pushed';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Pushed: $output'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Push failed: $e'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _gitPull() async {
+    try {
+      final result = await _client.gitPull();
+      if (!mounted) return;
+      final output = result['data']?['output'] ?? 'Pulled';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Pulled: $output'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Pull failed: $e'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   void _armTimer() {
     _timer?.cancel();
     if (!_autoRefresh || !mounted) return;
@@ -720,6 +814,49 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             tooltip: 'Git diff',
             onPressed: () => _openDiff(isFile ? _path : null),
             icon: const Icon(Icons.difference_outlined),
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'Git actions',
+            icon: const Icon(Icons.commit_outlined),
+            onSelected: (action) async {
+              switch (action) {
+                case 'commit':
+                  await _gitCommit();
+                  break;
+                case 'push':
+                  await _gitPush();
+                  break;
+                case 'pull':
+                  await _gitPull();
+                  break;
+              }
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                value: 'commit',
+                child: ListTile(
+                  leading: Icon(Icons.commit),
+                  title: Text('Commit'),
+                  dense: true,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'push',
+                child: ListTile(
+                  leading: Icon(Icons.upload),
+                  title: Text('Push'),
+                  dense: true,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'pull',
+                child: ListTile(
+                  leading: Icon(Icons.download),
+                  title: Text('Pull'),
+                  dense: true,
+                ),
+              ),
+            ],
           ),
           IconButton(
             tooltip: 'Refresh',

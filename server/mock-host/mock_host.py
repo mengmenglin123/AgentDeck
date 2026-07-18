@@ -4468,6 +4468,49 @@ class MgmtHandler(BaseHTTPRequestHandler):
         if path == "/api/v1/workspace/git":
             self._send(200, {"ok": True, "data": workspace_git_status()})
             return
+        if path == "/api/v1/workspace/git/commit" and self.command == "POST":
+            body = self._read_body()
+            msg = body.get("message", "mock commit")
+            files = body.get("files", [])
+            self._send(200, {
+                "ok": True,
+                "data": {
+                    "sha": f"mock-{uuid.uuid4().hex[:7]}",
+                    "message": msg,
+                    "files": files or ["src/main.py"],
+                    "author": "HuanHermes Mock",
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                },
+            })
+            return
+        if path == "/api/v1/workspace/git/push" and self.command == "POST":
+            body = self._read_body()
+            remote = body.get("remote", "origin")
+            branch = body.get("branch", "main")
+            self._send(200, {
+                "ok": True,
+                "data": {
+                    "remote": remote,
+                    "branch": branch,
+                    "commits_pushed": 1,
+                    "output": f"Enumerating objects: 3, done.\nTo {remote}/{branch}\n   abc1234..def5678  {branch} -> {branch}\n",
+                },
+            })
+            return
+        if path == "/api/v1/workspace/git/pull" and self.command == "POST":
+            body = self._read_body()
+            remote = body.get("remote", "origin")
+            branch = body.get("branch", "main")
+            self._send(200, {
+                "ok": True,
+                "data": {
+                    "remote": remote,
+                    "branch": branch,
+                    "files_changed": 2,
+                    "output": f"From {remote}\n * branch            {branch}     -> FETCH_HEAD\nUpdating abc1234..def5678\nFast-forward\n src/main.py | 5 +++--\n 1 file changed, 3 insertions(+), 2 deletions(-)\n",
+                },
+            })
+            return
 
         if path == "/api/v1/memory":
             q = parse_qs(urlparse(self.path).query)

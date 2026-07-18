@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.169
+
+- Git actions: commit/push/pull from workspace screen
+- Git commit dialog with message input
+- Git push/pull with success/failure feedback
+- Mock git endpoints: POST /workspace/git/commit, /push, /pull
+- MgmtClient: gitCommit(), gitPush(), gitPull() methods
+
+
 ## 0.1.168
 
 - Permissions screen: pending/approved/denied permission management

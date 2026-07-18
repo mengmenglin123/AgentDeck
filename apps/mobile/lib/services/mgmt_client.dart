@@ -138,6 +138,42 @@ class MgmtClient {
     }
   }
 
+  /// Git commit: POST /workspace/git/commit
+  Future<Map<String, dynamic>> gitCommit({
+    required String message,
+    List<String>? files,
+  }) async {
+    return await _request(
+      'POST',
+      '/workspace/git/commit',
+      body: {'message': message, if (files != null) 'files': files},
+    );
+  }
+
+  /// Git push: POST /workspace/git/push
+  Future<Map<String, dynamic>> gitPush({
+    String remote = 'origin',
+    String branch = 'main',
+  }) async {
+    return await _request(
+      'POST',
+      '/workspace/git/push',
+      body: {'remote': remote, 'branch': branch},
+    );
+  }
+
+  /// Git pull: POST /workspace/git/pull
+  Future<Map<String, dynamic>> gitPull({
+    String remote = 'origin',
+    String branch = 'main',
+  }) async {
+    return await _request(
+      'POST',
+      '/workspace/git/pull',
+      body: {'remote': remote, 'branch': branch},
+    );
+  }
+
   /// Readonly unified diff: GET /workspace/diff?path=
   Future<Map<String, dynamic>> workspaceDiff({String path = ''}) async {
     final q = path.isEmpty ? '' : '?path=${Uri.encodeQueryComponent(path)}';
