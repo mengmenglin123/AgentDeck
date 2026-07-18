@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.50
+
+- Pairing: copy public CSV (no tokens)
+- Diff: auto-refresh toggle (dashboard interval)
+- Settings: copy about / version text
+- Terminal: copy buffer as CSV lines
+
 ## 0.1.49
 
 - Activity: wrap / clamp event titles

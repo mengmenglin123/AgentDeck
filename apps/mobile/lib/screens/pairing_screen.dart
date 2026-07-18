@@ -144,6 +144,31 @@ class _PairingScreenState extends State<PairingScreen> {
             },
             icon: const Icon(Icons.data_object_outlined),
           ),
+          IconButton(
+            tooltip: 'Copy public CSV',
+            onPressed: () {
+              final cfg = widget.config;
+              final uri = cfg.toPairingUri();
+              final fp = _fpHex(uri);
+              final uriEsc = uri.replaceAll('"', '""');
+              final sumEsc = cfg
+                  .toPublicSummary()
+                  .replaceAll('"', '""')
+                  .replaceAll('\n', ' | ');
+              final buf = StringBuffer();
+              buf.writeln('key,value');
+              buf.writeln('host,"${cfg.host}"');
+              buf.writeln('bridge_port,${cfg.bridgePort}');
+              buf.writeln('mgmt_port,${cfg.mgmtPort}');
+              buf.writeln('use_tls,${cfg.useTls}');
+              buf.writeln('public_uri,"$uriEsc"');
+              buf.writeln('fingerprint_hex,"$fp"');
+              buf.writeln('public_summary,"$sumEsc"');
+              _copy(buf.toString(), 'Copied public CSV');
+            },
+            icon: const Icon(Icons.table_chart_outlined),
+          ),
+
 
           IconButton(
             tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',

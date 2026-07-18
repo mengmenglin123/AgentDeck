@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import '../models/connection_config.dart';
+import '../services/app_settings_controller.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 
@@ -25,6 +28,8 @@ class _DiffScreenState extends State<DiffScreen> {
   String _diff = '';
   bool _lineNums = true;
   bool _wrapLines = false;
+  Timer? _timer;
+  bool _autoRefresh = false;
   final _scroll = ScrollController();
   final _diffFindCtrl = TextEditingController();
   String _diffQuery = '';
@@ -36,6 +41,22 @@ class _DiffScreenState extends State<DiffScreen> {
     super.initState();
     _path = widget.initialPath;
     _loadIndex();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
+  }
+
+  void _armTimer() {
+    _timer?.cancel();
+    if (!_autoRefresh || !mounted) return;
+    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
+    if (sec <= 0) return;
+    _timer = Timer.periodic(Duration(seconds: sec), (_) {
+      if (!mounted || _loading) return;
+      if (_path != null && _path!.isNotEmpty) {
+        _loadPath(_path!);
+      } else {
+        _loadIndex();
+      }
+    });
   }
 
   @override
@@ -228,6 +249,15 @@ class _DiffScreenState extends State<DiffScreen> {
             onPressed: _files.isEmpty ? null : _copyFilesCsv,
             icon: const Icon(Icons.table_chart_outlined),
           ),
+          IconButton(
+            tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
+            onPressed: () {
+              setState(() => _autoRefresh = !_autoRefresh);
+              _armTimer();
+            },
+            icon: Icon(_autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline),
+          ),
+
 
           IconButton(onPressed: _loading ? null : _loadIndex, icon: const Icon(Icons.refresh)),
         ],

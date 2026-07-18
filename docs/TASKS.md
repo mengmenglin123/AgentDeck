@@ -229,6 +229,11 @@
 | P3-171 | Workspace 目录列表 CSV | [x] |
 | P3-172 | Sessions 可见列表 CSV（无 token） | [x] |
 
+| P3-173 | Pairing 导出 public CSV（无 token） | [x] |
+| P3-174 | Diff 自动刷新（可暂停） | [x] |
+| P3-175 | Settings 复制 About/版本信息 | [x] |
+| P3-176 | Terminal buffer 导出 CSV 行 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

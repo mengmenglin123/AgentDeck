@@ -242,7 +242,21 @@ class SettingsScreen extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.tag),
             title: const Text('App version'),
-            subtitle: const Text('0.1.49+49 · console only · protocol Mock/self-host'),
+            subtitle: const Text('0.1.50+50 · console only · protocol Mock/self-host'),
+            trailing: IconButton(
+              tooltip: 'Copy about',
+              icon: const Icon(Icons.copy_outlined),
+              onPressed: () async {
+                const text =
+                    'HuanHermes App 0.1.50+50\nconsole only · protocol Mock/self-host\nNo agent loop on device · tokens never in about text';
+                await Clipboard.setData(const ClipboardData(text: text));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('About copied'), duration: Duration(seconds: 1)),
+                  );
+                }
+              },
+            ),
           ),
           ListTile(
             leading: const Icon(Icons.policy_outlined),

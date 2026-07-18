@@ -425,6 +425,27 @@ class _TerminalScreenState extends State<TerminalScreen> {
             icon: const Icon(Icons.copy_all_outlined),
           ),
           IconButton(
+            tooltip: 'Copy buffer CSV',
+            onPressed: () async {
+              final raw = _buf.toString();
+              if (raw.trim().isEmpty) return;
+              final lines = raw.split('\n');
+              final buf = StringBuffer();
+              buf.writeln('n,text');
+              for (var i = 0; i < lines.length; i++) {
+                final text = lines[i].replaceAll('"', '""');
+                buf.writeln('$i,"$text"');
+              }
+              await Clipboard.setData(ClipboardData(text: buf.toString()));
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Copied CSV (${lines.length} lines)'), duration: const Duration(seconds: 1)),
+              );
+            },
+            icon: const Icon(Icons.table_chart_outlined),
+          ),
+
+          IconButton(
             tooltip: 'Clear local buffer',
             onPressed: () => setState(_buf.clear),
             icon: const Icon(Icons.delete_outline),
