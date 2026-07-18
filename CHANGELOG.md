@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.121
+
+- Sessions platform filter chips
+- MarkdownLite `<cite>` + `<q>`
+- Mock users/tty/who (+ help/which/type lockstep)
+
 ## 0.1.120
 
 - Status value-type filter chips

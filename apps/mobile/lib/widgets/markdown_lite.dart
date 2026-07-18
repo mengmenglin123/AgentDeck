@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 /// Lightweight Markdown renderer (no extra packages).
-/// Covers headings (h1–h6), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5/h6, abbr, mark, spoiler, kbd, sup/sub, underline, del, ins, s, small, autolink, strike, inline code, bold/italic, bold-italic (***).
+/// Covers headings (h1–h6), lists (bullets+ordered), task lists, multi-line quotes, tables, hr, fenced code, links, images(alt), callouts, details, footnotes, h4/h5/h6, abbr, mark, spoiler, kbd, sup/sub, underline, del, ins, s, small, cite, q, autolink, strike, inline code, bold/italic, bold-italic (***).
 class MarkdownLite extends StatelessWidget {
   const MarkdownLite(
     this.source, {
@@ -602,7 +602,7 @@ class MarkdownLite extends StatelessWidget {
   static TextSpan _inline(String text, TextStyle base) {
     final spans = <InlineSpan>[];
     final re = RegExp(
-          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<small>[^<]+</small>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
+          r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<small>[^<]+</small>|<cite>[^<]+</cite>|<q>[^<]+</q>|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
             );
     var i = 0;
     for (final m in re.allMatches(text)) {
@@ -714,6 +714,23 @@ class MarkdownLite extends StatelessWidget {
           style: base.copyWith(
             fontSize: (base.fontSize ?? 14) * 0.85,
             color: base.color?.withOpacity(0.85),
+          ),
+        ));
+      } else if (tok.startsWith('<cite>') && tok.endsWith('</cite>')) {
+        final body = tok.substring(6, tok.length - 7);
+        spans.add(TextSpan(
+          text: body,
+          style: base.copyWith(
+            fontStyle: FontStyle.italic,
+            color: base.color?.withOpacity(0.85),
+          ),
+        ));
+      } else if (tok.startsWith('<q>') && tok.endsWith('</q>')) {
+        final body = tok.substring(3, tok.length - 4);
+        spans.add(TextSpan(
+          text: '“$body”',
+          style: base.copyWith(
+            fontStyle: FontStyle.italic,
           ),
         ));
       } else if (tok.toLowerCase().startsWith('<abbr')) {

@@ -58,6 +58,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
   /// all | pinned | running | archived
   String _filter = 'all';
   String _agent = '';
+  String _platform = '';
   bool _groupByProject = false;
   bool _selectMode = false;
   final Set<String> _selected = {};
@@ -377,11 +378,27 @@ class _SessionsScreenState extends State<SessionsScreen> {
         return a.contains(_agent);
       });
     }
+    if (_platform.isNotEmpty) {
+      base = base.where((s) {
+        final p = (s.platform ?? '').toLowerCase();
+        if (_platform == 'other') {
+          return p.isNotEmpty &&
+              !p.contains('telegram') &&
+              !p.contains('discord') &&
+              !p.contains('slack') &&
+              !p.contains('feishu') &&
+              !p.contains('whatsapp') &&
+              !p.contains('local') &&
+              !p.contains('mock');
+        }
+        return p.contains(_platform);
+      });
+    }
     if (rawQ.isNotEmpty) {
       base = base.where((s) {
         final note = _noteMap[s.sessionKey] ?? '';
         final hayRaw =
-            '${s.displayTitle} ${s.project} ${s.sessionKey} ${s.model ?? ''} $note';
+            '${s.displayTitle} ${s.project} ${s.sessionKey} ${s.model ?? ''} ${s.platform ?? ''} $note';
         if (_queryRegex) {
           try {
             return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
@@ -1014,6 +1031,20 @@ class _SessionsScreenState extends State<SessionsScreen> {
                         label: Text(f.$2, style: const TextStyle(fontSize: 11)),
                         selected: _agent == f.$1,
                         onSelected: (_) => setState(() => _agent = f.$1),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    for (final f in const [
+                      ('', 'Any platform'),
+                      ('telegram', 'telegram'),
+                      ('discord', 'discord'),
+                      ('slack', 'slack'),
+                      ('feishu', 'feishu'),
+                      ('other', 'other'),
+                    ])
+                      FilterChip(
+                        label: Text(f.$2, style: const TextStyle(fontSize: 11)),
+                        selected: _platform == f.$1,
+                        onSelected: (_) => setState(() => _platform = f.$1),
                         visualDensity: VisualDensity.compact,
                       ),
                     Builder(
