@@ -28,4 +28,15 @@ HuanHermes = **移动控制台**，连接 **HuanHermes Host**（Mock 或自研�
 
 ## 联调端口
 
-Mock 默认可用环境变量改端口，避免与用户机器上其他服务冲突。
+Mock 默认可用环境变量改端口，避免与用户机器上其他服务冲突。  
+**禁止**占用/杀死 live **9810/9820**；**禁止**改 `/root/.cc-connect`。
+
+## 接续与并行
+
+| 文档 | 用途 |
+|------|------|
+| [`docs/CONTINUE.md`](CONTINUE.md) | 新对话短粘贴块 + 每轮 6 步 + 版本锚点 |
+| [`docs/SUBAGENTS.md`](SUBAGENTS.md) | `delegate_task` 分轨、文件所有权、merge 清单 |
+| [`docs/TASKS.md`](TASKS.md) | 任务板；已 ship 勿重做 |
+
+P4 已授权；小步 commit + CHANGELOG + push `main`。回报保持短表：版本 · SHA · 切片。
