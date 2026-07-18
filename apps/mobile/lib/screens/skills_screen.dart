@@ -25,6 +25,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
   String _query = '';
   String _source = '';
   bool _wrapLines = false;
+  bool _sortBySource = false;
   bool _sortAsc = true;
   final _scroll = ScrollController();
   Timer? _timer;
@@ -86,6 +87,12 @@ class _SkillsScreenState extends State<SkillsScreen> {
       return hay.contains(q);
     }).toList();
     list.sort((a, b) {
+      if (_sortBySource) {
+        final sa = (a['source'] ?? '').toString().toLowerCase();
+        final sb = (b['source'] ?? '').toString().toLowerCase();
+        final c = sa.compareTo(sb);
+        if (c != 0) return _sortAsc ? c : -c;
+      }
       final na = (a['name'] ?? a['id'] ?? '').toString().toLowerCase();
       final nb = (b['name'] ?? b['id'] ?? '').toString().toLowerCase();
       final c = na.compareTo(nb);
@@ -177,9 +184,27 @@ class _SkillsScreenState extends State<SkillsScreen> {
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
-            tooltip: _sortAsc ? 'Sort Z→A' : 'Sort A→Z',
-            onPressed: () => setState(() => _sortAsc = !_sortAsc),
-            icon: Icon(_sortAsc ? Icons.sort_by_alpha : Icons.sort),
+            tooltip: _sortBySource
+                ? (_sortAsc ? 'Source Z→A' : 'Source A→Z')
+                : (_sortAsc ? 'Name Z→A' : 'Name A→Z'),
+            onPressed: () {
+              setState(() {
+                if (!_sortBySource && _sortAsc) {
+                  _sortAsc = false;
+                } else if (!_sortBySource && !_sortAsc) {
+                  _sortBySource = true;
+                  _sortAsc = true;
+                } else if (_sortBySource && _sortAsc) {
+                  _sortAsc = false;
+                } else {
+                  _sortBySource = false;
+                  _sortAsc = true;
+                }
+              });
+            },
+            icon: Icon(_sortBySource
+                ? Icons.source_outlined
+                : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',

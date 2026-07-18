@@ -30,6 +30,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
   /// all | agents | platforms | projects
   String _section = 'all';
   bool _wrapLines = false;
+  bool _sortByType = false;
   bool _sortAsc = true;
   final _scroll = ScrollController();
   Timer? _timer;
@@ -115,9 +116,20 @@ class _AgentsScreenState extends State<AgentsScreen> {
     return '${p['name']} ${p['agent_type']} ${p['note']} $caps'.toLowerCase().contains(q);
   }
 
+  String _agentTypeKey(dynamic a) {
+    if (a is Map) {
+      return (a['type'] ?? a['agent_type'] ?? a['status'] ?? '').toString().toLowerCase();
+    }
+    return '';
+  }
+
   List<dynamic> get _filteredAgents {
     final list = _agents.where(_matchAgent).toList();
     list.sort((a, b) {
+      if (_sortByType) {
+        final c = _agentTypeKey(a).compareTo(_agentTypeKey(b));
+        if (c != 0) return _sortAsc ? c : -c;
+      }
       final c = _agentTitle(a).toLowerCase().compareTo(_agentTitle(b).toLowerCase());
       return _sortAsc ? c : -c;
     });
@@ -254,9 +266,27 @@ class _AgentsScreenState extends State<AgentsScreen> {
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
-            tooltip: _sortAsc ? 'Sort Z→A' : 'Sort A→Z',
-            onPressed: () => setState(() => _sortAsc = !_sortAsc),
-            icon: Icon(_sortAsc ? Icons.sort_by_alpha : Icons.sort),
+            tooltip: _sortByType
+                ? (_sortAsc ? 'Type Z→A' : 'Type A→Z')
+                : (_sortAsc ? 'Name Z→A' : 'Name A→Z'),
+            onPressed: () {
+              setState(() {
+                if (!_sortByType && _sortAsc) {
+                  _sortAsc = false;
+                } else if (!_sortByType && !_sortAsc) {
+                  _sortByType = true;
+                  _sortAsc = true;
+                } else if (_sortByType && _sortAsc) {
+                  _sortAsc = false;
+                } else {
+                  _sortByType = false;
+                  _sortAsc = true;
+                }
+              });
+            },
+            icon: Icon(_sortByType
+                ? Icons.category_outlined
+                : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)),
           ),
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',

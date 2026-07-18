@@ -279,6 +279,11 @@
 | P3-211 | Cron 按 schedule 排序 | [x] |
 | P3-212 | MCP 按 status 排序 | [x] |
 
+| P3-213 | Skills 按 source 排序 | [x] |
+| P3-214 | Agents 按 type 排序 | [x] |
+| P3-215 | Memory 按 type 排序循环 | [x] |
+| P3-216 | Activity 按 summary 排序循环 | [x] |
+
 ## P4 — 远期
 
 | ID | 任务 | 状态 |

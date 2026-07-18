@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.60
+
+- Skills: sort by source vs name
+- Agents: sort by type vs name
+- Memory: sort cycle time → title → type
+- Activity: sort cycle time → kind → summary
+
 ## 0.1.59
 
 - Logs: sort cycle time → message → level

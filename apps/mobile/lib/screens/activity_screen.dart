@@ -36,6 +36,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
   bool _wrapLines = false;
   bool _newestFirst = true;
   bool _sortByKind = false;
+  bool _sortBySummary = false;
   bool _sortAsc = true;
   Timer? _timer;
   bool _autoRefresh = false;
@@ -185,7 +186,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
       return p?.millisecondsSinceEpoch ?? 0;
     }
     list.sort((a, b) {
-      if (_sortByKind) {
+      if (_sortBySummary) {
+        final sa = (a['summary'] ?? a['message'] ?? a['detail'] ?? a['title'] ?? '').toString().toLowerCase();
+        final sb = (b['summary'] ?? b['message'] ?? b['detail'] ?? b['title'] ?? '').toString().toLowerCase();
+        final cs = sa.compareTo(sb);
+        if (cs != 0) return _sortAsc ? cs : -cs;
+      } else if (_sortByKind) {
         final ka = (a['kind'] ?? a['type'] ?? '').toString().toLowerCase();
         final kb = (b['kind'] ?? b['type'] ?? '').toString().toLowerCase();
         final ck = ka.compareTo(kb);
@@ -269,23 +275,35 @@ class _ActivityScreenState extends State<ActivityScreen> {
             icon: Icon(_newestFirst ? Icons.arrow_downward : Icons.arrow_upward),
           ),
           IconButton(
-            tooltip: _sortByKind
-                ? (_sortAsc ? 'Kinds Z→A' : 'Kinds A→Z')
-                : 'Sort by kind',
+            tooltip: _sortBySummary
+                ? (_sortAsc ? 'Summary Z→A' : 'Summary A→Z')
+                : (_sortByKind
+                    ? (_sortAsc ? 'Kinds Z→A' : 'Kinds A→Z')
+                    : 'Sort by kind / summary'),
             onPressed: () {
               setState(() {
-                if (!_sortByKind) {
+                if (!_sortByKind && !_sortBySummary) {
                   _sortByKind = true;
+                  _sortBySummary = false;
                   _sortAsc = true;
-                } else if (_sortAsc) {
+                } else if (_sortByKind && _sortAsc) {
+                  _sortAsc = false;
+                } else if (_sortByKind && !_sortAsc) {
+                  _sortByKind = false;
+                  _sortBySummary = true;
+                  _sortAsc = true;
+                } else if (_sortBySummary && _sortAsc) {
                   _sortAsc = false;
                 } else {
                   _sortByKind = false;
+                  _sortBySummary = false;
                   _sortAsc = true;
                 }
               });
             },
-            icon: Icon(_sortByKind ? Icons.sort_by_alpha : Icons.category_outlined),
+            icon: Icon(_sortBySummary
+                ? Icons.short_text
+                : (_sortByKind ? Icons.sort_by_alpha : Icons.category_outlined)),
           ),
 
           IconButton(
