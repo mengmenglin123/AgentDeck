@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.124
+
+- Cron last_status filter chips
+- MarkdownLite `<strong>` + `<b>`
+- Mock paste/column/comm (+ help/which/type lockstep)
+
 ## 0.1.123
 
 - Host dashboard value-type filter chips

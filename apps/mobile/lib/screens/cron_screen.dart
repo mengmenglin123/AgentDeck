@@ -30,6 +30,7 @@ class _CronScreenState extends State<CronScreen> {
   /// all | on | off
   String _enabled = 'all';
   String _kind = 'all';
+  String _lastStatus = 'all';
   bool _wrapLines = false;
   bool _sortBySchedule = false;
   bool _sortByKind = false;
@@ -108,6 +109,21 @@ class _CronScreenState extends State<CronScreen> {
           return k.isNotEmpty && k != 'prompt' && k != 'http' && k != 'bash' && k != 'script';
         }
         return k.contains(_kind);
+      });
+    }
+    if (_lastStatus != 'all' && _lastStatus.isNotEmpty) {
+      it = it.where((j) {
+        final s = (j['last_status'] ?? '').toString().toLowerCase();
+        if (_lastStatus == 'other') {
+          return s.isNotEmpty &&
+              s != 'ok' &&
+              s != 'success' &&
+              s != 'error' &&
+              s != 'fail' &&
+              s != 'failed' &&
+              s != 'running';
+        }
+        return s.contains(_lastStatus);
       });
     }
     final rawQ = _query.trim();
@@ -586,6 +602,28 @@ class _CronScreenState extends State<CronScreen> {
                     label: Text(f.$2, style: const TextStyle(fontSize: 11)),
                     selected: _kind == f.$1,
                     onSelected: (_) => setState(() => _kind = f.$1),
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                for (final f in const [
+                  ('all', 'Any status'),
+                  ('ok', 'ok'),
+                  ('error', 'error'),
+                  ('running', 'running'),
+                  ('other', 'other'),
+                ])
+                  FilterChip(
+                    label: Text(f.$2, style: const TextStyle(fontSize: 11)),
+                    selected: _lastStatus == f.$1,
+                    onSelected: (_) => setState(() => _lastStatus = f.$1),
                     visualDensity: VisualDensity.compact,
                   ),
               ],

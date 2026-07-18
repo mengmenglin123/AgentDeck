@@ -547,6 +547,9 @@
 - [x] **P4-3x** Host dashboard value-type filter chips (0.1.123)
 - [x] **P4-5aa** MarkdownLite `<dfn>` + `<em>` (0.1.123)
 - [x] **P4-1y** Mock lscpu/fmt/shuf (0.1.123)
+- [x] **P4-3y** Cron last_status filter chips (0.1.124)
+- [x] **P4-5ab** MarkdownLite `<strong>` + `<b>` (0.1.124)
+- [x] **P4-1z** Mock paste/column/comm (0.1.124)
 
 ## P4 — 远期
 
@@ -556,7 +559,7 @@
 | P4-2 | 相机扫码配对（剪贴板 URI + paste card 已有；真相机仍远期） | [~] |
 | P4-3 | Host 真 Hermes adapter（Mock workspace/git/diff/memory/MCP/status/activity/agents 已加深；真进程仍远期） | [~] |
 | P4-4 | 通知 / 后台重连（resume/reconnect + permission/reconnected snack 已有；系统通知仍远期） | [~] |
-| P4-5 | 更完整代码高亮 / 真文件选择器（着色+表格/任务/有序/引用/链接/autolink/图alt/callout/details/footnotes/h4/h5/h6/abbr/mark/spoiler/kbd/sup/sub/u/del/ins/s/small/***/cite/q/var/samp/dfn/em/删除线/行号/附件 preset 已有；真 file_picker 仍远期） | [~] |
+| P4-5 | 更完整代码高亮 / 真文件选择器（着色+表格/任务/有序/引用/链接/autolink/图alt/callout/details/footnotes/h4/h5/h6/abbr/mark/spoiler/kbd/sup/sub/u/del/ins/s/small/***/cite/q/var/samp/dfn/em/strong/b/删除线/行号/附件 preset 已有；真 file_picker 仍远期） | [~] |
 
 ## 验收命令
 
