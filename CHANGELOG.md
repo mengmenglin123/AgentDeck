@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.177
+
+- Fix: chat_screen if-expression syntax (Column wrapper)
+- Fix: add _jumpToTop method
+- Fix: add _fmtTime helper function
+
+
 ## 0.1.176
 
 - Fix: MarkdownLite positional args in workspace_screen

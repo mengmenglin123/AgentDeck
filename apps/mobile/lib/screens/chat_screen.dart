@@ -136,6 +136,18 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     });
   }
 
+  void _jumpToTop() {
+    if (!_scroll.hasClients) return;
+    _scroll.animateTo(
+      0,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+    );
+    setState(() {
+      _showJumpTop = false;
+    });
+  }
+
   Future<void> _bootstrap() async {
     final draft = await _drafts.load(widget.session.sessionKey);
     if (mounted && draft != null && draft.isNotEmpty && _input.text.isEmpty) {
@@ -1336,34 +1348,35 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           ),
           SafeArea(
             top: false,
-            child:               if (_quoteText != null && _quoteText!.isNotEmpty)
-                Material(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.7),
-                  child: ListTile(
-                    dense: true,
-                    leading: const Icon(Icons.format_quote, size: 18),
-                    title: Text(
-                      'Quote (${_quoteRole ?? 'msg'})',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text(
-                      _quoteText!,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    trailing: IconButton(
-                      tooltip: 'Clear quote',
-                      icon: const Icon(Icons.close, size: 18),
-                      onPressed: () => setState(() {
-                        _quoteText = null;
-                        _quoteRole = null;
-                      }),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_quoteText != null && _quoteText!.isNotEmpty)
+                  Material(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.7),
+                    child: ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.format_quote, size: 18),
+                      title: Text(
+                        'Quote (${_quoteRole ?? 'msg'})',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        _quoteText!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      trailing: IconButton(
+                        tooltip: 'Clear quote',
+                        icon: const Icon(Icons.close, size: 18),
+                        onPressed: () => setState(() {
+                          _quoteText = null;
+                          _quoteRole = null;
+                        }),
+                      ),
                     ),
                   ),
-                ),
-Padding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
               child: Row(
                 children: [
                   IconButton(
@@ -1592,6 +1605,12 @@ class _StatusChip extends StatelessWidget {
   }
 }
 
+
+String _fmtTime(DateTime dt) {
+  final h = dt.hour.toString().padLeft(2, '0');
+  final m = dt.minute.toString().padLeft(2, '0');
+  return '$h:$m';
+}
 
 class _MessageBubble extends StatelessWidget {
   const _MessageBubble({
