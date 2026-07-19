@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.179
+
+- Fix: add ConnectionController import to settings_screen
+
+
 ## 0.1.178
 
 - Fix: Column bracket mismatch in chat_screen

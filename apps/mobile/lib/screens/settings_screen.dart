@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../services/app_settings_controller.dart';
 import '../services/theme_controller.dart';
+import '../services/connection_controller.dart';
 
 /// Device-local console settings (theme, text scale, compact, dashboard refresh).
 class SettingsScreen extends StatefulWidget {
@@ -522,14 +523,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               leading: const Icon(Icons.tag),
               title: const Text('App version'),
               subtitle: _sub(
-                '0.1.178+178 · ${context.watch<ConnectionController>().isRealHermes ? 'Real Hermes' : 'Mock'} host',
+                '0.1.179+179 · ${context.watch<ConnectionController>().isRealHermes ? 'Real Hermes' : 'Mock'} host',
               ),
               trailing: IconButton(
                 tooltip: 'Copy about',
                 icon: const Icon(Icons.copy_outlined),
                 onPressed: () async {
                   const text =
-                      'HuanHermes App 0.1.178+178\nconsole · Mock or real Hermes host\nNo agent loop on device · tokens never in about text';
+                      'HuanHermes App 0.1.179+179\nconsole · Mock or real Hermes host\nNo agent loop on device · tokens never in about text';
                   await Clipboard.setData(const ClipboardData(text: text));
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
