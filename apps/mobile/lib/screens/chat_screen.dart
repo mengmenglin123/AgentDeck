@@ -936,7 +936,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               MaterialPageRoute(builder: (_) => PermissionsScreen(chat: _chat)),
             ),
             icon: Badge(
-              isLabelVisible: _chat.messages.where((m) => m.role == 'permission' && m.buttons.isNotEmpty).isNotEmpty,
+              isLabelVisible: _chat.messages.where((m) => m.role == 'permission' && (m.meta['buttons'] as List? ?? []).isNotEmpty).isNotEmpty,
               child: const Icon(Icons.shield_outlined),
             ),
           ),

@@ -29,11 +29,12 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
     // Filter permission messages from transcript
     final permMessages = chat.messages.where((m) {
       if (_filter == 'pending')
-        return m.role == 'permission' && m.buttons.isNotEmpty;
+        return m.role == 'permission' &&
+            (m.meta['buttons'] as List? ?? []).isNotEmpty;
       if (_filter == 'approved')
-        return m.role == 'permission' && m.text.contains('allow');
+        return m.role == 'permission' && m.content.contains('allow');
       if (_filter == 'denied')
-        return m.role == 'permission' && m.text.contains('deny');
+        return m.role == 'permission' && m.content.contains('deny');
       return m.role == 'permission';
     }).toList();
 
@@ -103,7 +104,9 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                   'Pending',
                   chat.messages
                       .where(
-                        (m) => m.role == 'permission' && m.buttons.isNotEmpty,
+                        (m) =>
+                            m.role == 'permission' &&
+                            (m.meta['buttons'] as List? ?? []).isNotEmpty,
                       )
                       .length,
                   Colors.orange,
@@ -114,7 +117,8 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                   chat.messages
                       .where(
                         (m) =>
-                            m.role == 'permission' && m.text.contains('allow'),
+                            m.role == 'permission' &&
+                            m.content.contains('allow'),
                       )
                       .length,
                   Colors.green,
@@ -125,7 +129,8 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                   chat.messages
                       .where(
                         (m) =>
-                            m.role == 'permission' && m.text.contains('deny'),
+                            m.role == 'permission' &&
+                            m.content.contains('deny'),
                       )
                       .length,
                   Colors.red,
@@ -164,7 +169,8 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                     itemCount: permMessages.length,
                     itemBuilder: (ctx, i) {
                       final msg = permMessages[i];
-                      final isPending = msg.buttons.isNotEmpty;
+                      final isPending =
+                          (msg.meta['buttons'] as List? ?? []).isNotEmpty;
                       return _buildPermissionCard(msg, isPending, cs);
                     },
                   ),
@@ -208,8 +214,9 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
   }
 
   Widget _buildPermissionCard(dynamic msg, bool isPending, ColorScheme cs) {
-    final text = msg.text?.toString() ?? '';
-    final buttons = msg.buttons as List<dynamic>? ?? [];
+    final text = msg.content?.toString() ?? '';
+    final buttons =
+        (msg.meta['buttons'] as List? ?? []) as List<dynamic>? ?? [];
     final toolMatch = RegExp(r'tool[=:]\s*(\w+)').firstMatch(text);
     final toolName = toolMatch?.group(1) ?? 'unknown';
 
@@ -226,8 +233,8 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                   isPending
                       ? Icons.pending
                       : (text.contains('allow')
-                            ? Icons.check_circle
-                            : Icons.cancel),
+                          ? Icons.check_circle
+                          : Icons.cancel),
                   color: isPending
                       ? Colors.orange
                       : (text.contains('allow') ? Colors.green : Colors.red),
@@ -286,9 +293,8 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                       );
                     },
                     style: FilledButton.styleFrom(
-                      backgroundColor: isDeny
-                          ? cs.errorContainer
-                          : cs.primaryContainer,
+                      backgroundColor:
+                          isDeny ? cs.errorContainer : cs.primaryContainer,
                     ),
                     child: Text(b['text']?.toString() ?? 'action'),
                   );

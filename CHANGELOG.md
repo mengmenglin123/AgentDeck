@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.175
+
+- Fix: TranscriptMessage.text -> .content, buttons -> meta[buttons]
+- Fix: permissions_screen + chat_screen permission badge
+
+
 ## 0.1.174
 
 - Fix: enable core library desugaring for flutter_local_notifications
