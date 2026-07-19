@@ -449,8 +449,8 @@ class _TerminalScreenState extends State<TerminalScreen>
                 color: _connecting
                     ? Colors.amber
                     : _bridge != null
-                    ? Colors.green
-                    : Colors.redAccent,
+                        ? Colors.green
+                        : Colors.redAccent,
               ),
             ),
             Expanded(
@@ -482,7 +482,6 @@ class _TerminalScreenState extends State<TerminalScreen>
             onPressed: () => setState(() => _newestFirst = !_newestFirst),
             icon: Icon(_newestFirst ? Icons.south : Icons.north),
           ),
-
           IconButton(
             tooltip: _showTs ? 'Hide timestamps' : 'Show timestamps',
             onPressed: () => setState(() => _showTs = !_showTs),
@@ -585,7 +584,6 @@ class _TerminalScreenState extends State<TerminalScreen>
             },
             icon: const Icon(Icons.table_chart_outlined),
           ),
-
           IconButton(
             tooltip: 'Clear local buffer',
             onPressed: () => setState(_buf.clear),
@@ -698,21 +696,21 @@ class _TerminalScreenState extends State<TerminalScreen>
                 decoration: InputDecoration(
                   hintText: _findRegex
                       ? (_findCase
-                            ? 'Regex find (case-sensitive, client-only)'
-                            : 'Regex find (client-only)')
+                          ? 'Regex find (case-sensitive, client-only)'
+                          : 'Regex find (client-only)')
                       : (_findCase
-                            ? 'Find (case-sensitive, client-only)'
-                            : 'Find in local buffer (client-only)'),
+                          ? 'Find (case-sensitive, client-only)'
+                          : 'Find in local buffer (client-only)'),
                   isDense: true,
                   border: const OutlineInputBorder(),
                   prefixIcon: IconButton(
                     tooltip: _findRegex
                         ? (_findCase
-                              ? 'Regex · case on (long-press: plain find)'
-                              : 'Regex · case off (long-press: plain find)')
+                            ? 'Regex · case on (long-press: plain find)'
+                            : 'Regex · case off (long-press: plain find)')
                         : (_findCase
-                              ? 'Case-sensitive (long-press: regex)'
-                              : 'Case-insensitive (long-press: regex)'),
+                            ? 'Case-sensitive (long-press: regex)'
+                            : 'Case-insensitive (long-press: regex)'),
                     icon: Icon(
                       _findRegex
                           ? Icons.code
@@ -750,9 +748,8 @@ class _TerminalScreenState extends State<TerminalScreen>
                     controller: _scroll,
                     scrollDirection: Axis.vertical,
                     child: SingleChildScrollView(
-                      scrollDirection: _wrapLines
-                          ? Axis.vertical
-                          : Axis.horizontal,
+                      scrollDirection:
+                          _wrapLines ? Axis.vertical : Axis.horizontal,
                       child: ConstrainedBox(
                         constraints: BoxConstraints(
                           minWidth: MediaQuery.sizeOf(context).width - 24,
@@ -762,7 +759,6 @@ class _TerminalScreenState extends State<TerminalScreen>
                         ),
                         child: SelectableText(
                           _displayBuffer,
-                          softWrap: _wrapLines,
                           style: TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 13 * _termScale,

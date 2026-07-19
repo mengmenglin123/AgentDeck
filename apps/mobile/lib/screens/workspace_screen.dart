@@ -285,6 +285,42 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     _load(path: next);
   }
 
+  String? _codeLangFor(String path) {
+    final ext = path.contains('.') ? path.split('.').last.toLowerCase() : '';
+    const map = {
+      'py': 'python',
+      'js': 'javascript',
+      'ts': 'typescript',
+      'dart': 'dart',
+      'java': 'java',
+      'kt': 'kotlin',
+      'swift': 'swift',
+      'rb': 'ruby',
+      'go': 'go',
+      'rs': 'rust',
+      'c': 'c',
+      'cpp': 'cpp',
+      'h': 'c',
+      'sh': 'bash',
+      'bash': 'bash',
+      'zsh': 'zsh',
+      'yml': 'yaml',
+      'yaml': 'yaml',
+      'json': 'json',
+      'xml': 'xml',
+      'html': 'html',
+      'css': 'css',
+      'sql': 'sql',
+      'md': 'markdown',
+      'toml': 'toml',
+      'ini': 'ini',
+      'cfg': 'ini',
+      'conf': 'nginx',
+      'dockerfile': 'dockerfile',
+    };
+    return map[ext];
+  }
+
   void _openDiff([String? path]) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -499,7 +535,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             },
             icon: const Icon(Icons.table_chart_outlined),
           ),
-
           IconButton(
             tooltip: 'Jump to top',
             onPressed: () {
@@ -536,39 +571,38 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   : Icons.play_circle_outline,
             ),
           ),
-
           IconButton(
             tooltip: _sortByChildren
                 ? (_sortAsc ? 'Children many→few' : 'Children few→many')
                 : (_sortByStatus
-                      ? (_sortAsc ? 'Status Z→A' : 'Status A→Z')
-                      : (_sortByBranch
-                            ? (_sortAsc ? 'Branch Z→A' : 'Branch A→Z')
-                            : (_sortByDirty
-                                  ? (_sortAsc ? 'Dirty first' : 'Clean first')
-                                  : (_sortByName
+                    ? (_sortAsc ? 'Status Z→A' : 'Status A→Z')
+                    : (_sortByBranch
+                        ? (_sortAsc ? 'Branch Z→A' : 'Branch A→Z')
+                        : (_sortByDirty
+                            ? (_sortAsc ? 'Dirty first' : 'Clean first')
+                            : (_sortByName
+                                ? (_sortAsc
+                                    ? 'Name Z→A (dirs first)'
+                                    : 'Name A→Z (dirs first)')
+                                : (_sortByType
+                                    ? (_sortAsc
+                                        ? 'Type Z→A (dirs first)'
+                                        : 'Type A→Z (dirs first)')
+                                    : (_sortByPath
                                         ? (_sortAsc
-                                              ? 'Name Z→A (dirs first)'
-                                              : 'Name A→Z (dirs first)')
-                                        : (_sortByType
-                                              ? (_sortAsc
-                                                    ? 'Type Z→A (dirs first)'
-                                                    : 'Type A→Z (dirs first)')
-                                              : (_sortByPath
-                                                    ? (_sortAsc
-                                                          ? 'Path Z→A (dirs first)'
-                                                          : 'Path A→Z (dirs first)')
-                                                    : (_sortByMtime
-                                                          ? (_sortAsc
-                                                                ? 'Mtime new→old'
-                                                                : 'Mtime old→new')
-                                                          : (_sortBySize
-                                                                ? (_sortAsc
-                                                                      ? 'Size large→small'
-                                                                      : 'Size small→large')
-                                                                : (_sortAsc
-                                                                      ? 'Sort Z→A (dirs first)'
-                                                                      : 'Sort A→Z (dirs first)'))))))))),
+                                            ? 'Path Z→A (dirs first)'
+                                            : 'Path A→Z (dirs first)')
+                                        : (_sortByMtime
+                                            ? (_sortAsc
+                                                ? 'Mtime new→old'
+                                                : 'Mtime old→new')
+                                            : (_sortBySize
+                                                ? (_sortAsc
+                                                    ? 'Size large→small'
+                                                    : 'Size small→large')
+                                                : (_sortAsc
+                                                    ? 'Sort Z→A (dirs first)'
+                                                    : 'Sort A→Z (dirs first)'))))))))),
             onPressed: () {
               setState(() {
                 if (!_sortBySize &&
@@ -726,27 +760,24 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               _sortByChildren
                   ? Icons.account_tree_outlined
                   : (_sortByStatus
-                        ? Icons.flag_outlined
-                        : (_sortByBranch
-                              ? Icons.call_split
-                              : (_sortByDirty
-                                    ? Icons.change_circle_outlined
-                                    : (_sortByName
-                                          ? Icons.sort_by_alpha
-                                          : (_sortByType
-                                                ? Icons.category_outlined
-                                                : (_sortByPath
-                                                      ? Icons.route
-                                                      : (_sortByMtime
-                                                            ? Icons.schedule
-                                                            : (_sortBySize
-                                                                  ? Icons
-                                                                        .data_usage
-                                                                  : (_sortAsc
-                                                                        ? Icons
-                                                                              .sort_by_alpha
-                                                                        : Icons
-                                                                              .sort))))))))),
+                      ? Icons.flag_outlined
+                      : (_sortByBranch
+                          ? Icons.call_split
+                          : (_sortByDirty
+                              ? Icons.change_circle_outlined
+                              : (_sortByName
+                                  ? Icons.sort_by_alpha
+                                  : (_sortByType
+                                      ? Icons.category_outlined
+                                      : (_sortByPath
+                                          ? Icons.route
+                                          : (_sortByMtime
+                                              ? Icons.schedule
+                                              : (_sortBySize
+                                                  ? Icons.data_usage
+                                                  : (_sortAsc
+                                                      ? Icons.sort_by_alpha
+                                                      : Icons.sort))))))))),
             ),
           ),
           IconButton(
@@ -754,7 +785,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
-
           IconButton(
             tooltip: 'Copy content',
             onPressed: !isFile
@@ -789,8 +819,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                     buf.writeln('changes: ${files.length}');
                     for (final f in files.whereType<Map>()) {
                       final path = (f['path'] ?? f['file'] ?? '').toString();
-                      final status = (f['status'] ?? f['code'] ?? '')
-                          .toString();
+                      final status =
+                          (f['status'] ?? f['code'] ?? '').toString();
                       if (path.isEmpty) continue;
                       buf.writeln('$status $path');
                     }
@@ -962,7 +992,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               ],
             ),
           ),
-
           ListTile(
             dense: true,
             leading: const Icon(Icons.folder_open, size: 20),
@@ -1020,21 +1049,21 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                 decoration: InputDecoration(
                   hintText: _queryRegex
                       ? (_queryCase
-                            ? 'Filter (regex · case)'
-                            : 'Filter (regex)')
+                          ? 'Filter (regex · case)'
+                          : 'Filter (regex)')
                       : (_queryCase
-                            ? 'Filter (case-sensitive)'
-                            : 'Filter files in this folder'),
+                          ? 'Filter (case-sensitive)'
+                          : 'Filter files in this folder'),
                   isDense: true,
                   border: const OutlineInputBorder(),
                   prefixIcon: IconButton(
                     tooltip: _queryRegex
                         ? (_queryCase
-                              ? 'Regex · case on (long-press: plain filter)'
-                              : 'Regex · case off (long-press: plain filter)')
+                            ? 'Regex · case on (long-press: plain filter)'
+                            : 'Regex · case off (long-press: plain filter)')
                         : (_queryCase
-                              ? 'Case-sensitive (long-press: regex)'
-                              : 'Case-insensitive (long-press: regex)'),
+                            ? 'Case-sensitive (long-press: regex)'
+                            : 'Case-insensitive (long-press: regex)'),
                     icon: Icon(
                       _queryRegex
                           ? Icons.code
@@ -1070,13 +1099,12 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                         if ((node?['content']?.toString() ?? '').isNotEmpty &&
                             (_path.endsWith('.md') ||
                                 _path.endsWith('.markdown')))
-                          MarkdownLite(data: node?['content']?.toString() ?? '')
+                          MarkdownLite(node?['content']?.toString() ?? '')
                         else if ((node?['content']?.toString() ?? '')
                                 .isNotEmpty &&
                             _codeLangFor(_path) != null)
                           MarkdownLite(
-                            data:
-                                '```${_codeLangFor(_path)}\n${node?['content']?.toString() ?? ''}\n```',
+                            '```${_codeLangFor(_path)}\n${node?['content']?.toString() ?? ''}\n```',
                           )
                         else
                           SelectableText(
@@ -1153,9 +1181,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                                     ),
                                     onPressed: () {
                                       final name = e['name']?.toString() ?? '';
-                                      final p = _path.isEmpty
-                                          ? name
-                                          : '$_path/$name';
+                                      final p =
+                                          _path.isEmpty ? name : '$_path/$name';
                                       _openDiff(p);
                                     },
                                   )

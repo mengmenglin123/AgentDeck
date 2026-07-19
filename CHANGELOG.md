@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.176
+
+- Fix: MarkdownLite positional args in workspace_screen
+- Fix: add missing _codeLangFor method
+- Fix: remove softWrap from SelectableText in terminal_screen
+
+
 ## 0.1.175
 
 - Fix: TranscriptMessage.text -> .content, buttons -> meta[buttons]
