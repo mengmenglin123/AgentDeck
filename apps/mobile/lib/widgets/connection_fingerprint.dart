@@ -51,9 +51,7 @@ class ConnectionFingerprint extends StatelessWidget {
       }
     }
 
-    for (final corner in [(0, 0), (0, cells - 3), (cells - 3, 0)]) {
-      final r0 = corner[0];
-      final c0 = corner[1];
+    for (final (r0, c0) in [(0, 0), (0, cells - 3), (cells - 3, 0)]) {
       for (var r = 0; r < 3; r++) {
         for (var c = 0; c < 3; c++) {
           final edge = r == 0 || r == 2 || c == 0 || c == 2;
@@ -100,8 +98,7 @@ class _FingerprintPainter extends CustomPainter {
           cell - 2,
           cell - 2,
         );
-        final corner =
-            (r < 3 && c < 3) ||
+        final corner = (r < 3 && c < 3) ||
             (r < 3 && c >= cells - 3) ||
             (r >= cells - 3 && c < 3);
         canvas.drawRRect(

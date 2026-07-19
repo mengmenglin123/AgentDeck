@@ -62,28 +62,28 @@ class _AuditScreenState extends State<AuditScreen> {
   }
 
   List<AuditEntry> _ordered(List<AuditEntry> all) {
-    final items = List<AuditEntry>.from(all);
-    .sort((a, b) {
-      if (_sortByTs) {
+    final items = List<AuditEntry>.from(all)
+      ..sort((a, b) {
+        if (_sortByTs) {
+          final c = a.ts.compareTo(b.ts);
+          if (c != 0) return _sortAsc ? c : -c;
+        } else if (_sortByDetail) {
+          final c = a.detail.toLowerCase().compareTo(b.detail.toLowerCase());
+          if (c != 0) return _sortAsc ? c : -c;
+          final ca = a.action.toLowerCase().compareTo(b.action.toLowerCase());
+          if (ca != 0) return _sortAsc ? ca : -ca;
+        } else if (_sortByLevel) {
+          final c = a.level.toLowerCase().compareTo(b.level.toLowerCase());
+          if (c != 0) return _sortAsc ? c : -c;
+          final ca = a.action.toLowerCase().compareTo(b.action.toLowerCase());
+          if (ca != 0) return _sortAsc ? ca : -ca;
+        } else if (_sortByAction) {
+          final c = a.action.toLowerCase().compareTo(b.action.toLowerCase());
+          if (c != 0) return _sortAsc ? c : -c;
+        }
         final c = a.ts.compareTo(b.ts);
-        if (c != 0) return _sortAsc ? c : -c;
-      } else if (_sortByDetail) {
-        final c = a.detail.toLowerCase().compareTo(b.detail.toLowerCase());
-        if (c != 0) return _sortAsc ? c : -c;
-        final ca = a.action.toLowerCase().compareTo(b.action.toLowerCase());
-        if (ca != 0) return _sortAsc ? ca : -ca;
-      } else if (_sortByLevel) {
-        final c = a.level.toLowerCase().compareTo(b.level.toLowerCase());
-        if (c != 0) return _sortAsc ? c : -c;
-        final ca = a.action.toLowerCase().compareTo(b.action.toLowerCase());
-        if (ca != 0) return _sortAsc ? ca : -ca;
-      } else if (_sortByAction) {
-        final c = a.action.toLowerCase().compareTo(b.action.toLowerCase());
-        if (c != 0) return _sortAsc ? c : -c;
-      }
-      final c = a.ts.compareTo(b.ts);
-      return _newestFirst ? -c : c;
-    });
+        return _newestFirst ? -c : c;
+      });
     return items;
   }
 
@@ -151,8 +151,8 @@ class _AuditScreenState extends State<AuditScreen> {
     final title = total == 0
         ? 'Audit log'
         : (visible.length == total
-              ? 'Audit ($total)'
-              : 'Audit (${visible.length}/$total)');
+            ? 'Audit ($total)'
+            : 'Audit (${visible.length}/$total)');
     return Scaffold(
       appBar: AppBar(
         title: Text(_autoRefresh ? '$title · auto' : title),
@@ -217,9 +217,8 @@ class _AuditScreenState extends State<AuditScreen> {
               buf.writeln('ts,level,action,detail');
               for (final e in items) {
                 final action = e.action.replaceAll(',', ';');
-                final detail = e.detail
-                    .replaceAll(',', ';')
-                    .replaceAll('\n', ' ');
+                final detail =
+                    e.detail.replaceAll(',', ';').replaceAll('\n', ' ');
                 buf.writeln(
                   e.ts.toIso8601String() +
                       ',' +
@@ -253,12 +252,12 @@ class _AuditScreenState extends State<AuditScreen> {
             tooltip: _sortByTs
                 ? (_sortAsc ? 'Time old→new' : 'Time new→old')
                 : (_sortByDetail
-                      ? (_sortAsc ? 'Details Z→A' : 'Details A→Z')
-                      : (_sortByLevel
-                            ? (_sortAsc ? 'Levels Z→A' : 'Levels A→Z')
-                            : (_sortByAction
-                                  ? (_sortAsc ? 'Actions Z→A' : 'Actions A→Z')
-                                  : 'Sort by action / level / detail / time'))),
+                    ? (_sortAsc ? 'Details Z→A' : 'Details A→Z')
+                    : (_sortByLevel
+                        ? (_sortAsc ? 'Levels Z→A' : 'Levels A→Z')
+                        : (_sortByAction
+                            ? (_sortAsc ? 'Actions Z→A' : 'Actions A→Z')
+                            : 'Sort by action / level / detail / time'))),
             onPressed: () {
               setState(() {
                 if (!_sortByAction &&
@@ -309,24 +308,22 @@ class _AuditScreenState extends State<AuditScreen> {
               _sortByTs
                   ? Icons.schedule
                   : (_sortByDetail
-                        ? Icons.notes
-                        : (_sortByLevel
-                              ? Icons.low_priority
-                              : (_sortByAction
-                                    ? Icons.sort_by_alpha
-                                    : Icons.sort))),
+                      ? Icons.notes
+                      : (_sortByLevel
+                          ? Icons.low_priority
+                          : (_sortByAction
+                              ? Icons.sort_by_alpha
+                              : Icons.sort))),
             ),
           ),
-
           IconButton(
             tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
           ),
           IconButton(
-            tooltip: _relativeTs
-                ? 'Absolute timestamps'
-                : 'Relative timestamps',
+            tooltip:
+                _relativeTs ? 'Absolute timestamps' : 'Relative timestamps',
             onPressed: () => setState(() => _relativeTs = !_relativeTs),
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
@@ -366,7 +363,6 @@ class _AuditScreenState extends State<AuditScreen> {
                   : Icons.play_circle_outline,
             ),
           ),
-
           IconButton(
             tooltip: 'Clear',
             onPressed: audit.clear,
@@ -384,18 +380,18 @@ class _AuditScreenState extends State<AuditScreen> {
                 hintText: _queryRegex
                     ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
                     : (_queryCase
-                          ? 'Filter (case-sensitive)'
-                          : 'Filter action / detail'),
+                        ? 'Filter (case-sensitive)'
+                        : 'Filter action / detail'),
                 isDense: true,
                 border: const OutlineInputBorder(),
                 prefixIcon: IconButton(
                   tooltip: _queryRegex
                       ? (_queryCase
-                            ? 'Regex · case on (long-press: plain filter)'
-                            : 'Regex · case off (long-press: plain filter)')
+                          ? 'Regex · case on (long-press: plain filter)'
+                          : 'Regex · case off (long-press: plain filter)')
                       : (_queryCase
-                            ? 'Case-sensitive (long-press: regex)'
-                            : 'Case-insensitive (long-press: regex)'),
+                          ? 'Case-sensitive (long-press: regex)'
+                          : 'Case-insensitive (long-press: regex)'),
                   icon: Icon(
                     _queryRegex
                         ? Icons.code
@@ -530,8 +526,8 @@ class _AuditScreenState extends State<AuditScreen> {
                       final color = e.level == 'error'
                           ? Colors.red
                           : e.level == 'warn'
-                          ? Colors.orange
-                          : null;
+                              ? Colors.orange
+                              : null;
                       return ListTile(
                         dense: true,
                         leading: Icon(

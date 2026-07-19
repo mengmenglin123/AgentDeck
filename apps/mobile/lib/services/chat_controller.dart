@@ -20,9 +20,9 @@ class ChatController extends ChangeNotifier {
     BridgeClient Function(ConnectionConfig config)? bridgeFactory,
     MgmtClient Function(ConnectionConfig config)? mgmtFactory,
     AuditLog? audit,
-  }) : _bridgeFactory = bridgeFactory,
-       _mgmtFactory = mgmtFactory ?? ((c) => MgmtClient(config: c)),
-       audit = audit ?? AuditLog();
+  })  : _bridgeFactory = bridgeFactory,
+        _mgmtFactory = mgmtFactory ?? ((c) => MgmtClient(config: c)),
+        audit = audit ?? AuditLog();
 
   final ConnectionConfig config;
   SessionInfo session;
@@ -74,14 +74,13 @@ class ChatController extends ChangeNotifier {
     if (!silent) error = null;
     notifyListeners();
     try {
-      final client =
-          (_bridgeFactory ??
+      final client = (_bridgeFactory ??
           ((ConnectionConfig c) => BridgeClient(
-            config: c,
-            onMessage: _onBridgeMessage,
-            onError: _onBridgeError,
-            onClose: _onBridgeClose,
-          )))(config);
+                config: c,
+                onMessage: _onBridgeMessage,
+                onError: _onBridgeError,
+                onClose: _onBridgeClose,
+              )))(config);
       client.onMessage ??= _onBridgeMessage;
       client.onError ??= _onBridgeError;
       client.onClose ??= _onBridgeClose;
@@ -404,7 +403,7 @@ class ChatController extends ChangeNotifier {
       // Show notification when task completes
       final summary = payload['summary']?.toString() ?? 'Task completed';
       NotificationService.instance.showTaskComplete(
-        sessionName: session.name,
+        sessionName: session.displayTitle,
         summary: summary,
       );
     }
@@ -414,8 +413,8 @@ class ChatController extends ChangeNotifier {
       final buttons = payload['buttons'] as List? ?? [];
       if (buttons.isNotEmpty) {
         NotificationService.instance.show(
-          id: 'perm_${session.name}'.hashCode & 0x7FFFFFFF,
-          title: 'Permission Required: ${session.name}',
+          id: 'perm_${session.displayTitle}'.hashCode & 0x7FFFFFFF,
+          title: 'Permission Required: ${session.displayTitle}',
           body: text.length > 100 ? '${text.substring(0, 100)}...' : text,
           payload: 'permission:${session.sessionKey}',
         );
@@ -423,12 +422,11 @@ class ChatController extends ChangeNotifier {
     }
     if (type == 'error' || (payload['error'] != null)) {
       // Task error — show notification
-      final errorMsg =
-          payload['error']?.toString() ??
+      final errorMsg = payload['error']?.toString() ??
           payload['message']?.toString() ??
           'Unknown error';
       NotificationService.instance.showError(
-        title: 'Error: ${session.name}',
+        title: 'Error: ${session.displayTitle}',
         message: errorMsg,
       );
     }
@@ -446,8 +444,8 @@ class ChatController extends ChangeNotifier {
     connected = false;
     // Notify user about disconnection
     NotificationService.instance.show(
-      id: 'disconnect_${session.name}'.hashCode & 0x7FFFFFFF,
-      title: 'Disconnected: ${session.name}',
+      id: 'disconnect_${session.displayTitle}'.hashCode & 0x7FFFFFFF,
+      title: 'Disconnected: ${session.displayTitle}',
       body: 'Bridge connection lost. Attempting to reconnect...',
     );
     typing = false;

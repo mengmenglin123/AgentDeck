@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.173
+
+- Fix: Dart compilation errors (dot-shorthand, tuple indexing, session.name)
+- Fix: Upgrade AGP 8.7.3→8.9.1, Kotlin 2.1.0→2.2.20, Gradle 8.12→8.14
+- Fix: audit_screen cascade sort, connection_fingerprint record destructure
+- Fix: chat_controller session.name→session.displayTitle
+
+
 ## 0.1.172
 
 - Offline queue: cache messages when disconnected, auto-flush on reconnect
