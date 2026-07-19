@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.178
+
+- Fix: Column bracket mismatch in chat_screen
+- Fix: ConnectionController import in settings_screen
+
+
 ## 0.1.177
 
 - Fix: chat_screen if-expression syntax (Column wrapper)

@@ -256,7 +256,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const ListTile(title: Text('Attach'), subtitle: Text('Choose source')),
+            const ListTile(
+                title: Text('Attach'), subtitle: Text('Choose source')),
             ListTile(
               leading: const Icon(Icons.folder_open),
               title: const Text('Pick file'),
@@ -300,7 +301,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           ? 'application/json'
           : lower.endsWith('.md')
               ? 'text/markdown'
-              : lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg')
+              : lower.endsWith('.png') ||
+                      lower.endsWith('.jpg') ||
+                      lower.endsWith('.jpeg')
                   ? 'image/${lower.split('.').last}'
                   : 'application/octet-stream';
       setState(() {
@@ -312,27 +315,32 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       });
     } else if (action == 'image_gallery') {
       final picker = ImagePicker();
-      final img = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+      final img =
+          await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
       if (img == null) return;
       final bytes = await img.readAsBytes();
       final b64 = base64Encode(bytes);
       final name = img.name;
       setState(() {
-        _pendingImages.add({'name': name, 'mime': 'image/jpeg', 'data_base64': b64});
+        _pendingImages
+            .add({'name': name, 'mime': 'image/jpeg', 'data_base64': b64});
       });
     } else if (action == 'image_camera') {
       final picker = ImagePicker();
-      final img = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+      final img =
+          await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
       if (img == null) return;
       final bytes = await img.readAsBytes();
       final b64 = base64Encode(bytes);
       final name = img.name;
       setState(() {
-        _pendingImages.add({'name': name, 'mime': 'image/jpeg', 'data_base64': b64});
+        _pendingImages
+            .add({'name': name, 'mime': 'image/jpeg', 'data_base64': b64});
       });
     } else if (action == 'demo') {
       final nameCtrl = TextEditingController(text: 'note.txt');
-      final bodyCtrl = TextEditingController(text: 'hello from HuanHermes attach demo');
+      final bodyCtrl =
+          TextEditingController(text: 'hello from HuanHermes attach demo');
       final kind = await showDialog<String>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -341,27 +349,48 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'filename')),
-                TextField(controller: bodyCtrl, decoration: const InputDecoration(labelText: 'text content'), maxLines: 3),
+                TextField(
+                    controller: nameCtrl,
+                    decoration: const InputDecoration(labelText: 'filename')),
+                TextField(
+                    controller: bodyCtrl,
+                    decoration:
+                        const InputDecoration(labelText: 'text content'),
+                    maxLines: 3),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            TextButton(onPressed: () => Navigator.pop(ctx, 'image'), child: const Text('As image')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, 'file'), child: const Text('As file')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, 'image'),
+                child: const Text('As image')),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, 'file'),
+                child: const Text('As file')),
           ],
         ),
       );
       if (kind == null) return;
-      final name = nameCtrl.text.trim().isEmpty ? 'attach.bin' : nameCtrl.text.trim();
+      final name =
+          nameCtrl.text.trim().isEmpty ? 'attach.bin' : nameCtrl.text.trim();
       final b64 = base64Encode(utf8.encode(bodyCtrl.text));
       setState(() {
         if (kind == 'image') {
-          _pendingImages.add({'name': name.endsWith('.png') ? name : '$name.png', 'mime': 'image/png', 'data_base64': b64});
+          _pendingImages.add({
+            'name': name.endsWith('.png') ? name : '$name.png',
+            'mime': 'image/png',
+            'data_base64': b64
+          });
         } else {
           final lower = name.toLowerCase();
-          final mime = lower.endsWith('.json') ? 'application/json' : lower.endsWith('.md') ? 'text/markdown' : 'text/plain';
+          final mime = lower.endsWith('.json')
+              ? 'application/json'
+              : lower.endsWith('.md')
+                  ? 'text/markdown'
+                  : 'text/plain';
           _pendingFiles.add({'name': name, 'mime': mime, 'data_base64': b64});
         }
       });
@@ -439,7 +468,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
             child: const Text('Set'),
@@ -471,6 +501,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               if (q.isEmpty) return true;
               return t.toLowerCase().contains(q);
             }
+
             final fFavs = favs.where(match).toList();
             final fRecent = recent.where(match).toList();
             return DraggableScrollableSheet(
@@ -486,7 +517,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       child: Row(
                         children: [
                           Expanded(
-                            child: Text('Prompts', style: Theme.of(ctx).textTheme.titleMedium),
+                            child: Text('Prompts',
+                                style: Theme.of(ctx).textTheme.titleMedium),
                           ),
                           IconButton(
                             tooltip: 'Clear recent',
@@ -504,7 +536,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       padding: EdgeInsets.symmetric(horizontal: 16),
                       child: Align(
                         alignment: Alignment.centerLeft,
-                        child: Text('Local favorites + recent (device only)', style: TextStyle(fontSize: 12)),
+                        child: Text('Local favorites + recent (device only)',
+                            style: TextStyle(fontSize: 12)),
                       ),
                     ),
                     Padding(
@@ -535,23 +568,28 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         padding: const EdgeInsets.fromLTRB(8, 0, 8, 24),
                         children: [
                           if (fFavs.isNotEmpty) ...[
-                            const ListTile(dense: true, title: Text('Favorites')),
+                            const ListTile(
+                                dense: true, title: Text('Favorites')),
                             for (final t in fFavs)
                               _promptTile(
                                 ctx: ctx,
                                 text: t,
                                 fav: true,
-                                onUse: (mode) => Navigator.pop(ctx, {'text': t, 'mode': mode}),
+                                onUse: (mode) => Navigator.pop(
+                                    ctx, {'text': t, 'mode': mode}),
                                 onStar: () async {
                                   await store.removeFavorite(t);
                                   favs = await store.favorites();
                                   setModal(() {});
                                 },
                                 onCopy: () async {
-                                  await Clipboard.setData(ClipboardData(text: t));
+                                  await Clipboard.setData(
+                                      ClipboardData(text: t));
                                   if (ctx.mounted) {
                                     ScaffoldMessenger.of(ctx).showSnackBar(
-                                      const SnackBar(content: Text('Copied'), duration: Duration(seconds: 1)),
+                                      const SnackBar(
+                                          content: Text('Copied'),
+                                          duration: Duration(seconds: 1)),
                                     );
                                   }
                                 },
@@ -565,7 +603,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               ctx: ctx,
                               text: t,
                               fav: favs.contains(t),
-                              onUse: (mode) => Navigator.pop(ctx, {'text': t, 'mode': mode}),
+                              onUse: (mode) =>
+                                  Navigator.pop(ctx, {'text': t, 'mode': mode}),
                               onStar: () async {
                                 await store.toggleFavorite(t);
                                 favs = await store.favorites();
@@ -575,7 +614,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                 await Clipboard.setData(ClipboardData(text: t));
                                 if (ctx.mounted) {
                                   ScaffoldMessenger.of(ctx).showSnackBar(
-                                    const SnackBar(content: Text('Copied'), duration: Duration(seconds: 1)),
+                                    const SnackBar(
+                                        content: Text('Copied'),
+                                        duration: Duration(seconds: 1)),
                                   );
                                 }
                               },
@@ -625,13 +666,18 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     required VoidCallback onCopy,
   }) {
     return ListTile(
-      leading: Icon(fav ? Icons.star : Icons.history, color: fav ? Colors.amber : null),
+      leading: Icon(fav ? Icons.star : Icons.history,
+          color: fav ? Colors.amber : null),
       title: Text(text, maxLines: 3, overflow: TextOverflow.ellipsis),
-      subtitle: const Text('Tap replace · long-press append', style: TextStyle(fontSize: 11)),
+      subtitle: const Text('Tap replace · long-press append',
+          style: TextStyle(fontSize: 11)),
       trailing: Wrap(
         spacing: 0,
         children: [
-          IconButton(tooltip: 'Copy', icon: const Icon(Icons.copy, size: 18), onPressed: onCopy),
+          IconButton(
+              tooltip: 'Copy',
+              icon: const Icon(Icons.copy, size: 18),
+              onPressed: onCopy),
           IconButton(
             tooltip: fav ? 'Unfavorite' : 'Favorite',
             icon: Icon(fav ? Icons.star : Icons.star_border, size: 18),
@@ -672,14 +718,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           shrinkWrap: true,
           children: [
             ListTile(
-              title: Text('Slash commands', style: Theme.of(ctx).textTheme.titleMedium),
+              title: Text('Slash commands',
+                  style: Theme.of(ctx).textTheme.titleMedium),
               subtitle: const Text('Fills input — review then send'),
             ),
             for (final it in items)
               ListTile(
                 dense: true,
                 leading: const Icon(Icons.terminal, size: 18),
-                title: Text(it.$1, style: const TextStyle(fontFamily: 'monospace', fontSize: 13)),
+                title: Text(it.$1,
+                    style:
+                        const TextStyle(fontFamily: 'monospace', fontSize: 13)),
                 subtitle: Text(it.$2, style: const TextStyle(fontSize: 11)),
                 onTap: () => Navigator.pop(ctx, it.$1),
               ),
@@ -782,8 +831,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           'Use Reload to fetch again.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Clear')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Clear')),
         ],
       ),
     );
@@ -792,11 +845,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     setState(() {});
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Local transcript cleared'), duration: Duration(seconds: 1)),
+        const SnackBar(
+            content: Text('Local transcript cleared'),
+            duration: Duration(seconds: 1)),
       );
     }
   }
-
 
   Future<void> _copyAllMessages() async {
     final msgs = _visibleMessages;
@@ -811,7 +865,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     await Clipboard.setData(ClipboardData(text: buf.toString().trimRight()));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Copied ${msgs.length} message(s)'), duration: const Duration(seconds: 1)),
+      SnackBar(
+          content: Text('Copied ${msgs.length} message(s)'),
+          duration: const Duration(seconds: 1)),
     );
   }
 
@@ -825,7 +881,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         action: SnackBarAction(
           label: 'Plain',
           onPressed: () {
-            Clipboard.setData(ClipboardData(text: _chat.exportTranscriptPlain()));
+            Clipboard.setData(
+                ClipboardData(text: _chat.exportTranscriptPlain()));
           },
         ),
       ),
@@ -904,7 +961,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(widget.session.displayTitle, style: const TextStyle(fontSize: 16)),
+                  Text(widget.session.displayTitle,
+                      style: const TextStyle(fontSize: 16)),
                   Text(
                     [
                       widget.session.project,
@@ -917,7 +975,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       else
                         'offline',
                       if (!_showTools) 'tools hidden',
-                      if (_chat.reconnectHint != null && _chat.reconnectHint!.isNotEmpty)
+                      if (_chat.reconnectHint != null &&
+                          _chat.reconnectHint!.isNotEmpty)
                         _chat.reconnectHint!,
                     ].join(' · '),
                     style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
@@ -948,7 +1007,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               MaterialPageRoute(builder: (_) => PermissionsScreen(chat: _chat)),
             ),
             icon: Badge(
-              isLabelVisible: _chat.messages.where((m) => m.role == 'permission' && (m.meta['buttons'] as List? ?? []).isNotEmpty).isNotEmpty,
+              isLabelVisible: _chat.messages
+                  .where((m) =>
+                      m.role == 'permission' &&
+                      (m.meta['buttons'] as List? ?? []).isNotEmpty)
+                  .isNotEmpty,
               child: const Icon(Icons.shield_outlined),
             ),
           ),
@@ -962,9 +1025,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('${_chat.offlineQueue.length} message(s) queued for delivery'),
+                      Text(
+                          '${_chat.offlineQueue.length} message(s) queued for delivery'),
                       const SizedBox(height: 8),
-                      const Text('These will be sent automatically when connection is restored.', style: TextStyle(fontSize: 12)),
+                      const Text(
+                          'These will be sent automatically when connection is restored.',
+                          style: TextStyle(fontSize: 12)),
                     ],
                   ),
                   actions: [
@@ -976,7 +1042,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       },
                       child: const Text('Clear queue'),
                     ),
-                    FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+                    FilledButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('OK')),
                   ],
                 ),
               ),
@@ -989,7 +1057,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             IconButton(
               tooltip: _showTools ? 'Hide tool messages' : 'Show tool messages',
               onPressed: () => setState(() => _showTools = !_showTools),
-              icon: Icon(_showTools ? Icons.build_circle : Icons.build_circle_outlined),
+              icon: Icon(_showTools
+                  ? Icons.build_circle
+                  : Icons.build_circle_outlined),
             ),
           IconButton(
             tooltip: 'Export transcript',
@@ -1006,8 +1076,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
-
-
           IconButton(
             tooltip: 'Clear local view',
             onPressed: _chat.messages.isEmpty ? null : _clearLocalTranscript,
@@ -1022,7 +1090,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             tooltip: 'Audit log',
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => AuditScreen(audit: _chat.audit)),
+                MaterialPageRoute(
+                    builder: (_) => AuditScreen(audit: _chat.audit)),
               );
             },
             icon: const Icon(Icons.receipt_long_outlined),
@@ -1046,13 +1115,16 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         children: [
           if (_chat.error != null || _chat.reconnectHint != null)
             Material(
-              color: _chat.connected ? cs.secondaryContainer : cs.errorContainer,
+              color:
+                  _chat.connected ? cs.secondaryContainer : cs.errorContainer,
               child: ListTile(
                 dense: true,
                 title: Text(
                   _chat.error ?? _chat.reconnectHint ?? '',
                   style: TextStyle(
-                    color: _chat.connected ? cs.onSecondaryContainer : cs.onErrorContainer,
+                    color: _chat.connected
+                        ? cs.onSecondaryContainer
+                        : cs.onErrorContainer,
                     fontSize: 13,
                   ),
                 ),
@@ -1061,7 +1133,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   children: [
                     if (!_chat.connected)
                       TextButton(
-                        onPressed: _chat.connecting ? null : () => _chat.reconnectNow(),
+                        onPressed: _chat.connecting
+                            ? null
+                            : () => _chat.reconnectNow(),
                         child: const Text('Reconnect'),
                       )
                     else
@@ -1109,7 +1183,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     padding: const EdgeInsets.only(right: 6),
                     child: FilterChip(
                       visualDensity: VisualDensity.compact,
-                      label: const Text('Regex', style: TextStyle(fontSize: 11)),
+                      label:
+                          const Text('Regex', style: TextStyle(fontSize: 11)),
                       selected: _searchRegex,
                       onSelected: (v) => setState(() => _searchRegex = v),
                     ),
@@ -1127,7 +1202,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     padding: const EdgeInsets.only(right: 6),
                     child: FilterChip(
                       visualDensity: VisualDensity.compact,
-                      label: const Text('Tools', style: TextStyle(fontSize: 11)),
+                      label:
+                          const Text('Tools', style: TextStyle(fontSize: 11)),
                       selected: _showTools,
                       onSelected: (v) => setState(() => _showTools = v),
                     ),
@@ -1165,11 +1241,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           icon: Icon(
                             _searchRegex
                                 ? Icons.code
-                                : (_searchCase ? Icons.text_fields : Icons.search),
+                                : (_searchCase
+                                    ? Icons.text_fields
+                                    : Icons.search),
                             size: 18,
                           ),
-                          onPressed: () => setState(() => _searchCase = !_searchCase),
-                          onLongPress: () => setState(() => _searchRegex = !_searchRegex),
+                          onPressed: () =>
+                              setState(() => _searchCase = !_searchCase),
+                          onLongPress: () =>
+                              setState(() => _searchRegex = !_searchRegex),
                         ),
                         suffixIcon: _searchQ.isEmpty
                             ? null
@@ -1201,7 +1281,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       return Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(label, style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
+                          Text(label,
+                              style: const TextStyle(
+                                  fontSize: 12, fontFamily: 'monospace')),
                           IconButton(
                             tooltip: 'Previous hit',
                             onPressed: hits.isEmpty ? null : () => _gotoHit(-1),
@@ -1211,7 +1293,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           IconButton(
                             tooltip: 'Next hit',
                             onPressed: hits.isEmpty ? null : () => _gotoHit(1),
-                            icon: const Icon(Icons.keyboard_arrow_down, size: 22),
+                            icon:
+                                const Icon(Icons.keyboard_arrow_down, size: 22),
                             visualDensity: VisualDensity.compact,
                           ),
                         ],
@@ -1264,24 +1347,33 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                         children: [
-                          for (final img in List<Map<String, dynamic>>.from(_pendingImages))
+                          for (final img in List<Map<String, dynamic>>.from(
+                              _pendingImages))
                             Padding(
                               padding: const EdgeInsets.only(right: 6),
                               child: InputChip(
                                 avatar: const Icon(Icons.image, size: 16),
-                                label: Text((img['name'] ?? 'image').toString(), style: const TextStyle(fontSize: 11)),
-                                onPressed: () => _previewAttachment(img, image: true),
-                                onDeleted: () => setState(() => _pendingImages.remove(img)),
+                                label: Text((img['name'] ?? 'image').toString(),
+                                    style: const TextStyle(fontSize: 11)),
+                                onPressed: () =>
+                                    _previewAttachment(img, image: true),
+                                onDeleted: () =>
+                                    setState(() => _pendingImages.remove(img)),
                               ),
                             ),
-                          for (final f in List<Map<String, dynamic>>.from(_pendingFiles))
+                          for (final f
+                              in List<Map<String, dynamic>>.from(_pendingFiles))
                             Padding(
                               padding: const EdgeInsets.only(right: 6),
                               child: InputChip(
-                                avatar: const Icon(Icons.insert_drive_file, size: 16),
-                                label: Text((f['name'] ?? 'file').toString(), style: const TextStyle(fontSize: 11)),
-                                onPressed: () => _previewAttachment(f, image: false),
-                                onDeleted: () => setState(() => _pendingFiles.remove(f)),
+                                avatar: const Icon(Icons.insert_drive_file,
+                                    size: 16),
+                                label: Text((f['name'] ?? 'file').toString(),
+                                    style: const TextStyle(fontSize: 11)),
+                                onPressed: () =>
+                                    _previewAttachment(f, image: false),
+                                onDeleted: () =>
+                                    setState(() => _pendingFiles.remove(f)),
                               ),
                             ),
                         ],
@@ -1319,7 +1411,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             child: _MessageBubble(
                               message: m,
                               onPermission: _chat.respondPermission,
-                              showTools: true, // filtering already applied in _visibleMessages
+                              showTools:
+                                  true, // filtering already applied in _visibleMessages
                               highlight: _searchQ.trim(),
                               isSearchHit: hits.contains(i),
                               isActiveSearchHit: i == activeHit,
@@ -1330,13 +1423,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               onQuote: () {
                                 final clip = m.content.trim();
                                 if (clip.isEmpty) return;
-                                final short = clip.length > 400 ? '${clip.substring(0, 400)}…' : clip;
+                                final short = clip.length > 400
+                                    ? '${clip.substring(0, 400)}…'
+                                    : clip;
                                 setState(() {
                                   _quoteText = short;
                                   _quoteRole = m.role;
                                 });
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Quoted — edit and send'), duration: Duration(seconds: 1)),
+                                  const SnackBar(
+                                      content: Text('Quoted — edit and send'),
+                                      duration: Duration(seconds: 1)),
                                 );
                               },
                             ),
@@ -1353,13 +1450,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               children: [
                 if (_quoteText != null && _quoteText!.isNotEmpty)
                   Material(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.7),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withOpacity(0.7),
                     child: ListTile(
                       dense: true,
                       leading: const Icon(Icons.format_quote, size: 18),
                       title: Text(
                         'Quote (${_quoteRole ?? 'msg'})',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                       subtitle: Text(
                         _quoteText!,
@@ -1377,55 +1478,62 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       ),
                     ),
                   ),
-              child: Row(
-                children: [
-                  IconButton(
-                    tooltip: 'Prompt history',
-                    onPressed: _openPromptHistory,
-                    icon: const Icon(Icons.bookmark_border),
-                  ),
-                  IconButton(
-                    tooltip: 'Slash commands',
-                    onPressed: (_chat.connected && !_chat.sending) ? _openSlashPalette : null,
-                    icon: const Icon(Icons.flash_on_outlined),
-                  ),
-                  IconButton(
-                    tooltip: 'Attach demo',
-                    onPressed: (_chat.connected && !_chat.sending) ? _attachDemo : null,
-                    icon: const Icon(Icons.attach_file),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: _input,
-                      minLines: 1,
-                      maxLines: 5,
-                      decoration: InputDecoration(
-                        hintText: _chat.connected
-                            ? 'Message…  (/perm for permission demo)'
-                            : 'Connecting to agent…',
-                        border: const OutlineInputBorder(),
-                        filled: true,
-                        fillColor: cs.surfaceContainerHighest.withOpacity(0.35),
+                Row(
+                  children: [
+                    IconButton(
+                      tooltip: 'Prompt history',
+                      onPressed: _openPromptHistory,
+                      icon: const Icon(Icons.bookmark_border),
+                    ),
+                    IconButton(
+                      tooltip: 'Slash commands',
+                      onPressed: (_chat.connected && !_chat.sending)
+                          ? _openSlashPalette
+                          : null,
+                      icon: const Icon(Icons.flash_on_outlined),
+                    ),
+                    IconButton(
+                      tooltip: 'Attach demo',
+                      onPressed: (_chat.connected && !_chat.sending)
+                          ? _attachDemo
+                          : null,
+                      icon: const Icon(Icons.attach_file),
+                    ),
+                    Expanded(
+                      child: TextField(
+                        controller: _input,
+                        minLines: 1,
+                        maxLines: 5,
+                        decoration: InputDecoration(
+                          hintText: _chat.connected
+                              ? 'Message…  (/perm for permission demo)'
+                              : 'Connecting to agent…',
+                          border: const OutlineInputBorder(),
+                          filled: true,
+                          fillColor:
+                              cs.surfaceContainerHighest.withOpacity(0.35),
+                        ),
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (_) => _send(),
+                        enabled: _chat.connected && !_chat.sending,
                       ),
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _send(),
-                      enabled: _chat.connected && !_chat.sending,
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  if (_chat.runActive && _chat.hasCap('cancel'))
-                    IconButton.filledTonal(
-                      tooltip: 'Stop run',
-                      onPressed: _chat.cancelRun,
-                      icon: const Icon(Icons.stop),
-                    )
-                  else
-                    IconButton.filled(
-                      onPressed: (_chat.connected && !_chat.sending) ? _send : null,
-                      icon: const Icon(Icons.send),
-                    ),
-                ],
-              ),
+                    const SizedBox(width: 8),
+                    if (_chat.runActive && _chat.hasCap('cancel'))
+                      IconButton.filledTonal(
+                        tooltip: 'Stop run',
+                        onPressed: _chat.cancelRun,
+                        icon: const Icon(Icons.stop),
+                      )
+                    else
+                      IconButton.filled(
+                        onPressed:
+                            (_chat.connected && !_chat.sending) ? _send : null,
+                        icon: const Icon(Icons.send),
+                      ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -1471,24 +1579,30 @@ class _AgentToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final chips = <Widget>[];
     if (showMode) {
-      chips.add(ActionChip(label: Text('mode:$mode'), onPressed: connected ? onMode : null));
+      chips.add(ActionChip(
+          label: Text('mode:$mode'), onPressed: connected ? onMode : null));
     }
     if (showModel) {
-      chips.add(ActionChip(label: Text('model:$model'), onPressed: connected ? onModel : null));
+      chips.add(ActionChip(
+          label: Text('model:$model'), onPressed: connected ? onModel : null));
     }
     if (showDir) {
       chips.add(
         ActionChip(
-          label: Text(workdir.length > 24 ? '…${workdir.substring(workdir.length - 22)}' : workdir),
+          label: Text(workdir.length > 24
+              ? '…${workdir.substring(workdir.length - 22)}'
+              : workdir),
           onPressed: connected ? onDir : null,
         ),
       );
     }
-    chips.add(ActionChip(label: const Text('status'), onPressed: connected ? onStatus : null));
+    chips.add(ActionChip(
+        label: const Text('status'), onPressed: connected ? onStatus : null));
     if (showStop) {
       chips.add(
         ActionChip(
-          avatar: Icon(Icons.stop, size: 16, color: runActive ? Colors.red : null),
+          avatar:
+              Icon(Icons.stop, size: 16, color: runActive ? Colors.red : null),
           label: const Text('stop'),
           onPressed: (connected && runActive) ? onStop : null,
         ),
@@ -1539,9 +1653,11 @@ class _EmptyChat extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.smart_toy_outlined, size: 48, color: Theme.of(context).colorScheme.outline),
+            Icon(Icons.smart_toy_outlined,
+                size: 48, color: Theme.of(context).colorScheme.outline),
             const SizedBox(height: 12),
-            Text('No messages yet', style: Theme.of(context).textTheme.titleMedium),
+            Text('No messages yet',
+                style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(subtitle, textAlign: TextAlign.center),
           ],
@@ -1595,16 +1711,20 @@ class _StatusChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 8, height: 8, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
+            Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
             const SizedBox(width: 6),
-            Text(label, style: TextStyle(fontSize: 11, color: c, fontWeight: FontWeight.w600)),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 11, color: c, fontWeight: FontWeight.w600)),
           ],
         ),
       ),
     );
   }
 }
-
 
 String _fmtTime(DateTime dt) {
   final h = dt.hour.toString().padLeft(2, '0');
@@ -1675,10 +1795,13 @@ class _MessageBubble extends StatelessWidget {
                 : cs.secondaryContainer;
     final align = isUser ? Alignment.centerRight : Alignment.centerLeft;
     final buttons = _buttons;
-    final useMd = !isUser && !isTool && message.content.contains(RegExp(r'[#*`>\n-]'));
+    final useMd =
+        !isUser && !isTool && message.content.contains(RegExp(r'[#*`>\n-]'));
     final hl = isSearchHit ||
         (highlight.trim().isNotEmpty &&
-            message.content.toLowerCase().contains(highlight.trim().toLowerCase()));
+            message.content
+                .toLowerCase()
+                .contains(highlight.trim().toLowerCase()));
     final borderColor = isActiveSearchHit
         ? cs.primary
         : hl
@@ -1702,7 +1825,8 @@ class _MessageBubble extends StatelessWidget {
                     title: const Text('Copy message'),
                     onTap: () => Navigator.pop(ctx, 'copy'),
                   ),
-                  if (onQuote != null && (message.role == 'user' || message.role == 'assistant'))
+                  if (onQuote != null &&
+                      (message.role == 'user' || message.role == 'assistant'))
                     ListTile(
                       leading: const Icon(Icons.format_quote),
                       title: const Text('Quote in composer'),
@@ -1716,7 +1840,9 @@ class _MessageBubble extends StatelessWidget {
             await Clipboard.setData(ClipboardData(text: text));
             if (context.mounted) {
               ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                const SnackBar(content: Text('Message copied'), duration: Duration(seconds: 1)),
+                const SnackBar(
+                    content: Text('Message copied'),
+                    duration: Duration(seconds: 1)),
               );
             }
           } else if (action == 'quote') {
@@ -1726,11 +1852,15 @@ class _MessageBubble extends StatelessWidget {
         child: Container(
           margin: EdgeInsets.symmetric(vertical: compact ? 2 : 4),
           padding: EdgeInsets.all(compact ? 6 : 10),
-          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.88),
+          constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.88),
           decoration: BoxDecoration(
             color: bg,
             borderRadius: BorderRadius.circular(12),
-            border: borderColor != null ? Border.all(color: borderColor, width: isActiveSearchHit ? 2 : 1.5) : null,
+            border: borderColor != null
+                ? Border.all(
+                    color: borderColor, width: isActiveSearchHit ? 2 : 1.5)
+                : null,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1740,12 +1870,17 @@ class _MessageBubble extends StatelessWidget {
                   Expanded(
                     child: Text(
                       role + (message.streaming ? ' …' : ''),
-                      style: TextStyle(fontSize: compact ? 9 : 10, color: cs.onSurfaceVariant),
+                      style: TextStyle(
+                          fontSize: compact ? 9 : 10,
+                          color: cs.onSurfaceVariant),
                     ),
                   ),
                   Text(
                     _fmtTime(message.at),
-                    style: TextStyle(fontSize: 9, color: cs.onSurfaceVariant.withOpacity(0.8), fontFamily: 'monospace'),
+                    style: TextStyle(
+                        fontSize: 9,
+                        color: cs.onSurfaceVariant.withOpacity(0.8),
+                        fontFamily: 'monospace'),
                   ),
                 ],
               ),
@@ -1794,7 +1929,9 @@ class _MessageBubble extends StatelessWidget {
                       .map(
                         (b) => FilledButton.tonal(
                           onPressed: () {
-                            final action = b['data']?.toString() ?? b['text']?.toString() ?? '';
+                            final action = b['data']?.toString() ??
+                                b['text']?.toString() ??
+                                '';
                             if (action.contains('allow_all')) {
                               onPermission('allow_all');
                             } else if (action.contains('deny')) {

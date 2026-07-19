@@ -108,11 +108,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               prefixIcon: IconButton(
                 tooltip: _prefRegex
                     ? (_prefCase
-                          ? 'Regex · case on (long-press: plain filter)'
-                          : 'Regex · case off (long-press: plain filter)')
+                        ? 'Regex · case on (long-press: plain filter)'
+                        : 'Regex · case off (long-press: plain filter)')
                     : (_prefCase
-                          ? 'Case-sensitive (long-press: regex)'
-                          : 'Case-insensitive (long-press: regex)'),
+                        ? 'Case-sensitive (long-press: regex)'
+                        : 'Case-insensitive (long-press: regex)'),
                 icon: Icon(
                   _prefRegex
                       ? Icons.code
@@ -124,11 +124,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               hintText: _prefRegex
                   ? (_prefCase
-                        ? 'Filter settings (regex · case)'
-                        : 'Filter settings (regex)')
+                      ? 'Filter settings (regex · case)'
+                      : 'Filter settings (regex)')
                   : (_prefCase
-                        ? 'Filter settings (case-sensitive)'
-                        : 'Filter settings'),
+                      ? 'Filter settings (case-sensitive)'
+                      : 'Filter settings'),
               border: const OutlineInputBorder(),
               suffixIcon: _prefQuery.isEmpty
                   ? null
@@ -505,7 +505,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 );
               },
             ),
-
           const Divider(height: 28),
           if (_matchPref('About', 'console only'))
             ListTile(
@@ -523,14 +522,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               leading: const Icon(Icons.tag),
               title: const Text('App version'),
               subtitle: _sub(
-                '0.1.177+177 · ${context.watch<ConnectionController>().isRealHermes ? 'Real Hermes' : 'Mock'} host',
+                '0.1.178+178 · ${context.watch<ConnectionController>().isRealHermes ? 'Real Hermes' : 'Mock'} host',
               ),
               trailing: IconButton(
                 tooltip: 'Copy about',
                 icon: const Icon(Icons.copy_outlined),
                 onPressed: () async {
                   const text =
-                      'HuanHermes App 0.1.177+177\nconsole · Mock or real Hermes host\nNo agent loop on device · tokens never in about text';
+                      'HuanHermes App 0.1.178+178\nconsole · Mock or real Hermes host\nNo agent loop on device · tokens never in about text';
                   await Clipboard.setData(const ClipboardData(text: text));
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
