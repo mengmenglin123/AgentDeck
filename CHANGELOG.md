@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.174
+
+- Fix: enable core library desugaring for flutter_local_notifications
+- Fix: _wrapLines -> wrapLines parameter in _ConnectionStatusBanner
+- Fix: NDK version 27->28 (required by jni plugin)
+- Fix: minSdk 21 + multiDexEnabled for desugaring
+
+
 ## 0.1.173
 
 - Fix: Dart compilation errors (dot-shorthand, tuple indexing, session.name)

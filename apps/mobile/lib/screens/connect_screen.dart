@@ -349,7 +349,6 @@ class _ConnectScreenState extends State<ConnectScreen> {
             },
             icon: const Icon(Icons.fingerprint),
           ),
-
           IconButton(
             tooltip: 'Copy profiles (no tokens)',
             onPressed: controller.profiles.isEmpty
@@ -420,35 +419,32 @@ class _ConnectScreenState extends State<ConnectScreen> {
             tooltip: _sortMode == 'deviceId'
                 ? (_sortAsc ? 'Device id Z→A' : 'Device id A→Z')
                 : (_sortMode == 'id'
-                      ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
-                      : (_sortMode == 'platform'
-                            ? (_sortAsc ? 'Platform Z→A' : 'Platform A→Z')
-                            : (_sortMode == 'tls'
-                                  ? (_sortAsc ? 'TLS first' : 'Plain first')
-                                  : (_sortMode == 'bridgePort'
+                    ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                    : (_sortMode == 'platform'
+                        ? (_sortAsc ? 'Platform Z→A' : 'Platform A→Z')
+                        : (_sortMode == 'tls'
+                            ? (_sortAsc ? 'TLS first' : 'Plain first')
+                            : (_sortMode == 'bridgePort'
+                                ? (_sortAsc
+                                    ? 'Bridge port high→low'
+                                    : 'Bridge port low→high')
+                                : (_sortMode == 'note'
+                                    ? (_sortAsc ? 'Note Z→A' : 'Note A→Z')
+                                    : (_sortMode == 'port'
                                         ? (_sortAsc
-                                              ? 'Bridge port high→low'
-                                              : 'Bridge port low→high')
-                                        : (_sortMode == 'note'
-                                              ? (_sortAsc
-                                                    ? 'Note Z→A'
-                                                    : 'Note A→Z')
-                                              : (_sortMode == 'port'
-                                                    ? (_sortAsc
-                                                          ? 'Mgmt port high→low'
-                                                          : 'Mgmt port low→high')
-                                                    : (_sortMode == 'host'
-                                                          ? (_sortAsc
-                                                                ? 'Host Z→A'
-                                                                : 'Host A→Z')
-                                                          : (_sortMode ==
-                                                                    'updated'
-                                                                ? (_sortAsc
-                                                                      ? 'Updated new→old'
-                                                                      : 'Updated old→new')
-                                                                : (_sortAsc
-                                                                      ? 'Name Z→A'
-                                                                      : 'Name A→Z'))))))))),
+                                            ? 'Mgmt port high→low'
+                                            : 'Mgmt port low→high')
+                                        : (_sortMode == 'host'
+                                            ? (_sortAsc
+                                                ? 'Host Z→A'
+                                                : 'Host A→Z')
+                                            : (_sortMode == 'updated'
+                                                ? (_sortAsc
+                                                    ? 'Updated new→old'
+                                                    : 'Updated old→new')
+                                                : (_sortAsc
+                                                    ? 'Name Z→A'
+                                                    : 'Name A→Z'))))))))),
             onPressed: () {
               setState(() {
                 if (_sortMode == 'name' && _sortAsc) {
@@ -508,31 +504,26 @@ class _ConnectScreenState extends State<ConnectScreen> {
               _sortMode == 'deviceId'
                   ? Icons.phonelink_setup
                   : (_sortMode == 'id'
-                        ? Icons.tag
-                        : (_sortMode == 'platform'
-                              ? Icons.devices_other_outlined
-                              : (_sortMode == 'tls'
-                                    ? Icons.lock_outline
-                                    : (_sortMode == 'bridgePort'
-                                          ? Icons.cable
-                                          : (_sortMode == 'note'
-                                                ? Icons.sticky_note_2_outlined
-                                                : (_sortMode == 'port'
-                                                      ? Icons.numbers
-                                                      : (_sortMode == 'host'
-                                                            ? Icons.dns_outlined
-                                                            : (_sortMode ==
-                                                                      'updated'
-                                                                  ? Icons
-                                                                        .schedule
-                                                                  : (_sortAsc
-                                                                        ? Icons
-                                                                              .sort_by_alpha
-                                                                        : Icons
-                                                                              .sort))))))))),
+                      ? Icons.tag
+                      : (_sortMode == 'platform'
+                          ? Icons.devices_other_outlined
+                          : (_sortMode == 'tls'
+                              ? Icons.lock_outline
+                              : (_sortMode == 'bridgePort'
+                                  ? Icons.cable
+                                  : (_sortMode == 'note'
+                                      ? Icons.sticky_note_2_outlined
+                                      : (_sortMode == 'port'
+                                          ? Icons.numbers
+                                          : (_sortMode == 'host'
+                                              ? Icons.dns_outlined
+                                              : (_sortMode == 'updated'
+                                                  ? Icons.schedule
+                                                  : (_sortAsc
+                                                      ? Icons.sort_by_alpha
+                                                      : Icons.sort))))))))),
             ),
           ),
-
           IconButton(
             tooltip: 'Jump to top',
             onPressed: () {
@@ -545,7 +536,6 @@ class _ConnectScreenState extends State<ConnectScreen> {
             },
             icon: const Icon(Icons.vertical_align_top),
           ),
-
           IconButton(
             tooltip: 'Jump to end',
             onPressed: () {
@@ -558,7 +548,6 @@ class _ConnectScreenState extends State<ConnectScreen> {
             },
             icon: const Icon(Icons.vertical_align_bottom),
           ),
-
           IconButton(
             tooltip: 'Import pairing URI',
             onPressed: busy ? null : _importPairing,
@@ -588,7 +577,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 12),
-            _ConnectionStatusBanner(controller: controller),
+            _ConnectionStatusBanner(
+                controller: controller, wrapLines: _wrapLines),
             if (controller.profiles.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text(
@@ -644,19 +634,19 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   border: const OutlineInputBorder(),
                   hintText: _queryRegex
                       ? (_queryCase
-                            ? 'Filter profiles (regex · case)'
-                            : 'Filter profiles (regex)')
+                          ? 'Filter profiles (regex · case)'
+                          : 'Filter profiles (regex)')
                       : (_queryCase
-                            ? 'Filter profiles (case-sensitive)'
-                            : 'Filter profiles name/host/note'),
+                          ? 'Filter profiles (case-sensitive)'
+                          : 'Filter profiles name/host/note'),
                   prefixIcon: IconButton(
                     tooltip: _queryRegex
                         ? (_queryCase
-                              ? 'Regex · case on (long-press: plain filter)'
-                              : 'Regex · case off (long-press: plain filter)')
+                            ? 'Regex · case on (long-press: plain filter)'
+                            : 'Regex · case off (long-press: plain filter)')
                         : (_queryCase
-                              ? 'Case-sensitive (long-press: regex)'
-                              : 'Case-insensitive (long-press: regex)'),
+                            ? 'Case-sensitive (long-press: regex)'
+                            : 'Case-insensitive (long-press: regex)'),
                     icon: Icon(
                       _queryRegex
                           ? Icons.code
@@ -683,146 +673,141 @@ class _ConnectScreenState extends State<ConnectScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children:
-                    (List.of(controller.profiles).where((p) {
-                          if (_tlsFilter == 'tls' && !p.config.useTls)
-                            return false;
-                          if (_tlsFilter == 'plain' && p.config.useTls)
-                            return false;
-                          final rawQ = _profileQuery.trim();
-                          if (rawQ.isEmpty) return true;
-                          final hayRaw =
-                              '${p.name} ${p.config.host} ${p.config.bridgePort} ${p.config.mgmtPort} ${p.note ?? ''}';
-                          if (_queryRegex) {
-                            try {
-                              return RegExp(
-                                rawQ,
-                                caseSensitive: _queryCase,
-                              ).hasMatch(hayRaw);
-                            } catch (_) {
-                              return false;
-                            }
+                children: (List.of(controller.profiles).where((p) {
+                  if (_tlsFilter == 'tls' && !p.config.useTls) return false;
+                  if (_tlsFilter == 'plain' && p.config.useTls) return false;
+                  final rawQ = _profileQuery.trim();
+                  if (rawQ.isEmpty) return true;
+                  final hayRaw =
+                      '${p.name} ${p.config.host} ${p.config.bridgePort} ${p.config.mgmtPort} ${p.note ?? ''}';
+                  if (_queryRegex) {
+                    try {
+                      return RegExp(
+                        rawQ,
+                        caseSensitive: _queryCase,
+                      ).hasMatch(hayRaw);
+                    } catch (_) {
+                      return false;
+                    }
+                  }
+                  final q = _queryCase ? rawQ : rawQ.toLowerCase();
+                  final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
+                  return hay.contains(q);
+                }).toList()
+                      ..sort((a, b) {
+                        int c;
+                        if (_sortMode == 'host') {
+                          c = a.config.host.toLowerCase().compareTo(
+                                b.config.host.toLowerCase(),
+                              );
+                          if (c == 0) {
+                            c = a.name.toLowerCase().compareTo(
+                                  b.name.toLowerCase(),
+                                );
                           }
-                          final q = _queryCase ? rawQ : rawQ.toLowerCase();
-                          final hay = _queryCase
-                              ? hayRaw
-                              : hayRaw.toLowerCase();
-                          return hay.contains(q);
-                        }).toList()..sort((a, b) {
-                          int c;
-                          if (_sortMode == 'host') {
-                            c = a.config.host.toLowerCase().compareTo(
-                              b.config.host.toLowerCase(),
-                            );
-                            if (c == 0) {
-                              c = a.name.toLowerCase().compareTo(
-                                b.name.toLowerCase(),
-                              );
-                            }
-                          } else if (_sortMode == 'updated') {
-                            c = a.updatedAt.compareTo(b.updatedAt);
-                            if (c == 0) {
-                              c = a.name.toLowerCase().compareTo(
-                                b.name.toLowerCase(),
-                              );
-                            }
-                          } else if (_sortMode == 'port') {
-                            c = a.config.mgmtPort.compareTo(b.config.mgmtPort);
-                            if (c == 0) {
-                              c = a.config.bridgePort.compareTo(
-                                b.config.bridgePort,
-                              );
-                            }
-                            if (c == 0) {
-                              c = a.name.toLowerCase().compareTo(
-                                b.name.toLowerCase(),
-                              );
-                            }
-                          } else if (_sortMode == 'note') {
-                            c = (a.note ?? '').toLowerCase().compareTo(
-                              (b.note ?? '').toLowerCase(),
-                            );
-                            if (c == 0) {
-                              c = a.name.toLowerCase().compareTo(
-                                b.name.toLowerCase(),
-                              );
-                            }
-                          } else if (_sortMode == 'bridgePort') {
+                        } else if (_sortMode == 'updated') {
+                          c = a.updatedAt.compareTo(b.updatedAt);
+                          if (c == 0) {
+                            c = a.name.toLowerCase().compareTo(
+                                  b.name.toLowerCase(),
+                                );
+                          }
+                        } else if (_sortMode == 'port') {
+                          c = a.config.mgmtPort.compareTo(b.config.mgmtPort);
+                          if (c == 0) {
                             c = a.config.bridgePort.compareTo(
                               b.config.bridgePort,
                             );
-                            if (c == 0) {
-                              c = a.config.mgmtPort.compareTo(
-                                b.config.mgmtPort,
-                              );
-                            }
-                            if (c == 0) {
-                              c = a.name.toLowerCase().compareTo(
-                                b.name.toLowerCase(),
-                              );
-                            }
-                          } else if (_sortMode == 'tls') {
-                            final ta = a.config.useTls ? 1 : 0;
-                            final tb = b.config.useTls ? 1 : 0;
-                            c = ta.compareTo(tb);
-                            if (c == 0) {
-                              c = a.name.toLowerCase().compareTo(
-                                b.name.toLowerCase(),
-                              );
-                            }
-                          } else if (_sortMode == 'platform') {
-                            c = a.config.platformName.toLowerCase().compareTo(
-                              b.config.platformName.toLowerCase(),
-                            );
-                            if (c == 0) {
-                              c = a.name.toLowerCase().compareTo(
-                                b.name.toLowerCase(),
-                              );
-                            }
-                          } else if (_sortMode == 'id') {
-                            c = a.id.toLowerCase().compareTo(
-                              b.id.toLowerCase(),
-                            );
-                            if (c == 0) {
-                              c = a.name.toLowerCase().compareTo(
-                                b.name.toLowerCase(),
-                              );
-                            }
-                          } else if (_sortMode == 'deviceId') {
-                            c = a.config.deviceId.toLowerCase().compareTo(
-                              b.config.deviceId.toLowerCase(),
-                            );
-                            if (c == 0) {
-                              c = a.name.toLowerCase().compareTo(
-                                b.name.toLowerCase(),
-                              );
-                            }
-                          } else {
+                          }
+                          if (c == 0) {
                             c = a.name.toLowerCase().compareTo(
-                              b.name.toLowerCase(),
+                                  b.name.toLowerCase(),
+                                );
+                          }
+                        } else if (_sortMode == 'note') {
+                          c = (a.note ?? '').toLowerCase().compareTo(
+                                (b.note ?? '').toLowerCase(),
+                              );
+                          if (c == 0) {
+                            c = a.name.toLowerCase().compareTo(
+                                  b.name.toLowerCase(),
+                                );
+                          }
+                        } else if (_sortMode == 'bridgePort') {
+                          c = a.config.bridgePort.compareTo(
+                            b.config.bridgePort,
+                          );
+                          if (c == 0) {
+                            c = a.config.mgmtPort.compareTo(
+                              b.config.mgmtPort,
                             );
                           }
-                          return _sortAsc ? c : -c;
-                        }))
-                        .map((p) {
-                          final selected = p.id == controller.activeProfileId;
-                          return FilterChip(
-                            label: Text(
-                              p.name,
-                              maxLines: _wrapLines ? 2 : 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            selected: selected,
-                            onSelected: busy
-                                ? null
-                                : (_) async {
-                                    await controller.selectProfile(p.id);
-                                    _syncControllersFrom(controller);
-                                    setState(() {});
-                                  },
-                          );
-                        })
-                        .toList(),
+                          if (c == 0) {
+                            c = a.name.toLowerCase().compareTo(
+                                  b.name.toLowerCase(),
+                                );
+                          }
+                        } else if (_sortMode == 'tls') {
+                          final ta = a.config.useTls ? 1 : 0;
+                          final tb = b.config.useTls ? 1 : 0;
+                          c = ta.compareTo(tb);
+                          if (c == 0) {
+                            c = a.name.toLowerCase().compareTo(
+                                  b.name.toLowerCase(),
+                                );
+                          }
+                        } else if (_sortMode == 'platform') {
+                          c = a.config.platformName.toLowerCase().compareTo(
+                                b.config.platformName.toLowerCase(),
+                              );
+                          if (c == 0) {
+                            c = a.name.toLowerCase().compareTo(
+                                  b.name.toLowerCase(),
+                                );
+                          }
+                        } else if (_sortMode == 'id') {
+                          c = a.id.toLowerCase().compareTo(
+                                b.id.toLowerCase(),
+                              );
+                          if (c == 0) {
+                            c = a.name.toLowerCase().compareTo(
+                                  b.name.toLowerCase(),
+                                );
+                          }
+                        } else if (_sortMode == 'deviceId') {
+                          c = a.config.deviceId.toLowerCase().compareTo(
+                                b.config.deviceId.toLowerCase(),
+                              );
+                          if (c == 0) {
+                            c = a.name.toLowerCase().compareTo(
+                                  b.name.toLowerCase(),
+                                );
+                          }
+                        } else {
+                          c = a.name.toLowerCase().compareTo(
+                                b.name.toLowerCase(),
+                              );
+                        }
+                        return _sortAsc ? c : -c;
+                      }))
+                    .map((p) {
+                  final selected = p.id == controller.activeProfileId;
+                  return FilterChip(
+                    label: Text(
+                      p.name,
+                      maxLines: _wrapLines ? 2 : 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    selected: selected,
+                    onSelected: busy
+                        ? null
+                        : (_) async {
+                            await controller.selectProfile(p.id);
+                            _syncControllersFrom(controller);
+                            setState(() {});
+                          },
+                  );
+                }).toList(),
               ),
             ],
             const SizedBox(height: 16),
@@ -986,9 +971,11 @@ class _ConnectScreenState extends State<ConnectScreen> {
 }
 
 class _ConnectionStatusBanner extends StatelessWidget {
-  const _ConnectionStatusBanner({required this.controller});
+  const _ConnectionStatusBanner(
+      {required this.controller, this.wrapLines = false});
 
   final ConnectionController controller;
+  final bool wrapLines;
 
   @override
   Widget build(BuildContext context) {
@@ -1045,7 +1032,7 @@ class _ConnectionStatusBanner extends StatelessWidget {
         ),
         subtitle: Text(
           subtitle,
-          maxLines: _wrapLines ? 8 : 3,
+          maxLines: wrapLines ? 8 : 3,
           overflow: TextOverflow.ellipsis,
           softWrap: true,
         ),
