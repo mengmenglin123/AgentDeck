@@ -940,6 +940,39 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               child: const Icon(Icons.shield_outlined),
             ),
           ),
+          if (_chat.offlineQueue.isNotEmpty)
+            IconButton(
+              tooltip: '${_chat.offlineQueue.length} queued message(s)',
+              onPressed: () => showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Offline Queue'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('${_chat.offlineQueue.length} message(s) queued for delivery'),
+                      const SizedBox(height: 8),
+                      const Text('These will be sent automatically when connection is restored.', style: TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        _chat.offlineQueue.clear();
+                        Navigator.pop(ctx);
+                        setState(() {});
+                      },
+                      child: const Text('Clear queue'),
+                    ),
+                    FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+                  ],
+                ),
+              ),
+              icon: Badge(
+                label: Text('${_chat.offlineQueue.length}'),
+                child: const Icon(Icons.cloud_off_outlined),
+              ),
+            ),
           if (_chat.hasCap('tools_visible'))
             IconButton(
               tooltip: _showTools ? 'Hide tool messages' : 'Show tool messages',

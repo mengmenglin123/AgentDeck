@@ -668,6 +668,7 @@
 - [x] **P4-6ab** Git actions: commit/push/pull from workspace (0.1.169)
 - [x] **P4-6ac** Agent event notifications: permission/error/disconnect (0.1.170)
 - [x] **P4-6ad** Responsive layout for tablet/desktop (0.1.171)
+- [x] **P4-6ae** Offline queue with disk persistence (0.1.172)
 
 ## P4 — 远期
 

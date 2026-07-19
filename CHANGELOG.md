@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.172
+
+- Offline queue: cache messages when disconnected, auto-flush on reconnect
+- OfflineQueue service with disk persistence
+- Queue badge in chat AppBar showing pending count
+- Queue dialog with clear option
+- All 8 competitive gaps resolved
+
+
 ## 0.1.171
 
 - Responsive layout: breakpoints for mobile/tablet/desktop

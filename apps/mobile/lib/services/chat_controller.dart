@@ -8,6 +8,7 @@ import '../models/session_info.dart';
 import '../models/transcript.dart';
 import 'audit_log.dart';
 import 'notification_service.dart';
+import 'offline_queue.dart';
 import 'prompt_history_store.dart';
 import 'bridge_client.dart';
 import 'mgmt_client.dart';
@@ -29,6 +30,7 @@ class ChatController extends ChangeNotifier {
   final MgmtClient Function(ConnectionConfig config) _mgmtFactory;
   final AuditLog audit;
   final PromptHistoryStore promptHistory = PromptHistoryStore();
+  final OfflineQueue offlineQueue = OfflineQueue();
 
   final TranscriptReducer reducer = TranscriptReducer();
   BridgeClient? _bridge;
@@ -211,6 +213,17 @@ class ChatController extends ChangeNotifier {
     } on DisconnectedError catch (e) {
       error = e.message;
       connected = false;
+      // Queue message for later delivery
+      if (offlineQueue.enabled && content.isNotEmpty) {
+        offlineQueue.enqueue(
+          sessionKey: session.sessionKey,
+          content: content,
+          extra: {
+            if (images.isNotEmpty) 'images': images,
+            if (files.isNotEmpty) 'files': files,
+          },
+        );
+      }
     } catch (e) {
       error = e.toString();
     } finally {
@@ -227,6 +240,27 @@ class ChatController extends ChangeNotifier {
   }
 
   Future<void> sendSlash(String command) => send(command);
+
+  /// Flush queued offline messages after reconnect.
+  Future<void> _flushOfflineQueue() async {
+    if (offlineQueue.isEmpty || !connected || _bridge == null) return;
+    final sent = await offlineQueue.flush((msg) async {
+      try {
+        _bridge!.sendUserMessage(
+          content: msg.content,
+          conversationId: session.id,
+          sessionKeyOverride: session.sessionKey,
+        );
+        return true;
+      } catch (_) {
+        return false;
+      }
+    });
+    if (sent > 0) {
+      audit.add('offline_queue.flushed', detail: '$sent message(s)');
+      notifyListeners();
+    }
+  }
 
   /// Export current transcript as Markdown (client-side; no Host secrets).
   String exportTranscriptMarkdown() {
