@@ -19,6 +19,12 @@ import '../services/chat_controller.dart';
 import '../services/chat_draft_store.dart';
 import '../widgets/markdown_lite.dart';
 import 'audit_screen.dart';
+import 'terminal_screen.dart';
+import 'workspace_screen.dart';
+import 'skills_screen.dart';
+import 'mcp_screen.dart';
+import 'cron_screen.dart';
+import 'memory_screen.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({
@@ -990,6 +996,93 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           ],
         ),
         actions: [
+          // Quick access menu to other features
+          PopupMenuButton<String>(
+            tooltip: 'Quick actions',
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) async {
+              final cfg = widget.config;
+              Widget? page;
+              switch (value) {
+                case 'terminal':
+                  page = TerminalScreen(config: cfg, session: widget.session);
+                  break;
+                case 'workspace':
+                  page = WorkspaceScreen(config: cfg);
+                  break;
+                case 'skills':
+                  page = SkillsScreen(config: cfg);
+                  break;
+                case 'mcp':
+                  page = McpScreen(config: cfg);
+                  break;
+                case 'cron':
+                  page = CronScreen(config: cfg);
+                  break;
+                case 'memory':
+                  page = MemoryScreen(config: cfg);
+                  break;
+                case 'audit':
+                  page = AuditScreen(audit: _chat.audit);
+                  break;
+              }
+              if (page != null) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => page!),
+                );
+              }
+            },
+            itemBuilder: (ctx) => [
+              const PopupMenuItem(
+                value: 'terminal',
+                child: ListTile(
+                  leading: Icon(Icons.terminal),
+                  title: Text('Terminal'),
+                  dense: true,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'workspace',
+                child: ListTile(
+                  leading: Icon(Icons.folder_outlined),
+                  title: Text('Workspace'),
+                  dense: true,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'skills',
+                child: ListTile(
+                  leading: Icon(Icons.extension_outlined),
+                  title: Text('Skills'),
+                  dense: true,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'mcp',
+                child: ListTile(
+                  leading: Icon(Icons.hub_outlined),
+                  title: Text('MCP'),
+                  dense: true,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'cron',
+                child: ListTile(
+                  leading: Icon(Icons.schedule),
+                  title: Text('Schedules'),
+                  dense: true,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'memory',
+                child: ListTile(
+                  leading: Icon(Icons.memory),
+                  title: Text('Memory'),
+                  dense: true,
+                ),
+              ),
+            ],
+          ),
           IconButton(
             tooltip: 'Search chat',
             onPressed: () => setState(() {
