@@ -1920,18 +1920,7 @@ class _MessageBubble extends StatelessWidget {
     if (!showTools && isTool) {
       return const SizedBox.shrink();
     }
-    // LiveAgent-style colors: clean whites and soft blues
-    final bg = isUser
-        ? const Color(0xFFE3F2FD) // Soft blue for user
-        : isSystem
-            ? const Color(0xFFF5F5F5) // Light gray for system
-            : isTool
-                ? const Color(0xFFFAFAFA) // Very light gray for tools
-                : Colors.white; // White for assistant
-    final borderColor = isUser
-        ? null
-        : const Color(0xFFE5E7EB); // Subtle gray border for non-user
-    final align = isUser ? Alignment.centerRight : Alignment.centerLeft;
+    final align = isSystem ? Alignment.center : (isUser ? Alignment.centerRight : Alignment.centerLeft);
     final buttons = _buttons;
     final useMd =
         !isUser && !isTool && message.content.contains(RegExp(r'[#*`>\n-]'));
