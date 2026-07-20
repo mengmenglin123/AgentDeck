@@ -686,3 +686,10 @@
 python3 -m py_compile server/mock-host/mock_host.py packages/huan_protocol/src/*.py
 PYTHONPATH=packages/huan_protocol python3 -m unittest discover -s packages/huan_protocol/test -v
 ```
+
+## UI 改进 (0.1.180)
+
+- [x] 消息气泡重设计：白色卡片 + 淡蓝用户消息
+- [x] 欢迎页：居中 Logo + 问候语 + 建议卡片
+- [x] 输入框：圆润容器 + 中文占位符
+- [x] 角色图标：person/assistant/tool/system

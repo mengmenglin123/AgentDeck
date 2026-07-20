@@ -1657,6 +1657,7 @@ class _EmptyChat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final subtitle = connecting
         ? 'Connecting to host…'
         : connected
@@ -1675,16 +1676,20 @@ class _EmptyChat extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFF4A90E2).withOpacity(0.15),
-                    const Color(0xFF4A90E2).withOpacity(0.05),
-                  ],
+                  colors: [cs.primary, cs.tertiary],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: cs.primary.withOpacity(0.3),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              child: Icon(Icons.auto_awesome,
-                  size: 40, color: const Color(0xFF4A90E2)),
+              child: const Icon(Icons.auto_awesome,
+                  size: 40, color: Colors.white),
             ),
             const SizedBox(height: 20),
             Text('你好',
