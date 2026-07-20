@@ -697,7 +697,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   )
                 : null,
             title: Text(
-              _selectMode ? '${_selected.length} selected' : 'Sessions',
+              _selectMode ? '${_selected.length} selected' : '会话',
             ),
             actions: [
               if (_selectMode) ...[
@@ -757,7 +757,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   icon: const Icon(Icons.checklist),
                 ),
                 IconButton(
-                  tooltip: 'Host status',
+                  tooltip: '主机状态',
                   onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
@@ -890,9 +890,9 @@ class _SessionsScreenState extends State<SessionsScreen> {
                     ).push(MaterialPageRoute(builder: (_) => page));
                   },
                   itemBuilder: (ctx) => [
-                    PopupMenuItem(value: 'status', child: Text('Host status')),
-                    PopupMenuItem(value: 'agents', child: Text('Agents')),
-                    PopupMenuItem(value: 'logs', child: Text('Host logs')),
+                    PopupMenuItem(value: 'status', child: Text('主机状态')),
+                    PopupMenuItem(value: 'agents', child: Text('代理')),
+                    PopupMenuItem(value: 'logs', child: Text('主机日志')),
                     PopupMenuItem(
                       value: 'export_list',
                       child: Text('Export visible list'),
@@ -901,18 +901,18 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       value: 'csv_list',
                       child: Text('Copy visible CSV'),
                     ),
-                    PopupMenuItem(value: 'settings', child: Text('Settings')),
-                    PopupMenuItem(value: 'workspace', child: Text('Workspace')),
-                    PopupMenuItem(value: 'diff', child: Text('Git diff')),
-                    PopupMenuItem(value: 'memory', child: Text('Host memory')),
+                    PopupMenuItem(value: 'settings', child: Text('设置')),
+                    PopupMenuItem(value: 'workspace', child: Text('工作区')),
+                    PopupMenuItem(value: 'diff', child: Text('Git 对比')),
+                    PopupMenuItem(value: 'memory', child: Text('主机记忆')),
                     PopupMenuItem(
                       value: 'activity',
-                      child: Text('Host activity'),
+                      child: Text('主机活动'),
                     ),
-                    PopupMenuItem(value: 'cron', child: Text('Schedules')),
-                    PopupMenuItem(value: 'skills', child: Text('Skills')),
+                    PopupMenuItem(value: 'cron', child: Text('定时任务')),
+                    PopupMenuItem(value: 'skills', child: Text('技能')),
                     PopupMenuItem(value: 'mcp', child: Text('MCP')),
-                    PopupMenuItem(value: 'pairing', child: Text('Pairing')),
+                    PopupMenuItem(value: 'pairing', child: Text('配对')),
                   ],
                 ),
                 IconButton(
@@ -969,7 +969,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                         : SessionInfo(
                             id: 'terminal',
                             sessionKey: 'terminal',
-                            title: 'Terminal',
+                            title: '终端',
                             project: '',
                           ),
                   );
@@ -988,22 +988,22 @@ class _SessionsScreenState extends State<SessionsScreen> {
               NavigationDestination(
                 icon: Icon(Icons.chat_outlined),
                 selectedIcon: Icon(Icons.chat),
-                label: 'Sessions',
+                label: '会话',
               ),
               NavigationDestination(
                 icon: Icon(Icons.folder_outlined),
                 selectedIcon: Icon(Icons.folder),
-                label: 'Workspace',
+                label: '工作区',
               ),
               NavigationDestination(
                 icon: Icon(Icons.terminal_outlined),
                 selectedIcon: Icon(Icons.terminal),
-                label: 'Terminal',
+                label: '终端',
               ),
               NavigationDestination(
                 icon: Icon(Icons.settings_outlined),
                 selectedIcon: Icon(Icons.settings),
-                label: 'Settings',
+                label: '设置',
               ),
             ],
           ),
@@ -1112,7 +1112,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       children: [
                         _QuickActionCard(
                           icon: Icons.folder_outlined,
-                          label: 'Workspace',
+                          label: '工作区',
                           color: const Color(0xFF4A90E2),
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
@@ -1123,7 +1123,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                         const SizedBox(width: 8),
                         _QuickActionCard(
                           icon: Icons.terminal,
-                          label: 'Terminal',
+                          label: '终端',
                           color: const Color(0xFF7CB342),
                           onTap: () {
                             final s = _sessions;
@@ -1141,7 +1141,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                         const SizedBox(width: 8),
                         _QuickActionCard(
                           icon: Icons.extension_outlined,
-                          label: 'Skills',
+                          label: '技能',
                           color: const Color(0xFFFF8A65),
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
@@ -1152,7 +1152,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                         const SizedBox(width: 8),
                         _QuickActionCard(
                           icon: Icons.schedule,
-                          label: 'Schedules',
+                          label: '定时任务',
                           color: const Color(0xFFAB47BC),
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
@@ -1643,14 +1643,14 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                       const SizedBox(height: 12),
                                       const Center(
                                         child: Text(
-                                          'No sessions match filters',
+                                          '没有匹配的会话',
                                         ),
                                       ),
                                       const SizedBox(height: 8),
                                       Text(
                                         _filter == 'archived'
                                             ? 'Nothing archived on this device, or search hides them.'
-                                            : 'Try All filter, clear search, or create a new session.',
+                                            : '请尝试清除筛选条件或创建新会话',
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                           color: Theme.of(
@@ -1666,7 +1666,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                             _query = '';
                                             _searchCtrl.clear();
                                           }),
-                                          child: const Text('Reset filters'),
+                                          child: const Text('重置筛选'),
                                         ),
                                       ),
                                     ],
@@ -1921,7 +1921,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                   ),
                                                   const PopupMenuItem(
                                                     value: 'term',
-                                                    child: Text('Terminal'),
+                                                    child: Text('终端'),
                                                   ),
                                                   const PopupMenuItem(
                                                     value: 'delete',

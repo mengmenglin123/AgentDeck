@@ -1084,7 +1084,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             ],
           ),
           IconButton(
-            tooltip: 'Search chat',
+            tooltip: '搜索对话',
             onPressed: () => setState(() {
               _searchOpen = !_searchOpen;
               if (!_searchOpen) {
@@ -1095,7 +1095,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             icon: Icon(_searchOpen ? Icons.search_off : Icons.search),
           ),
           IconButton(
-            tooltip: 'Permissions',
+            tooltip: '权限',
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => PermissionsScreen(chat: _chat)),
@@ -1250,9 +1250,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   for (final f in const [
                     ('all', 'All'),
                     ('user', 'User'),
-                    ('assistant', 'Assistant'),
-                    ('system', 'System'),
-                    ('tool', 'Tool'),
+                    ('assistant', '助手'),
+                    ('system', '系统'),
+                    ('tool', '工具'),
                     ('permission', 'Permission'),
                   ])
                     Padding(
@@ -1492,7 +1492,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     builder: (context) {
                       final visible = _visibleMessages;
                       if (visible.isEmpty) {
-                        return const Center(child: Text('No messages'));
+                        return const Center(child: Text('暂无消息'));
                       }
                       final hits = _searchHits.toSet();
                       final activeHit = _searchHits.isEmpty
@@ -1531,7 +1531,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                 });
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                      content: Text('Quoted — edit and send'),
+                                      content: Text('已引用 — 编辑后发送'),
                                       duration: Duration(seconds: 1)),
                                 );
                               },
@@ -2058,14 +2058,14 @@ class _MessageBubble extends StatelessWidget {
                 children: [
                   ListTile(
                     leading: const Icon(Icons.copy),
-                    title: const Text('Copy message'),
+                    title: const Text('复制消息'),
                     onTap: () => Navigator.pop(ctx, 'copy'),
                   ),
                   if (onQuote != null &&
                       (message.role == 'user' || message.role == 'assistant'))
                     ListTile(
                       leading: const Icon(Icons.format_quote),
-                      title: const Text('Quote in composer'),
+                      title: const Text('引用到输入框'),
                       onTap: () => Navigator.pop(ctx, 'quote'),
                     ),
                 ],
@@ -2077,7 +2077,7 @@ class _MessageBubble extends StatelessWidget {
             if (context.mounted) {
               ScaffoldMessenger.maybeOf(context)?.showSnackBar(
                 const SnackBar(
-                    content: Text('Message copied'),
+                    content: Text('已复制消息'),
                     duration: Duration(seconds: 1)),
               );
             }
@@ -2130,11 +2130,11 @@ class _MessageBubble extends StatelessWidget {
                   Expanded(
                     child: Text(
                       isUser
-                          ? 'You'
+                          ? '你'
                           : isTool
-                              ? 'Tool'
+                              ? '工具'
                               : isSystem
-                                  ? 'System'
+                                  ? '系统'
                                   : 'Assistant${message.streaming ? ' …' : ''}',
                       style: TextStyle(
                           fontSize: compact ? 10 : 11,

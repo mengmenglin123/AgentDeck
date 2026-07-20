@@ -65,7 +65,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: const Text('设置'),
         actions: [
           IconButton(
             tooltip: 'Jump to top',
@@ -179,9 +179,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          if (_matchPref('Appearance', 'theme contrast text size compact'))
-            Text('Appearance', style: Theme.of(context).textTheme.titleSmall),
-          if (_matchPref('Appearance', 'theme contrast text size compact'))
+          if (_matchPref('外观', 'theme contrast text size compact'))
+            Text('外观', style: Theme.of(context).textTheme.titleSmall),
+          if (_matchPref('外观', 'theme contrast text size compact'))
             const SizedBox(height: 4),
           if (_matchPref('Theme', theme.label))
             ListTile(
@@ -211,10 +211,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 style: const ButtonStyle(visualDensity: VisualDensity.compact),
               ),
             ),
-          if (_matchPref('High contrast', 'borders contrast'))
+          if (_matchPref('高对比度', 'borders contrast'))
             SwitchListTile(
               secondary: const Icon(Icons.contrast),
-              title: const Text('High contrast'),
+              title: const Text('高对比度'),
               subtitle: _sub('Stronger borders and higher contrast surfaces'),
               value: settings.highContrast,
               onChanged: settings.setHighContrast,
