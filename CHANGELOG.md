@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.180
+
+- UI: LiveAgent-style chat interface redesign
+- Message bubbles: clean white cards with soft blue user messages
+- Welcome screen: centered logo + greeting + 3 suggestion cards
+- Input area: rounded container with Chinese placeholder
+- Role icons: person/assistant/tool/system indicators
+
 ## 0.1.179
 
 - Fix: add ConnectionController import to settings_screen

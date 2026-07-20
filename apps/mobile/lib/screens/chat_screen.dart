@@ -1920,6 +1920,14 @@ class _MessageBubble extends StatelessWidget {
     if (!showTools && isTool) {
       return const SizedBox.shrink();
     }
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = isUser
+        ? (isDark ? cs.primaryContainer : const Color(0xFFE3F2FD))
+        : isSystem
+            ? Colors.transparent
+            : isTool
+                ? (isDark ? cs.surfaceContainerHighest : const Color(0xFFF5F5F5))
+                : (isDark ? cs.surfaceContainerHigh : Colors.white);
     final align = isSystem ? Alignment.center : (isUser ? Alignment.centerRight : Alignment.centerLeft);
     final buttons = _buttons;
     final useMd =
