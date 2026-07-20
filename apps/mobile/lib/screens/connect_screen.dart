@@ -616,402 +616,491 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 ],
               ),
             ),
-
-            // ── Feature Cards (Horizontal Scroll) ──
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-              child: Text('功能特色', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFF333333))),
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 110,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  for (final fc in [
-                    (Icons.chat_bubble_outline, '会话管理', const Color(0xFF4A90E2), const Color(0xFFE3F2FD)),
-                    (Icons.terminal, '终端控制', const Color(0xFF7CB342), const Color(0xFFF1F8E9)),
-                    (Icons.extension_outlined, '技能商店', const Color(0xFFAB47BC), const Color(0xFFF3E5F5)),
-                    (Icons.schedule_outlined, '定时任务', const Color(0xFFFF8A65), const Color(0xFFFFF3E0)),
-                    (Icons.device_hub_outlined, 'MCP集成', const Color(0xFF26A69A), const Color(0xFFE0F2F1)),
-                  ])
-                    Container(
-                      width: 100,
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [BoxShadow(color: fc.$3.withOpacity(0.12), blurRadius: 10, offset: const Offset(0, 3))],
-                        border: Border.all(color: fc.$3.withOpacity(0.12)),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(color: fc.$4, borderRadius: BorderRadius.circular(12)),
-                            child: Icon(fc.$1, size: 22, color: fc.$3),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(fc.$2, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: fc.$3.withOpacity(0.85)), textAlign: TextAlign.center),
-                        ],
-                      ),
-                    ),
                 ],
               ),
             ),
+            const SizedBox(height: 20),
 
-            // ── Connection Status Banner ──
+            // ── Feature Cards ──
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text('功能特色', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 100,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  _FeatureCard(icon: Icons.chat_bubble_outline, label: '会话管理', color: const Color(0xFF4A90E2)),
+                  const SizedBox(width: 12),
+                  _FeatureCard(icon: Icons.terminal, label: '终端控制', color: const Color(0xFF7CB342)),
+                  const SizedBox(width: 12),
+                  _FeatureCard(icon: Icons.extension_outlined, label: '技能商店', color: const Color(0xFFFF8A65)),
+                  const SizedBox(width: 12),
+                  _FeatureCard(icon: Icons.schedule, label: '定时任务', color: const Color(0xFFAB47BC)),
+                  const SizedBox(width: 12),
+                  _FeatureCard(icon: Icons.hub_outlined, label: 'MCP 集成', color: const Color(0xFF26A69A)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Connection status
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: _ConnectionStatusBanner(controller: controller, wrapLines: _wrapLines),
             ),
-
-            // ── Saved Profiles Section ──
             if (controller.profiles.isNotEmpty) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(color: const Color(0xFFE3F2FD), borderRadius: BorderRadius.circular(8)),
-                      child: const Icon(Icons.folder_outlined, size: 16, color: Color(0xFF4A90E2)),
-                    ),
-                    const SizedBox(width: 8),
-                    Text('已保存的主机', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFF333333))),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(color: const Color(0xFF4A90E2).withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-                      child: Text('${controller.profiles.length}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF4A90E2))),
-                    ),
-                  ],
-                ),
+              const SizedBox(height: 16),
+              Text(
+                '已保存的主机',
+                style: Theme.of(context).textTheme.titleSmall,
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-                child: Wrap(
-                  spacing: 6,
-                  children: [
-                    for (final f in [('all', '全部', Icons.all_inclusive), ('tls', 'TLS', Icons.lock_outline), ('plain', '明文', Icons.lock_open)])
-                      FilterChip(
-                        avatar: Icon(f.$3, size: 14, color: _tlsFilter == f.$1 ? Colors.white : const Color(0xFF4A90E2)),
-                        label: Text(f.$2, style: const TextStyle(fontSize: 12)),
-                        selected: _tlsFilter == f.$1,
-                        selectedColor: const Color(0xFF4A90E2),
-                        labelStyle: TextStyle(color: _tlsFilter == f.$1 ? Colors.white : null),
-                        onSelected: (_) => setState(() => _tlsFilter = f.$1),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
-                child: Wrap(
-                  spacing: 6,
-                  children: [
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                children: [
+                  for (final f in [
+                    ('all', '全部'),
+                    ('tls', 'TLS'),
+                    ('plain', '明文'),
+                  ])
                     FilterChip(
-                      avatar: const Icon(Icons.wrap_text, size: 14, color: Color(0xFF26A69A)),
-                      label: const Text('换行', style: TextStyle(fontSize: 11)),
-                      selected: _wrapLines,
-                      selectedColor: const Color(0xFF26A69A).withOpacity(0.15),
-                      onSelected: (v) => setState(() => _wrapLines = v),
+                      label: Text(f.$2, style: const TextStyle(fontSize: 12)),
+                      selected: _tlsFilter == f.$1,
+                      onSelected: (_) => setState(() => _tlsFilter = f.$1),
                       visualDensity: VisualDensity.compact,
                     ),
-                    FilterChip(
-                      avatar: const Icon(Icons.code, size: 14, color: Color(0xFFAB47BC)),
-                      label: const Text('正则', style: TextStyle(fontSize: 11)),
-                      selected: _queryRegex,
-                      selectedColor: const Color(0xFFAB47BC).withOpacity(0.15),
-                      onSelected: (v) => setState(() => _queryRegex = v),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    FilterChip(
-                      avatar: const Icon(Icons.text_fields, size: 14, color: Color(0xFFFF8A65)),
-                      label: const Text('大小写', style: TextStyle(fontSize: 11)),
-                      selected: _queryCase,
-                      selectedColor: const Color(0xFFFF8A65).withOpacity(0.15),
-                      onSelected: (v) => setState(() => _queryCase = v),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ],
-                ),
+                ],
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                child: TextField(
-                  controller: _profileFilterCtrl,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    filled: true,
-                    fillColor: const Color(0xFFF5F7FA),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 1.5)),
-                    hintText: _queryRegex
-                        ? (_queryCase ? '搜索配置（正则 · 大小写）' : '搜索配置（正则）')
-                        : (_queryCase ? '搜索配置（区分大小写）' : '搜索配置名称/主机/备注'),
-                    hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF999999)),
-                    prefixIcon: IconButton(
-                      tooltip: _queryRegex
-                          ? (_queryCase ? '正则 · 大小写开（长按：普通搜索）' : '正则 · 大小写关（长按：普通搜索）')
-                          : (_queryCase ? '区分大小写（长按：正则）' : '不区分大小写（长按：正则）'),
-                      icon: Icon(_queryRegex ? Icons.code : (_queryCase ? Icons.text_fields : Icons.search), size: 18, color: const Color(0xFF4A90E2)),
-                      onPressed: () => setState(() => _queryCase = !_queryCase),
-                      onLongPress: () => setState(() => _queryRegex = !_queryRegex),
-                    ),
-                    suffixIcon: _profileQuery.isEmpty
-                        ? null
-                        : IconButton(icon: const Icon(Icons.clear, size: 18), onPressed: () { _profileFilterCtrl.clear(); setState(() => _profileQuery = ''); }),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                children: [
+                  FilterChip(
+                    label: const Text('换行', style: TextStyle(fontSize: 11)),
+                    selected: _wrapLines,
+                    onSelected: (v) => setState(() => _wrapLines = v),
+                    visualDensity: VisualDensity.compact,
                   ),
-                  onChanged: (v) => setState(() => _profileQuery = v),
-                ),
+                  FilterChip(
+                    label: const Text('正则', style: TextStyle(fontSize: 11)),
+                    selected: _queryRegex,
+                    onSelected: (v) => setState(() => _queryRegex = v),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  FilterChip(
+                    label: const Text('大小写', style: TextStyle(fontSize: 11)),
+                    selected: _queryCase,
+                    onSelected: (v) => setState(() => _queryCase = v),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: (List.of(controller.profiles).where((p) {
-                    if (_tlsFilter == 'tls' && !p.config.useTls) return false;
-                    if (_tlsFilter == 'plain' && p.config.useTls) return false;
-                    final rawQ = _profileQuery.trim();
-                    if (rawQ.isEmpty) return true;
-                    final hayRaw = '${p.name} ${p.config.host} ${p.config.bridgePort} ${p.config.mgmtPort} ${p.note ?? ''}';
-                    if (_queryRegex) {
-                      try { return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw); } catch (_) { return false; }
+              const SizedBox(height: 8),
+              TextField(
+                controller: _profileFilterCtrl,
+                decoration: InputDecoration(
+                  isDense: true,
+                  border: const OutlineInputBorder(),
+                  hintText: _queryRegex
+                      ? (_queryCase
+                          ? '搜索配置（正则 · 大小写）'
+                          : '搜索配置（正则）')
+                      : (_queryCase
+                          ? '搜索配置（区分大小写）'
+                          : '搜索配置名称/主机/备注'),
+                  prefixIcon: IconButton(
+                    tooltip: _queryRegex
+                        ? (_queryCase
+                            ? '正则 · 大小写开（长按：普通搜索）'
+                            : '正则 · 大小写关（长按：普通搜索）')
+                        : (_queryCase
+                            ? '区分大小写（长按：正则）'
+                            : '不区分大小写（长按：正则）'),
+                    icon: Icon(
+                      _queryRegex
+                          ? Icons.code
+                          : (_queryCase ? Icons.text_fields : Icons.search),
+                      size: 18,
+                    ),
+                    onPressed: () => setState(() => _queryCase = !_queryCase),
+                    onLongPress: () =>
+                        setState(() => _queryRegex = !_queryRegex),
+                  ),
+                  suffixIcon: _profileQuery.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _profileFilterCtrl.clear();
+                            setState(() => _profileQuery = '');
+                          },
+                        ),
+                ),
+                onChanged: (v) => setState(() => _profileQuery = v),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: (List.of(controller.profiles).where((p) {
+                  if (_tlsFilter == 'tls' && !p.config.useTls) return false;
+                  if (_tlsFilter == 'plain' && p.config.useTls) return false;
+                  final rawQ = _profileQuery.trim();
+                  if (rawQ.isEmpty) return true;
+                  final hayRaw =
+                      '${p.name} ${p.config.host} ${p.config.bridgePort} ${p.config.mgmtPort} ${p.note ?? ''}';
+                  if (_queryRegex) {
+                    try {
+                      return RegExp(
+                        rawQ,
+                        caseSensitive: _queryCase,
+                      ).hasMatch(hayRaw);
+                    } catch (_) {
+                      return false;
                     }
-                    final q = _queryCase ? rawQ : rawQ.toLowerCase();
-                    final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
-                    return hay.contains(q);
-                  }).toList()
-                        ..sort((a, b) {
-                          int c;
-                          if (_sortMode == 'host') {
-                            c = a.config.host.toLowerCase().compareTo(b.config.host.toLowerCase());
-                            if (c == 0) c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                          } else if (_sortMode == 'updated') {
-                            c = a.updatedAt.compareTo(b.updatedAt);
-                            if (c == 0) c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                          } else if (_sortMode == 'port') {
-                            c = a.config.mgmtPort.compareTo(b.config.mgmtPort);
-                            if (c == 0) c = a.config.bridgePort.compareTo(b.config.bridgePort);
-                            if (c == 0) c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                          } else if (_sortMode == 'note') {
-                            c = (a.note ?? '').toLowerCase().compareTo((b.note ?? '').toLowerCase());
-                            if (c == 0) c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                          } else if (_sortMode == 'bridgePort') {
-                            c = a.config.bridgePort.compareTo(b.config.bridgePort);
-                            if (c == 0) c = a.config.mgmtPort.compareTo(b.config.mgmtPort);
-                            if (c == 0) c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                          } else if (_sortMode == 'tls') {
-                            final ta = a.config.useTls ? 1 : 0;
-                            final tb = b.config.useTls ? 1 : 0;
-                            c = ta.compareTo(tb);
-                            if (c == 0) c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                          } else if (_sortMode == 'platform') {
-                            c = a.config.platformName.toLowerCase().compareTo(b.config.platformName.toLowerCase());
-                            if (c == 0) c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                          } else if (_sortMode == 'id') {
-                            c = a.id.toLowerCase().compareTo(b.id.toLowerCase());
-                            if (c == 0) c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                          } else if (_sortMode == 'deviceId') {
-                            c = a.config.deviceId.toLowerCase().compareTo(b.config.deviceId.toLowerCase());
-                            if (c == 0) c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
-                          } else {
-                            c = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+                  }
+                  final q = _queryCase ? rawQ : rawQ.toLowerCase();
+                  final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
+                  return hay.contains(q);
+                }).toList()
+                      ..sort((a, b) {
+                        int c;
+                        if (_sortMode == 'host') {
+                          c = a.config.host.toLowerCase().compareTo(
+                                b.config.host.toLowerCase(),
+                              );
+                          if (c == 0) {
+                            c = a.name.toLowerCase().compareTo(
+                                  b.name.toLowerCase(),
+                                );
                           }
-                          return _sortAsc ? c : -c;
-                        }))
+                        } else if (_sortMode == 'updated') {
+                          c = a.updatedAt.compareTo(b.updatedAt);
+                          if (c == 0) {
+                            c = a.name.toLowerCase().compareTo(
+                                  b.name.toLowerCase(),
+                                );
+                          }
+                        } else if (_sortMode == 'port') {
+                          c = a.config.mgmtPort.compareTo(b.config.mgmtPort);
+                          if (c == 0) {
+                            c = a.config.bridgePort.compareTo(
+                              b.config.bridgePort,
+                            );
+                          }
+                          if (c == 0) {
+                            c = a.name.toLowerCase().compareTo(
+                                  b.name.toLowerCase(),
+                                );
+                          }
+                        } else if (_sortMode == 'note') {
+                          c = (a.note ?? '').toLowerCase().compareTo(
+                                (b.note ?? '').toLowerCase(),
+                              );
+                          if (c == 0) {
+                            c = a.name.toLowerCase().compareTo(
+                                  b.name.toLowerCase(),
+                                );
+                          }
+                        } else if (_sortMode == 'bridgePort') {
+                          c = a.config.bridgePort.compareTo(
+                            b.config.bridgePort,
+                          );
+                          if (c == 0) {
+                            c = a.config.mgmtPort.compareTo(
+                              b.config.mgmtPort,
+                            );
+                          }
+                          if (c == 0) {
+                            c = a.name.toLowerCase().compareTo(
+                                  b.name.toLowerCase(),
+                                );
+                          }
+                        } else if (_sortMode == 'tls') {
+                          final ta = a.config.useTls ? 1 : 0;
+                          final tb = b.config.useTls ? 1 : 0;
+                          c = ta.compareTo(tb);
+                          if (c == 0) {
+                            c = a.name.toLowerCase().compareTo(
+                                  b.name.toLowerCase(),
+                                );
+                          }
+                        } else if (_sortMode == 'platform') {
+                          c = a.config.platformName.toLowerCase().compareTo(
+                                b.config.platformName.toLowerCase(),
+                              );
+                          if (c == 0) {
+                            c = a.name.toLowerCase().compareTo(
+                                  b.name.toLowerCase(),
+                                );
+                          }
+                        } else if (_sortMode == 'id') {
+                          c = a.id.toLowerCase().compareTo(
+                                b.id.toLowerCase(),
+                              );
+                          if (c == 0) {
+                            c = a.name.toLowerCase().compareTo(
+                                  b.name.toLowerCase(),
+                                );
+                          }
+                        } else if (_sortMode == 'deviceId') {
+                          c = a.config.deviceId.toLowerCase().compareTo(
+                                b.config.deviceId.toLowerCase(),
+                              );
+                          if (c == 0) {
+                            c = a.name.toLowerCase().compareTo(
+                                  b.name.toLowerCase(),
+                                );
+                          }
+                        } else {
+                          c = a.name.toLowerCase().compareTo(
+                                b.name.toLowerCase(),
+                              );
+                        }
+                        return _sortAsc ? c : -c;
+                      }))
                     .map((p) {
                   final selected = p.id == controller.activeProfileId;
                   return FilterChip(
-                    avatar: Icon(p.config.useTls ? Icons.lock : Icons.lock_open, size: 14, color: selected ? Colors.white : const Color(0xFF4A90E2)),
-                    label: Text(p.name, maxLines: _wrapLines ? 2 : 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: selected ? Colors.white : null, fontWeight: selected ? FontWeight.w600 : null)),
+                    label: Text(
+                      p.name,
+                      maxLines: _wrapLines ? 2 : 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     selected: selected,
-                    selectedColor: const Color(0xFF4A90E2),
-                    onSelected: busy ? null : (_) async { await controller.selectProfile(p.id); _syncControllersFrom(controller); setState(() {}); },
+                    onSelected: busy
+                        ? null
+                        : (_) async {
+                            await controller.selectProfile(p.id);
+                            _syncControllersFrom(controller);
+                            setState(() {});
+                          },
                   );
                 }).toList(),
               ),
             ],
-
-            const SizedBox(height: 20),
-
-            // ── Connection Form (Bottom Sheet Style) ──
+            const SizedBox(height: 16),
             Container(
-              width: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: const BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 20, offset: const Offset(0, -4))],
+                color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(16),
               ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF4A90E2), Color(0xFF357ABD)]), borderRadius: BorderRadius.circular(10)),
-                        child: const Icon(Icons.settings_outlined, size: 18, color: Colors.white),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _name,
+                    decoration: InputDecoration(
+                      labelText: '配置名称',
+                      hintText: '家庭 / 公司 / 测试',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      const SizedBox(width: 10),
-                      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        const Text('服务器配置', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF333333))),
-                        Text('填写连接信息以建立安全通道', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
-                      ]),
-                    ]),
-                    const SizedBox(height: 20),
-
-                    // 配置名称
-                    Row(children: const [Icon(Icons.badge_outlined, size: 14, color: Color(0xFF4A90E2)), SizedBox(width: 6), Text('配置名称', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF555555)))]),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: _name,
-                      decoration: InputDecoration(hintText: '家庭 / 公司 / 测试', hintStyle: const TextStyle(color: Color(0xFFBBBBBB)), filled: true, fillColor: const Color(0xFFF5F7FA), border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade200)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 1.5)), prefixIcon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF999999))),
-                      enabled: !busy,
-                      onChanged: controller.updateDraftProfileName,
                     ),
-                    const SizedBox(height: 16),
-
-                    // 主机地址
-                    Row(children: const [Icon(Icons.dns_outlined, size: 14, color: Color(0xFF4A90E2)), SizedBox(width: 6), Text('主机地址', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF555555)))]),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: _host,
-                      decoration: InputDecoration(hintText: '127.0.0.1 或 your.domain', hintStyle: const TextStyle(color: Color(0xFFBBBBBB)), filled: true, fillColor: const Color(0xFFF5F7FA), border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade200)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 1.5)), prefixIcon: const Icon(Icons.language, size: 18, color: Color(0xFF999999))),
-                      textInputAction: TextInputAction.next,
-                      enabled: !busy,
-                      onChanged: (_) => setState(() {}),
+                    enabled: !busy,
+                    onChanged: controller.updateDraftProfileName,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _host,
+                    decoration: InputDecoration(
+                      labelText: '主机地址',
+                      hintText: '127.0.0.1 或 your.domain',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
-                    const SizedBox(height: 16),
-
-                    // 端口配置
-                    Row(children: const [Icon(Icons.cable, size: 14, color: Color(0xFF4A90E2)), SizedBox(width: 6), Text('端口配置', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF555555)))]),
-                    const SizedBox(height: 6),
-                    Row(children: [
-                      Expanded(child: TextField(controller: _bridgePort, decoration: InputDecoration(labelText: '桥接端口', labelStyle: const TextStyle(fontSize: 12), filled: true, fillColor: const Color(0xFFF5F7FA), border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade200)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 1.5)), prefixIcon: const Icon(Icons.swap_horiz, size: 18, color: Color(0xFF999999))), keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly], enabled: !busy)),
+                    textInputAction: TextInputAction.next,
+                    enabled: !busy,
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _bridgePort,
+                          decoration: InputDecoration(
+                            labelText: '桥接端口',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          enabled: !busy,
+                        ),
+                      ),
                       const SizedBox(width: 12),
-                      Expanded(child: TextField(controller: _mgmtPort, decoration: InputDecoration(labelText: '管理端口', labelStyle: const TextStyle(fontSize: 12), filled: true, fillColor: const Color(0xFFF5F7FA), border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade200)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 1.5)), prefixIcon: const Icon(Icons.admin_panel_settings_outlined, size: 18, color: Color(0xFF999999))), keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly], enabled: !busy)),
-                    ]),
-                    const SizedBox(height: 12),
-
-                    // TLS toggle
-                    Container(
-                      decoration: BoxDecoration(color: _useTls ? const Color(0xFFE8F5E9) : const Color(0xFFF5F7FA), borderRadius: BorderRadius.circular(14), border: Border.all(color: _useTls ? const Color(0xFF7CB342).withOpacity(0.3) : Colors.grey.shade200)),
-                      child: SwitchListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                        title: Row(children: [Icon(_useTls ? Icons.lock : Icons.lock_open, size: 18, color: _useTls ? const Color(0xFF7CB342) : Colors.grey.shade500), const SizedBox(width: 8), const Text('使用 TLS', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14))]),
-                        subtitle: const Text('wss / https · 公网环境推荐使用', style: TextStyle(fontSize: 11)),
-                        value: _useTls,
-                        activeColor: const Color(0xFF7CB342),
-                        onChanged: busy ? null : (v) { setState(() => _useTls = v); },
-                      ),
-                    ),
-                    if (warnTls) ...[
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(color: const Color(0xFFFFF3E0), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFFF8A65).withOpacity(0.3))),
-                        child: Row(children: const [Icon(Icons.warning_amber, color: Color(0xFFFF8A65), size: 20), SizedBox(width: 10), Expanded(child: Text('明文连接到非本地主机 · 流量未加密，建议使用 TLS', style: TextStyle(fontSize: 12, color: Color(0xFF795548))))]),
+                      Expanded(
+                        child: TextField(
+                          controller: _mgmtPort,
+                          decoration: InputDecoration(
+                            labelText: '管理端口',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          enabled: !busy,
+                        ),
                       ),
                     ],
-                    const SizedBox(height: 16),
-
-                    // 桥接令牌
-                    Row(children: const [Icon(Icons.vpn_key_outlined, size: 14, color: Color(0xFF4A90E2)), SizedBox(width: 6), Text('桥接令牌', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF555555)))]),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: _bridgeToken,
-                      obscureText: _obscureBridge,
-                      decoration: InputDecoration(hintText: '输入桥接令牌', hintStyle: const TextStyle(color: Color(0xFFBBBBBB)), filled: true, fillColor: const Color(0xFFF5F7FA), border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade200)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 1.5)), prefixIcon: const Icon(Icons.key, size: 18, color: Color(0xFF999999)), suffixIcon: IconButton(icon: Icon(_obscureBridge ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: const Color(0xFF4A90E2)), onPressed: () => setState(() => _obscureBridge = !_obscureBridge))),
-                      enabled: !busy,
+                  ),
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('使用 TLS (wss / https)'),
+                    subtitle: const Text('公网环境推荐使用'),
+                    value: _useTls,
+                    onChanged: busy
+                        ? null
+                        : (v) {
+                            setState(() => _useTls = v);
+                          },
+                  ),
+                  if (warnTls)
+                    Card(
+                      color: Colors.orange.shade50,
+                      child: const ListTile(
+                        leading: Icon(Icons.warning_amber, color: Colors.orange),
+                        title: Text('明文连接到非本地主机'),
+                        subtitle: Text(
+                          '流量未加密。建议使用 TLS 反向代理，或在服务器上启用 TLS。令牌仍保存在本地。',
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 16),
-
-                    // 管理令牌
-                    Row(children: const [Icon(Icons.admin_panel_settings_outlined, size: 14, color: Color(0xFF4A90E2)), SizedBox(width: 6), Text('管理令牌', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF555555)))]),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: _mgmtToken,
-                      obscureText: _obscureMgmt,
-                      decoration: InputDecoration(hintText: '输入管理令牌', hintStyle: const TextStyle(color: Color(0xFFBBBBBB)), filled: true, fillColor: const Color(0xFFF5F7FA), border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade200)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 1.5)), prefixIcon: const Icon(Icons.shield_outlined, size: 18, color: Color(0xFF999999)), suffixIcon: IconButton(icon: Icon(_obscureMgmt ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: const Color(0xFF4A90E2)), onPressed: () => setState(() => _obscureMgmt = !_obscureMgmt))),
-                      enabled: !busy,
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _bridgeToken,
+                    obscureText: _obscureBridge,
+                    decoration: InputDecoration(
+                      labelText: '桥接令牌',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureBridge ? Icons.visibility : Icons.visibility_off,
+                        ),
+                        onPressed: () =>
+                            setState(() => _obscureBridge = !_obscureBridge),
+                      ),
                     ),
-                  ],
+                    enabled: !busy,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _mgmtToken,
+                    obscureText: _obscureMgmt,
+                    decoration: InputDecoration(
+                      labelText: '管理令牌',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureMgmt ? Icons.visibility : Icons.visibility_off,
+                        ),
+                        onPressed: () => setState(() => _obscureMgmt = !_obscureMgmt),
+                      ),
+                    ),
+                    enabled: !busy,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: FilledButton.icon(
+                  onPressed: busy ? null : _onConnect,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                  ),
+                  icon: busy
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.link),
+                  label: Text(
+                    busy ? '连接中…' : '测试并连接',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
             ),
-
-            // ── Connect Button & Actions ──
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-              child: Column(children: [
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF4A90E2), Color(0xFF357ABD)]), borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: const Color(0xFF4A90E2).withOpacity(0.35), blurRadius: 12, offset: const Offset(0, 4))]),
-                    child: FilledButton.icon(
-                      onPressed: busy ? null : _onConnect,
-                      style: FilledButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                      icon: busy ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.link, size: 20),
-                      label: Text(busy ? '连接中…' : '测试并连接', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
-                    ),
-                  ),
-                ),
-                if (controller.profiles.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  TextButton.icon(
-                    onPressed: busy ? null : () async {
-                      final ok = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          title: const Text('删除此配置？'),
-                          content: const Text('此配置的令牌将从设备中移除。'),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
-                            FilledButton(style: FilledButton.styleFrom(backgroundColor: Colors.red.shade600), onPressed: () => Navigator.pop(ctx, true), child: const Text('删除')),
-                          ],
-                        ),
-                      );
-                      if (ok == true && context.mounted) { await controller.deleteActiveProfile(); _syncControllersFrom(controller); setState(() {}); }
-                    },
-                    icon: Icon(Icons.delete_outline, color: Colors.red.shade400),
-                    label: Text('删除配置', style: TextStyle(color: Colors.red.shade400)),
-                  ),
-                ],
-              ]),
-            ),
-
-            // ── Security Note ──
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(color: const Color(0xFFF5F7FA), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.info_outline, size: 16, color: Color(0xFF26A69A)),
-                    const SizedBox(width: 10),
-                    Expanded(child: Text('参见 docs/guides/connect-real-host.md — 仅在 App 中填写令牌；不要更改 Host 频道/提供商配置。密钥保存在安全存储中。', style: TextStyle(fontSize: 11, color: Colors.grey.shade600, height: 1.5))),
-                  ],
-                ),
+            if (controller.profiles.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: busy
+                    ? null
+                    : () async {
+                        final ok = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('删除此配置？'),
+                            content: const Text(
+                              '此配置的令牌将从设备中移除。',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('取消'),
+                              ),
+                              FilledButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text('删除'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (ok == true && context.mounted) {
+                          await controller.deleteActiveProfile();
+                          _syncControllersFrom(controller);
+                          setState(() {});
+                        }
+                      },
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('删除配置'),
+              ),
+            ],
+            const SizedBox(height: 16),
+            Text(
+              '参见 docs/guides/connect-real-host.md — 仅在 App 中填写令牌；'
+              '不要更改 Host 频道/提供商配置。',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.grey.shade500,
               ),
             ),
           ],
         ),
       ),
     );
-
+  }
+}
 
 class _ConnectionStatusBanner extends StatelessWidget {
   const _ConnectionStatusBanner(
@@ -1079,6 +1168,61 @@ class _ConnectionStatusBanner extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           softWrap: true,
         ),
+      ),
+    );
+  }
+}
+
+class _FeatureCard extends StatelessWidget {
+  const _FeatureCard({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 90,
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 22, color: color),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
