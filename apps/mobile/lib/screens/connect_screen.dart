@@ -574,7 +574,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
             // ── Hero Section with Gradient Background ──
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
+              padding: const EdgeInsets.fromLTRB(24, 36, 24, 32),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Color(0xFF4A90E2), Color(0xFF357ABD), Color(0xFF2A5F9E)],
@@ -593,38 +593,61 @@ class _ConnectScreenState extends State<ConnectScreen> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: Colors.white.withOpacity(0.15),
-                      boxShadow: [BoxShadow(color: const Color(0xFF4A90E2).withOpacity(0.4), blurRadius: 30, spreadRadius: 5)],
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF4A90E2).withOpacity(0.4),
+                          blurRadius: 30,
+                          spreadRadius: 5,
+                        ),
+                      ],
                     ),
                     child: Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.2)),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.2),
+                      ),
                       child: const Icon(Icons.hub_outlined, size: 48, color: Colors.white),
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Text('HuanHermes', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5)),
+                  const Text(
+                    'HuanHermes',
+                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5),
+                  ),
                   const SizedBox(height: 8),
-                  Text('连接到服务器', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white.withOpacity(0.9))),
+                  Text(
+                    '连接到服务器',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white.withOpacity(0.9)),
+                  ),
                   const SizedBox(height: 6),
-                  Text('输入服务器信息以开始使用', style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.7))),
-                  const SizedBox(height: 8),
+                  Text(
+                    '输入服务器信息以开始使用',
+                    style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.7)),
+                  ),
+                  const SizedBox(height: 10),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
-                    child: Text('纯控制台工具 · 代理运行在服务器上', style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.85))),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '纯控制台工具 · 代理运行在服务器上',
+                      style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.85)),
+                    ),
                   ),
                 ],
               ),
             ),
-                ],
-              ),
-            ),
             const SizedBox(height: 20),
-
             // ── Feature Cards ──
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text('功能特色', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade800)),
+              child: Text(
+                '功能特色',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade800),
+              ),
             ),
             const SizedBox(height: 12),
             SizedBox(
@@ -632,26 +655,29 @@ class _ConnectScreenState extends State<ConnectScreen> {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                children: [
-                  _FeatureCard(icon: Icons.chat_bubble_outline, label: '会话管理', color: const Color(0xFF4A90E2)),
-                  const SizedBox(width: 12),
-                  _FeatureCard(icon: Icons.terminal, label: '终端控制', color: const Color(0xFF7CB342)),
-                  const SizedBox(width: 12),
-                  _FeatureCard(icon: Icons.extension_outlined, label: '技能商店', color: const Color(0xFFFF8A65)),
-                  const SizedBox(width: 12),
-                  _FeatureCard(icon: Icons.schedule, label: '定时任务', color: const Color(0xFFAB47BC)),
-                  const SizedBox(width: 12),
-                  _FeatureCard(icon: Icons.hub_outlined, label: 'MCP 集成', color: const Color(0xFF26A69A)),
+                children: const [
+                  _FeatureCard(icon: Icons.chat_bubble_outline, label: '会话管理', color: Color(0xFF4A90E2)),
+                  SizedBox(width: 12),
+                  _FeatureCard(icon: Icons.terminal, label: '终端控制', color: Color(0xFF7CB342)),
+                  SizedBox(width: 12),
+                  _FeatureCard(icon: Icons.extension_outlined, label: '技能商店', color: Color(0xFFFF8A65)),
+                  SizedBox(width: 12),
+                  _FeatureCard(icon: Icons.schedule, label: '定时任务', color: Color(0xFFAB47BC)),
+                  SizedBox(width: 12),
+                  _FeatureCard(icon: Icons.hub_outlined, label: 'MCP 集成', color: Color(0xFF26A69A)),
                 ],
               ),
             ),
             const SizedBox(height: 20),
-
-            // Connection status
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _ConnectionStatusBanner(controller: controller, wrapLines: _wrapLines),
+            Text(
+              'HuanHermes 是一个纯控制台工具 — 代理运行在服务器上。密钥保存在安全存储中。',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.grey.shade600,
+              ),
             ),
+            const SizedBox(height: 12),
+            _ConnectionStatusBanner(
+                controller: controller, wrapLines: _wrapLines),
             if (controller.profiles.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text(
