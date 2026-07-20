@@ -111,7 +111,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
     if (!mounted) return;
     if (!ok) {
       final err = Security.redactText(
-        controller.lastError ?? 'Connection failed',
+        controller.lastError ?? '连接失败',
       );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(err), backgroundColor: Colors.red.shade700),
@@ -136,12 +136,12 @@ class _ConnectScreenState extends State<ConnectScreen> {
     final pasted = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Import pairing URI'),
+        title: const Text('导入配对 URI'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              'Paste public URI or scan QR code. Clipboard prefill when available.',
+              '粘贴公开 URI 或扫描二维码。可用时自动预填剪贴板。',
               style: TextStyle(fontSize: 12),
             ),
             const SizedBox(height: 8),
@@ -174,12 +174,12 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   setState(() {});
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('QR code imported successfully'),
+                      content: Text('二维码导入成功'),
                     ),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Could not parse QR code')),
+                    const SnackBar(content: Text('无法解析二维码')),
                   );
                 }
               }
@@ -187,7 +187,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
               return;
             },
             icon: const Icon(Icons.qr_code_scanner),
-            label: const Text('Scan QR'),
+            label: const Text('扫描二维码'),
           ),
           TextButton(
             onPressed: () async {
@@ -197,15 +197,15 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 if (t.isNotEmpty) ctrl.text = t;
               } catch (_) {}
             },
-            child: const Text('Paste clipboard'),
+            child: const Text('粘贴剪贴板'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: const Text('取消'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-            child: const Text('Apply'),
+            child: const Text('应用'),
           ),
         ],
       ),
@@ -215,7 +215,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
     final overlay = ConnectionConfig.tryParsePairingUri(pasted);
     if (overlay == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not parse pairing URI')),
+        const SnackBar(content: Text('无法解析配对 URI')),
       );
       return;
     }
@@ -229,8 +229,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
       SnackBar(
         content: Text(
           overlay.hasTokens
-              ? 'Host fields + tokens imported (review before connect)'
-              : 'Host fields filled — still enter tokens, then Test & connect',
+              ? '主机字段 + 令牌已导入（连接前请检查）'
+              : '主机字段已填写 — 请继续输入令牌，然后测试并连接',
         ),
       ),
     );
@@ -244,7 +244,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
       MaterialPageRoute(
         builder: (ctx) => Scaffold(
           appBar: AppBar(
-            title: const Text('Scan QR Code'),
+            title: const Text('扫描二维码'),
             actions: [
               IconButton(
                 icon: const Icon(Icons.close),
@@ -279,17 +279,17 @@ class _ConnectScreenState extends State<ConnectScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Connect to Host'),
+        title: const Text('连接服务器'),
         actions: [
           IconButton(
-            tooltip: 'Copy public',
+            tooltip: '复制公开信息',
             onPressed: () async {
               final host = _host.text.trim();
               if (host.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Enter host first'),
-                    duration: Duration(seconds: 1),
+                  SnackBar(
+                    content: const Text('请先输入主机地址'),
+                    duration: const Duration(seconds: 1),
                   ),
                 );
                 return;
@@ -309,8 +309,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
               );
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Public summary copied (no tokens)'),
+                SnackBar(
+                  content: const Text('已复制公开摘要（不含令牌）'),
                   duration: Duration(seconds: 1),
                 ),
               );
@@ -318,14 +318,14 @@ class _ConnectScreenState extends State<ConnectScreen> {
             icon: const Icon(Icons.ios_share_outlined),
           ),
           IconButton(
-            tooltip: 'Copy fingerprint hex',
+            tooltip: '复制指纹',
             onPressed: () async {
               final host = _host.text.trim();
               if (host.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Enter host first'),
-                    duration: Duration(seconds: 1),
+                  SnackBar(
+                    content: const Text('请先输入主机地址'),
+                    duration: const Duration(seconds: 1),
                   ),
                 );
                 return;
@@ -342,7 +342,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Fingerprint $hex'),
+                  content: Text('指纹 $hex'),
                   duration: const Duration(seconds: 1),
                 ),
               );
@@ -350,7 +350,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
             icon: const Icon(Icons.fingerprint),
           ),
           IconButton(
-            tooltip: 'Copy profiles (no tokens)',
+            tooltip: '复制配置（不含令牌）',
             onPressed: controller.profiles.isEmpty
                 ? null
                 : () async {
@@ -367,7 +367,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Copied ${list.length} public profile(s)',
+                            '已复制 ${list.length} 个公开配置',
                           ),
                           duration: const Duration(seconds: 1),
                         ),
@@ -377,7 +377,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
             icon: const Icon(Icons.ios_share_outlined),
           ),
           IconButton(
-            tooltip: 'Copy profiles CSV',
+            tooltip: '复制配置 CSV',
             onPressed: controller.profiles.isEmpty
                 ? null
                 : () async {
@@ -401,7 +401,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Copied profiles CSV (${controller.profiles.length})',
+                            '已复制配置 CSV (${controller.profiles.length})',
                           ),
                           duration: const Duration(seconds: 1),
                         ),
@@ -411,40 +411,40 @@ class _ConnectScreenState extends State<ConnectScreen> {
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
-            tooltip: _wrapLines ? 'Clamp health text' : 'Wrap health text',
+            tooltip: _wrapLines ? '截断健康文本' : '换行显示健康文本',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
           IconButton(
             tooltip: _sortMode == 'deviceId'
-                ? (_sortAsc ? 'Device id Z→A' : 'Device id A→Z')
+                ? (_sortAsc ? '设备ID Z→A' : '设备ID A→Z')
                 : (_sortMode == 'id'
-                    ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                    ? (_sortAsc ? 'ID Z→A' : 'ID A→Z')
                     : (_sortMode == 'platform'
-                        ? (_sortAsc ? 'Platform Z→A' : 'Platform A→Z')
+                        ? (_sortAsc ? '平台 Z→A' : '平台 A→Z')
                         : (_sortMode == 'tls'
-                            ? (_sortAsc ? 'TLS first' : 'Plain first')
+                            ? (_sortAsc ? 'TLS优先' : '明文优先')
                             : (_sortMode == 'bridgePort'
                                 ? (_sortAsc
-                                    ? 'Bridge port high→low'
-                                    : 'Bridge port low→high')
+                                    ? '桥接端口 高→低'
+                                    : '桥接端口 低→高')
                                 : (_sortMode == 'note'
-                                    ? (_sortAsc ? 'Note Z→A' : 'Note A→Z')
+                                    ? (_sortAsc ? '备注 Z→A' : '备注 A→Z')
                                     : (_sortMode == 'port'
                                         ? (_sortAsc
-                                            ? 'Mgmt port high→low'
-                                            : 'Mgmt port low→high')
+                                            ? '管理端口 高→低'
+                                            : '管理端口 低→高')
                                         : (_sortMode == 'host'
                                             ? (_sortAsc
-                                                ? 'Host Z→A'
-                                                : 'Host A→Z')
+                                                ? '主机 Z→A'
+                                                : '主机 A→Z')
                                             : (_sortMode == 'updated'
                                                 ? (_sortAsc
-                                                    ? 'Updated new→old'
-                                                    : 'Updated old→new')
+                                                    ? '更新 新→旧'
+                                                    : '更新 旧→新')
                                                 : (_sortAsc
-                                                    ? 'Name Z→A'
-                                                    : 'Name A→Z'))))))))),
+                                                    ? '名称 Z→A'
+                                                    : '名称 A→Z'))))))))),
             onPressed: () {
               setState(() {
                 if (_sortMode == 'name' && _sortAsc) {
@@ -525,7 +525,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
             ),
           ),
           IconButton(
-            tooltip: 'Jump to top',
+            tooltip: '回到顶部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -537,7 +537,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
             icon: const Icon(Icons.vertical_align_top),
           ),
           IconButton(
-            tooltip: 'Jump to end',
+            tooltip: '跳到底部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -549,12 +549,12 @@ class _ConnectScreenState extends State<ConnectScreen> {
             icon: const Icon(Icons.vertical_align_bottom),
           ),
           IconButton(
-            tooltip: 'Import pairing URI',
+            tooltip: '导入配对 URI',
             onPressed: busy ? null : _importPairing,
             icon: const Icon(Icons.qr_code_scanner),
           ),
           IconButton(
-            tooltip: 'New profile',
+            tooltip: '新建配置',
             onPressed: busy
                 ? null
                 : () async {
@@ -571,10 +571,60 @@ class _ConnectScreenState extends State<ConnectScreen> {
           controller: _scroll,
           padding: const EdgeInsets.all(20),
           children: [
+            // Welcome header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                    Theme.of(context).colorScheme.primary.withOpacity(0.02),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [
+                          Theme.of(context).colorScheme.primary,
+                          Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                        ],
+                      ),
+                    ),
+                    child: const Icon(Icons.dns_outlined, size: 48, color: Colors.white),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    '连接到服务器',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '输入服务器信息以开始使用',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
             Text(
-              'HuanHermes is a console only — agents run on your server. '
-              'Tokens stay in secure storage. Do not paste secrets into git.',
-              style: Theme.of(context).textTheme.bodyMedium,
+              'HuanHermes 是一个纯控制台工具 — 代理运行在服务器上。密钥保存在安全存储中。',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.grey.shade600,
+              ),
             ),
             const SizedBox(height: 12),
             _ConnectionStatusBanner(
@@ -582,7 +632,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
             if (controller.profiles.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text(
-                'Saved hosts',
+                '已保存的主机',
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               const SizedBox(height: 8),
@@ -590,9 +640,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 spacing: 6,
                 children: [
                   for (final f in [
-                    ('all', 'All TLS'),
+                    ('all', '全部'),
                     ('tls', 'TLS'),
-                    ('plain', 'Plain'),
+                    ('plain', '明文'),
                   ])
                     FilterChip(
                       label: Text(f.$2, style: const TextStyle(fontSize: 12)),
@@ -607,19 +657,19 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 spacing: 6,
                 children: [
                   FilterChip(
-                    label: const Text('Wrap', style: TextStyle(fontSize: 11)),
+                    label: const Text('换行', style: TextStyle(fontSize: 11)),
                     selected: _wrapLines,
                     onSelected: (v) => setState(() => _wrapLines = v),
                     visualDensity: VisualDensity.compact,
                   ),
                   FilterChip(
-                    label: const Text('Regex', style: TextStyle(fontSize: 11)),
+                    label: const Text('正则', style: TextStyle(fontSize: 11)),
                     selected: _queryRegex,
                     onSelected: (v) => setState(() => _queryRegex = v),
                     visualDensity: VisualDensity.compact,
                   ),
                   FilterChip(
-                    label: const Text('Case', style: TextStyle(fontSize: 11)),
+                    label: const Text('大小写', style: TextStyle(fontSize: 11)),
                     selected: _queryCase,
                     onSelected: (v) => setState(() => _queryCase = v),
                     visualDensity: VisualDensity.compact,
@@ -634,19 +684,19 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   border: const OutlineInputBorder(),
                   hintText: _queryRegex
                       ? (_queryCase
-                          ? 'Filter profiles (regex · case)'
-                          : 'Filter profiles (regex)')
+                          ? '搜索配置（正则 · 大小写）'
+                          : '搜索配置（正则）')
                       : (_queryCase
-                          ? 'Filter profiles (case-sensitive)'
-                          : 'Filter profiles name/host/note'),
+                          ? '搜索配置（区分大小写）'
+                          : '搜索配置名称/主机/备注'),
                   prefixIcon: IconButton(
                     tooltip: _queryRegex
                         ? (_queryCase
-                            ? 'Regex · case on (long-press: plain filter)'
-                            : 'Regex · case off (long-press: plain filter)')
+                            ? '正则 · 大小写开（长按：普通搜索）'
+                            : '正则 · 大小写关（长按：普通搜索）')
                         : (_queryCase
-                            ? 'Case-sensitive (long-press: regex)'
-                            : 'Case-insensitive (long-press: regex)'),
+                            ? '区分大小写（长按：正则）'
+                            : '不区分大小写（长按：正则）'),
                     icon: Icon(
                       _queryRegex
                           ? Icons.code
@@ -811,116 +861,173 @@ class _ConnectScreenState extends State<ConnectScreen> {
               ),
             ],
             const SizedBox(height: 16),
-            TextField(
-              controller: _name,
-              decoration: const InputDecoration(
-                labelText: 'Profile name',
-                hintText: 'Home / Work / Mock',
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(16),
               ),
-              enabled: !busy,
-              onChanged: controller.updateDraftProfileName,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _host,
-              decoration: const InputDecoration(
-                labelText: 'Host',
-                hintText: '127.0.0.1 or your.domain',
-              ),
-              textInputAction: TextInputAction.next,
-              enabled: !busy,
-              onChanged: (_) => setState(() {}),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _bridgePort,
-                    decoration: const InputDecoration(labelText: 'Bridge port'),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _name,
+                    decoration: InputDecoration(
+                      labelText: '配置名称',
+                      hintText: '家庭 / 公司 / 测试',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    enabled: !busy,
+                    onChanged: controller.updateDraftProfileName,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _host,
+                    decoration: InputDecoration(
+                      labelText: '主机地址',
+                      hintText: '127.0.0.1 或 your.domain',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    textInputAction: TextInputAction.next,
+                    enabled: !busy,
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _bridgePort,
+                          decoration: InputDecoration(
+                            labelText: '桥接端口',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          enabled: !busy,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _mgmtPort,
+                          decoration: InputDecoration(
+                            labelText: '管理端口',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          enabled: !busy,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('使用 TLS (wss / https)'),
+                    subtitle: const Text('公网环境推荐使用'),
+                    value: _useTls,
+                    onChanged: busy
+                        ? null
+                        : (v) {
+                            setState(() => _useTls = v);
+                          },
+                  ),
+                  if (warnTls)
+                    Card(
+                      color: Colors.orange.shade50,
+                      child: const ListTile(
+                        leading: Icon(Icons.warning_amber, color: Colors.orange),
+                        title: Text('明文连接到非本地主机'),
+                        subtitle: Text(
+                          '流量未加密。建议使用 TLS 反向代理，或在服务器上启用 TLS。令牌仍保存在本地。',
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _bridgeToken,
+                    obscureText: _obscureBridge,
+                    decoration: InputDecoration(
+                      labelText: '桥接令牌',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureBridge ? Icons.visibility : Icons.visibility_off,
+                        ),
+                        onPressed: () =>
+                            setState(() => _obscureBridge = !_obscureBridge),
+                      ),
+                    ),
                     enabled: !busy,
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _mgmtPort,
-                    decoration: const InputDecoration(labelText: 'Mgmt port'),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _mgmtToken,
+                    obscureText: _obscureMgmt,
+                    decoration: InputDecoration(
+                      labelText: '管理令牌',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureMgmt ? Icons.visibility : Icons.visibility_off,
+                        ),
+                        onPressed: () => setState(() => _obscureMgmt = !_obscureMgmt),
+                      ),
+                    ),
                     enabled: !busy,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Use TLS (wss / https)'),
-              subtitle: const Text('Recommended for public networks'),
-              value: _useTls,
-              onChanged: busy
-                  ? null
-                  : (v) {
-                      setState(() => _useTls = v);
-                    },
-            ),
-            if (warnTls)
-              Card(
-                color: Colors.orange.shade50,
-                child: const ListTile(
-                  leading: Icon(Icons.warning_amber, color: Colors.orange),
-                  title: Text('Plaintext to non-local host'),
-                  subtitle: Text(
-                    'Traffic is not encrypted. Prefer a TLS reverse proxy, '
-                    'or enable TLS on your Host. Tokens still stay on device.',
-                  ),
-                ),
+                ],
               ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _bridgeToken,
-              obscureText: _obscureBridge,
-              decoration: InputDecoration(
-                labelText: 'Bridge token',
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscureBridge ? Icons.visibility : Icons.visibility_off,
-                  ),
-                  onPressed: () =>
-                      setState(() => _obscureBridge = !_obscureBridge),
-                ),
-              ),
-              enabled: !busy,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _mgmtToken,
-              obscureText: _obscureMgmt,
-              decoration: InputDecoration(
-                labelText: 'Management token',
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscureMgmt ? Icons.visibility : Icons.visibility_off,
-                  ),
-                  onPressed: () => setState(() => _obscureMgmt = !_obscureMgmt),
-                ),
-              ),
-              enabled: !busy,
             ),
             const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: busy ? null : _onConnect,
-              icon: busy
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.link),
-              label: Text(busy ? 'Connecting…' : 'Test & connect'),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: FilledButton.icon(
+                  onPressed: busy ? null : _onConnect,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                  ),
+                  icon: busy
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.link),
+                  label: Text(
+                    busy ? '连接中…' : '测试并连接',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
             ),
             if (controller.profiles.isNotEmpty) ...[
               const SizedBox(height: 8),
@@ -931,18 +1038,18 @@ class _ConnectScreenState extends State<ConnectScreen> {
                         final ok = await showDialog<bool>(
                           context: context,
                           builder: (ctx) => AlertDialog(
-                            title: const Text('Delete this profile?'),
+                            title: const Text('删除此配置？'),
                             content: const Text(
-                              'Tokens for this profile will be removed from the device.',
+                              '此配置的令牌将从设备中移除。',
                             ),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(ctx, false),
-                                child: const Text('Cancel'),
+                                child: const Text('取消'),
                               ),
                               FilledButton(
                                 onPressed: () => Navigator.pop(ctx, true),
-                                child: const Text('Delete'),
+                                child: const Text('删除'),
                               ),
                             ],
                           ),
@@ -954,14 +1061,16 @@ class _ConnectScreenState extends State<ConnectScreen> {
                         }
                       },
                 icon: const Icon(Icons.delete_outline),
-                label: const Text('Delete profile'),
+                label: const Text('删除配置'),
               ),
             ],
             const SizedBox(height: 16),
             Text(
-              'See docs/guides/connect-real-host.md — fill tokens in the App only; '
-              'do not change Host channel/provider config for this App.',
-              style: Theme.of(context).textTheme.bodySmall,
+              '参见 docs/guides/connect-real-host.md — 仅在 App 中填写令牌；'
+              '不要更改 Host 频道/提供商配置。',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.grey.shade500,
+              ),
             ),
           ],
         ),
@@ -990,32 +1099,32 @@ class _ConnectionStatusBanner extends StatelessWidget {
         if (controller.healthDegraded) {
           color = Colors.orange;
           icon = Icons.warning_amber_rounded;
-          title = 'Connected · health degraded';
-          subtitle = controller.lastHealthError ?? 'Last /status probe failed';
+          title = '已连接 · 健康状态异常';
+          subtitle = controller.lastHealthError ?? '上次 /status 探测失败';
         } else {
           color = Colors.green;
           icon = Icons.check_circle_outline;
-          title = 'Connected · ready';
+          title = '已连接 · 就绪';
           final ok = controller.lastHealthOkAt;
           subtitle = ok == null
-              ? 'Host profile active'
-              : 'Last health OK ${ok.toLocal().toIso8601String().substring(11, 19)}';
+              ? '主机配置已激活'
+              : '上次健康检查正常 ${ok.toLocal().toIso8601String().substring(11, 19)}';
         }
       case ConnectionPhase.testing:
         color = Colors.amber.shade800;
         icon = Icons.hourglass_top;
-        title = 'Testing connection…';
-        subtitle = 'Probing management + bridge';
+        title = '正在测试连接…';
+        subtitle = '正在探测管理端口和桥接端口';
       case ConnectionPhase.error:
         color = cs.error;
         icon = Icons.error_outline;
-        title = 'Connection error';
-        subtitle = controller.lastError ?? 'Check host / ports / tokens';
+        title = '连接错误';
+        subtitle = controller.lastError ?? '请检查主机地址 / 端口 / 令牌';
       case ConnectionPhase.idle:
         color = cs.onSurfaceVariant;
         icon = Icons.link_off;
-        title = 'Not connected';
-        subtitle = 'Fill profile and Test & Save';
+        title = '未连接';
+        subtitle = '填写配置信息并测试保存';
     }
     final lat = controller.lastTestLatencyMs;
     if (lat != null && phase != ConnectionPhase.testing) {
