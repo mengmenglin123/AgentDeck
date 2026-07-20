@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'screens/connect_screen.dart';
-import 'screens/sessions_screen.dart';
+import 'screens/home_shell.dart';
 import 'services/app_settings_controller.dart';
 import 'services/connection_controller.dart';
 import 'services/theme_controller.dart';
@@ -33,7 +33,7 @@ class HuanHermesApp extends StatelessWidget {
           home: Consumer<ConnectionController>(
             builder: (context, c, _) {
               if (c.isReady) {
-                return const SessionsScreen();
+                return const HomeShell();
               }
               return const ConnectScreen();
             },

@@ -68,7 +68,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: const Text('设置'),
         actions: [
           IconButton(
-            tooltip: 'Jump to top',
+            tooltip: '回到顶部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -80,7 +80,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: const Icon(Icons.vertical_align_top),
           ),
           IconButton(
-            tooltip: 'Jump to end',
+            tooltip: '跳到底部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -92,7 +92,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: const Icon(Icons.vertical_align_bottom),
           ),
           IconButton(
-            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            tooltip: _wrapLines ? '截断详情' : '换行详情',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
@@ -523,14 +523,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               leading: const Icon(Icons.tag),
               title: const Text('App version'),
               subtitle: _sub(
-                '0.1.180+180 · ${context.watch<ConnectionController>().isRealHermes ? 'Real Hermes' : 'Mock'} host',
+                '0.1.181+180 · ${context.watch<ConnectionController>().isRealHermes ? 'Real Hermes' : 'Mock'} host',
               ),
               trailing: IconButton(
                 tooltip: 'Copy about',
                 icon: const Icon(Icons.copy_outlined),
                 onPressed: () async {
                   const text =
-                      'HuanHermes App 0.1.180+180\nconsole · Mock or real Hermes host\nNo agent loop on device · tokens never in about text';
+                      'HuanHermes App 0.1.181+180\nconsole · Mock or real Hermes host\nNo agent loop on device · tokens never in about text';
                   await Clipboard.setData(const ClipboardData(text: text));
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

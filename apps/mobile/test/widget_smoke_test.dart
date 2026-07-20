@@ -29,7 +29,7 @@ class _MemStore implements ConnectionStore {
 }
 
 void main() {
-  testWidgets('Connect screen shows Test & connect', (tester) async {
+  testWidgets('连接页显示中文主文案', (tester) async {
     final controller = ConnectionController(store: _MemStore());
     await tester.pumpWidget(
       ChangeNotifierProvider.value(
@@ -37,9 +37,9 @@ void main() {
         child: const MaterialApp(home: ConnectScreen()),
       ),
     );
-    expect(find.text('Connect to Host'), findsOneWidget);
-    expect(find.text('Test & connect'), findsOneWidget);
-    expect(find.text('Host'), findsOneWidget);
-    expect(find.text('Profile name'), findsOneWidget);
+    expect(find.text('连接服务器'), findsOneWidget);
+    expect(find.text('测试并连接'), findsOneWidget);
+    expect(find.text('主机地址'), findsOneWidget);
+    expect(find.text('配置名称'), findsOneWidget);
   });
 }

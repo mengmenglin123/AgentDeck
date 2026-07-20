@@ -693,3 +693,15 @@ PYTHONPATH=packages/huan_protocol python3 -m unittest discover -s packages/huan_
 - [x] 欢迎页：居中 Logo + 问候语 + 建议卡片
 - [x] 输入框：圆润容器 + 中文占位符
 - [x] 角色图标：person/assistant/tool/system
+
+## UI 重构 (0.1.181)
+
+- [x] 代码审计 + 重设计文档
+- [x] 共享组件 / 文案 / QueryMatch / UiHelpers
+- [x] SessionLocalStore 门面
+- [x] AppTheme 设计 token
+- [x] HomeShell + ToolsHub
+- [x] Sessions AppBar 收敛 + embedded + 中文
+- [ ] Phase B：Catalog 模板收敛（后续）
+- [ ] Phase C：Chat/Terminal 体验深化（后续）
+

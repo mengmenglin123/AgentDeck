@@ -5,15 +5,13 @@ import '../utils/responsive.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_strings.dart';
 import '../models/session_info.dart';
 import '../services/connection_controller.dart';
 import '../services/session_controller.dart';
 import '../services/app_settings_controller.dart';
-import '../services/session_archive_store.dart';
-import '../services/session_notes_store.dart';
+import '../services/session_local_store.dart';
 import '../services/theme_controller.dart';
-import '../services/session_pins_store.dart';
-import '../services/session_recents_store.dart';
 import 'chat_screen.dart';
 import 'cron_screen.dart';
 import 'diff_screen.dart';
@@ -30,7 +28,10 @@ import 'terminal_screen.dart';
 import 'workspace_screen.dart';
 
 class SessionsScreen extends StatefulWidget {
-  const SessionsScreen({super.key});
+  const SessionsScreen({super.key, this.embedded = false});
+
+  /// When true, hide nested bottom nav (used inside [HomeShell]).
+  final bool embedded;
 
   @override
   State<SessionsScreen> createState() => _SessionsScreenState();
@@ -45,10 +46,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
   bool _wrapLines = false;
   bool _sortAsc = true;
   bool _autoRefresh = false;
-  final _pins = SessionPinsStore();
-  final _notes = SessionNotesStore();
-  final _archive = SessionArchiveStore();
-  final _recents = SessionRecentsStore();
+  final _local = SessionLocalStore();
   String _query = '';
   bool _queryCase = false;
   bool _queryRegex = false;
@@ -87,21 +85,18 @@ class _SessionsScreenState extends State<SessionsScreen> {
   }
 
   Future<void> _loadPins() async {
-    final pins = await _pins.pins();
-    final notes = await _notes.all();
-    final archived = await _archive.archived();
-    final ranks = await _recents.ranks();
+    final data = await _local.loadAll();
     if (!mounted) return;
     setState(() {
-      _pinned = pins;
-      _noteMap = notes;
-      _archived = archived;
-      _recentRank = ranks;
+      _pinned = data.pins;
+      _noteMap = data.notes;
+      _archived = data.archived;
+      _recentRank = data.recentRanks;
     });
   }
 
   Future<void> _toggleArchive(SessionInfo s) async {
-    await _archive.toggle(s.sessionKey);
+    await _local.toggleArchive(s.sessionKey);
     await _loadPins();
   }
 
@@ -210,7 +205,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
 
   Future<void> _bulkArchive({required bool archive}) async {
     for (final k in _selected.toList()) {
-      await _archive.setArchived(k, archive);
+      await _local.setArchived(k, archive);
     }
     await _loadPins();
     _exitSelectMode();
@@ -218,7 +213,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
 
   Future<void> _bulkPin({required bool pin}) async {
     for (final k in _selected.toList()) {
-      await _pins.setPinned(k, pin);
+      await _local.setPinned(k, pin);
     }
     await _loadPins();
     _exitSelectMode();
@@ -329,7 +324,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
           ),
           TextButton(
             onPressed: () async {
-              await _notes.set(s.sessionKey, '');
+              await _local.setNote(s.sessionKey, '');
               if (ctx.mounted) Navigator.pop(ctx, true);
             },
             child: const Text('Clear'),
@@ -342,14 +337,14 @@ class _SessionsScreenState extends State<SessionsScreen> {
       ),
     );
     if (ok == true) {
-      await _notes.set(s.sessionKey, ctrl.text);
+      await _local.setNote(s.sessionKey, ctrl.text);
       await _loadPins();
     }
   }
 
   Future<void> _togglePin(SessionInfo s) async {
     context.read<AppSettingsController>().buzzLight();
-    await _pins.toggle(s.sessionKey);
+    await _local.togglePin(s.sessionKey);
     await _loadPins();
   }
 
@@ -626,7 +621,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
     final conn = context.read<ConnectionController>();
     final cfg = conn.saved;
     if (cfg == null) return;
-    await _recents.touch(session.sessionKey);
+    await _local.touchRecent(session.sessionKey);
     await _loadPins();
     await Navigator.of(context).push(
       MaterialPageRoute(
@@ -656,7 +651,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
     final conn = context.read<ConnectionController>();
     final cfg = conn.saved;
     if (cfg == null) return;
-    await _recents.touch(session.sessionKey);
+    await _local.touchRecent(session.sessionKey);
     await _loadPins();
     final caps =
         _sessions?.projects
@@ -691,18 +686,20 @@ class _SessionsScreenState extends State<SessionsScreen> {
           appBar: AppBar(
             leading: _selectMode
                 ? IconButton(
-                    tooltip: 'Cancel selection',
+                    tooltip: AppStrings.selectCancel,
                     icon: const Icon(Icons.close),
                     onPressed: _exitSelectMode,
                   )
                 : null,
             title: Text(
-              _selectMode ? '${_selected.length} selected' : '会话',
+              _selectMode
+                  ? '${AppStrings.selectedN} ${_selected.length}'
+                  : AppStrings.tabSessions,
             ),
             actions: [
               if (_selectMode) ...[
                 IconButton(
-                  tooltip: 'Export selected meta',
+                  tooltip: AppStrings.exportSelected,
                   onPressed: _selected.isEmpty
                       ? null
                       : () => _exportVisibleMeta(
@@ -711,14 +708,14 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   icon: const Icon(Icons.copy_all_outlined),
                 ),
                 IconButton(
-                  tooltip: 'Pin selected',
+                  tooltip: AppStrings.pinSelected,
                   onPressed: _selected.isEmpty
                       ? null
                       : () => _bulkPin(pin: true),
                   icon: const Icon(Icons.push_pin),
                 ),
                 IconButton(
-                  tooltip: 'Archive selected',
+                  tooltip: AppStrings.archiveSelected,
                   onPressed: _selected.isEmpty
                       ? null
                       : () => _bulkArchive(archive: _filter != 'archived'),
@@ -729,7 +726,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Delete selected',
+                  tooltip: AppStrings.deleteSelected,
                   onPressed: _selected.isEmpty
                       ? null
                       : () => _bulkDelete(sessions, sessions.sessions),
@@ -740,273 +737,320 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   builder: (context) {
                     final theme = context.watch<ThemeController>();
                     return IconButton(
-                      tooltip: 'Theme: ${theme.label}',
+                      tooltip: '${AppStrings.theme}: ${theme.label}',
                       icon: Icon(theme.icon),
                       onPressed: () => theme.cycle(),
                     );
                   },
                 ),
                 IconButton(
-                  tooltip: 'Share connection (no tokens)',
-                  onPressed: () => _shareConnection(conn),
-                  icon: const Icon(Icons.ios_share_outlined),
-                ),
-                IconButton(
-                  tooltip: 'Select sessions',
-                  onPressed: () => _enterSelectMode(),
-                  icon: const Icon(Icons.checklist),
-                ),
-                IconButton(
-                  tooltip: '主机状态',
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const HostDashboardScreen(),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.monitor_heart_outlined),
-                ),
-                IconButton(
-                  tooltip: 'Refresh',
+                  tooltip: AppStrings.refresh,
                   onPressed: sessions.loading ? null : sessions.refresh,
                   icon: const Icon(Icons.refresh),
                 ),
                 IconButton(
-                  tooltip: 'Jump to top',
-                  onPressed: () {
-                    if (!_scroll.hasClients) return;
-                    _scroll.animateTo(
-                      0,
-                      duration: const Duration(milliseconds: 200),
-                      curve: Curves.easeOut,
-                    );
-                  },
-                  icon: const Icon(Icons.vertical_align_top),
+                  tooltip: AppStrings.select,
+                  onPressed: () => _enterSelectMode(),
+                  icon: const Icon(Icons.checklist),
                 ),
-                IconButton(
-                  tooltip: 'Jump to end',
-                  onPressed: () {
-                    if (!_scroll.hasClients) return;
-                    _scroll.animateTo(
-                      _scroll.position.maxScrollExtent,
-                      duration: const Duration(milliseconds: 200),
-                      curve: Curves.easeOut,
-                    );
-                  },
-                  icon: const Icon(Icons.vertical_align_bottom),
-                ),
-                IconButton(
-                  tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
-                  onPressed: () {
-                    setState(() => _autoRefresh = !_autoRefresh);
-                    _armTimer();
-                  },
-                  icon: Icon(
-                    _autoRefresh
-                        ? Icons.pause_circle_outline
-                        : Icons.play_circle_outline,
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'Copy CSV',
-                  onPressed: () {
-                    final list = _filtered(sessions.sessions);
-                    if (list.isEmpty) return;
-                    _copyVisibleCsv(list);
-                  },
-                  icon: const Icon(Icons.table_chart_outlined),
-                ),
-                IconButton(
-                  tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
-                  onPressed: () => setState(() => _wrapLines = !_wrapLines),
-                  icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
-                ),
-                IconButton(
-                  tooltip: _sortAsc
-                      ? 'Sort direction Z→A / oldest'
-                      : 'Sort direction A→Z / newest',
-                  onPressed: () => setState(() => _sortAsc = !_sortAsc),
-                  icon: Icon(_sortAsc ? Icons.south : Icons.north),
-                ),
-
                 PopupMenuButton<String>(
-                  tooltip: 'More',
-                  onSelected: (v) {
+                  tooltip: AppStrings.more,
+                  onSelected: (v) async {
                     final cfg = conn.saved;
-                    if (cfg == null) return;
-                    Widget page;
                     switch (v) {
-                      case 'status':
-                        page = const HostDashboardScreen();
-                        break;
-                      case 'agents':
-                        page = AgentsScreen(config: cfg);
-                        break;
-                      case 'logs':
-                        page = LogsScreen(config: cfg);
-                        break;
+                      case 'share':
+                        _shareConnection(conn);
+                        return;
+                      case 'host':
+                        if (!widget.embedded) {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const HostDashboardScreen(),
+                            ),
+                          );
+                        }
+                        return;
                       case 'export_list':
                         _exportVisibleMeta(_filtered(sessions.sessions));
                         return;
                       case 'csv_list':
                         _copyVisibleCsv(_filtered(sessions.sessions));
                         return;
-                      case 'settings':
-                        page = const SettingsScreen();
-                        break;
-                      case 'workspace':
-                        page = WorkspaceScreen(config: cfg);
-                        break;
-                      case 'diff':
-                        page = DiffScreen(config: cfg);
-                        break;
-                      case 'memory':
-                        page = MemoryScreen(config: cfg);
-                        break;
-                      case 'activity':
-                        page = ActivityScreen(
-                          config: cfg,
-                          sessions: sessions.sessions,
-                        );
-                        break;
-                      case 'cron':
-                        page = CronScreen(config: cfg);
-                        break;
-                      case 'skills':
-                        page = SkillsScreen(config: cfg);
-                        break;
-                      case 'mcp':
-                        page = McpScreen(config: cfg);
-                        break;
-                      case 'pairing':
-                        page = PairingScreen(config: cfg);
-                        break;
-                      default:
+                      case 'wrap':
+                        setState(() => _wrapLines = !_wrapLines);
                         return;
+                      case 'sort_dir':
+                        setState(() => _sortAsc = !_sortAsc);
+                        return;
+                      case 'auto':
+                        setState(() => _autoRefresh = !_autoRefresh);
+                        _armTimer();
+                        return;
+                      case 'top':
+                        if (_scroll.hasClients) {
+                          _scroll.animateTo(
+                            0,
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeOut,
+                          );
+                        }
+                        return;
+                      case 'bottom':
+                        if (_scroll.hasClients) {
+                          _scroll.animateTo(
+                            _scroll.position.maxScrollExtent,
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeOut,
+                          );
+                        }
+                        return;
+                      case 'disconnect':
+                        conn.disconnect();
+                        return;
+                      case 'clear':
+                        final ok = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('清除已保存配置？'),
+                            content: const Text('将移除本机主机设置与令牌。'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text(AppStrings.cancel),
+                              ),
+                              FilledButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text('清除'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (ok == true) {
+                          await conn.disconnect(clearStorage: true);
+                        }
+                        return;
+                      default:
+                        if (cfg == null) return;
+                        Widget page;
+                        switch (v) {
+                          case 'status':
+                            page = const HostDashboardScreen();
+                            break;
+                          case 'agents':
+                            page = AgentsScreen(config: cfg);
+                            break;
+                          case 'logs':
+                            page = LogsScreen(config: cfg);
+                            break;
+                          case 'settings':
+                            page = const SettingsScreen();
+                            break;
+                          case 'workspace':
+                            page = WorkspaceScreen(config: cfg);
+                            break;
+                          case 'diff':
+                            page = DiffScreen(config: cfg);
+                            break;
+                          case 'memory':
+                            page = MemoryScreen(config: cfg);
+                            break;
+                          case 'activity':
+                            page = ActivityScreen(
+                              config: cfg,
+                              sessions: sessions.sessions,
+                            );
+                            break;
+                          case 'cron':
+                            page = CronScreen(config: cfg);
+                            break;
+                          case 'skills':
+                            page = SkillsScreen(config: cfg);
+                            break;
+                          case 'mcp':
+                            page = McpScreen(config: cfg);
+                            break;
+                          case 'pairing':
+                            page = PairingScreen(config: cfg);
+                            break;
+                          default:
+                            return;
+                        }
+                        if (widget.embedded &&
+                            (v == 'settings' || v == 'status')) {
+                          // Prefer bottom tabs when embedded.
+                          return;
+                        }
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => page),
+                        );
                     }
-                    Navigator.of(
-                      context,
-                    ).push(MaterialPageRoute(builder: (_) => page));
                   },
                   itemBuilder: (ctx) => [
-                    PopupMenuItem(value: 'status', child: Text('主机状态')),
-                    PopupMenuItem(value: 'agents', child: Text('代理')),
-                    PopupMenuItem(value: 'logs', child: Text('主机日志')),
+                    PopupMenuItem(
+                      value: 'share',
+                      child: Text(AppStrings.connectionShare),
+                    ),
                     PopupMenuItem(
                       value: 'export_list',
-                      child: Text('Export visible list'),
+                      child: Text(AppStrings.exportMeta),
                     ),
                     PopupMenuItem(
                       value: 'csv_list',
-                      child: Text('Copy visible CSV'),
+                      child: Text(AppStrings.copyCsv),
                     ),
-                    PopupMenuItem(value: 'settings', child: Text('设置')),
-                    PopupMenuItem(value: 'workspace', child: Text('工作区')),
-                    PopupMenuItem(value: 'diff', child: Text('Git 对比')),
-                    PopupMenuItem(value: 'memory', child: Text('主机记忆')),
                     PopupMenuItem(
-                      value: 'activity',
-                      child: Text('主机活动'),
-                    ),
-                    PopupMenuItem(value: 'cron', child: Text('定时任务')),
-                    PopupMenuItem(value: 'skills', child: Text('技能')),
-                    PopupMenuItem(value: 'mcp', child: Text('MCP')),
-                    PopupMenuItem(value: 'pairing', child: Text('配对')),
-                  ],
-                ),
-                IconButton(
-                  tooltip: 'Edit connection',
-                  onPressed: () => conn.disconnect(),
-                  icon: const Icon(Icons.settings_ethernet),
-                ),
-                IconButton(
-                  tooltip: 'Clear profile',
-                  onPressed: () async {
-                    final ok = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('Clear saved profile?'),
-                        content: const Text(
-                          'Removes host settings and tokens.',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text('Cancel'),
-                          ),
-                          FilledButton(
-                            onPressed: () => Navigator.pop(ctx, true),
-                            child: const Text('Clear'),
-                          ),
-                        ],
+                      value: 'wrap',
+                      child: Text(
+                        _wrapLines
+                            ? AppStrings.clampDetails
+                            : AppStrings.wrapDetails,
                       ),
-                    );
-                    if (ok == true) await conn.disconnect(clearStorage: true);
-                  },
-                  icon: const Icon(Icons.logout),
+                    ),
+                    PopupMenuItem(
+                      value: 'sort_dir',
+                      child: Text(AppStrings.sortDir),
+                    ),
+                    PopupMenuItem(
+                      value: 'auto',
+                      child: Text(
+                        _autoRefresh
+                            ? AppStrings.pauseRefresh
+                            : AppStrings.autoRefresh,
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'top',
+                      child: Text(AppStrings.jumpTop),
+                    ),
+                    PopupMenuItem(
+                      value: 'bottom',
+                      child: Text(AppStrings.jumpBottom),
+                    ),
+                    if (!widget.embedded) ...[
+                      const PopupMenuDivider(),
+                      PopupMenuItem(
+                        value: 'status',
+                        child: Text(AppStrings.hostStatus),
+                      ),
+                      const PopupMenuItem(
+                        value: 'agents',
+                        child: Text('代理'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'logs',
+                        child: Text('主机日志'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'workspace',
+                        child: Text('工作区'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'diff',
+                        child: Text('Git 对比'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'memory',
+                        child: Text('主机记忆'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'activity',
+                        child: Text('主机活动'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'cron',
+                        child: Text('定时任务'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'skills',
+                        child: Text('技能'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'mcp',
+                        child: Text('MCP'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'pairing',
+                        child: Text('配对'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'settings',
+                        child: Text(AppStrings.settings),
+                      ),
+                    ],
+                    const PopupMenuDivider(),
+                    const PopupMenuItem(
+                      value: 'disconnect',
+                      child: Text('编辑连接'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'clear',
+                      child: Text('清除配置'),
+                    ),
+                  ],
                 ),
               ], // end non-select actions
             ],
           ),
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: 0,
-            onDestinationSelected: (index) async {
-              final cfg = conn.saved;
-              if (cfg == null) return;
-              Widget? page;
-              switch (index) {
-                case 0:
-                  return; // Already on Sessions
-                case 1:
-                  page = WorkspaceScreen(config: cfg);
-                  break;
-                case 2:
-                  page = TerminalScreen(
-                    config: cfg,
-                    session: sessions.sessions.isNotEmpty
-                        ? sessions.sessions.first
-                        : SessionInfo(
-                            id: 'terminal',
-                            sessionKey: 'terminal',
-                            title: '终端',
-                            project: '',
-                          ),
-                  );
-                  break;
-                case 3:
-                  page = const SettingsScreen();
-                  break;
-              }
-              if (page != null) {
-                await Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => page!),
-                );
-              }
-            },
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.chat_outlined),
-                selectedIcon: Icon(Icons.chat),
-                label: '会话',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.folder_outlined),
-                selectedIcon: Icon(Icons.folder),
-                label: '工作区',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.terminal_outlined),
-                selectedIcon: Icon(Icons.terminal),
-                label: '终端',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.settings_outlined),
-                selectedIcon: Icon(Icons.settings),
-                label: '设置',
-              ),
-            ],
-          ),
+          bottomNavigationBar: widget.embedded
+              ? null
+              : NavigationBar(
+                  selectedIndex: 0,
+                  onDestinationSelected: (index) async {
+                    final cfg = conn.saved;
+                    if (cfg == null) return;
+                    Widget? page;
+                    switch (index) {
+                      case 0:
+                        return; // Already on Sessions
+                      case 1:
+                        page = WorkspaceScreen(config: cfg);
+                        break;
+                      case 2:
+                        page = TerminalScreen(
+                          config: cfg,
+                          session: sessions.sessions.isNotEmpty
+                              ? sessions.sessions.first
+                              : SessionInfo(
+                                  id: 'terminal',
+                                  sessionKey: 'terminal',
+                                  title: '终端',
+                                  project: '',
+                                ),
+                        );
+                        break;
+                      case 3:
+                        page = const SettingsScreen();
+                        break;
+                    }
+                    if (page != null) {
+                      await Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => page!),
+                      );
+                    }
+                  },
+                  destinations: [
+                    NavigationDestination(
+                      icon: Icon(Icons.chat_outlined),
+                      selectedIcon: Icon(Icons.chat),
+                      label: AppStrings.tabSessions,
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.folder_outlined),
+                      selectedIcon: Icon(Icons.folder),
+                      label: '工作区',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.terminal_outlined),
+                      selectedIcon: Icon(Icons.terminal),
+                      label: AppStrings.toolTerminal,
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.settings_outlined),
+                      selectedIcon: Icon(Icons.settings),
+                      label: AppStrings.tabSettings,
+                    ),
+                  ],
+                ),
           body: Column(
             children: [
               // Responsive padding for tablet/desktop

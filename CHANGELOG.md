@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.181
+
+- 全量代码审计与重设计文档：`docs/CODE_AUDIT_AND_REDESIGN.md`
+- 共享层：`AppStrings` / `QueryMatch` / `UiHelpers` / `ConsoleWidgets`
+- `SessionLocalStore` 门面统一 pins/notes/archive/recents
+- `AppTheme` 升级：圆角卡片、NavigationBar、输入框、surface 层级
+- `HomeShell` 底部导航：会话 · 主机 · 工具 · 设置
+- `ToolsHubScreen` 工具宫格入口
+- Sessions：embedded 模式、AppBar 收敛到 overflow、中文文案、本地 store 门面
+- 烟测改为中文断言；设置页 tooltip 中文化
+
+
 ## 0.1.180
 
 - UI: LiveAgent-style chat interface redesign
