@@ -1101,6 +1101,79 @@ class _SessionsScreenState extends State<SessionsScreen> {
                         )
                       : null,
                 ),
+              // Quick action cards
+              if (conn.saved != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _QuickActionCard(
+                          icon: Icons.folder_outlined,
+                          label: 'Workspace',
+                          color: const Color(0xFF4A90E2),
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => WorkspaceScreen(config: conn.saved!),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _QuickActionCard(
+                          icon: Icons.terminal,
+                          label: 'Terminal',
+                          color: const Color(0xFF7CB342),
+                          onTap: () {
+                            final s = _sessions;
+                            if (s == null || s.sessions.isEmpty) return;
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => TerminalScreen(
+                                  config: conn.saved!,
+                                  session: s.sessions.first,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        _QuickActionCard(
+                          icon: Icons.extension_outlined,
+                          label: 'Skills',
+                          color: const Color(0xFFFF8A65),
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => SkillsScreen(config: conn.saved!),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _QuickActionCard(
+                          icon: Icons.schedule,
+                          label: 'Schedules',
+                          color: const Color(0xFFAB47BC),
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => CronScreen(config: conn.saved!),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _QuickActionCard(
+                          icon: Icons.hub_outlined,
+                          label: 'MCP',
+                          color: const Color(0xFF26A69A),
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => McpScreen(config: conn.saved!),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               if (conn.saved != null)
                 Material(
                   color: conn.healthDegraded
@@ -1904,6 +1977,54 @@ class _SessionsScreenState extends State<SessionsScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+class _QuickActionCard extends StatelessWidget {
+  const _QuickActionCard({
+    required this.icon,
+    required this.label,
+    required this.color,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withOpacity(0.2)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: color),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
