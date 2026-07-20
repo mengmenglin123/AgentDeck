@@ -918,6 +918,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final settings = context.watch<AppSettingsController>();
     final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       floatingActionButton: (_showJumpBottom || _showJumpTop)
           ? Column(
@@ -1507,7 +1508,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     Expanded(
                       child: Container(
                         decoration: BoxDecoration(
-                          color: cs.surfaceContainerHighest.withOpacity(0.3),
+                          color: isDark ? cs.surfaceContainerHigh : const Color(0xFFF5F7FA),
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
                               color: cs.outlineVariant.withOpacity(0.5)),
@@ -1657,7 +1658,6 @@ class _EmptyChat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final subtitle = connecting
         ? 'Connecting to host…'
         : connected
@@ -1753,17 +1753,20 @@ class _SuggestionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Material(
-      color: Colors.transparent,
+      color: isDark ? cs.surfaceContainerHigh : Colors.white,
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.06),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withOpacity(0.15)),
+            border: Border.all(
+                color: isDark ? cs.outlineVariant : color.withOpacity(0.15)),
           ),
           child: Row(
             children: [
@@ -2004,11 +2007,11 @@ class _MessageBubble extends StatelessWidget {
                         ? cs.primary
                         : hl
                             ? Colors.amber
-                            : borderColor ?? const Color(0xFFE5E7EB),
+                            : borderColor ?? (isDark ? cs.outlineVariant : const Color(0xFFE5E7EB)),
                     width: isActiveSearchHit ? 2 : 1),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
                 blurRadius: 4,
                 offset: const Offset(0, 1),
               ),
@@ -2039,10 +2042,11 @@ class _MessageBubble extends StatelessWidget {
                               ? 'Tool'
                               : isSystem
                                   ? 'System'
-                                  : 'Assistant' + (message.streaming ? ' …' : ''),
+                                  : 'Assistant${message.streaming ? ' …' : ''}',
                       style: TextStyle(
                           fontSize: compact ? 10 : 11,
                           fontWeight: FontWeight.w500,
+                          fontStyle: isSystem ? FontStyle.italic : null,
                           color: cs.onSurfaceVariant),
                     ),
                   ),
@@ -2059,18 +2063,16 @@ class _MessageBubble extends StatelessWidget {
               if (useMd)
                 Builder(
                   builder: (context) {
-                    final child = mono
-                        ? DefaultTextStyle.merge(
-                            style: TextStyle(
-                              fontFamily: 'monospace',
-                              fontSize: 14 * fontScale,
-                            ),
-                            child: MarkdownLite(message.content),
-                          )
-                        : DefaultTextStyle.merge(
-                            style: TextStyle(fontSize: 14 * fontScale),
-                            child: MarkdownLite(message.content),
-                          );
+                    final contentStyle = TextStyle(
+                      fontFamily: mono ? 'monospace' : null,
+                      fontSize: (isTool ? 12 : 14) * fontScale,
+                      fontStyle: isSystem ? FontStyle.italic : null,
+                      color: isSystem ? cs.onSurfaceVariant : null,
+                    );
+                    final child = DefaultTextStyle.merge(
+                      style: contentStyle,
+                      child: MarkdownLite(message.content),
+                    );
                     if (wrapLines) return child;
                     return ClipRect(
                       child: SizedBox(
@@ -2088,7 +2090,9 @@ class _MessageBubble extends StatelessWidget {
                   message.content,
                   style: TextStyle(
                     fontFamily: mono ? 'monospace' : null,
-                    fontSize: 14 * fontScale,
+                    fontSize: (isTool ? 12 : 14) * fontScale,
+                    fontStyle: isSystem ? FontStyle.italic : null,
+                    color: isSystem ? cs.onSurfaceVariant : null,
                   ),
                   maxLines: wrapLines ? null : 12,
                 ),
