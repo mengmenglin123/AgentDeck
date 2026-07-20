@@ -949,6 +949,63 @@ class _SessionsScreenState extends State<SessionsScreen> {
               ], // end non-select actions
             ],
           ),
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: 0,
+            onDestinationSelected: (index) async {
+              final cfg = conn.saved;
+              if (cfg == null) return;
+              Widget? page;
+              switch (index) {
+                case 0:
+                  return; // Already on Sessions
+                case 1:
+                  page = WorkspaceScreen(config: cfg);
+                  break;
+                case 2:
+                  page = TerminalScreen(
+                    config: cfg,
+                    session: sessions.sessions.isNotEmpty
+                        ? sessions.sessions.first
+                        : SessionInfo(
+                            sessionKey: 'terminal',
+                            title: 'Terminal',
+                            project: '',
+                          ),
+                  );
+                  break;
+                case 3:
+                  page = const SettingsScreen();
+                  break;
+              }
+              if (page != null) {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => page!),
+                );
+              }
+            },
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.chat_outlined),
+                selectedIcon: Icon(Icons.chat),
+                label: 'Sessions',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.folder_outlined),
+                selectedIcon: Icon(Icons.folder),
+                label: 'Workspace',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.terminal_outlined),
+                selectedIcon: Icon(Icons.terminal),
+                label: 'Terminal',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.settings_outlined),
+                selectedIcon: Icon(Icons.settings),
+                label: 'Settings',
+              ),
+            ],
+          ),
           body: Column(
             children: [
               // Responsive padding for tablet/desktop
