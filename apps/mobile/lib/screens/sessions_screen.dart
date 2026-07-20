@@ -967,6 +967,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                     session: sessions.sessions.isNotEmpty
                         ? sessions.sessions.first
                         : SessionInfo(
+                            id: 'terminal',
                             sessionKey: 'terminal',
                             title: 'Terminal',
                             project: '',
