@@ -10,6 +10,8 @@ import '../services/app_settings_controller.dart';
 import '../services/bridge_client.dart';
 import '../services/terminal_history_store.dart';
 import '../utils/security.dart';
+import '../utils/catalog_ui.dart';
+import '../utils/query_match.dart';
 
 /// Lightweight terminal console over Bridge `terminal_input` / `terminal_out`.
 /// Not a full PTY — Host may map to real shell later; Mock echoes commands.
@@ -59,9 +61,9 @@ class _TerminalScreenState extends State<TerminalScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _buf.writeln(
-      'HuanHermes terminal channel (session ${widget.session.sessionKey})',
+      'HuanHermes 终端通道（会话 ${widget.session.sessionKey}）',
     );
-    _buf.writeln('Type help · protocol demo only');
+    _buf.writeln('输入 help · 仅协议演示');
     _buf.writeln('↑/↓ local history · device only');
     _buf.writeln('');
     _loadHistory();
@@ -298,7 +300,7 @@ class _TerminalScreenState extends State<TerminalScreen>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No local terminal history yet'),
+          content: Text('暂无本机终端历史'),
           duration: Duration(seconds: 1),
         ),
       );
@@ -312,8 +314,8 @@ class _TerminalScreenState extends State<TerminalScreen>
           shrinkWrap: true,
           children: [
             ListTile(
-              title: const Text('Command history'),
-              subtitle: const Text('Device local only'),
+              title: const Text('命令历史'),
+              subtitle: const Text('仅本机'),
               trailing: IconButton(
                 tooltip: 'Clear',
                 icon: const Icon(Icons.delete_sweep_outlined),
@@ -483,14 +485,14 @@ class _TerminalScreenState extends State<TerminalScreen>
             icon: Icon(_newestFirst ? Icons.south : Icons.north),
           ),
           IconButton(
-            tooltip: _showTs ? 'Hide timestamps' : 'Show timestamps',
+            tooltip: _showTs ? '隐藏时间戳' : 'Show timestamps',
             onPressed: () => setState(() => _showTs = !_showTs),
             icon: Icon(
               _showTs ? Icons.timer_off_outlined : Icons.timer_outlined,
             ),
           ),
           IconButton(
-            tooltip: _showFind ? 'Hide find' : 'Find in buffer',
+            tooltip: _showFind ? '隐藏查找' : '缓冲区内查找',
             onPressed: () {
               setState(() {
                 _showFind = !_showFind;
@@ -510,19 +512,19 @@ class _TerminalScreenState extends State<TerminalScreen>
             icon: const Icon(Icons.text_decrease),
           ),
           IconButton(
-            tooltip: 'Larger text',
+            tooltip: '更大字号',
             onPressed: _termScale >= 1.4
                 ? null
                 : () => _setTermScale(_termScale + 0.1),
             icon: const Icon(Icons.text_increase),
           ),
           IconButton(
-            tooltip: 'History',
+            tooltip: '历史',
             onPressed: _pickHistory,
             icon: const Icon(Icons.history),
           ),
           IconButton(
-            tooltip: 'Jump to top',
+            tooltip: '回到顶部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -534,7 +536,7 @@ class _TerminalScreenState extends State<TerminalScreen>
             icon: const Icon(Icons.vertical_align_top),
           ),
           IconButton(
-            tooltip: 'Jump to end',
+            tooltip: '跳到底部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -546,7 +548,7 @@ class _TerminalScreenState extends State<TerminalScreen>
             icon: const Icon(Icons.vertical_align_bottom),
           ),
           IconButton(
-            tooltip: 'Copy all',
+            tooltip: '复制全部',
             onPressed: () async {
               final text = _buf.toString();
               if (text.trim().isEmpty) return;
@@ -554,7 +556,7 @@ class _TerminalScreenState extends State<TerminalScreen>
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Copied ${text.length} chars'),
+                  content: Text('已复制 ${text.length} 字符'),
                   duration: const Duration(seconds: 1),
                 ),
               );
@@ -590,7 +592,7 @@ class _TerminalScreenState extends State<TerminalScreen>
             icon: const Icon(Icons.delete_outline),
           ),
           IconButton(
-            tooltip: 'Reconnect',
+            tooltip: '重新连接',
             onPressed: _connecting
                 ? null
                 : () async {
@@ -700,7 +702,7 @@ class _TerminalScreenState extends State<TerminalScreen>
                           : 'Regex find (client-only)')
                       : (_findCase
                           ? 'Find (case-sensitive, client-only)'
-                          : 'Find in local buffer (client-only)'),
+                          : '本地缓冲查找（仅客户端）'),
                   isDense: true,
                   border: const OutlineInputBorder(),
                   prefixIcon: IconButton(
@@ -709,8 +711,8 @@ class _TerminalScreenState extends State<TerminalScreen>
                             ? 'Regex · case on (long-press: plain find)'
                             : 'Regex · case off (long-press: plain find)')
                         : (_findCase
-                            ? 'Case-sensitive (long-press: regex)'
-                            : 'Case-insensitive (long-press: regex)'),
+                            ? '区分大小写（长按切换正则）'
+                            : '不区分大小写（长按切换正则）'),
                     icon: Icon(
                       _findRegex
                           ? Icons.code
@@ -780,12 +782,12 @@ class _TerminalScreenState extends State<TerminalScreen>
               child: Row(
                 children: [
                   IconButton(
-                    tooltip: 'Older',
+                    tooltip: '更早',
                     onPressed: _hist.isEmpty ? null : _histUp,
                     icon: const Icon(Icons.keyboard_arrow_up),
                   ),
                   IconButton(
-                    tooltip: 'Newer',
+                    tooltip: '更新',
                     onPressed: _histIndex < 0 ? null : _histDown,
                     icon: const Icon(Icons.keyboard_arrow_down),
                   ),

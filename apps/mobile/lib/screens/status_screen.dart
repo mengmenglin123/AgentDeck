@@ -8,6 +8,8 @@ import '../services/app_settings_controller.dart';
 import '../services/connection_controller.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
+import '../utils/catalog_ui.dart';
+import '../utils/query_match.dart';
 import 'host_dashboard_screen.dart';
 import 'sessions_screen.dart';
 
@@ -68,14 +70,13 @@ class _StatusScreenState extends State<StatusScreen> {
   }
 
   void _armTimer() {
-    _timer?.cancel();
-    if (!_autoRefresh || !mounted) return;
-    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
-    if (sec <= 0) return;
-    _timer = Timer.periodic(Duration(seconds: sec), (_) {
-      if (!mounted || _loading) return;
-      _refresh();
-    });
+    _timer = CatalogUi.armAutoRefresh(
+      context: context,
+      current: _timer,
+      enabled: _autoRefresh,
+      isBusy: () => _loading,
+      onTick: _refresh,
+    );
   }
 
   Future<void> _refresh() async {
@@ -144,7 +145,7 @@ class _StatusScreenState extends State<StatusScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Status summary copied (no token)'),
+        content: Text('已复制状态摘要（不含令牌）'),
         duration: Duration(seconds: 1),
       ),
     );
@@ -183,7 +184,7 @@ class _StatusScreenState extends State<StatusScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Copied status CSV'),
+        content: Text('已复制状态 CSV'),
         duration: Duration(seconds: 1),
       ),
     );
@@ -207,7 +208,7 @@ class _StatusScreenState extends State<StatusScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Status JSON copied (tokens redacted)'),
+        content: Text('已复制状态 JSON（令牌已脱敏）'),
         duration: Duration(seconds: 1),
       ),
     );
@@ -241,7 +242,7 @@ class _StatusScreenState extends State<StatusScreen> {
     final c = context.watch<ConnectionController>();
     final cfg = c.saved;
     if (cfg == null) {
-      return const Scaffold(body: Center(child: Text('Not connected')));
+      return const Scaffold(body: Center(child: Text('未连接')));
     }
     final cs = Theme.of(context).colorScheme;
     final status = _status.isNotEmpty ? _status : (c.lastStatus ?? const {});
@@ -255,52 +256,52 @@ class _StatusScreenState extends State<StatusScreen> {
                     ? Colors.orange
                     : (healthy ? Colors.green : Colors.orange)));
     final barLabel = _loading && status.isEmpty
-        ? 'Probing…'
+        ? '探测中…'
         : (_error != null
-              ? 'Status error'
+              ? '状态错误'
               : (c.healthDegraded
-                    ? 'Health degraded'
-                    : (healthy ? 'Host healthy' : 'Waiting')));
+                    ? '健康降级'
+                    : (healthy ? '主机健康' : '等待中')));
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_autoRefresh ? 'Host connected · auto' : 'Host connected'),
+        title: Text(_autoRefresh ? '主机已连接 · 自动' : '主机已连接'),
         actions: [
           IconButton(
-            tooltip: 'Copy summary',
+            tooltip: '复制摘要',
             onPressed: () => _copySummary(c),
             icon: const Icon(Icons.copy_all_outlined),
           ),
           IconButton(
-            tooltip: 'Copy JSON',
+            tooltip: '复制 JSON',
             onPressed: () => _copyJson(c),
             icon: const Icon(Icons.data_object_outlined),
           ),
           IconButton(
-            tooltip: 'Copy CSV',
+            tooltip: '复制 CSV',
             onPressed: () => _copyCsv(c),
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
-            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            tooltip: _wrapLines ? '截断详情' : '换行详情',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
           IconButton(
             tooltip: _relativeTs
-                ? 'Absolute timestamps'
-                : 'Relative timestamps',
+                ? '绝对时间戳'
+                : '相对时间戳',
             onPressed: () => setState(() => _relativeTs = !_relativeTs),
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
           IconButton(
             tooltip: _sortByKey
-                ? (_sortAsc ? 'Keys Z→A' : 'Keys A→Z')
+                ? (_sortAsc ? '键 Z→A' : '键 A→Z')
                 : (_sortByType
-                      ? (_sortAsc ? 'Type Z→A' : 'Type A→Z')
+                      ? (_sortAsc ? '类型 Z→A' : '类型 A→Z')
                       : (_sortByValue
-                            ? (_sortAsc ? 'Values Z→A' : 'Values A→Z')
-                            : (_sortAsc ? 'Keys Z→A' : 'Keys A→Z'))),
+                            ? (_sortAsc ? '值 Z→A' : '值 A→Z')
+                            : (_sortAsc ? '键 Z→A' : '键 A→Z'))),
             onPressed: () {
               setState(() {
                 if (!_sortByValue && !_sortByType && !_sortByKey && _sortAsc) {
@@ -349,7 +350,7 @@ class _StatusScreenState extends State<StatusScreen> {
           ),
 
           IconButton(
-            tooltip: 'Jump to top',
+            tooltip: '回到顶部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -361,7 +362,7 @@ class _StatusScreenState extends State<StatusScreen> {
             icon: const Icon(Icons.vertical_align_top),
           ),
           IconButton(
-            tooltip: 'Jump to end',
+            tooltip: '跳到底部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -374,14 +375,14 @@ class _StatusScreenState extends State<StatusScreen> {
           ),
 
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: '刷新',
             onPressed: _loading ? null : _refresh,
             icon: const Icon(Icons.refresh),
           ),
           IconButton(
             tooltip: _autoRefresh
-                ? 'Pause auto-refresh'
-                : 'Resume auto-refresh',
+                ? '暂停刷新'
+                : '恢复自动刷新',
             onPressed: () {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
@@ -393,28 +394,28 @@ class _StatusScreenState extends State<StatusScreen> {
             ),
           ),
           IconButton(
-            tooltip: 'Disconnect',
+            tooltip: '断开连接',
             onPressed: () => c.disconnect(),
             icon: const Icon(Icons.link_off),
           ),
           IconButton(
-            tooltip: 'Clear saved profile',
+            tooltip: '清除已保存配置',
             onPressed: () async {
               final ok = await showDialog<bool>(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  title: const Text('Clear saved profile?'),
+                  title: const Text('清除已保存配置？'),
                   content: const Text(
-                    'Removes host settings and tokens from secure storage.',
+                    '将从安全存储中移除主机设置与令牌。',
                   ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Cancel'),
+                      child: const Text('取消'),
                     ),
                     FilledButton(
                       onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('Clear'),
+                      child: const Text('清除'),
                     ),
                   ],
                 ),
@@ -456,7 +457,7 @@ class _StatusScreenState extends State<StatusScreen> {
                 ),
                 trailing: TextButton(
                   onPressed: _loading ? null : _refresh,
-                  child: const Text('Check'),
+                  child: const Text('检查'),
                 ),
               ),
             ),
@@ -478,22 +479,22 @@ class _StatusScreenState extends State<StatusScreen> {
                       : Icons.report_gmailerrorred_outlined,
                   color: c.lastHealthError == null ? Colors.green : cs.error,
                 ),
-                title: const Text('Last health probe'),
+                title: const Text('上次健康探测'),
                 subtitle: Text(
                   [
                     if (c.lastHealthOkAt != null)
                       'OK at ${c.lastHealthOkAt!.toLocal().toIso8601String()}',
                     if (c.lastHealthError != null)
-                      'Error: ${c.lastHealthError}',
+                      '错误：${c.lastHealthError}',
                     if (c.lastHealthOkAt == null && c.lastHealthError == null)
-                      'No probe yet',
+                      '尚未探测',
                   ].join('\n'),
                 ),
                 isThreeLine: true,
                 trailing: c.lastHealthError == null
                     ? null
                     : IconButton(
-                        tooltip: 'Copy error',
+                        tooltip: '复制错误',
                         icon: const Icon(Icons.copy, size: 18),
                         onPressed: () async {
                           await Clipboard.setData(
@@ -502,7 +503,7 @@ class _StatusScreenState extends State<StatusScreen> {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Health error copied'),
+                                content: Text('已复制健康错误'),
                                 duration: Duration(seconds: 1),
                               ),
                             );
@@ -515,16 +516,16 @@ class _StatusScreenState extends State<StatusScreen> {
                   Icons.speed,
                   color: c.lastTestLatencyMs == null ? cs.outline : cs.primary,
                 ),
-                title: const Text('Last connect test'),
+                title: const Text('上次连接测试'),
                 subtitle: Text(
                   c.lastTestLatencyMs == null
-                      ? 'No Test & connect latency yet'
-                      : '${c.lastTestLatencyMs} ms (GET /status during connect)',
+                      ? '尚无连接延迟数据'
+                      : '${c.lastTestLatencyMs} ms（连接时 GET /status）',
                 ),
               ),
             ),
             const Divider(),
-            Text('Snapshot', style: Theme.of(context).textTheme.titleMedium),
+            Text('快照', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -555,7 +556,7 @@ class _StatusScreenState extends State<StatusScreen> {
                 (status['bridge_adapters'] as List).isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(
-                'Bridge adapters',
+                'Bridge 适配器',
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               const SizedBox(height: 6),
@@ -598,7 +599,7 @@ class _StatusScreenState extends State<StatusScreen> {
             if (caps.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(
-                'Capabilities',
+                '能力',
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               const SizedBox(height: 6),
@@ -609,11 +610,11 @@ class _StatusScreenState extends State<StatusScreen> {
                   prefixIcon: IconButton(
                     tooltip: _queryRegex
                         ? (_queryCase
-                              ? 'Regex · case on (long-press: plain filter)'
-                              : 'Regex · case off (long-press: plain filter)')
+                              ? '正则 · 大小写 开（长按恢复普通筛选）'
+                              : '正则 · 大小写 关（长按恢复普通筛选）')
                         : (_queryCase
-                              ? 'Case-sensitive (long-press: regex)'
-                              : 'Case-insensitive (long-press: regex)'),
+                              ? '区分大小写（长按切换正则）'
+                              : '不区分大小写（长按切换正则）'),
                     icon: Icon(
                       _queryRegex
                           ? Icons.code
@@ -626,11 +627,11 @@ class _StatusScreenState extends State<StatusScreen> {
                   ),
                   hintText: _queryRegex
                       ? (_queryCase
-                            ? 'Filter (regex · case)'
-                            : 'Filter (regex)')
+                            ? '筛选（正则 · 大小写）'
+                            : '筛选（正则）')
                       : (_queryCase
-                            ? 'Filter (case-sensitive)'
-                            : 'Filter capabilities'),
+                            ? '筛选（区分大小写）'
+                            : '筛选能力'),
                   border: const OutlineInputBorder(),
                   suffixIcon: _capQuery.isEmpty
                       ? null
@@ -685,11 +686,11 @@ class _StatusScreenState extends State<StatusScreen> {
                 prefixIcon: IconButton(
                   tooltip: _queryRegex
                       ? (_queryCase
-                            ? 'Regex · case on (long-press: plain filter)'
-                            : 'Regex · case off (long-press: plain filter)')
+                            ? '正则 · 大小写 开（长按恢复普通筛选）'
+                            : '正则 · 大小写 关（长按恢复普通筛选）')
                       : (_queryCase
-                            ? 'Case-sensitive (long-press: regex)'
-                            : 'Case-insensitive (long-press: regex)'),
+                            ? '区分大小写（长按切换正则）'
+                            : '不区分大小写（长按切换正则）'),
                   icon: Icon(
                     _queryRegex
                         ? Icons.code
@@ -700,10 +701,10 @@ class _StatusScreenState extends State<StatusScreen> {
                   onLongPress: () => setState(() => _queryRegex = !_queryRegex),
                 ),
                 hintText: _queryRegex
-                    ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
+                    ? (_queryCase ? '筛选（正则 · 大小写）' : '筛选（正则）')
                     : (_queryCase
-                          ? 'Filter (case-sensitive)'
-                          : 'Filter keys / values'),
+                          ? '筛选（区分大小写）'
+                          : '筛选键 / 值'),
                 border: const OutlineInputBorder(),
                 suffixIcon: _keyQuery.isEmpty
                     ? null
@@ -724,7 +725,7 @@ class _StatusScreenState extends State<StatusScreen> {
               children: [
                 FilterChip(
                   visualDensity: VisualDensity.compact,
-                  label: const Text('Wrap', style: TextStyle(fontSize: 11)),
+                  label: const Text('换行', style: TextStyle(fontSize: 11)),
                   selected: _wrapLines,
                   onSelected: (v) => setState(() => _wrapLines = v),
                 ),
@@ -742,7 +743,7 @@ class _StatusScreenState extends State<StatusScreen> {
                 ),
                 FilterChip(
                   visualDensity: VisualDensity.compact,
-                  label: const Text('Auto', style: TextStyle(fontSize: 11)),
+                  label: const Text('自动', style: TextStyle(fontSize: 11)),
                   selected: _autoRefresh,
                   onSelected: (v) {
                     setState(() => _autoRefresh = v);
@@ -761,7 +762,7 @@ class _StatusScreenState extends State<StatusScreen> {
                   FilterChip(
                     visualDensity: VisualDensity.compact,
                     label: Text(
-                      t.isEmpty ? 'Any type' : t,
+                      t.isEmpty ? '任意类型' : t,
                       style: const TextStyle(fontSize: 11),
                     ),
                     selected: _typeFilter == t,
@@ -771,13 +772,13 @@ class _StatusScreenState extends State<StatusScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Raw /status keys',
+              '原始 /status 键',
               style: Theme.of(context).textTheme.titleSmall,
             ),
             if (status.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('No status payload yet.'),
+                child: Text('尚无状态载荷。'),
               )
             else
               ...(() {
@@ -851,7 +852,7 @@ class _StatusScreenState extends State<StatusScreen> {
                 );
               },
               icon: const Icon(Icons.chat_bubble_outline),
-              label: const Text('Open sessions'),
+              label: const Text('打开会话'),
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
@@ -863,13 +864,13 @@ class _StatusScreenState extends State<StatusScreen> {
                 );
               },
               icon: const Icon(Icons.dashboard_outlined),
-              label: const Text('Host dashboard'),
+              label: const Text('主机仪表盘'),
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
               onPressed: () => c.disconnect(),
               icon: const Icon(Icons.edit),
-              label: const Text('Edit connection'),
+              label: const Text('编辑连接'),
             ),
           ],
         ),

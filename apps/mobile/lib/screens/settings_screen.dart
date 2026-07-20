@@ -109,11 +109,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               prefixIcon: IconButton(
                 tooltip: _prefRegex
                     ? (_prefCase
-                        ? 'Regex · case on (long-press: plain filter)'
-                        : 'Regex · case off (long-press: plain filter)')
+                        ? '正则 · 大小写 开（长按恢复普通筛选）'
+                        : '正则 · 大小写 关（长按恢复普通筛选）')
                     : (_prefCase
-                        ? 'Case-sensitive (long-press: regex)'
-                        : 'Case-insensitive (long-press: regex)'),
+                        ? '区分大小写（长按切换正则）'
+                        : '不区分大小写（长按切换正则）'),
                 icon: Icon(
                   _prefRegex
                       ? Icons.code
@@ -125,11 +125,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               hintText: _prefRegex
                   ? (_prefCase
-                      ? 'Filter settings (regex · case)'
-                      : 'Filter settings (regex)')
+                      ? '筛选设置（正则 · 大小写）'
+                      : '筛选设置（正则）')
                   : (_prefCase
-                      ? 'Filter settings (case-sensitive)'
-                      : 'Filter settings'),
+                      ? '筛选设置（区分大小写）'
+                      : '筛选设置'),
               border: const OutlineInputBorder(),
               suffixIcon: _prefQuery.isEmpty
                   ? null
@@ -151,7 +151,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: FilterChip(
-                    label: const Text('Wrap', style: TextStyle(fontSize: 11)),
+                    label: const Text('换行', style: TextStyle(fontSize: 11)),
                     selected: _wrapLines,
                     onSelected: (v) => setState(() => _wrapLines = v),
                     visualDensity: VisualDensity.compact,
@@ -183,26 +183,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Text('外观', style: Theme.of(context).textTheme.titleSmall),
           if (_matchPref('外观', 'theme contrast text size compact'))
             const SizedBox(height: 4),
-          if (_matchPref('Theme', theme.label))
+          if (_matchPref('主题', theme.label))
             ListTile(
               leading: Icon(theme.icon),
-              title: const Text('Theme'),
+              title: const Text('主题'),
               subtitle: Text(theme.label),
               trailing: SegmentedButton<ThemeMode>(
                 segments: const [
                   ButtonSegment(
                     value: ThemeMode.system,
-                    label: Text('Auto'),
+                    label: Text('自动'),
                     icon: Icon(Icons.brightness_auto, size: 16),
                   ),
                   ButtonSegment(
                     value: ThemeMode.light,
-                    label: Text('Light'),
+                    label: Text('浅色'),
                     icon: Icon(Icons.light_mode, size: 16),
                   ),
                   ButtonSegment(
                     value: ThemeMode.dark,
-                    label: Text('Dark'),
+                    label: Text('深色'),
                     icon: Icon(Icons.dark_mode, size: 16),
                   ),
                 ],
@@ -215,14 +215,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             SwitchListTile(
               secondary: const Icon(Icons.contrast),
               title: const Text('高对比度'),
-              subtitle: _sub('Stronger borders and higher contrast surfaces'),
+              subtitle: _sub('更强描边与更高对比表面'),
               value: settings.highContrast,
               onChanged: settings.setHighContrast,
             ),
-          if (_matchPref('Text size', 'percent'))
+          if (_matchPref('文字大小', 'percent'))
             ListTile(
               leading: const Icon(Icons.format_size),
-              title: const Text('Text size'),
+              title: const Text('文字大小'),
               subtitle: Text('${(settings.textScale * 100).round()}%'),
             ),
           Padding(
@@ -239,21 +239,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
-          if (_matchPref('Compact lists', 'dense'))
+          if (_matchPref('紧凑列表', 'dense'))
             SwitchListTile(
               secondary: const Icon(Icons.view_compact_alt_outlined),
-              title: const Text('Compact lists'),
-              subtitle: _sub('Denser session tiles and menus'),
+              title: const Text('紧凑列表'),
+              subtitle: _sub('更紧凑的会话列表与菜单'),
               value: settings.compactMode,
               onChanged: settings.setCompactMode,
             ),
           const Divider(height: 28),
           if (_matchPref('Sessions', 'sort'))
             Text('Sessions', style: Theme.of(context).textTheme.titleSmall),
-          if (_matchPref('Default sort', 'session sort'))
+          if (_matchPref('默认排序', 'session sort'))
             ListTile(
               leading: const Icon(Icons.sort),
-              title: const Text('Default sort'),
+              title: const Text('默认排序'),
               subtitle: Text(_sortLabel(settings.sessionSort)),
             ),
           Padding(
@@ -291,14 +291,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Divider(height: 28),
           if (_matchPref('Console', 'tools haptic'))
             Text('Console', style: Theme.of(context).textTheme.titleSmall),
-          if (_matchPref('Dashboard auto-refresh', 'seconds'))
+          if (_matchPref('仪表盘自动刷新', 'seconds'))
             ListTile(
               leading: const Icon(Icons.timer_outlined),
-              title: const Text('Dashboard auto-refresh'),
+              title: const Text('仪表盘自动刷新'),
               subtitle: Text(
                 settings.dashboardRefreshSec == 0
                     ? 'Off'
-                    : 'Every ${settings.dashboardRefreshSec}s',
+                    : '每 ${settings.dashboardRefreshSec} 秒',
               ),
             ),
           Padding(
@@ -315,57 +315,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
-          if (_matchPref('Show tool messages by default', 'tools'))
-            if (_matchPref('Haptic feedback', 'buzz'))
+          if (_matchPref('默认显示工具消息', 'tools'))
+            if (_matchPref('触感反馈', 'buzz'))
               SwitchListTile(
                 secondary: const Icon(Icons.build_circle_outlined),
-                title: const Text('Show tool messages by default'),
+                title: const Text('默认显示工具消息'),
                 subtitle: _sub(
-                  'Chat can still toggle tools if Host exposes them',
+                  '若主机支持，聊天页仍可切换工具显示',
                 ),
                 value: settings.showToolsDefault,
                 onChanged: settings.setShowToolsDefault,
               ),
-          if (_matchPref('Keep screen on', 'awake'))
+          if (_matchPref('保持屏幕常亮', 'awake'))
             SwitchListTile(
               secondary: const Icon(Icons.vibration),
-              title: const Text('Haptic feedback'),
-              subtitle: _sub('Light buzz on pin / send / copy'),
+              title: const Text('触感反馈'),
+              subtitle: _sub('置顶/发送/复制时轻微震动'),
               value: settings.hapticsEnabled,
               onChanged: settings.setHapticsEnabled,
             ),
-          if (_matchPref('Monospace chat', 'mono'))
+          if (_matchPref('等宽聊天字体', 'mono'))
             SwitchListTile(
               secondary: const Icon(Icons.smartphone),
-              title: const Text('Keep screen on'),
-              subtitle: _sub('Device-local preference while using the console'),
+              title: const Text('保持屏幕常亮'),
+              subtitle: _sub('使用控制台时的本机偏好'),
               value: settings.keepScreenOn,
               onChanged: settings.setKeepScreenOn,
             ),
           SwitchListTile(
             secondary: const Icon(Icons.font_download_outlined),
-            title: const Text('Monospace chat'),
-            subtitle: _sub('Use mono font for message bodies'),
+            title: const Text('等宽聊天字体'),
+            subtitle: _sub('消息正文使用等宽字体'),
             value: settings.monoChat,
             onChanged: settings.setMonoChat,
           ),
-          if (_matchPref('Auto-reconnect Bridge', 'reconnect'))
+          if (_matchPref('自动重连 Bridge', 'reconnect'))
             SwitchListTile(
               secondary: const Icon(Icons.wifi_protected_setup),
-              title: const Text('Auto-reconnect Bridge'),
-              subtitle: _sub('Retry when chat WS drops · device-local'),
+              title: const Text('自动重连 Bridge'),
+              subtitle: _sub('聊天 WS 断开时重试 · 仅本机'),
               value: settings.autoReconnect,
               onChanged: settings.setAutoReconnect,
             ),
-          if (_matchPref('Reconnect attempts', 'max reconnect'))
+          if (_matchPref('重连次数', 'max reconnect'))
             ListTile(
               leading: const Icon(Icons.repeat),
-              title: const Text('Reconnect attempts'),
+              title: const Text('重连次数'),
               subtitle: Text(
-                'Max ${settings.maxReconnectAttempts} · silent backoff',
+                '最多 ${settings.maxReconnectAttempts} 次 · 静默退避',
               ),
             ),
-          if (_matchPref('Reconnect attempts', 'max reconnect'))
+          if (_matchPref('重连次数', 'max reconnect'))
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Wrap(
@@ -382,12 +382,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
-          if (_matchPref('Chat text size', 'body scale'))
+          if (_matchPref('聊天字号', 'body scale'))
             ListTile(
               leading: const Icon(Icons.format_size),
-              title: const Text('Chat text size'),
+              title: const Text('聊天字号'),
               subtitle: Text(
-                'Body scale · ${settings.chatFontScale.toStringAsFixed(2)}x',
+                '正文字号 · ${settings.chatFontScale.toStringAsFixed(2)}x',
               ),
             ),
           Padding(
@@ -404,15 +404,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
-          if (_matchPref('Terminal text size', 'term scale'))
+          if (_matchPref('终端字号', 'term scale'))
             ListTile(
               leading: const Icon(Icons.terminal),
-              title: const Text('Terminal text size'),
+              title: const Text('终端字号'),
               subtitle: Text(
-                'Mono scale · ${settings.terminalFontScale.toStringAsFixed(2)}x',
+                '等宽缩放 · ${settings.terminalFontScale.toStringAsFixed(2)}x',
               ),
             ),
-          if (_matchPref('Terminal text size', 'term scale'))
+          if (_matchPref('终端字号', 'term scale'))
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Wrap(
@@ -428,14 +428,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           const Divider(height: 28),
-          if (_matchPref('Device data', 'prefs reset'))
-            Text('Device data', style: Theme.of(context).textTheme.titleSmall),
-          if (_matchPref('Copy local prefs', 'export'))
+          if (_matchPref('设备数据', 'prefs reset'))
+            Text('设备数据', style: Theme.of(context).textTheme.titleSmall),
+          if (_matchPref('复制本机偏好', 'export'))
             ListTile(
               leading: const Icon(Icons.ios_share_outlined),
-              title: const Text('Copy local prefs'),
+              title: const Text('复制本机偏好'),
               subtitle: _sub(
-                'Theme + console prefs only · no tokens / host secrets',
+                '仅主题与控制台偏好 · 无令牌/主机密钥',
               ),
               trailing: const Icon(Icons.copy_all_outlined),
               onTap: () async {
@@ -460,37 +460,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Local prefs copied (no tokens)'),
+                      content: Text('本机偏好已复制（不含令牌）'),
                       duration: Duration(seconds: 1),
                     ),
                   );
                 }
               },
             ),
-          if (_matchPref('Reset console prefs', 'defaults'))
+          if (_matchPref('重置控制台偏好', 'defaults'))
             ListTile(
               leading: const Icon(Icons.restart_alt),
-              title: const Text('Reset console prefs'),
+              title: const Text('重置控制台偏好'),
               subtitle: _sub(
-                'Defaults for theme-adjacent console options · no host tokens',
+                '仅主题相关控制台选项 · 不含主机令牌',
               ),
               trailing: const Icon(Icons.restore_outlined),
               onTap: () async {
                 final ok = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: const Text('Reset console prefs?'),
+                    title: const Text('重置控制台偏好?'),
                     content: const Text(
                       'Restores local console defaults (scale, compact, refresh, haptics, mono chat, etc.). Host profiles and tokens are not touched.',
                     ),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text('Cancel'),
+                        child: const Text('取消'),
                       ),
                       FilledButton(
                         onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text('Reset'),
+                        child: const Text('重置'),
                       ),
                     ],
                   ),
@@ -500,42 +500,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Console prefs reset to defaults'),
+                    content: Text('控制台偏好已恢复默认'),
                     duration: Duration(seconds: 1),
                   ),
                 );
               },
             ),
           const Divider(height: 28),
-          if (_matchPref('About', 'console only'))
+          if (_matchPref('About', 'console only') || _matchPref('关于', '控制台'))
             ListTile(
               leading: const Icon(Icons.info_outline),
-              title: const Text('About'),
+              title: const Text('关于'),
               subtitle: _sub(
-                'HuanHermes is a remote console only. Settings stay on this device. '
-                'No agent loop runs on the phone. Multi-host profiles live on Connect.',
+                'HuanHermes 只是远程控制台。设置保存在本机。'
+                '手机上不跑 agent loop。多主机配置在连接页。',
                 three: true,
               ),
               isThreeLine: true,
             ),
-          if (_matchPref('App version', 'version'))
+          if (_matchPref('应用版本', 'version'))
             ListTile(
               leading: const Icon(Icons.tag),
-              title: const Text('App version'),
+              title: const Text('应用版本'),
               subtitle: _sub(
-                '0.1.181+180 · ${context.watch<ConnectionController>().isRealHermes ? 'Real Hermes' : 'Mock'} host',
+                '0.1.182+182 · ${context.watch<ConnectionController>().isRealHermes ? '真 Hermes' : 'Mock'} 主机',
               ),
               trailing: IconButton(
-                tooltip: 'Copy about',
+                tooltip: '复制关于',
                 icon: const Icon(Icons.copy_outlined),
                 onPressed: () async {
                   const text =
-                      'HuanHermes App 0.1.181+180\nconsole · Mock or real Hermes host\nNo agent loop on device · tokens never in about text';
+                      'HuanHermes App 0.1.182+182\n控制台 · Mock 或真 Hermes 主机\n设备上无 agent loop · 关于文本不含令牌';
                   await Clipboard.setData(const ClipboardData(text: text));
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('About copied'),
+                        content: Text('关于已复制'),
                         duration: Duration(seconds: 1),
                       ),
                     );
@@ -543,13 +543,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
             ),
-          if (_matchPref('Privacy notes', 'tokens'))
+          if (_matchPref('隐私说明', 'tokens'))
             ListTile(
               leading: const Icon(Icons.policy_outlined),
-              title: const Text('Privacy notes'),
+              title: const Text('隐私说明'),
               subtitle: _sub(
-                'Tokens stay in secure storage. Pairing URI / exports never include tokens. '
-                'Pins, notes, drafts, recents, audit are device-local.',
+                '令牌保存在安全存储。配对 URI / 导出从不包含令牌。'
+                '置顶、备注、草稿、最近与审计均为本机数据。',
                 three: true,
               ),
               isThreeLine: true,
@@ -562,39 +562,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
   static String _sortLabel(String k) {
     switch (k) {
       case 'title':
-        return 'By title A–Z (pins still first)';
+        return '按标题 A–Z（置顶仍优先）';
       case 'project':
-        return 'By project then title';
+        return '按项目再按标题';
       case 'created':
-        return 'By created time (newest first)';
+        return '按创建时间（最新优先）';
       case 'model':
-        return 'By model then title';
+        return '按模型再按标题';
       case 'key':
-        return 'By session key then title';
+        return '按会话 key 再按标题';
       case 'platform':
-        return 'By platform then title';
+        return '按平台再按标题';
       case 'agent':
-        return 'By agent type then title';
+        return '按 Agent 类型再按标题';
       case 'mode':
-        return 'By mode then title';
+        return '按模式再按标题';
       case 'workdir':
-        return 'By workdir then title';
+        return '按工作目录再按标题';
       case 'running':
-        return 'Running first (then title)';
+        return '运行中优先（再按标题）';
       case 'live':
-        return 'Live first (then title)';
+        return 'Live 优先（再按标题）';
       case 'last':
-        return 'By last user message then title';
+        return '按最后用户消息再按标题';
       case 'pinned':
-        return 'Pinned first (then title; respects direction)';
+        return '置顶优先（再按标题；尊重方向）';
       case 'note':
-        return 'By local session note then title';
+        return '按本机会话备注再按标题';
       case 'archived':
-        return 'Archived first (then title; respects direction)';
+        return '归档优先（再按标题；尊重方向）';
       case 'recent':
-        return 'By recently opened on this device (pins still first)';
+        return '按本机最近打开（置顶仍优先）';
       default:
-        return 'By last updated (newest first)';
+        return '按最近更新（最新优先）';
     }
   }
 }

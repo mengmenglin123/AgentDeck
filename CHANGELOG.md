@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.182
+
+- Phase B Catalog 收敛：`CatalogUi` 统一 auto-refresh / copy snack / 中文标签
+- 14 个 catalog/host 屏 `_armTimer` 改为 `CatalogUi.armAutoRefresh`
+- Skills/MCP/Cron/Memory/Agents/Logs/Activity/Audit 查询改用 `QueryMatch`
+- 全屏中文扫尾：Settings / Status / Dashboard / Pairing / Sessions / Chat / Terminal / Workspace 等用户可见文案
+- 协议回归：15/15 + py_compile
+
 ## 0.1.181
 
 - 全量代码审计与重设计文档：`docs/CODE_AUDIT_AND_REDESIGN.md`

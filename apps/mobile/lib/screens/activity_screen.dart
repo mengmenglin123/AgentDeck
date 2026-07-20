@@ -8,6 +8,8 @@ import '../services/app_settings_controller.dart';
 import '../models/session_info.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
+import '../utils/catalog_ui.dart';
+import '../utils/query_match.dart';
 import 'chat_screen.dart';
 
 /// Readonly Host activity feed (`GET /activity`).
@@ -73,14 +75,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
   }
 
   void _armTimer() {
-    _timer?.cancel();
-    if (!_autoRefresh || !mounted) return;
-    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
-    if (sec <= 0) return;
-    _timer = Timer.periodic(Duration(seconds: sec), (_) {
-      if (!mounted || _loading) return;
-      _load();
-    });
+    _timer = CatalogUi.armAutoRefresh(
+      context: context,
+      current: _timer,
+      enabled: _autoRefresh,
+      isBusy: () => _loading,
+      onTick: _load,
+    );
   }
 
   Future<void> _load() async {
@@ -176,7 +177,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final ref = _sessionRef(e);
     if (ref == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No session reference on this event')),
+        const SnackBar(content: Text('该事件没有会话引用')),
       );
       return;
     }
@@ -185,7 +186,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       await Clipboard.setData(ClipboardData(text: ref));
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Session not in list — copied ref: $ref')),
+        SnackBar(content: Text('会话不在列表 — 已复制引用：$ref')),
       );
       return;
     }
@@ -199,7 +200,6 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
   List<Map<String, dynamic>> get _filtered {
     final rawQ = _query.trim();
-    final q = _queryCase ? rawQ : rawQ.toLowerCase();
     final list = _events.where((e) {
       final kind = (e['kind'] ?? e['type'] ?? 'event').toString().toLowerCase();
       if (_kind.isNotEmpty) {
@@ -242,15 +242,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
       if (rawQ.isEmpty) return true;
       final hayRaw =
           '${e['kind']} ${e['type']} ${e['summary']} ${e['message']} ${e['session_key']} ${e['session_id']} ${e['source']} ${e['level']}';
-      if (_queryRegex) {
-        try {
-          return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
-        } catch (_) {
-          return false;
-        }
-      }
-      final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
-      return hay.contains(q);
+      return QueryMatch.matches(
+        hayRaw,
+        rawQ,
+        caseSensitive: _queryCase,
+        regex: _queryRegex,
+      );
     }).toList();
     int tsOf(Map<String, dynamic> e) {
       final v = e['ts'] ?? e['time'] ?? e['timestamp'];
@@ -356,7 +353,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       appBar: AppBar(
         title: Text(() {
           final base = items.isEmpty
-              ? 'Host activity'
+              ? '主机活动'
               : (_events.isEmpty || items.length == _events.length
                     ? 'Host activity (${items.length})'
                     : 'Host activity (${items.length}/${_events.length})');
@@ -364,7 +361,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
         }()),
         actions: [
           IconButton(
-            tooltip: 'Copy all',
+            tooltip: '复制全部',
             onPressed: items.isEmpty
                 ? null
                 : () async {
@@ -383,7 +380,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Copied ${items.length} events'),
+                          content: Text('已复制 ${items.length} events'),
                           duration: const Duration(seconds: 1),
                         ),
                       );
@@ -392,7 +389,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
             icon: const Icon(Icons.copy_all_outlined),
           ),
           IconButton(
-            tooltip: 'Copy CSV',
+            tooltip: '复制 CSV',
             onPressed: items.isEmpty
                 ? null
                 : () async {
@@ -419,7 +416,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Copied CSV (${items.length})'),
+                          content: Text('已复制 CSV（${items.length}）'),
                           duration: const Duration(seconds: 1),
                         ),
                       );
@@ -436,8 +433,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
           ),
           IconButton(
             tooltip: _relativeTs
-                ? 'Absolute timestamps'
-                : 'Relative timestamps',
+                ? '绝对时间戳'
+                : '相对时间戳',
             onPressed: () => setState(() => _relativeTs = !_relativeTs),
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
@@ -449,23 +446,23 @@ class _ActivityScreenState extends State<ActivityScreen> {
                       : (_sortByChannel
                             ? (_sortAsc ? 'Channel Z→A' : 'Channel A→Z')
                             : (_sortByType
-                                  ? (_sortAsc ? 'Type Z→A' : 'Type A→Z')
+                                  ? (_sortAsc ? '类型 Z→A' : '类型 A→Z')
                                   : (_sortByLevel
-                                        ? (_sortAsc ? 'Level Z→A' : 'Level A→Z')
+                                        ? (_sortAsc ? '级别 Z→A' : '级别 A→Z')
                                         : (_sortById
-                                              ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                                              ? (_sortAsc ? 'ID Z→A' : 'ID A→Z')
                                               : (_sortBySource
                                                     ? (_sortAsc
-                                                          ? 'Source Z→A'
-                                                          : 'Source A→Z')
+                                                          ? '来源 Z→A'
+                                                          : '来源 A→Z')
                                                     : (_sortBySession
                                                           ? (_sortAsc
-                                                                ? 'Session Z→A'
-                                                                : 'Session A→Z')
+                                                                ? '会话 Z→A'
+                                                                : '会话 A→Z')
                                                           : (_sortBySummary
                                                                 ? (_sortAsc
-                                                                      ? 'Summary Z→A'
-                                                                      : 'Summary A→Z')
+                                                                      ? '摘要 Z→A'
+                                                                      : '摘要 A→Z')
                                                                 : (_sortByKind
                                                                       ? (_sortAsc
                                                                             ? 'Kinds Z→A'
@@ -665,13 +662,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
           ),
 
           IconButton(
-            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            tooltip: _wrapLines ? '截断详情' : '换行详情',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
 
           IconButton(
-            tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
+            tooltip: _autoRefresh ? '暂停刷新' : '自动刷新',
             onPressed: () {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
@@ -683,7 +680,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
             ),
           ),
           IconButton(
-            tooltip: 'Jump to top',
+            tooltip: '回到顶部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -695,7 +692,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
             icon: const Icon(Icons.vertical_align_top),
           ),
           IconButton(
-            tooltip: 'Jump to end',
+            tooltip: '跳到底部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -751,7 +748,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
               spacing: 8,
               children: [
                 for (final f in const [
-                  ('', 'Any level'),
+                  ('', '任意级别'),
                   ('info', 'info'),
                   ('warn', 'warn'),
                   ('error', 'error'),
@@ -772,7 +769,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
               spacing: 8,
               children: [
                 for (final f in const [
-                  ('', 'Any source'),
+                  ('', '任意来源'),
                   ('mock-host', 'mock-host'),
                   ('bridge', 'bridge'),
                   ('session', 'session'),
@@ -795,7 +792,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
               spacing: 8,
               children: [
                 FilterChip(
-                  label: Text('Wrap', style: const TextStyle(fontSize: 11)),
+                  label: Text('换行', style: const TextStyle(fontSize: 11)),
                   selected: _wrapLines,
                   onSelected: (v) => setState(() => _wrapLines = v),
                   visualDensity: VisualDensity.compact,
@@ -813,7 +810,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text('Auto', style: TextStyle(fontSize: 11)),
+                  label: const Text('自动', style: TextStyle(fontSize: 11)),
                   selected: _autoRefresh,
                   onSelected: (v) => setState(() => _autoRefresh = v),
                   visualDensity: VisualDensity.compact,
@@ -833,20 +830,20 @@ class _ActivityScreenState extends State<ActivityScreen> {
               controller: _q,
               decoration: InputDecoration(
                 hintText: _queryRegex
-                    ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
+                    ? (_queryCase ? '筛选（正则 · 大小写）' : '筛选（正则）')
                     : (_queryCase
-                          ? 'Filter (case-sensitive)'
-                          : 'Filter kind / summary / session'),
+                          ? '筛选（区分大小写）'
+                          : '筛选类型 / 摘要 / 会话'),
                 isDense: true,
                 border: const OutlineInputBorder(),
                 prefixIcon: IconButton(
                   tooltip: _queryRegex
                       ? (_queryCase
-                            ? 'Regex · case on (long-press: plain filter)'
-                            : 'Regex · case off (long-press: plain filter)')
+                            ? '正则 · 大小写 开（长按恢复普通筛选）'
+                            : '正则 · 大小写 关（长按恢复普通筛选）')
                       : (_queryCase
-                            ? 'Case-sensitive (long-press: regex)'
-                            : 'Case-insensitive (long-press: regex)'),
+                            ? '区分大小写（长按切换正则）'
+                            : '不区分大小写（长按切换正则）'),
                   icon: Icon(
                     _queryRegex
                         ? Icons.code
@@ -875,8 +872,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 ? Center(
                     child: Text(
                       _events.isEmpty
-                          ? 'No activity yet (Host may not expose /activity)'
-                          : 'No events match filter',
+                          ? '暂无活动（主机可能未暴露 /activity）'
+                          : '没有匹配的事件',
                     ),
                   )
                 : RefreshIndicator(
@@ -930,7 +927,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Event copied'),
+                                  content: Text('事件已复制'),
                                   duration: Duration(seconds: 1),
                                 ),
                               );

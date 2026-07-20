@@ -7,6 +7,8 @@ import '../models/connection_config.dart';
 import '../services/app_settings_controller.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
+import '../utils/catalog_ui.dart';
+import '../utils/query_match.dart';
 
 /// Readonly Host agents / platforms catalog (`GET /agents`).
 class AgentsScreen extends StatefulWidget {
@@ -142,9 +144,9 @@ class _AgentsScreenState extends State<AgentsScreen> {
       } else if (caps != null && '$caps'.isNotEmpty) {
         parts.add('caps=$caps');
       }
-      return parts.isEmpty ? 'Host agent entry' : parts.join(' · ');
+      return parts.isEmpty ? '主机 Agent 条目' : parts.join(' · ');
     }
-    return 'Host agent entry';
+    return '主机 Agent 条目';
   }
 
   String _agentAdapterKey(dynamic a) {
@@ -211,22 +213,18 @@ class _AgentsScreenState extends State<AgentsScreen> {
       }
     }
     final rawQ = _query.trim();
-    final q = _queryCase ? rawQ : rawQ.toLowerCase();
     if (rawQ.isEmpty) return true;
     final adapterHay = _agentAdapterKey(a);
     final modelHay = _agentModelKey(a);
     final platformHay = _agentPlatformKey(a);
     final hayRaw =
         '${_agentTitle(a)} ${_agentSub(a)} $adapterHay $modelHay $platformHay';
-    if (_queryRegex) {
-      try {
-        return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
-      } catch (_) {
-        return false;
-      }
-    }
-    final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
-    return hay.contains(q);
+    return QueryMatch.matches(
+      hayRaw,
+      rawQ,
+      caseSensitive: _queryCase,
+      regex: _queryRegex,
+    );
   }
 
   bool _matchProject(Map<String, dynamic> p) {
@@ -430,15 +428,12 @@ class _AgentsScreenState extends State<AgentsScreen> {
     final list = _platforms.where((p) {
       if (rawQ.isEmpty) return true;
       final hayRaw = '$p';
-      if (_queryRegex) {
-        try {
-          return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
-        } catch (_) {
-          return false;
-        }
-      }
-      final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
-      return hay.contains(q);
+      return QueryMatch.matches(
+        hayRaw,
+        rawQ,
+        caseSensitive: _queryCase,
+        regex: _queryRegex,
+      );
     }).toList();
     list.sort((a, b) {
       final c = '$a'.toLowerCase().compareTo('$b'.toLowerCase());
@@ -451,19 +446,18 @@ class _AgentsScreenState extends State<AgentsScreen> {
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Copied'), duration: Duration(seconds: 1)),
+      const SnackBar(content: Text('已复制'), duration: Duration(seconds: 1)),
     );
   }
 
   void _armTimer() {
-    _timer?.cancel();
-    if (!_autoRefresh || !mounted) return;
-    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
-    if (sec <= 0) return;
-    _timer = Timer.periodic(Duration(seconds: sec), (_) {
-      if (!mounted || _loading) return;
-      _load();
-    });
+    _timer = CatalogUi.armAutoRefresh(
+      context: context,
+      current: _timer,
+      enabled: _autoRefresh,
+      isBusy: () => _loading,
+      onTick: _load,
+    );
   }
 
   @override
@@ -480,7 +474,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: 'Copy all',
+            tooltip: '复制全部',
             onPressed: (agents.isEmpty && projects.isEmpty && platforms.isEmpty)
                 ? null
                 : () async {
@@ -507,7 +501,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Copied ${agents.length} agents / ${projects.length} projects',
+                            '已复制 ${agents.length} agents / ${projects.length} projects',
                           ),
                           duration: const Duration(seconds: 1),
                         ),
@@ -517,7 +511,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
             icon: const Icon(Icons.copy_all_outlined),
           ),
           IconButton(
-            tooltip: 'Copy CSV',
+            tooltip: '复制 CSV',
             onPressed: (agents.isEmpty && projects.isEmpty && platforms.isEmpty)
                 ? null
                 : () async {
@@ -552,7 +546,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Copied CSV (${agents.length}a · ${projects.length}p · ${platforms.length}pl)',
+                            '已复制 CSV (${agents.length}a · ${projects.length}p · ${platforms.length}pl)',
                           ),
                           duration: const Duration(seconds: 1),
                         ),
@@ -566,45 +560,45 @@ class _AgentsScreenState extends State<AgentsScreen> {
                 ? (_sortAsc ? 'Version Z→A' : 'Version A→Z')
                 : (_sortByCaps
                       ? (_sortAsc
-                            ? 'Capabilities many→few'
-                            : 'Capabilities few→many')
+                            ? '能力 多→少'
+                            : '能力 少→多')
                       : (_sortByNote
                             ? (_sortAsc ? 'Note Z→A' : 'Note A→Z')
                             : (_sortByCwd
                                   ? (_sortAsc ? 'Cwd Z→A' : 'Cwd A→Z')
                                   : (_sortBySessions
                                         ? (_sortAsc
-                                              ? 'Sessions many→few'
-                                              : 'Sessions few→many')
+                                              ? '会话 多→少'
+                                              : '会话 少→多')
                                         : (_sortByProvider
                                               ? (_sortAsc
                                                     ? 'Provider Z→A'
                                                     : 'Provider A→Z')
                                               : (_sortById
                                                     ? (_sortAsc
-                                                          ? 'Id Z→A'
-                                                          : 'Id A→Z')
+                                                          ? 'ID Z→A'
+                                                          : 'ID A→Z')
                                                     : (_sortByProject
                                                           ? (_sortAsc
-                                                                ? 'Project Z→A'
-                                                                : 'Project A→Z')
+                                                                ? '项目 Z→A'
+                                                                : '项目 A→Z')
                                                           : (_sortByPlatform
                                                                 ? (_sortAsc
-                                                                      ? 'Platform Z→A'
-                                                                      : 'Platform A→Z')
+                                                                      ? '平台 Z→A'
+                                                                      : '平台 A→Z')
                                                                 : (_sortByStatus
                                                                       ? (_sortAsc
-                                                                            ? 'Status Z→A'
-                                                                            : 'Status A→Z')
+                                                                            ? '状态 Z→A'
+                                                                            : '状态 A→Z')
                                                                       : (_sortByModel
                                                                             ? (_sortAsc
                                                                                   ? 'Model Z→A'
                                                                                   : 'Model A→Z')
                                                                             : (_sortByType
                                                                                   ? (_sortAsc
-                                                                                        ? 'Type Z→A'
-                                                                                        : 'Type A→Z')
-                                                                                  : (_sortAsc ? 'Name Z→A' : 'Name A→Z')))))))))))),
+                                                                                        ? '类型 Z→A'
+                                                                                        : '类型 A→Z')
+                                                                                  : (_sortAsc ? '名称 Z→A' : '名称 A→Z')))))))))))),
             onPressed: () {
               setState(() {
                 if (!_sortByType &&
@@ -873,13 +867,13 @@ class _AgentsScreenState extends State<AgentsScreen> {
             ),
           ),
           IconButton(
-            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            tooltip: _wrapLines ? '截断详情' : '换行详情',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
 
           IconButton(
-            tooltip: 'Jump to top',
+            tooltip: '回到顶部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -891,7 +885,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
             icon: const Icon(Icons.vertical_align_top),
           ),
           IconButton(
-            tooltip: 'Jump to end',
+            tooltip: '跳到底部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -903,7 +897,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
             icon: const Icon(Icons.vertical_align_bottom),
           ),
           IconButton(
-            tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
+            tooltip: _autoRefresh ? '暂停刷新' : '自动刷新',
             onPressed: () {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
@@ -949,7 +943,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                     visualDensity: VisualDensity.compact,
                   ),
                 FilterChip(
-                  label: const Text('Wrap', style: TextStyle(fontSize: 11)),
+                  label: const Text('换行', style: TextStyle(fontSize: 11)),
                   selected: _wrapLines,
                   onSelected: (v) => setState(() => _wrapLines = v),
                   visualDensity: VisualDensity.compact,
@@ -967,7 +961,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text('Auto', style: TextStyle(fontSize: 11)),
+                  label: const Text('自动', style: TextStyle(fontSize: 11)),
                   selected: _autoRefresh,
                   onSelected: (v) => setState(() => _autoRefresh = v),
                   visualDensity: VisualDensity.compact,
@@ -987,7 +981,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                       child: FilterChip(
                         visualDensity: VisualDensity.compact,
                         label: const Text(
-                          'Any status',
+                          '任意状态',
                           style: TextStyle(fontSize: 11),
                         ),
                         selected: _statusFilter.isEmpty,
@@ -1017,7 +1011,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
               runSpacing: 4,
               children: [
                 for (final f in const [
-                  ('', 'Any adapter'),
+                  ('', '任意适配器'),
                   ('mock', 'mock'),
                   ('hermes', 'hermes'),
                   ('claude', 'claude'),
@@ -1042,7 +1036,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
               runSpacing: 4,
               children: [
                 for (final f in const [
-                  ('', 'Any model'),
+                  ('', '任意模型'),
                   ('gpt', 'gpt'),
                   ('claude', 'claude'),
                   ('codex', 'codex'),
@@ -1091,20 +1085,20 @@ class _AgentsScreenState extends State<AgentsScreen> {
               controller: _q,
               decoration: InputDecoration(
                 hintText: _queryRegex
-                    ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
+                    ? (_queryCase ? '筛选（正则 · 大小写）' : '筛选（正则）')
                     : (_queryCase
-                          ? 'Filter (case-sensitive)'
-                          : 'Filter agents / platforms / projects'),
+                          ? '筛选（区分大小写）'
+                          : '筛选 Agent / 平台 / 项目'),
                 isDense: true,
                 border: const OutlineInputBorder(),
                 prefixIcon: IconButton(
                   tooltip: _queryRegex
                       ? (_queryCase
-                            ? 'Regex · case on (long-press: plain filter)'
-                            : 'Regex · case off (long-press: plain filter)')
+                            ? '正则 · 大小写 开（长按恢复普通筛选）'
+                            : '正则 · 大小写 关（长按恢复普通筛选）')
                       : (_queryCase
-                            ? 'Case-sensitive (long-press: regex)'
-                            : 'Case-insensitive (long-press: regex)'),
+                            ? '区分大小写（长按切换正则）'
+                            : '不区分大小写（长按切换正则）'),
                   icon: Icon(
                     _queryRegex
                         ? Icons.code
@@ -1138,7 +1132,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                 children: [
                   if (_section == 'all' || _section == 'agents') ...[
                     Text(
-                      'Host agent types',
+                      '主机 Agent 类型',
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     const SizedBox(height: 6),
@@ -1146,13 +1140,13 @@ class _AgentsScreenState extends State<AgentsScreen> {
                       const ListTile(
                         dense: true,
                         title: Text(
-                          'No agents catalog (Host may omit /agents)',
+                          '暂无 Agents 目录（主机可能未暴露 /agents）',
                         ),
                       )
                     else if (agents.isEmpty)
                       const ListTile(
                         dense: true,
-                        title: Text('No agents match filter'),
+                        title: Text('没有匹配的 Agent'),
                       )
                     else
                       Column(
@@ -1169,7 +1163,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                                 softWrap: true,
                               ),
                               trailing: IconButton(
-                                tooltip: 'Copy',
+                                tooltip: '复制',
                                 icon: const Icon(Icons.copy, size: 18),
                                 onPressed: () =>
                                     _copy('${_agentTitle(a)}\n${_agentSub(a)}'),
@@ -1190,7 +1184,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                     else if (platforms.isEmpty)
                       const ListTile(
                         dense: true,
-                        title: Text('No platforms match filter'),
+                        title: Text('没有匹配的平台'),
                       )
                     else
                       Wrap(
@@ -1208,14 +1202,14 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   if (_section == 'all' || _section == 'projects') ...[
                     const Divider(height: 32),
                     Text(
-                      'Projects (from /projects)',
+                      '项目（来自 /projects）',
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     const SizedBox(height: 4),
                     if (projects.isEmpty && _projects.isNotEmpty)
                       const ListTile(
                         dense: true,
-                        title: Text('No projects match filter'),
+                        title: Text('没有匹配的项目'),
                       ),
                     for (final p in projects)
                       Card(

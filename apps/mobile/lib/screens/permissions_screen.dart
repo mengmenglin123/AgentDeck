@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../utils/catalog_ui.dart';
+import '../utils/query_match.dart';
 
 import '../services/chat_controller.dart';
 import '../services/notification_service.dart';
@@ -15,7 +17,7 @@ class PermissionsScreen extends StatefulWidget {
 }
 
 class _PermissionsScreenState extends State<PermissionsScreen> {
-  /// Auto-approve rules: tool name → auto-approve level
+  /// 自动批准规则: tool name → auto-approve level
   final Map<String, String> _autoApproveRules = {};
 
   /// Filter: 'pending', 'all', 'approved', 'denied'
@@ -40,15 +42,15 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Permissions'),
+        title: const Text('权限'),
         actions: [
           PopupMenuButton<String>(
             onSelected: (v) => setState(() => _filter = v),
             itemBuilder: (_) => [
-              const PopupMenuItem(value: 'pending', child: Text('Pending')),
+              const PopupMenuItem(value: 'pending', child: Text('待处理')),
               const PopupMenuItem(value: 'all', child: Text('All')),
-              const PopupMenuItem(value: 'approved', child: Text('Approved')),
-              const PopupMenuItem(value: 'denied', child: Text('Denied')),
+              const PopupMenuItem(value: 'approved', child: Text('已批准')),
+              const PopupMenuItem(value: 'denied', child: Text('已拒绝')),
             ],
             icon: const Icon(Icons.filter_list),
           ),
@@ -56,11 +58,11 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
       ),
       body: Column(
         children: [
-          // Auto-approve rules section
+          // 自动批准规则 section
           Card(
             margin: const EdgeInsets.all(8),
             child: ExpansionTile(
-              title: const Text('Auto-approve rules'),
+              title: const Text('自动批准规则'),
               subtitle: Text('${_autoApproveRules.length} rules configured'),
               children: [
                 Padding(
@@ -69,7 +71,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Tools matching these rules will be auto-approved without prompting.',
+                        '匹配这些规则的工具将自动批准，不再提示。',
                         style: TextStyle(fontSize: 12),
                       ),
                       const SizedBox(height: 8),
@@ -101,7 +103,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
             child: Row(
               children: [
                 _buildStat(
-                  'Pending',
+                  '待处理',
                   chat.messages
                       .where(
                         (m) =>
@@ -113,7 +115,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                 ),
                 const SizedBox(width: 16),
                 _buildStat(
-                  'Approved',
+                  '已批准',
                   chat.messages
                       .where(
                         (m) =>
@@ -125,7 +127,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                 ),
                 const SizedBox(width: 16),
                 _buildStat(
-                  'Denied',
+                  '已拒绝',
                   chat.messages
                       .where(
                         (m) =>
@@ -243,7 +245,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Tool: $toolName',
+                    '工具：$toolName',
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -258,7 +260,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: const Text(
-                      'PENDING',
+                      '待处理',
                       style: TextStyle(fontSize: 10, color: Colors.orange),
                     ),
                   ),
@@ -286,7 +288,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            isDeny ? 'Permission denied' : 'Permission granted',
+                            isDeny ? '权限已拒绝' : '权限已授予',
                           ),
                           duration: const Duration(seconds: 1),
                         ),
@@ -312,7 +314,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Add auto-approve rule'),
+        title: const Text('添加自动批准规则'),
         content: TextField(
           controller: ctrl,
           decoration: const InputDecoration(
@@ -323,7 +325,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: const Text('取消'),
           ),
           FilledButton(
             onPressed: () {

@@ -7,6 +7,8 @@ import '../models/connection_config.dart';
 import '../services/app_settings_controller.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
+import '../utils/catalog_ui.dart';
+import '../utils/query_match.dart';
 
 /// Readonly Host scheduled jobs (`GET /cron`). Console view only.
 class CronScreen extends StatefulWidget {
@@ -136,20 +138,16 @@ class _CronScreenState extends State<CronScreen> {
       });
     }
     final rawQ = _query.trim();
-    final q = _queryCase ? rawQ : rawQ.toLowerCase();
     if (rawQ.isNotEmpty) {
       it = it.where((j) {
         final hayRaw =
             '${j['name']} ${j['id']} ${j['kind']} ${j['schedule']} ${j['description']} ${j['last_status']} ${j['project']} ${j['tags']}';
-        if (_queryRegex) {
-          try {
-            return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
-          } catch (_) {
-            return false;
-          }
-        }
-        final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
-        return hay.contains(q);
+        return QueryMatch.matches(
+          hayRaw,
+          rawQ,
+          caseSensitive: _queryCase,
+          regex: _queryRegex,
+        );
       });
     }
     final list = it.toList();
@@ -262,14 +260,13 @@ class _CronScreenState extends State<CronScreen> {
   }
 
   void _armTimer() {
-    _timer?.cancel();
-    if (!_autoRefresh || !mounted) return;
-    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
-    if (sec <= 0) return;
-    _timer = Timer.periodic(Duration(seconds: sec), (_) {
-      if (!mounted || _loading) return;
-      _load();
-    });
+    _timer = CatalogUi.armAutoRefresh(
+      context: context,
+      current: _timer,
+      enabled: _autoRefresh,
+      isBusy: () => _loading,
+      onTick: _load,
+    );
   }
 
   @override
@@ -279,14 +276,14 @@ class _CronScreenState extends State<CronScreen> {
       appBar: AppBar(
         title: Text(
           items.isEmpty
-              ? 'Host schedules'
+              ? '主机定时任务'
               : (items.length == _jobs.length
                     ? 'Host schedules (${items.length})'
                     : 'Host schedules (${items.length}/${_jobs.length})'),
         ),
         actions: [
           IconButton(
-            tooltip: 'Copy all',
+            tooltip: '复制全部',
             onPressed: items.isEmpty
                 ? null
                 : () async {
@@ -309,7 +306,7 @@ class _CronScreenState extends State<CronScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Copied ${items.length} jobs'),
+                          content: Text('已复制 ${items.length} jobs'),
                           duration: const Duration(seconds: 1),
                         ),
                       );
@@ -318,7 +315,7 @@ class _CronScreenState extends State<CronScreen> {
             icon: const Icon(Icons.copy_all_outlined),
           ),
           IconButton(
-            tooltip: 'Copy CSV',
+            tooltip: '复制 CSV',
             onPressed: items.isEmpty
                 ? null
                 : () async {
@@ -350,7 +347,7 @@ class _CronScreenState extends State<CronScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Copied CSV (${items.length})'),
+                          content: Text('已复制 CSV（${items.length}）'),
                           duration: const Duration(seconds: 1),
                         ),
                       );
@@ -362,34 +359,34 @@ class _CronScreenState extends State<CronScreen> {
             tooltip: _sortByLastRun
                 ? (_sortAsc ? 'Last run old→new' : 'Last run new→old')
                 : (_sortByDesc
-                      ? (_sortAsc ? 'Description Z→A' : 'Description A→Z')
+                      ? (_sortAsc ? '描述 Z→A' : '描述 A→Z')
                       : (_sortByName
-                            ? (_sortAsc ? 'Name Z→A' : 'Name A→Z')
+                            ? (_sortAsc ? '名称 Z→A' : '名称 A→Z')
                             : (_sortByEnabled
                                   ? (_sortAsc
-                                        ? 'Enabled first'
-                                        : 'Disabled first')
+                                        ? '启用优先'
+                                        : '禁用优先')
                                   : (_sortById
-                                        ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                                        ? (_sortAsc ? 'ID Z→A' : 'ID A→Z')
                                         : (_sortByNext
                                               ? (_sortAsc
                                                     ? 'Next run late→soon'
                                                     : 'Next run soon→late')
                                               : (_sortByLastStatus
                                                     ? (_sortAsc
-                                                          ? 'Last status Z→A'
-                                                          : 'Last status A→Z')
+                                                          ? '上次状态 Z→A'
+                                                          : '上次状态 A→Z')
                                                     : (_sortByKind
                                                           ? (_sortAsc
                                                                 ? 'Kind Z→A'
                                                                 : 'Kind A→Z')
                                                           : (_sortBySchedule
                                                                 ? (_sortAsc
-                                                                      ? 'Schedule Z→A'
-                                                                      : 'Schedule A→Z')
+                                                                      ? '计划 Z→A'
+                                                                      : '计划 A→Z')
                                                                 : (_sortAsc
-                                                                      ? 'Name Z→A'
-                                                                      : 'Name A→Z'))))))))),
+                                                                      ? '名称 Z→A'
+                                                                      : '名称 A→Z'))))))))),
             onPressed: () {
               setState(() {
                 if (!_sortBySchedule &&
@@ -572,13 +569,13 @@ class _CronScreenState extends State<CronScreen> {
             ),
           ),
           IconButton(
-            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            tooltip: _wrapLines ? '截断详情' : '换行详情',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
 
           IconButton(
-            tooltip: 'Jump to top',
+            tooltip: '回到顶部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -590,7 +587,7 @@ class _CronScreenState extends State<CronScreen> {
             icon: const Icon(Icons.vertical_align_top),
           ),
           IconButton(
-            tooltip: 'Jump to end',
+            tooltip: '跳到底部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -602,7 +599,7 @@ class _CronScreenState extends State<CronScreen> {
             icon: const Icon(Icons.vertical_align_bottom),
           ),
           IconButton(
-            tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
+            tooltip: _autoRefresh ? '暂停刷新' : '自动刷新',
             onPressed: () {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
@@ -636,20 +633,20 @@ class _CronScreenState extends State<CronScreen> {
               controller: _q,
               decoration: InputDecoration(
                 hintText: _queryRegex
-                    ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
+                    ? (_queryCase ? '筛选（正则 · 大小写）' : '筛选（正则）')
                     : (_queryCase
-                          ? 'Filter (case-sensitive)'
-                          : 'Filter name / schedule / status'),
+                          ? '筛选（区分大小写）'
+                          : '筛选名称 / 计划 / 状态'),
                 isDense: true,
                 border: const OutlineInputBorder(),
                 prefixIcon: IconButton(
                   tooltip: _queryRegex
                       ? (_queryCase
-                            ? 'Regex · case on (long-press: plain filter)'
-                            : 'Regex · case off (long-press: plain filter)')
+                            ? '正则 · 大小写 开（长按恢复普通筛选）'
+                            : '正则 · 大小写 关（长按恢复普通筛选）')
                       : (_queryCase
-                            ? 'Case-sensitive (long-press: regex)'
-                            : 'Case-insensitive (long-press: regex)'),
+                            ? '区分大小写（长按切换正则）'
+                            : '不区分大小写（长按切换正则）'),
                   icon: Icon(
                     _queryRegex
                         ? Icons.code
@@ -698,7 +695,7 @@ class _CronScreenState extends State<CronScreen> {
               runSpacing: 4,
               children: [
                 for (final f in const [
-                  ('all', 'Any kind'),
+                  ('all', '任意类型'),
                   ('prompt', 'prompt'),
                   ('http', 'http'),
                   ('bash', 'bash'),
@@ -720,7 +717,7 @@ class _CronScreenState extends State<CronScreen> {
               runSpacing: 4,
               children: [
                 for (final f in const [
-                  ('all', 'Any status'),
+                  ('all', '任意状态'),
                   ('ok', 'ok'),
                   ('error', 'error'),
                   ('running', 'running'),
@@ -742,7 +739,7 @@ class _CronScreenState extends State<CronScreen> {
               runSpacing: 4,
               children: [
                 FilterChip(
-                  label: const Text('Wrap', style: TextStyle(fontSize: 11)),
+                  label: const Text('换行', style: TextStyle(fontSize: 11)),
                   selected: _wrapLines,
                   onSelected: (v) => setState(() => _wrapLines = v),
                   visualDensity: VisualDensity.compact,
@@ -760,7 +757,7 @@ class _CronScreenState extends State<CronScreen> {
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text('Auto', style: TextStyle(fontSize: 11)),
+                  label: const Text('自动', style: TextStyle(fontSize: 11)),
                   selected: _autoRefresh,
                   onSelected: (v) => setState(() => _autoRefresh = v),
                   visualDensity: VisualDensity.compact,
@@ -772,10 +769,10 @@ class _CronScreenState extends State<CronScreen> {
           Expanded(
             child: _jobs.isEmpty && !_loading
                 ? const Center(
-                    child: Text('No cron jobs (Host may not expose /cron)'),
+                    child: Text('暂无定时任务（主机可能未暴露 /cron）'),
                   )
                 : items.isEmpty
-                ? const Center(child: Text('No jobs match filter'))
+                ? const Center(child: Text('没有匹配的任务'))
                 : RefreshIndicator(
                     onRefresh: _load,
                     child: ListView.separated(
@@ -819,7 +816,7 @@ class _CronScreenState extends State<CronScreen> {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Job copied'),
+                                  content: Text('任务已复制'),
                                   duration: Duration(seconds: 1),
                                 ),
                               );

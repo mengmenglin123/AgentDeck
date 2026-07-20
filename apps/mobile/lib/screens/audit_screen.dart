@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../utils/catalog_ui.dart';
+import '../utils/query_match.dart';
 
 import '../services/app_settings_controller.dart';
 import '../services/audit_log.dart';
@@ -44,14 +46,15 @@ class _AuditScreenState extends State<AuditScreen> {
   }
 
   void _armTimer() {
-    _timer?.cancel();
-    if (!_autoRefresh || !mounted) return;
-    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
-    if (sec <= 0) return;
-    _timer = Timer.periodic(Duration(seconds: sec), (_) {
-      if (!mounted) return;
-      setState(() {});
-    });
+    _timer = CatalogUi.armAutoRefresh(
+      context: context,
+      current: _timer,
+      enabled: _autoRefresh,
+      isBusy: () => false,
+      onTick: () {
+        if (mounted) setState(() {});
+      },
+    );
   }
 
   @override
@@ -113,19 +116,15 @@ class _AuditScreenState extends State<AuditScreen> {
       }
     }
     final rawQ = _query.trim();
-    final q = _queryCase ? rawQ : rawQ.toLowerCase();
     if (rawQ.isNotEmpty) {
       it = it.where((e) {
         final hayRaw = '${e.action} ${e.detail} ${e.level}';
-        if (_queryRegex) {
-          try {
-            return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
-          } catch (_) {
-            return false;
-          }
-        }
-        final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
-        return hay.contains(q);
+        return QueryMatch.matches(
+          hayRaw,
+          rawQ,
+          caseSensitive: _queryCase,
+          regex: _queryRegex,
+        );
       });
     }
     return it.toList();
@@ -158,7 +157,7 @@ class _AuditScreenState extends State<AuditScreen> {
         title: Text(_autoRefresh ? '$title · auto' : title),
         actions: [
           IconButton(
-            tooltip: 'Copy all',
+            tooltip: '复制全部',
             onPressed: () async {
               final items = _ordered(_filter(audit.entries));
               final buf = StringBuffer();
@@ -171,7 +170,7 @@ class _AuditScreenState extends State<AuditScreen> {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Copied ${items.length} lines'),
+                    content: Text('已复制 ${items.length} lines'),
                     duration: const Duration(seconds: 1),
                   ),
                 );
@@ -180,7 +179,7 @@ class _AuditScreenState extends State<AuditScreen> {
             icon: const Icon(Icons.copy_all_outlined),
           ),
           IconButton(
-            tooltip: 'Copy JSON',
+            tooltip: '复制 JSON',
             onPressed: () async {
               final items = _ordered(_filter(audit.entries));
               final payload = {
@@ -201,7 +200,7 @@ class _AuditScreenState extends State<AuditScreen> {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Copied JSON (${items.length})'),
+                    content: Text('已复制 JSON（${items.length}）'),
                     duration: const Duration(seconds: 1),
                   ),
                 );
@@ -210,7 +209,7 @@ class _AuditScreenState extends State<AuditScreen> {
             icon: const Icon(Icons.data_object),
           ),
           IconButton(
-            tooltip: 'Copy CSV',
+            tooltip: '复制 CSV',
             onPressed: () async {
               final items = _ordered(_filter(audit.entries));
               final buf = StringBuffer();
@@ -234,7 +233,7 @@ class _AuditScreenState extends State<AuditScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      'Copied CSV (' + items.length.toString() + ')',
+                      '已复制 CSV (' + items.length.toString() + ')',
                     ),
                     duration: const Duration(seconds: 1),
                   ),
@@ -254,10 +253,10 @@ class _AuditScreenState extends State<AuditScreen> {
                 : (_sortByDetail
                     ? (_sortAsc ? 'Details Z→A' : 'Details A→Z')
                     : (_sortByLevel
-                        ? (_sortAsc ? 'Levels Z→A' : 'Levels A→Z')
+                        ? (_sortAsc ? '级别 Z→A' : '级别 A→Z')
                         : (_sortByAction
                             ? (_sortAsc ? 'Actions Z→A' : 'Actions A→Z')
-                            : 'Sort by action / level / detail / time'))),
+                            : '按动作 / 级别 / 详情 / 时间排序'))),
             onPressed: () {
               setState(() {
                 if (!_sortByAction &&
@@ -317,18 +316,18 @@ class _AuditScreenState extends State<AuditScreen> {
             ),
           ),
           IconButton(
-            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            tooltip: _wrapLines ? '截断详情' : '换行详情',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
           ),
           IconButton(
             tooltip:
-                _relativeTs ? 'Absolute timestamps' : 'Relative timestamps',
+                _relativeTs ? '绝对时间戳' : '相对时间戳',
             onPressed: () => setState(() => _relativeTs = !_relativeTs),
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
           IconButton(
-            tooltip: 'Jump to top',
+            tooltip: '回到顶部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -340,7 +339,7 @@ class _AuditScreenState extends State<AuditScreen> {
             icon: const Icon(Icons.vertical_align_top),
           ),
           IconButton(
-            tooltip: 'Jump to end',
+            tooltip: '跳到底部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -352,7 +351,7 @@ class _AuditScreenState extends State<AuditScreen> {
             icon: const Icon(Icons.vertical_align_bottom),
           ),
           IconButton(
-            tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
+            tooltip: _autoRefresh ? '暂停刷新' : '自动刷新',
             onPressed: () {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
@@ -364,7 +363,7 @@ class _AuditScreenState extends State<AuditScreen> {
             ),
           ),
           IconButton(
-            tooltip: 'Clear',
+            tooltip: '清空',
             onPressed: audit.clear,
             icon: const Icon(Icons.delete_outline),
           ),
@@ -378,20 +377,20 @@ class _AuditScreenState extends State<AuditScreen> {
               controller: _q,
               decoration: InputDecoration(
                 hintText: _queryRegex
-                    ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
+                    ? (_queryCase ? '筛选（正则 · 大小写）' : '筛选（正则）')
                     : (_queryCase
-                        ? 'Filter (case-sensitive)'
-                        : 'Filter action / detail'),
+                        ? '筛选（区分大小写）'
+                        : '筛选动作 / 详情'),
                 isDense: true,
                 border: const OutlineInputBorder(),
                 prefixIcon: IconButton(
                   tooltip: _queryRegex
                       ? (_queryCase
-                          ? 'Regex · case on (long-press: plain filter)'
-                          : 'Regex · case off (long-press: plain filter)')
+                          ? '正则 · 大小写 开（长按恢复普通筛选）'
+                          : '正则 · 大小写 关（长按恢复普通筛选）')
                       : (_queryCase
-                          ? 'Case-sensitive (long-press: regex)'
-                          : 'Case-insensitive (long-press: regex)'),
+                          ? '区分大小写（长按切换正则）'
+                          : '不区分大小写（长按切换正则）'),
                   icon: Icon(
                     _queryRegex
                         ? Icons.code
@@ -440,7 +439,7 @@ class _AuditScreenState extends State<AuditScreen> {
               spacing: 8,
               children: [
                 for (final f in const [
-                  ('all', 'any action'),
+                  ('all', '任意动作'),
                   ('bridge', 'bridge'),
                   ('session', 'session'),
                   ('chat', 'chat'),
@@ -466,7 +465,7 @@ class _AuditScreenState extends State<AuditScreen> {
               spacing: 8,
               children: [
                 FilterChip(
-                  label: const Text('Wrap', style: TextStyle(fontSize: 11)),
+                  label: const Text('换行', style: TextStyle(fontSize: 11)),
                   selected: _wrapLines,
                   onSelected: (v) => setState(() => _wrapLines = v),
                   visualDensity: VisualDensity.compact,
@@ -490,7 +489,7 @@ class _AuditScreenState extends State<AuditScreen> {
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text('Auto', style: TextStyle(fontSize: 11)),
+                  label: const Text('自动', style: TextStyle(fontSize: 11)),
                   selected: _autoRefresh,
                   onSelected: (v) => setState(() => _autoRefresh = v),
                   visualDensity: VisualDensity.compact,
@@ -504,10 +503,10 @@ class _AuditScreenState extends State<AuditScreen> {
               builder: (context, _) {
                 final items = _ordered(_filter(audit.entries));
                 if (audit.entries.isEmpty) {
-                  return const Center(child: Text('No audit events yet.'));
+                  return const Center(child: Text('暂无审计事件。'));
                 }
                 if (items.isEmpty) {
-                  return const Center(child: Text('No events match filter'));
+                  return const Center(child: Text('没有匹配的事件'));
                 }
                 return RefreshIndicator(
                   onRefresh: () async {
@@ -553,7 +552,7 @@ class _AuditScreenState extends State<AuditScreen> {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Entry copied'),
+                                content: Text('条目已复制'),
                                 duration: Duration(seconds: 1),
                               ),
                             );

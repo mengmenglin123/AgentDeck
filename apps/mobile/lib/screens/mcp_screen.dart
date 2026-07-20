@@ -7,6 +7,8 @@ import '../models/connection_config.dart';
 import '../services/app_settings_controller.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
+import '../utils/catalog_ui.dart';
+import '../utils/query_match.dart';
 
 /// Readonly MCP server catalog from Host `GET /mcp`.
 class McpScreen extends StatefulWidget {
@@ -87,7 +89,6 @@ class _McpScreenState extends State<McpScreen> {
 
   List<Map<String, dynamic>> get _filtered {
     final rawQ = _query.trim();
-    final q = _queryCase ? rawQ : rawQ.toLowerCase();
     final list = servers.where((s) {
       final st = (s['status'] ?? '').toString().toLowerCase();
       if (_status.isNotEmpty) {
@@ -152,15 +153,12 @@ class _McpScreenState extends State<McpScreen> {
       final tools = s['tools'] is List ? (s['tools'] as List).join(' ') : '';
       final hayRaw =
           '${s['name']} ${s['description']} ${s['status']} ${s['kind']} ${s['note']} ${s['transport']} ${s['url']} ${s['command']} ${s['enabled']} $tools';
-      if (_queryRegex) {
-        try {
-          return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
-        } catch (_) {
-          return false;
-        }
-      }
-      final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
-      return hay.contains(q);
+      return QueryMatch.matches(
+        hayRaw,
+        rawQ,
+        caseSensitive: _queryCase,
+        regex: _queryRegex,
+      );
     }).toList();
     list.sort((a, b) {
       String endpointOf(Map x) =>
@@ -245,14 +243,13 @@ class _McpScreenState extends State<McpScreen> {
   }
 
   void _armTimer() {
-    _timer?.cancel();
-    if (!_autoRefresh || !mounted) return;
-    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
-    if (sec <= 0) return;
-    _timer = Timer.periodic(Duration(seconds: sec), (_) {
-      if (!mounted || loading) return;
-      _load();
-    });
+    _timer = CatalogUi.armAutoRefresh(
+      context: context,
+      current: _timer,
+      enabled: _autoRefresh,
+      isBusy: () => loading,
+      onTick: _load,
+    );
   }
 
   @override
@@ -263,14 +260,14 @@ class _McpScreenState extends State<McpScreen> {
       appBar: AppBar(
         title: Text(
           items.isEmpty
-              ? 'MCP (readonly)'
+              ? 'MCP（只读）'
               : (items.length == servers.length
                     ? 'MCP (${items.length})'
                     : 'MCP (${items.length}/${servers.length})'),
         ),
         actions: [
           IconButton(
-            tooltip: 'Copy all',
+            tooltip: '复制全部',
             onPressed: items.isEmpty
                 ? null
                 : () async {
@@ -291,7 +288,7 @@ class _McpScreenState extends State<McpScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Copied ${items.length} MCP entries'),
+                          content: Text('已复制 ${items.length} MCP entries'),
                           duration: const Duration(seconds: 1),
                         ),
                       );
@@ -300,7 +297,7 @@ class _McpScreenState extends State<McpScreen> {
             icon: const Icon(Icons.copy_all_outlined),
           ),
           IconButton(
-            tooltip: 'Copy CSV',
+            tooltip: '复制 CSV',
             onPressed: items.isEmpty
                 ? null
                 : () async {
@@ -326,7 +323,7 @@ class _McpScreenState extends State<McpScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Copied CSV (${items.length})'),
+                          content: Text('已复制 CSV（${items.length}）'),
                           duration: const Duration(seconds: 1),
                         ),
                       );
@@ -336,17 +333,17 @@ class _McpScreenState extends State<McpScreen> {
           ),
           IconButton(
             tooltip: _sortByName
-                ? (_sortAsc ? 'Name Z→A' : 'Name A→Z')
+                ? (_sortAsc ? '名称 Z→A' : '名称 A→Z')
                 : (_sortByKind
                       ? (_sortAsc ? 'Kind Z→A' : 'Kind A→Z')
                       : (_sortByCommand
                             ? (_sortAsc ? 'Command Z→A' : 'Command A→Z')
                             : (_sortByDesc
                                   ? (_sortAsc
-                                        ? 'Description Z→A'
-                                        : 'Description A→Z')
+                                        ? '描述 Z→A'
+                                        : '描述 A→Z')
                                   : (_sortById
-                                        ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                                        ? (_sortAsc ? 'ID Z→A' : 'ID A→Z')
                                         : (_sortByTransport
                                               ? (_sortAsc
                                                     ? 'Transport Z→A'
@@ -357,15 +354,15 @@ class _McpScreenState extends State<McpScreen> {
                                                           : 'Endpoint A→Z')
                                                     : (_sortByTools
                                                           ? (_sortAsc
-                                                                ? 'Tools many→few'
-                                                                : 'Tools few→many')
+                                                                ? '工具 多→少'
+                                                                : '工具 少→多')
                                                           : (_sortByStatus
                                                                 ? (_sortAsc
-                                                                      ? 'Status Z→A'
-                                                                      : 'Status A→Z')
+                                                                      ? '状态 Z→A'
+                                                                      : '状态 A→Z')
                                                                 : (_sortAsc
-                                                                      ? 'Name Z→A'
-                                                                      : 'Name A→Z'))))))))),
+                                                                      ? '名称 Z→A'
+                                                                      : '名称 A→Z'))))))))),
             onPressed: () {
               setState(() {
                 if (!_sortByStatus &&
@@ -548,13 +545,13 @@ class _McpScreenState extends State<McpScreen> {
             ),
           ),
           IconButton(
-            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            tooltip: _wrapLines ? '截断详情' : '换行详情',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
 
           IconButton(
-            tooltip: 'Jump to top',
+            tooltip: '回到顶部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -566,7 +563,7 @@ class _McpScreenState extends State<McpScreen> {
             icon: const Icon(Icons.vertical_align_top),
           ),
           IconButton(
-            tooltip: 'Jump to end',
+            tooltip: '跳到底部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -578,7 +575,7 @@ class _McpScreenState extends State<McpScreen> {
             icon: const Icon(Icons.vertical_align_bottom),
           ),
           IconButton(
-            tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
+            tooltip: _autoRefresh ? '暂停刷新' : '自动刷新',
             onPressed: () {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
@@ -638,7 +635,7 @@ class _McpScreenState extends State<McpScreen> {
                     spacing: 8,
                     children: [
                       for (final f in const [
-                        ('', 'Any enabled'),
+                        ('', '任意启用状态'),
                         ('on', 'enabled'),
                         ('off', 'disabled'),
                         ('unknown', 'enabled?'),
@@ -661,7 +658,7 @@ class _McpScreenState extends State<McpScreen> {
                     spacing: 8,
                     children: [
                       for (final f in const [
-                        ('', 'All transports'),
+                        ('', '全部传输'),
                         ('stdio', 'stdio'),
                         ('sse', 'SSE'),
                         ('http', 'HTTP'),
@@ -687,7 +684,7 @@ class _McpScreenState extends State<McpScreen> {
                     spacing: 8,
                     children: [
                       for (final f in const [
-                        ('', 'Any kind'),
+                        ('', '任意类型'),
                         ('inprocess', 'inprocess'),
                         ('stdio', 'stdio'),
                         ('sse', 'sse'),
@@ -760,21 +757,21 @@ class _McpScreenState extends State<McpScreen> {
                     decoration: InputDecoration(
                       hintText: _queryRegex
                           ? (_queryCase
-                                ? 'Filter (regex · case)'
-                                : 'Filter (regex)')
+                                ? '筛选（正则 · 大小写）'
+                                : '筛选（正则）')
                           : (_queryCase
-                                ? 'Filter (case-sensitive)'
-                                : 'Filter name / tools / status'),
+                                ? '筛选（区分大小写）'
+                                : '筛选名称 / 工具 / 状态'),
                       isDense: true,
                       border: const OutlineInputBorder(),
                       prefixIcon: IconButton(
                         tooltip: _queryRegex
                             ? (_queryCase
-                                  ? 'Regex · case on (long-press: plain filter)'
-                                  : 'Regex · case off (long-press: plain filter)')
+                                  ? '正则 · 大小写 开（长按恢复普通筛选）'
+                                  : '正则 · 大小写 关（长按恢复普通筛选）')
                             : (_queryCase
-                                  ? 'Case-sensitive (long-press: regex)'
-                                  : 'Case-insensitive (long-press: regex)'),
+                                  ? '区分大小写（长按切换正则）'
+                                  : '不区分大小写（长按切换正则）'),
                         icon: Icon(
                           _queryRegex
                               ? Icons.code
@@ -806,9 +803,9 @@ class _McpScreenState extends State<McpScreen> {
                   ),
                 Expanded(
                   child: servers.isEmpty && error == null
-                      ? const Center(child: Text('No MCP servers reported'))
+                      ? const Center(child: Text('主机未报告 MCP 服务器'))
                       : items.isEmpty
-                      ? const Center(child: Text('No servers match filter'))
+                      ? const Center(child: Text('没有匹配的服务器'))
                       : RefreshIndicator(
                           onRefresh: _load,
                           child: ListView.builder(
@@ -847,7 +844,7 @@ class _McpScreenState extends State<McpScreen> {
                                   ),
                                   isThreeLine: true,
                                   trailing: IconButton(
-                                    tooltip: 'Copy',
+                                    tooltip: '复制',
                                     icon: const Icon(Icons.copy, size: 18),
                                     onPressed: () async {
                                       await Clipboard.setData(
@@ -858,7 +855,7 @@ class _McpScreenState extends State<McpScreen> {
                                           context,
                                         ).showSnackBar(
                                           const SnackBar(
-                                            content: Text('MCP entry copied'),
+                                            content: Text('MCP 条目已复制'),
                                             duration: Duration(seconds: 1),
                                           ),
                                         );

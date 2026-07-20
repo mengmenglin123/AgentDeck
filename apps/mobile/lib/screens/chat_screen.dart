@@ -10,6 +10,8 @@ import '../utils/responsive.dart';
 import 'permissions_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../utils/catalog_ui.dart';
+import '../utils/query_match.dart';
 
 import '../models/connection_config.dart';
 import '../models/session_info.dart';
@@ -166,7 +168,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   void _onChat() {
     if (!mounted) return;
     final hint = _chat.reconnectHint;
-    if (hint == 'Reconnected' && _lastReconnectHintSeen != 'Reconnected') {
+    if (hint == '已重连' && _lastReconnectHintSeen != '已重连') {
       final now = DateTime.now();
       final last = _lastReconnectedSnackAt;
       if (last == null || now.difference(last).inSeconds >= 3) {
@@ -174,7 +176,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         // In-app only (system notifications remain P4).
         ScaffoldMessenger.maybeOf(context)?.showSnackBar(
           const SnackBar(
-            content: Text('Reconnected to Host'),
+            content: Text('已重连主机'),
             duration: Duration(seconds: 2),
           ),
         );
@@ -191,7 +193,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         // In-app notice only (system notifications remain P4).
         ScaffoldMessenger.maybeOf(context)?.showSnackBar(
           const SnackBar(
-            content: Text('Permission required — review buttons in chat'),
+            content: Text('需要权限 — 请在聊天中查看按钮'),
             duration: Duration(seconds: 2),
           ),
         );
@@ -263,29 +265,29 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           mainAxisSize: MainAxisSize.min,
           children: [
             const ListTile(
-                title: Text('Attach'), subtitle: Text('Choose source')),
+                title: Text('Attach'), subtitle: Text('选择来源')),
             ListTile(
               leading: const Icon(Icons.folder_open),
-              title: const Text('Pick file'),
-              subtitle: const Text('From device storage'),
+              title: const Text('选择文件'),
+              subtitle: const Text('从设备存储'),
               onTap: () => Navigator.pop(ctx, 'file'),
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('Pick image'),
-              subtitle: const Text('From gallery'),
+              title: const Text('选择图片'),
+              subtitle: const Text('从相册'),
               onTap: () => Navigator.pop(ctx, 'image_gallery'),
             ),
             ListTile(
               leading: const Icon(Icons.camera_alt),
-              title: const Text('Take photo'),
-              subtitle: const Text('From camera'),
+              title: const Text('拍照'),
+              subtitle: const Text('从相机'),
               onTap: () => Navigator.pop(ctx, 'image_camera'),
             ),
             ListTile(
               leading: const Icon(Icons.text_snippet),
-              title: const Text('Demo text'),
-              subtitle: const Text('Type content manually'),
+              title: const Text('演示文本'),
+              subtitle: const Text('手动输入内容'),
               onTap: () => Navigator.pop(ctx, 'demo'),
             ),
           ],
@@ -350,7 +352,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       final kind = await showDialog<String>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Demo attachment'),
+          title: const Text('演示附件'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -369,13 +371,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel')),
+                child: const Text('取消')),
             TextButton(
                 onPressed: () => Navigator.pop(ctx, 'image'),
-                child: const Text('As image')),
+                child: const Text('作为图片')),
             FilledButton(
                 onPressed: () => Navigator.pop(ctx, 'file'),
-                child: const Text('As file')),
+                child: const Text('作为文件')),
           ],
         ),
       );
@@ -412,7 +414,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const ListTile(title: Text('Permission mode')),
+            const ListTile(title: Text('权限模式')),
             ...options.map(
               (m) => ListTile(
                 title: Text(m),
@@ -465,7 +467,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final path = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Working directory'),
+        title: const Text('工作目录'),
         content: TextField(
           controller: ctrl,
           decoration: const InputDecoration(
@@ -475,7 +477,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
             child: const Text('Set'),
@@ -542,7 +544,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       padding: EdgeInsets.symmetric(horizontal: 16),
                       child: Align(
                         alignment: Alignment.centerLeft,
-                        child: Text('Local favorites + recent (device only)',
+                        child: Text('本机收藏 + 最近（仅本机）',
                             style: TextStyle(fontSize: 12)),
                       ),
                     ),
@@ -551,7 +553,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       child: TextField(
                         controller: qCtrl,
                         decoration: InputDecoration(
-                          hintText: 'Filter prompts',
+                          hintText: '筛选提示词',
                           isDense: true,
                           border: const OutlineInputBorder(),
                           prefixIcon: const Icon(Icons.search, size: 18),
@@ -594,7 +596,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                   if (ctx.mounted) {
                                     ScaffoldMessenger.of(ctx).showSnackBar(
                                       const SnackBar(
-                                          content: Text('Copied'),
+                                          content: Text('已复制'),
                                           duration: Duration(seconds: 1)),
                                     );
                                   }
@@ -603,7 +605,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           ],
                           const ListTile(dense: true, title: Text('Recent')),
                           if (fRecent.isEmpty)
-                            const ListTile(title: Text('No matching prompts')),
+                            const ListTile(title: Text('没有匹配的提示词')),
                           for (final t in fRecent)
                             _promptTile(
                               ctx: ctx,
@@ -621,7 +623,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                 if (ctx.mounted) {
                                   ScaffoldMessenger.of(ctx).showSnackBar(
                                     const SnackBar(
-                                        content: Text('Copied'),
+                                        content: Text('已复制'),
                                         duration: Duration(seconds: 1)),
                                   );
                                 }
@@ -630,7 +632,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           if (_input.text.trim().isNotEmpty)
                             ListTile(
                               leading: const Icon(Icons.star_outline),
-                              title: const Text('Favorite current draft'),
+                              title: const Text('收藏当前草稿'),
                               onTap: () async {
                                 await store.toggleFavorite(_input.text);
                                 favs = await store.favorites();
@@ -675,7 +677,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       leading: Icon(fav ? Icons.star : Icons.history,
           color: fav ? Colors.amber : null),
       title: Text(text, maxLines: 3, overflow: TextOverflow.ellipsis),
-      subtitle: const Text('Tap replace · long-press append',
+      subtitle: const Text('点按替换 · 长按追加',
           style: TextStyle(fontSize: 11)),
       trailing: Wrap(
         spacing: 0,
@@ -703,18 +705,18 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   Future<void> _openSlashPalette() async {
     const items = <(String, String)>[
-      ('/status', 'Host/session status'),
-      ('/mode default', 'Permission mode: default'),
-      ('/mode plan', 'Permission mode: plan'),
-      ('/mode acceptEdits', 'Permission mode: acceptEdits'),
-      ('/mode bypassPermissions', 'Permission mode: bypassPermissions'),
-      ('/model mock-sonnet', 'Switch model (mock-sonnet)'),
-      ('/model mock-codex', 'Switch model (mock-codex)'),
-      ('/model mock-hermes', 'Switch model (mock-hermes)'),
-      ('/dir /workspace', 'Set workdir /workspace'),
-      ('/stop', 'Request stop'),
-      ('/perm', 'Permission demo'),
-      ('/help', 'Host help (if supported)'),
+      ('/status', '主机/会话状态'),
+      ('/mode default', '权限模式: default'),
+      ('/mode plan', '权限模式: plan'),
+      ('/mode acceptEdits', '权限模式: acceptEdits'),
+      ('/mode bypassPermissions', '权限模式: bypassPermissions'),
+      ('/model mock-sonnet', '切换模型 (mock-sonnet)'),
+      ('/model mock-codex', '切换模型 (mock-codex)'),
+      ('/model mock-hermes', '切换模型 (mock-hermes)'),
+      ('/dir /workspace', '设置工作目录 /workspace'),
+      ('/stop', '请求停止'),
+      ('/perm', '权限演示'),
+      ('/help', '主机帮助（若支持）'),
     ];
     final picked = await showModalBottomSheet<String>(
       context: context,
@@ -724,9 +726,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           shrinkWrap: true,
           children: [
             ListTile(
-              title: Text('Slash commands',
+              title: Text('斜杠命令',
                   style: Theme.of(ctx).textTheme.titleMedium),
-              subtitle: const Text('Fills input — review then send'),
+              subtitle: const Text('填入输入框 — 检查后发送'),
             ),
             for (final it in items)
               ListTile(
@@ -831,15 +833,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Clear local view?'),
+        title: const Text('清除本机视图？'),
         content: const Text(
-          'Removes messages from this screen only. Host transcript is unchanged. '
-          'Use Reload to fetch again.',
+          '仅清除本屏消息。主机侧对话不受影响。'
+          '用重新加载可再拉取。',
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+              child: const Text('取消')),
           FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
               child: const Text('Clear')),
@@ -933,7 +935,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 if (_showJumpTop)
                   FloatingActionButton.small(
                     heroTag: 'chat_jump_top',
-                    tooltip: 'Jump to top',
+                    tooltip: '回到顶部',
                     onPressed: _jumpToTop,
                     child: const Icon(Icons.arrow_upward),
                   ),
@@ -976,12 +978,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       _chat.model,
                       '${_chat.messages.length} msg',
                       if (_chat.connecting)
-                        'connecting…'
+                        '连接中…'
                       else if (_chat.connected)
                         'live'
                       else
                         'offline',
-                      if (!_showTools) 'tools hidden',
+                      if (!_showTools) '工具消息已隐藏',
                       if (_chat.reconnectHint != null &&
                           _chat.reconnectHint!.isNotEmpty)
                         _chat.reconnectHint!,
@@ -998,7 +1000,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         actions: [
           // Quick access menu to other features
           PopupMenuButton<String>(
-            tooltip: 'Quick actions',
+            tooltip: '快捷操作',
             icon: const Icon(Icons.more_vert),
             onSelected: (value) async {
               final cfg = widget.config;
@@ -1111,16 +1113,16 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           ),
           if (_chat.offlineQueue.isNotEmpty)
             IconButton(
-              tooltip: '${_chat.offlineQueue.length} queued message(s)',
+              tooltip: '${_chat.offlineQueue.length} 条排队消息',
               onPressed: () => showDialog(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  title: const Text('Offline Queue'),
+                  title: const Text('离线队列'),
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                          '${_chat.offlineQueue.length} message(s) queued for delivery'),
+                          '${_chat.offlineQueue.length} 条消息等待发送'),
                       const SizedBox(height: 8),
                       const Text(
                           'These will be sent automatically when connection is restored.',
@@ -1134,7 +1136,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         Navigator.pop(ctx);
                         setState(() {});
                       },
-                      child: const Text('Clear queue'),
+                      child: const Text('清空队列'),
                     ),
                     FilledButton(
                         onPressed: () => Navigator.pop(ctx),
@@ -1149,7 +1151,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             ),
           if (_chat.hasCap('tools_visible'))
             IconButton(
-              tooltip: _showTools ? 'Hide tool messages' : 'Show tool messages',
+              tooltip: _showTools ? '隐藏工具消息' : '显示工具消息',
               onPressed: () => setState(() => _showTools = !_showTools),
               icon: Icon(_showTools
                   ? Icons.build_circle
@@ -1161,12 +1163,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             icon: const Icon(Icons.ios_share_outlined),
           ),
           IconButton(
-            tooltip: 'Copy all messages',
+            tooltip: '复制全部 messages',
             onPressed: _chat.messages.isEmpty ? null : _copyAllMessages,
             icon: const Icon(Icons.copy_all_outlined),
           ),
           IconButton(
-            tooltip: _wrapLines ? 'Clamp messages' : 'Expand messages',
+            tooltip: _wrapLines ? '截断消息' : '展开消息',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
@@ -1176,12 +1178,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             icon: const Icon(Icons.cleaning_services_outlined),
           ),
           IconButton(
-            tooltip: 'Reload transcript',
+            tooltip: '重新加载对话',
             onPressed: _chat.reloading ? null : _chat.reloadTranscript,
             icon: const Icon(Icons.history),
           ),
           IconButton(
-            tooltip: 'Audit log',
+            tooltip: '审计日志',
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -1327,11 +1329,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         prefixIcon: IconButton(
                           tooltip: _searchRegex
                               ? (_searchCase
-                                  ? 'Regex · case on (long-press: plain)'
-                                  : 'Regex · case off (long-press: plain)')
+                                  ? '正则 · 大小写 开（长按恢复普通）'
+                                  : '正则 · 大小写 关（长按恢复普通）')
                               : (_searchCase
-                                  ? 'Case-sensitive (long-press: regex)'
-                                  : 'Case-insensitive (long-press: regex)'),
+                                  ? '区分大小写（长按切换正则）'
+                                  : '不区分大小写（长按切换正则）'),
                           icon: Icon(
                             _searchRegex
                                 ? Icons.code
@@ -1379,13 +1381,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               style: const TextStyle(
                                   fontSize: 12, fontFamily: 'monospace')),
                           IconButton(
-                            tooltip: 'Previous hit',
+                            tooltip: '上一处',
                             onPressed: hits.isEmpty ? null : () => _gotoHit(-1),
                             icon: const Icon(Icons.keyboard_arrow_up, size: 22),
                             visualDensity: VisualDensity.compact,
                           ),
                           IconButton(
-                            tooltip: 'Next hit',
+                            tooltip: '下一处',
                             onPressed: hits.isEmpty ? null : () => _gotoHit(1),
                             icon:
                                 const Icon(Icons.keyboard_arrow_down, size: 22),
@@ -1423,7 +1425,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     dense: true,
                     leading: const Icon(Icons.attach_file, size: 18),
                     title: Text(
-                      '${_pendingImages.length} image(s), ${_pendingFiles.length} file(s) ready — tap to preview',
+                      '${_pendingImages.length} 张图片、${_pendingFiles.length} 个文件就绪 — 点按预览',
                       style: const TextStyle(fontSize: 12),
                     ),
                     trailing: IconButton(
@@ -1580,19 +1582,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 Row(
                   children: [
                     IconButton(
-                      tooltip: 'Prompt history',
+                      tooltip: '提示词历史',
                       onPressed: _openPromptHistory,
                       icon: const Icon(Icons.bookmark_border),
                     ),
                     IconButton(
-                      tooltip: 'Slash commands',
+                      tooltip: '斜杠命令',
                       onPressed: (_chat.connected && !_chat.sending)
                           ? _openSlashPalette
                           : null,
                       icon: const Icon(Icons.flash_on_outlined),
                     ),
                     IconButton(
-                      tooltip: 'Attach demo',
+                      tooltip: '附件演示',
                       onPressed: (_chat.connected && !_chat.sending)
                           ? _attachDemo
                           : null,
@@ -1613,7 +1615,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           decoration: InputDecoration(
                             hintText: _chat.connected
                                 ? '输入消息...'
-                                : 'Connecting to agent…',
+                                : '正在连接 agent…',
                             hintStyle: TextStyle(
                                 color: cs.onSurfaceVariant.withOpacity(0.6)),
                             border: InputBorder.none,
@@ -1629,7 +1631,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     const SizedBox(width: 8),
                     if (_chat.runActive && _chat.hasCap('cancel'))
                       IconButton.filledTonal(
-                        tooltip: 'Stop run',
+                        tooltip: '停止运行',
                         onPressed: _chat.cancelRun,
                         icon: const Icon(Icons.stop),
                       )
@@ -1755,7 +1757,7 @@ class _EmptyChat extends StatelessWidget {
         ? 'Connecting to host…'
         : connected
             ? '有什么我能帮您的吗？'
-            : 'Offline — tap Retry when the host is reachable.';
+            : '离线 — 主机可达时点重试。';
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),

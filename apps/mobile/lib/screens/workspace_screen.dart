@@ -7,6 +7,8 @@ import '../models/connection_config.dart';
 import '../services/app_settings_controller.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
+import '../utils/catalog_ui.dart';
+import '../utils/query_match.dart';
 import 'diff_screen.dart';
 import '../widgets/markdown_lite.dart';
 
@@ -338,7 +340,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         content: TextField(
           controller: msgCtrl,
           decoration: const InputDecoration(
-            hintText: 'Commit message',
+            hintText: '提交说明',
             border: OutlineInputBorder(),
           ),
           autofocus: true,
@@ -346,11 +348,11 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: const Text('取消'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, msgCtrl.text.trim()),
-            child: const Text('Commit'),
+            child: const Text('提交'),
           ),
         ],
       ),
@@ -362,7 +364,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       final sha = result['data']?['sha'] ?? '?';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Committed: $sha'),
+          content: Text('已提交：$sha'),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -371,7 +373,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Commit failed: $e'),
+          content: Text('提交失败：$e'),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -385,7 +387,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       final output = result['data']?['output'] ?? 'Pushed';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Pushed: $output'),
+          content: Text('已推送：$output'),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -393,7 +395,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Push failed: $e'),
+          content: Text('推送失败：$e'),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -407,7 +409,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       final output = result['data']?['output'] ?? 'Pulled';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Pulled: $output'),
+          content: Text('已拉取：$output'),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -416,7 +418,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Pull failed: $e'),
+          content: Text('拉取失败：$e'),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -424,14 +426,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   }
 
   void _armTimer() {
-    _timer?.cancel();
-    if (!_autoRefresh || !mounted) return;
-    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
-    if (sec <= 0) return;
-    _timer = Timer.periodic(Duration(seconds: sec), (_) {
-      if (!mounted || _loading) return;
-      _load();
-    });
+    _timer = CatalogUi.armAutoRefresh(
+      context: context,
+      current: _timer,
+      enabled: _autoRefresh,
+      isBusy: () => _loading,
+      onTick: _load(),
+    );
   }
 
   @override
@@ -446,14 +447,14 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       appBar: AppBar(
         title: Text(
           isFile
-              ? 'Workspace'
+              ? '工作区'
               : (() {
                   final vis = _visibleEntries;
                   if (entries.isEmpty) return 'Workspace';
                   if (vis.length == entries.length) {
-                    return 'Workspace (${vis.length})';
+                    return '工作区 (${vis.length})';
                   }
-                  return 'Workspace (${vis.length}/${entries.length})';
+                  return '工作区 (${vis.length}/${entries.length})';
                 })(),
         ),
         actions: [
@@ -465,7 +466,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Copied $p'),
+                    content: Text('已复制 $p'),
                     duration: const Duration(seconds: 1),
                   ),
                 );
@@ -498,7 +499,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      'Copied listing (' + (list.length - 1).toString() + ')',
+                      '已复制列表（' + (list.length - 1).toString() + ')',
                     ),
                     duration: const Duration(seconds: 1),
                   ),
@@ -536,7 +537,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
-            tooltip: 'Jump to top',
+            tooltip: '回到顶部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -548,7 +549,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             icon: const Icon(Icons.vertical_align_top),
           ),
           IconButton(
-            tooltip: 'Jump to end',
+            tooltip: '跳到底部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -560,7 +561,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             icon: const Icon(Icons.vertical_align_bottom),
           ),
           IconButton(
-            tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
+            tooltip: _autoRefresh ? '暂停刷新' : '自动刷新',
             onPressed: () {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
@@ -586,8 +587,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                                     : 'Name A→Z (dirs first)')
                                 : (_sortByType
                                     ? (_sortAsc
-                                        ? 'Type Z→A (dirs first)'
-                                        : 'Type A→Z (dirs first)')
+                                        ? '类型 Z→A（目录优先）'
+                                        : '类型 A→Z（目录优先）')
                                     : (_sortByPath
                                         ? (_sortAsc
                                             ? 'Path Z→A (dirs first)'
@@ -781,7 +782,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             ),
           ),
           IconButton(
-            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            tooltip: _wrapLines ? '截断详情' : '换行详情',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
@@ -795,7 +796,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('File content copied'),
+                          content: Text('文件内容已复制'),
                           duration: Duration(seconds: 1),
                         ),
                       );
@@ -831,7 +832,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Git summary copied (${files.length} files)',
+                            'Git 摘要已复制（${files.length} 个文件）',
                           ),
                           duration: const Duration(seconds: 1),
                         ),
@@ -976,7 +977,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               runSpacing: 4,
               children: [
                 for (final f in const [
-                  ('', 'Any ext'),
+                  ('', '任意扩展名'),
                   ('md', 'md'),
                   ('dart', 'dart'),
                   ('py', 'py'),
@@ -1059,11 +1060,11 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   prefixIcon: IconButton(
                     tooltip: _queryRegex
                         ? (_queryCase
-                            ? 'Regex · case on (long-press: plain filter)'
-                            : 'Regex · case off (long-press: plain filter)')
+                            ? '正则 · 大小写 开（长按恢复普通筛选）'
+                            : '正则 · 大小写 关（长按恢复普通筛选）')
                         : (_queryCase
-                            ? 'Case-sensitive (long-press: regex)'
-                            : 'Case-insensitive (long-press: regex)'),
+                            ? '区分大小写（长按切换正则）'
+                            : '不区分大小写（长按切换正则）'),
                     icon: Icon(
                       _queryRegex
                           ? Icons.code
@@ -1128,12 +1129,12 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                             onTap: () => _load(path: parent ?? ''),
                           ),
                         if (entries.isEmpty && !_loading)
-                          const ListTile(title: Text('Empty directory')),
+                          const ListTile(title: Text('空目录')),
                         if (entries.isNotEmpty &&
                             _filter.trim().isNotEmpty &&
                             _visibleEntries.isEmpty)
                           const ListTile(
-                            title: Text('No entries match filter'),
+                            title: Text('没有匹配的条目'),
                           ),
                         for (final e in _visibleEntries)
                           ListTile(
@@ -1166,7 +1167,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('Copied $p'),
+                                    content: Text('已复制 $p'),
                                     duration: const Duration(seconds: 1),
                                   ),
                                 );

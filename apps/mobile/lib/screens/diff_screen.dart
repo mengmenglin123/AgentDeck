@@ -7,6 +7,8 @@ import '../models/connection_config.dart';
 import '../services/app_settings_controller.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
+import '../utils/catalog_ui.dart';
+import '../utils/query_match.dart';
 
 /// Readonly unified diff viewer (`GET /workspace/diff`).
 class DiffScreen extends StatefulWidget {
@@ -57,18 +59,19 @@ class _DiffScreenState extends State<DiffScreen> {
   }
 
   void _armTimer() {
-    _timer?.cancel();
-    if (!_autoRefresh || !mounted) return;
-    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
-    if (sec <= 0) return;
-    _timer = Timer.periodic(Duration(seconds: sec), (_) {
-      if (!mounted || _loading) return;
-      if (_path != null && _path!.isNotEmpty) {
-        _loadPath(_path!);
-      } else {
-        _loadIndex();
-      }
-    });
+    _timer = CatalogUi.armAutoRefresh(
+      context: context,
+      current: _timer,
+      enabled: _autoRefresh,
+      isBusy: () => _loading,
+      onTick: () {
+        if (_path != null && _path!.isNotEmpty) {
+          _loadPath(_path!);
+        } else {
+          _loadIndex();
+        }
+      },
+    );
   }
 
   @override
@@ -210,7 +213,7 @@ class _DiffScreenState extends State<DiffScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Copied ${files.length} file row(s)'),
+        content: Text('已复制 ${files.length} file row(s)'),
         duration: const Duration(seconds: 1),
       ),
     );
@@ -320,7 +323,7 @@ class _DiffScreenState extends State<DiffScreen> {
         }()),
         actions: [
           IconButton(
-            tooltip: _lineNums ? 'Hide line numbers' : 'Show line numbers',
+            tooltip: _lineNums ? '隐藏行号' : 'Show line numbers',
             onPressed: () => setState(() => _lineNums = !_lineNums),
             icon: Icon(
               _lineNums
@@ -330,9 +333,9 @@ class _DiffScreenState extends State<DiffScreen> {
           ),
           IconButton(
             tooltip: _sortByBasename
-                ? (_sortAsc ? 'Basename Z→A' : 'Basename A→Z')
+                ? (_sortAsc ? '文件名 Z→A' : '文件名 A→Z')
                 : (_sortByPath
-                      ? (_sortAsc ? 'Path Z→A' : 'Path A→Z')
+                      ? (_sortAsc ? '路径 Z→A' : '路径 A→Z')
                       : (_sortByDels
                             ? (_sortAsc ? 'Dels high→low' : 'Dels low→high')
                             : (_sortByAdds
@@ -341,11 +344,11 @@ class _DiffScreenState extends State<DiffScreen> {
                                         : 'Adds low→high')
                                   : (_sortByStatus
                                         ? (_sortAsc
-                                              ? 'Status Z→A'
-                                              : 'Status A→Z')
+                                              ? '状态 Z→A'
+                                              : '状态 A→Z')
                                         : (_sortAsc
-                                              ? 'Path Z→A'
-                                              : 'Path A→Z'))))),
+                                              ? '路径 Z→A'
+                                              : '路径 A→Z'))))),
             onPressed: () {
               setState(() {
                 if (!_sortByStatus &&
@@ -433,12 +436,12 @@ class _DiffScreenState extends State<DiffScreen> {
           ),
 
           IconButton(
-            tooltip: _wrapLines ? 'No wrap' : 'Wrap lines',
+            tooltip: _wrapLines ? '不换行' : '换行',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
           ),
           IconButton(
-            tooltip: 'Jump to top',
+            tooltip: '回到顶部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -450,7 +453,7 @@ class _DiffScreenState extends State<DiffScreen> {
             icon: const Icon(Icons.vertical_align_top),
           ),
           IconButton(
-            tooltip: 'Jump to end',
+            tooltip: '跳到底部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -462,7 +465,7 @@ class _DiffScreenState extends State<DiffScreen> {
             icon: const Icon(Icons.vertical_align_bottom),
           ),
           IconButton(
-            tooltip: 'Copy path',
+            tooltip: '复制路径',
             onPressed: _path == null || _path!.isEmpty
                 ? null
                 : () async {
@@ -470,7 +473,7 @@ class _DiffScreenState extends State<DiffScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Path copied'),
+                          content: Text('路径已复制'),
                           duration: Duration(seconds: 1),
                         ),
                       );
@@ -479,7 +482,7 @@ class _DiffScreenState extends State<DiffScreen> {
             icon: const Icon(Icons.link),
           ),
           IconButton(
-            tooltip: 'Copy diff',
+            tooltip: '复制 Diff',
             onPressed: _diff.isEmpty
                 ? null
                 : () async {
@@ -487,7 +490,7 @@ class _DiffScreenState extends State<DiffScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Diff copied'),
+                          content: Text('Diff 已复制'),
                           duration: Duration(seconds: 1),
                         ),
                       );
@@ -496,12 +499,12 @@ class _DiffScreenState extends State<DiffScreen> {
             icon: const Icon(Icons.copy_all_outlined),
           ),
           IconButton(
-            tooltip: 'Copy files CSV',
+            tooltip: '复制文件 CSV',
             onPressed: _files.isEmpty ? null : _copyFilesCsv,
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
-            tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
+            tooltip: _autoRefresh ? '暂停刷新' : '自动刷新',
             onPressed: () {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
@@ -538,18 +541,18 @@ class _DiffScreenState extends State<DiffScreen> {
                 decoration: InputDecoration(
                   hintText: _fileRegex
                       ? (_fileCase
-                            ? 'Filter paths (regex · case)'
-                            : 'Filter paths (regex)')
+                            ? '筛选路径（正则 · 大小写）'
+                            : '筛选路径（正则）')
                       : (_fileCase
-                            ? 'Filter paths (case-sensitive)'
-                            : 'Filter changed files'),
+                            ? '筛选路径（区分大小写）'
+                            : '筛选变更文件'),
                   isDense: true,
                   border: const OutlineInputBorder(),
                   prefixIcon: IconButton(
                     tooltip: _fileRegex
                         ? (_fileCase
-                              ? 'Regex · case on (long-press: plain filter)'
-                              : 'Regex · case off (long-press: plain filter)')
+                              ? '正则 · 大小写 开（长按恢复普通筛选）'
+                              : '正则 · 大小写 关（长按恢复普通筛选）')
                         : (_fileCase
                               ? 'Case-sensitive (long-press: regex)'
                               : 'Case-insensitive (long-press: regex)'),
@@ -584,7 +587,7 @@ class _DiffScreenState extends State<DiffScreen> {
                 children: [
                   FilterChip(
                     visualDensity: VisualDensity.compact,
-                    label: const Text('All', style: TextStyle(fontSize: 11)),
+                    label: const Text('全部', style: TextStyle(fontSize: 11)),
                     selected: _statusFilter.isEmpty,
                     onSelected: (_) => setState(() => _statusFilter = ''),
                   ),
@@ -610,7 +613,7 @@ class _DiffScreenState extends State<DiffScreen> {
                   FilterChip(
                     visualDensity: VisualDensity.compact,
                     label: const Text(
-                      'Any path',
+                      '任意路径',
                       style: TextStyle(fontSize: 11),
                     ),
                     selected: _pathPrefix.isEmpty,
@@ -637,7 +640,7 @@ class _DiffScreenState extends State<DiffScreen> {
                 children: [
                   FilterChip(
                     visualDensity: VisualDensity.compact,
-                    label: const Text('Wrap', style: TextStyle(fontSize: 11)),
+                    label: const Text('换行', style: TextStyle(fontSize: 11)),
                     selected: _wrapLines,
                     onSelected: (v) => setState(() => _wrapLines = v),
                   ),
@@ -661,7 +664,7 @@ class _DiffScreenState extends State<DiffScreen> {
                   ),
                   FilterChip(
                     visualDensity: VisualDensity.compact,
-                    label: const Text('Auto', style: TextStyle(fontSize: 11)),
+                    label: const Text('自动', style: TextStyle(fontSize: 11)),
                     selected: _autoRefresh,
                     onSelected: (v) => setState(() => _autoRefresh = v),
                   ),
@@ -718,11 +721,11 @@ class _DiffScreenState extends State<DiffScreen> {
                 decoration: InputDecoration(
                   hintText: _diffRegex
                       ? (_diffCase
-                            ? 'Find in diff (regex · case)'
-                            : 'Find in diff (regex)')
+                            ? 'Diff 内查找（正则 · 大小写）'
+                            : 'Diff 内查找（正则）')
                       : (_diffCase
-                            ? 'Find in diff (case-sensitive)'
-                            : 'Find in diff (local)'),
+                            ? 'Diff 内查找（区分大小写）'
+                            : 'Diff 内查找（本地）'),
                   isDense: true,
                   border: const OutlineInputBorder(),
                   prefixIcon: IconButton(
@@ -763,7 +766,7 @@ class _DiffScreenState extends State<DiffScreen> {
                       physics: const AlwaysScrollableScrollPhysics(),
                       children: const [
                         SizedBox(height: 120),
-                        Center(child: Text('No diff')),
+                        Center(child: Text('暂无 Diff')),
                       ],
                     )
                   : Container(

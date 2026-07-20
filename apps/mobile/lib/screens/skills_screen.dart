@@ -8,6 +8,8 @@ import '../models/connection_config.dart';
 import '../services/app_settings_controller.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
+import '../utils/catalog_ui.dart';
+import '../utils/query_match.dart';
 
 class SkillsScreen extends StatefulWidget {
   const SkillsScreen({super.key, required this.config});
@@ -77,7 +79,6 @@ class _SkillsScreenState extends State<SkillsScreen> {
 
   List<Map<String, dynamic>> get _filtered {
     final rawQ = _query.trim();
-    final q = _queryCase ? rawQ : rawQ.toLowerCase();
     final list = skills.where((s) {
       final src = (s['source'] ?? '').toString().toLowerCase();
       if (_source.isNotEmpty) {
@@ -134,15 +135,12 @@ class _SkillsScreenState extends State<SkillsScreen> {
           : (s['tags'] ?? s['labels'] ?? '');
       final hayRaw =
           '${s['name']} ${s['description']} ${s['source']} ${s['id']} ${s['path']} ${s['category']} $tags';
-      if (_queryRegex) {
-        try {
-          return RegExp(rawQ, caseSensitive: _queryCase).hasMatch(hayRaw);
-        } catch (_) {
-          return false;
-        }
-      }
-      final hay = _queryCase ? hayRaw : hayRaw.toLowerCase();
-      return hay.contains(q);
+      return QueryMatch.matches(
+        hayRaw,
+        rawQ,
+        caseSensitive: _queryCase,
+        regex: _queryRegex,
+      );
     }).toList();
     list.sort((a, b) {
       String tagsOf(Map x) {
@@ -226,14 +224,13 @@ class _SkillsScreenState extends State<SkillsScreen> {
   }
 
   void _armTimer() {
-    _timer?.cancel();
-    if (!_autoRefresh || !mounted) return;
-    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
-    if (sec <= 0) return;
-    _timer = Timer.periodic(Duration(seconds: sec), (_) {
-      if (!mounted || loading) return;
-      _load();
-    });
+    _timer = CatalogUi.armAutoRefresh(
+      context: context,
+      current: _timer,
+      enabled: _autoRefresh,
+      isBusy: () => loading,
+      onTick: _load,
+    );
   }
 
   @override
@@ -243,14 +240,14 @@ class _SkillsScreenState extends State<SkillsScreen> {
       appBar: AppBar(
         title: Text(
           items.isEmpty
-              ? 'Skills (readonly)'
+              ? '技能（只读）'
               : (items.length == skills.length
-                    ? 'Skills (${items.length})'
-                    : 'Skills (${items.length}/${skills.length})'),
+                    ? '技能 (${items.length})'
+                    : '技能 (${items.length}/${skills.length})'),
         ),
         actions: [
           IconButton(
-            tooltip: 'Copy all',
+            tooltip: '复制全部',
             onPressed: items.isEmpty
                 ? null
                 : () async {
@@ -269,7 +266,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Copied ${items.length} skills'),
+                          content: Text('已复制 ${items.length} 个技能'),
                           duration: const Duration(seconds: 1),
                         ),
                       );
@@ -278,7 +275,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
             icon: const Icon(Icons.copy_all_outlined),
           ),
           IconButton(
-            tooltip: 'Copy CSV',
+            tooltip: '复制 CSV',
             onPressed: items.isEmpty
                 ? null
                 : () async {
@@ -310,7 +307,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Copied CSV (${items.length})'),
+                          content: Text('已复制 CSV（${items.length}）'),
                           duration: const Duration(seconds: 1),
                         ),
                       );
@@ -320,26 +317,26 @@ class _SkillsScreenState extends State<SkillsScreen> {
           ),
           IconButton(
             tooltip: _sortByName
-                ? (_sortAsc ? 'Name Z→A' : 'Name A→Z')
+                ? (_sortAsc ? '名称 Z→A' : '名称 A→Z')
                 : (_sortByEnabled
-                      ? (_sortAsc ? 'Enabled first' : 'Disabled first')
+                      ? (_sortAsc ? '启用优先' : '禁用优先')
                       : (_sortByPath
-                            ? (_sortAsc ? 'Path Z→A' : 'Path A→Z')
+                            ? (_sortAsc ? '路径 Z→A' : '路径 A→Z')
                             : (_sortByTags
-                                  ? (_sortAsc ? 'Tags Z→A' : 'Tags A→Z')
+                                  ? (_sortAsc ? '标签 Z→A' : '标签 A→Z')
                                   : (_sortById
-                                        ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                                        ? (_sortAsc ? 'ID Z→A' : 'ID A→Z')
                                         : (_sortByDesc
                                               ? (_sortAsc
-                                                    ? 'Description Z→A'
-                                                    : 'Description A→Z')
+                                                    ? '描述 Z→A'
+                                                    : '描述 A→Z')
                                               : (_sortBySource
                                                     ? (_sortAsc
-                                                          ? 'Source Z→A'
-                                                          : 'Source A→Z')
+                                                          ? '来源 Z→A'
+                                                          : '来源 A→Z')
                                                     : (_sortAsc
-                                                          ? 'Name Z→A'
-                                                          : 'Name A→Z'))))))),
+                                                          ? '名称 Z→A'
+                                                          : '名称 A→Z'))))))),
             onPressed: () {
               setState(() {
                 if (!_sortBySource &&
@@ -469,13 +466,13 @@ class _SkillsScreenState extends State<SkillsScreen> {
             ),
           ),
           IconButton(
-            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            tooltip: _wrapLines ? '截断详情' : '换行详情',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
 
           IconButton(
-            tooltip: 'Jump to top',
+            tooltip: '回到顶部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -487,7 +484,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
             icon: const Icon(Icons.vertical_align_top),
           ),
           IconButton(
-            tooltip: 'Jump to end',
+            tooltip: '跳到底部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -499,7 +496,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
             icon: const Icon(Icons.vertical_align_bottom),
           ),
           IconButton(
-            tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
+            tooltip: _autoRefresh ? '暂停刷新' : '自动刷新',
             onPressed: () {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
@@ -584,7 +581,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
                     runSpacing: 4,
                     children: [
                       for (final f in const [
-                        ('', 'Any tag'),
+                        ('', '任意标签'),
                         ('hermes', 'hermes'),
                         ('git', 'git'),
                         ('debug', 'debug'),
@@ -659,21 +656,21 @@ class _SkillsScreenState extends State<SkillsScreen> {
                     decoration: InputDecoration(
                       hintText: _queryRegex
                           ? (_queryCase
-                                ? 'Filter (regex · case)'
-                                : 'Filter (regex)')
+                                ? '筛选（正则 · 大小写）'
+                                : '筛选（正则）')
                           : (_queryCase
-                                ? 'Filter (case-sensitive)'
-                                : 'Filter name / description / source'),
+                                ? '筛选（区分大小写）'
+                                : '筛选名称 / 描述 / 来源'),
                       isDense: true,
                       border: const OutlineInputBorder(),
                       prefixIcon: IconButton(
                         tooltip: _queryRegex
                             ? (_queryCase
-                                  ? 'Regex · case on (long-press: plain filter)'
-                                  : 'Regex · case off (long-press: plain filter)')
+                                  ? '正则 · 大小写 开（长按恢复普通筛选）'
+                                  : '正则 · 大小写 关（长按恢复普通筛选）')
                             : (_queryCase
-                                  ? 'Case-sensitive (long-press: regex)'
-                                  : 'Case-insensitive (long-press: regex)'),
+                                  ? '区分大小写（长按切换正则）'
+                                  : '不区分大小写（长按切换正则）'),
                         icon: Icon(
                           _queryRegex
                               ? Icons.code
@@ -704,13 +701,13 @@ class _SkillsScreenState extends State<SkillsScreen> {
                           child: Padding(
                             padding: EdgeInsets.all(24),
                             child: Text(
-                              'Host has no GET /skills (or empty).\nMock Host returns sample skills.',
+                              '主机无 GET /skills（或为空）。\nMock Host 会返回示例技能。',
                               textAlign: TextAlign.center,
                             ),
                           ),
                         )
                       : items.isEmpty
-                      ? const Center(child: Text('No skills match filter'))
+                      ? const Center(child: Text('没有匹配的技能'))
                       : RefreshIndicator(
                           onRefresh: _load,
                           child: ListView.separated(
@@ -745,7 +742,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
                                 ),
                                 isThreeLine: desc.isNotEmpty && meta.isNotEmpty,
                                 trailing: IconButton(
-                                  tooltip: 'Copy',
+                                  tooltip: '复制',
                                   icon: const Icon(Icons.copy, size: 18),
                                   onPressed: () async {
                                     await Clipboard.setData(
@@ -758,7 +755,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
                                         context,
                                       ).showSnackBar(
                                         const SnackBar(
-                                          content: Text('Skill copied'),
+                                          content: Text('技能已复制'),
                                           duration: Duration(seconds: 1),
                                         ),
                                       );

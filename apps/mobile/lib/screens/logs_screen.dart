@@ -7,6 +7,8 @@ import '../models/connection_config.dart';
 import '../services/app_settings_controller.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
+import '../utils/catalog_ui.dart';
+import '../utils/query_match.dart';
 
 /// Readonly Host logs feed (`GET /logs`).
 class LogsScreen extends StatefulWidget {
@@ -58,14 +60,13 @@ class _LogsScreenState extends State<LogsScreen> {
   }
 
   void _armTimer() {
-    _timer?.cancel();
-    if (!_autoRefresh || !mounted) return;
-    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
-    if (sec <= 0) return;
-    _timer = Timer.periodic(Duration(seconds: sec), (_) {
-      if (!mounted || _loading) return;
-      _load();
-    });
+    _timer = CatalogUi.armAutoRefresh(
+      context: context,
+      current: _timer,
+      enabled: _autoRefresh,
+      isBusy: () => _loading,
+      onTick: _load,
+    );
   }
 
   Future<void> _load() async {
@@ -118,38 +119,19 @@ class _LogsScreenState extends State<LogsScreen> {
 
   List<Map<String, dynamic>> get _visible {
     final rawQ = _query.trim();
-    final q = _queryCase ? rawQ : rawQ.toLowerCase();
     List<Map<String, dynamic>> list;
     if (rawQ.isEmpty) {
       list = List<Map<String, dynamic>>.from(_logs);
-    } else if (_queryRegex) {
-      try {
-        final re = RegExp(rawQ, caseSensitive: _queryCase);
-        list = _logs.where((e) {
-          final hay =
-              '${e['message'] ?? ''} ${e['level'] ?? ''} ${e['ts'] ?? ''} ${e['logger'] ?? e['source'] ?? e['component'] ?? e['module'] ?? ''}';
-          return re.hasMatch(hay);
-        }).toList();
-      } catch (_) {
-        list = [];
-      }
     } else {
       list = _logs.where((e) {
-        String norm(Object? v) {
-          final s = '${v ?? ''}';
-          return _queryCase ? s : s.toLowerCase();
-        }
-
-        final msg = norm(e['message']);
-        final level = norm(e['level']);
-        final ts = norm(e['ts']);
-        final logger = norm(
-          e['logger'] ?? e['source'] ?? e['component'] ?? e['module'],
+        final hay =
+            '${e['message'] ?? ''} ${e['level'] ?? ''} ${e['ts'] ?? ''} ${e['logger'] ?? e['source'] ?? e['component'] ?? e['module'] ?? ''}';
+        return QueryMatch.matches(
+          hay,
+          rawQ,
+          caseSensitive: _queryCase,
+          regex: _queryRegex,
         );
-        return msg.contains(q) ||
-            level.contains(q) ||
-            logger.contains(q) ||
-            ts.contains(q);
       }).toList();
     }
     if (_logger.isNotEmpty) {
@@ -291,7 +273,7 @@ class _LogsScreenState extends State<LogsScreen> {
       appBar: AppBar(
         title: Text(() {
           final base = _visible.isEmpty
-              ? 'Host logs'
+              ? '主机日志'
               : (_visible.length == _logs.length
                     ? 'Host logs (${_visible.length})'
                     : 'Host logs (${_visible.length}/${_logs.length})');
@@ -299,7 +281,7 @@ class _LogsScreenState extends State<LogsScreen> {
         }()),
         actions: [
           IconButton(
-            tooltip: 'Copy all',
+            tooltip: '复制全部',
             onPressed: _visible.isEmpty
                 ? null
                 : () async {
@@ -316,7 +298,7 @@ class _LogsScreenState extends State<LogsScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Copied ${_visible.length} lines'),
+                          content: Text('已复制 ${_visible.length} lines'),
                           duration: const Duration(seconds: 1),
                         ),
                       );
@@ -325,7 +307,7 @@ class _LogsScreenState extends State<LogsScreen> {
             icon: const Icon(Icons.copy_all_outlined),
           ),
           IconButton(
-            tooltip: 'Copy CSV',
+            tooltip: '复制 CSV',
             onPressed: _visible.isEmpty
                 ? null
                 : () async {
@@ -348,7 +330,7 @@ class _LogsScreenState extends State<LogsScreen> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Copied CSV (${_visible.length})'),
+                          content: Text('已复制 CSV (${_visible.length})'),
                           duration: const Duration(seconds: 1),
                         ),
                       );
@@ -367,20 +349,20 @@ class _LogsScreenState extends State<LogsScreen> {
             tooltip: _sortByTs
                 ? (_sortAsc ? 'Time old→new' : 'Time new→old')
                 : (_sortById
-                      ? (_sortAsc ? 'Id Z→A' : 'Id A→Z')
+                      ? (_sortAsc ? 'ID Z→A' : 'ID A→Z')
                       : (_sortBySource
-                            ? (_sortAsc ? 'Source Z→A' : 'Source A→Z')
+                            ? (_sortAsc ? '来源 Z→A' : '来源 A→Z')
                             : (_sortByLogger
                                   ? (_sortAsc ? 'Logger Z→A' : 'Logger A→Z')
                                   : (_sortByLevel
                                         ? (_sortAsc
-                                              ? 'Levels Z→A'
-                                              : 'Levels A→Z')
+                                              ? '级别 Z→A'
+                                              : '级别 A→Z')
                                         : (_sortByMsg
                                               ? (_sortAsc
-                                                    ? 'Messages Z→A'
-                                                    : 'Messages A→Z')
-                                              : 'Sort by message / level / logger / source / id / time'))))),
+                                                    ? '消息 Z→A'
+                                                    : '消息 A→Z')
+                                              : '按消息 / 级别 / logger / 来源 / id / 时间排序'))))),
             onPressed: () {
               setState(() {
                 if (!_sortByMsg &&
@@ -477,7 +459,7 @@ class _LogsScreenState extends State<LogsScreen> {
           ),
 
           IconButton(
-            tooltip: 'Jump to top',
+            tooltip: '回到顶部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -489,7 +471,7 @@ class _LogsScreenState extends State<LogsScreen> {
             icon: const Icon(Icons.vertical_align_top),
           ),
           IconButton(
-            tooltip: 'Jump to end',
+            tooltip: '跳到底部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -501,7 +483,7 @@ class _LogsScreenState extends State<LogsScreen> {
             icon: const Icon(Icons.vertical_align_bottom),
           ),
           IconButton(
-            tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
+            tooltip: _autoRefresh ? '暂停刷新' : '自动刷新',
             onPressed: () {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
@@ -514,7 +496,7 @@ class _LogsScreenState extends State<LogsScreen> {
           ),
 
           IconButton(
-            tooltip: _wrapLines ? 'No wrap' : 'Wrap lines',
+            tooltip: _wrapLines ? '不换行' : '换行',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
           ),
@@ -566,7 +548,7 @@ class _LogsScreenState extends State<LogsScreen> {
                   runSpacing: 4,
                   children: [
                     for (final f in const [
-                      ('', 'Any source'),
+                      ('', '任意来源'),
                       ('mock-host', 'mock-host'),
                       ('bridge', 'bridge'),
                       ('session', 'session'),
@@ -590,7 +572,7 @@ class _LogsScreenState extends State<LogsScreen> {
                   runSpacing: 4,
                   children: [
                     for (final f in const [
-                      ('', 'Any logger'),
+                      ('', '任意 logger'),
                       ('mock-host', 'mock-host'),
                       ('bridge', 'bridge'),
                       ('session', 'session'),
@@ -612,7 +594,7 @@ class _LogsScreenState extends State<LogsScreen> {
                   runSpacing: 4,
                   children: [
                     FilterChip(
-                      label: const Text('Wrap', style: TextStyle(fontSize: 11)),
+                      label: const Text('换行', style: TextStyle(fontSize: 11)),
                       selected: _wrapLines,
                       onSelected: (v) => setState(() => _wrapLines = v),
                       visualDensity: VisualDensity.compact,
@@ -633,7 +615,7 @@ class _LogsScreenState extends State<LogsScreen> {
                       visualDensity: VisualDensity.compact,
                     ),
                     FilterChip(
-                      label: const Text('Auto', style: TextStyle(fontSize: 11)),
+                      label: const Text('自动', style: TextStyle(fontSize: 11)),
                       selected: _autoRefresh,
                       onSelected: (v) => setState(() => _autoRefresh = v),
                       visualDensity: VisualDensity.compact,
@@ -657,17 +639,17 @@ class _LogsScreenState extends State<LogsScreen> {
             child: TextField(
               decoration: InputDecoration(
                 hintText: _queryRegex
-                    ? (_queryCase ? 'Filter (regex · case)' : 'Filter (regex)')
+                    ? (_queryCase ? '筛选（正则 · 大小写）' : '筛选（正则）')
                     : (_queryCase
-                          ? 'Filter (case-sensitive)'
-                          : 'Filter message / level / source'),
+                          ? '筛选（区分大小写）'
+                          : '筛选消息 / 级别 / 来源'),
                 isDense: true,
                 border: const OutlineInputBorder(),
                 prefixIcon: IconButton(
                   tooltip: _queryRegex
                       ? (_queryCase
-                            ? 'Regex · case on (long-press: plain filter)'
-                            : 'Regex · case off (long-press: plain filter)')
+                            ? '正则 · 大小写 开（长按恢复普通筛选）'
+                            : '正则 · 大小写 关（长按恢复普通筛选）')
                       : (_queryCase
                             ? 'Case-sensitive (long-press: regex)'
                             : 'Case-insensitive (long-press: regex)'),
@@ -699,10 +681,10 @@ class _LogsScreenState extends State<LogsScreen> {
           Expanded(
             child: _logs.isEmpty && !_loading
                 ? const Center(
-                    child: Text('No log lines (Host may omit /logs)'),
+                    child: Text('暂无日志（主机可能未暴露 /logs）'),
                   )
                 : _visible.isEmpty && !_loading
-                ? const Center(child: Text('No lines match filter'))
+                ? const Center(child: Text('没有匹配的日志行'))
                 : RefreshIndicator(
                     onRefresh: _load,
                     child: ListView.separated(
@@ -782,7 +764,7 @@ class _LogsScreenState extends State<LogsScreen> {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('Log line copied'),
+                                    content: Text('日志行已复制'),
                                     duration: Duration(seconds: 1),
                                   ),
                                 );

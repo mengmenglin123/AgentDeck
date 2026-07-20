@@ -72,16 +72,18 @@ class _SessionsScreenState extends State<SessionsScreen> {
   }
 
   void _armTimer() {
-    _timer?.cancel();
-    if (!_autoRefresh || !mounted) return;
-    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
-    if (sec <= 0) return;
-    _timer = Timer.periodic(Duration(seconds: sec), (_) {
+    _timer = CatalogUi.armAutoRefresh(
+      context: context,
+      current: _timer,
+      enabled: _autoRefresh,
+      isBusy: () => false,
+      onTick: () {
       if (!mounted) return;
       final sessions = _sessions;
       if (sessions == null || sessions.loading) return;
       sessions.refresh();
-    });
+      },
+    );
   }
 
   Future<void> _loadPins() async {
@@ -147,14 +149,14 @@ class _SessionsScreenState extends State<SessionsScreen> {
       'archived_local: ${_archived.contains(s.sessionKey)}',
       if (note.isNotEmpty) 'note_local: $note',
       '',
-      'Export is metadata only (device console). Transcript export lives in Chat.',
+      '仅导出元数据（本机控制台）。对话导出请在聊天页操作。',
     ];
     final text = lines.join('\n');
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Session metadata copied')));
+    ).showSnackBar(const SnackBar(content: Text('会话元数据已复制')));
   }
 
   Future<void> _copyVisibleCsv(List<SessionInfo> list) async {
@@ -195,7 +197,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
     await Clipboard.setData(ClipboardData(text: buf.toString()));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Copied ${list.length} session row(s)')),
+      SnackBar(content: Text('已复制 ${list.length} 行会话')),
     );
   }
 
@@ -228,18 +230,18 @@ class _SessionsScreenState extends State<SessionsScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Delete ${targets.length} session(s)?'),
+        title: Text('删除 ${targets.length} 个会话？'),
         content: const Text(
-          'Removes sessions on the Host. Local notes/pins for those keys stay until cleared.',
+          '将在主机上删除会话。本机备注/置顶会保留直至手动清除。',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: const Text('取消'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
+            child: const Text('删除'),
           ),
         ],
       ),
@@ -258,7 +260,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Public connection summary copied (no tokens)'),
+        content: Text('公开连接摘要已复制（不含令牌）'),
         duration: Duration(seconds: 2),
       ),
     );
@@ -269,7 +271,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Rename session'),
+        title: const Text('重命名会话'),
         content: TextField(
           controller: ctrl,
           autofocus: true,
@@ -282,11 +284,11 @@ class _SessionsScreenState extends State<SessionsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: const Text('取消'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Save'),
+            child: const Text('保存'),
           ),
         ],
       ),
@@ -308,30 +310,30 @@ class _SessionsScreenState extends State<SessionsScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Session note (device only)'),
+        title: const Text('会话备注（仅本机）'),
         content: TextField(
           controller: ctrl,
           maxLines: 4,
           decoration: const InputDecoration(
-            hintText: 'Local note — not uploaded to Host',
+            hintText: '本机备注 — 不会上传到主机',
             border: OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: const Text('取消'),
           ),
           TextButton(
             onPressed: () async {
               await _local.setNote(s.sessionKey, '');
               if (ctx.mounted) Navigator.pop(ctx, true);
             },
-            child: const Text('Clear'),
+            child: const Text('清空'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Save'),
+            child: const Text('保存'),
           ),
         ],
       ),
@@ -1074,26 +1076,26 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   ),
                   trailing: conn.profiles.length > 1
                       ? PopupMenuButton<String>(
-                          tooltip: 'Switch host profile',
+                          tooltip: '切换主机配置',
                           icon: const Icon(Icons.swap_horiz, size: 20),
                           onSelected: (id) async {
                             if (id == conn.activeProfileId) return;
                             final ok = await showDialog<bool>(
                               context: context,
                               builder: (ctx) => AlertDialog(
-                                title: const Text('Switch host profile?'),
+                                title: const Text('切换主机配置?'),
                                 content: const Text(
-                                  'Disconnects the current Host and tests the selected profile. '
-                                  'Sessions list will reload for the new Host.',
+                                  '断开当前主机并测试所选配置。 '
+                                  '会话列表将为新主机重新加载。',
                                 ),
                                 actions: [
                                   TextButton(
                                     onPressed: () => Navigator.pop(ctx, false),
-                                    child: const Text('Cancel'),
+                                    child: const Text('取消'),
                                   ),
                                   FilledButton(
                                     onPressed: () => Navigator.pop(ctx, true),
-                                    child: const Text('Switch'),
+                                    child: const Text('切换'),
                                   ),
                                 ],
                               ),
@@ -1108,7 +1110,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                               setState(() {});
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Switched host profile'),
+                                  content: Text('已切换主机配置'),
                                 ),
                               );
                             } else {
@@ -1242,8 +1244,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
                     ),
                     title: Text(
                       conn.healthDegraded
-                          ? 'Host health degraded'
-                          : 'Host health OK',
+                          ? '主机健康降级'
+                          : '主机健康正常',
                       style: const TextStyle(fontSize: 13),
                     ),
                     subtitle: Text(
@@ -1255,7 +1257,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                         if (conn.lastStatus != null &&
                             conn.lastStatus!['version'] != null)
                           'version: ${conn.lastStatus!['version']}',
-                        'Probe every 30s while connected',
+                        '连接期间每 30 秒探测',
                       ].where((e) => e.toString().isNotEmpty).join(' · '),
                       style: const TextStyle(fontSize: 11),
                     ),
@@ -1307,7 +1309,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                               : 'Search (regex)')
                         : (_queryCase
                               ? 'Search (case-sensitive)'
-                              : 'Search sessions / notes'),
+                              : '搜索会话 / 备注'),
                     border: const OutlineInputBorder(),
                     isDense: true,
                     prefixIcon: IconButton(
@@ -1412,7 +1414,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       visualDensity: VisualDensity.compact,
                     ),
                     for (final f in const [
-                      ('', 'Any agent'),
+                      ('', '任意 Agent'),
                       ('hermes', 'hermes'),
                       ('claude', 'claude'),
                       ('codex', 'codex'),
@@ -1425,7 +1427,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                         visualDensity: VisualDensity.compact,
                       ),
                     for (final f in const [
-                      ('', 'Any platform'),
+                      ('', '任意平台'),
                       ('telegram', 'telegram'),
                       ('discord', 'discord'),
                       ('slack', 'slack'),
@@ -1442,7 +1444,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       builder: (context) {
                         final settings = context.watch<AppSettingsController>();
                         return PopupMenuButton<String>(
-                          tooltip: 'Sort',
+                          tooltip: '排序',
                           initialValue: settings.sessionSort,
                           onSelected: (v) async {
                             await settings.setSessionSort(v);
@@ -1451,71 +1453,71 @@ class _SessionsScreenState extends State<SessionsScreen> {
                           itemBuilder: (ctx) => const [
                             PopupMenuItem(
                               value: 'updated',
-                              child: Text('Sort: Updated'),
+                              child: Text('排序：更新时间'),
                             ),
                             PopupMenuItem(
                               value: 'recent',
-                              child: Text('Sort: Recent'),
+                              child: Text('排序：最近'),
                             ),
                             PopupMenuItem(
                               value: 'title',
-                              child: Text('Sort: Title'),
+                              child: Text('排序：标题'),
                             ),
                             PopupMenuItem(
                               value: 'project',
-                              child: Text('Sort: Project'),
+                              child: Text('排序：项目'),
                             ),
                             PopupMenuItem(
                               value: 'created',
-                              child: Text('Sort: Created'),
+                              child: Text('排序：创建时间'),
                             ),
                             PopupMenuItem(
                               value: 'model',
-                              child: Text('Sort: Model'),
+                              child: Text('排序：模型'),
                             ),
                             PopupMenuItem(
                               value: 'key',
-                              child: Text('Sort: Key'),
+                              child: Text('排序：Key'),
                             ),
                             PopupMenuItem(
                               value: 'platform',
-                              child: Text('Sort: Platform'),
+                              child: Text('排序：平台'),
                             ),
                             PopupMenuItem(
                               value: 'agent',
-                              child: Text('Sort: Agent'),
+                              child: Text('排序：Agent'),
                             ),
                             PopupMenuItem(
                               value: 'mode',
-                              child: Text('Sort: Mode'),
+                              child: Text('排序：模式'),
                             ),
                             PopupMenuItem(
                               value: 'workdir',
-                              child: Text('Sort: Workdir'),
+                              child: Text('排序：工作目录'),
                             ),
                             PopupMenuItem(
                               value: 'running',
-                              child: Text('Sort: Running'),
+                              child: Text('排序：运行中'),
                             ),
                             PopupMenuItem(
                               value: 'live',
-                              child: Text('Sort: Live'),
+                              child: Text('排序：Live'),
                             ),
                             PopupMenuItem(
                               value: 'last',
-                              child: Text('Sort: Last msg'),
+                              child: Text('排序：最后消息'),
                             ),
                             PopupMenuItem(
                               value: 'pinned',
-                              child: Text('Sort: Pinned'),
+                              child: Text('排序：置顶'),
                             ),
                             PopupMenuItem(
                               value: 'note',
-                              child: Text('Sort: Note'),
+                              child: Text('排序：备注'),
                             ),
                             PopupMenuItem(
                               value: 'archived',
-                              child: Text('Sort: Archived'),
+                              child: Text('排序：归档'),
                             ),
                           ],
                           child: Padding(
@@ -1562,7 +1564,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       child: TextField(
                         controller: _titleCtrl,
                         decoration: const InputDecoration(
-                          hintText: 'New session title (optional)',
+                          hintText: '新会话标题（可选）',
                           border: OutlineInputBorder(),
                           isDense: true,
                         ),
@@ -1614,7 +1616,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                       ),
                                       const SizedBox(height: 12),
                                       Text(
-                                        'No sessions yet',
+                                        '还没有会话',
                                         textAlign: TextAlign.center,
                                         style: Theme.of(
                                           context,
@@ -1622,7 +1624,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                       ),
                                       const SizedBox(height: 8),
                                       Text(
-                                        'This App is a remote console only — agents run on the Host.\n'
+                                        '本应用仅为远程控制台 — Agent 在主机上运行。\n'
                                         '1) Confirm Host health above is OK\n'
                                         '2) Pick a project if listed\n'
                                         '3) Tap New to create a session\n'
@@ -1643,7 +1645,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                               : _create,
                                           icon: const Icon(Icons.add),
                                           label: const Text(
-                                            'Create first session',
+                                            '创建第一个会话',
                                           ),
                                         ),
                                       ),
@@ -1662,7 +1664,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                             Icons.monitor_heart_outlined,
                                           ),
                                           label: const Text(
-                                            'Open Host dashboard',
+                                            '打开主机仪表盘',
                                           ),
                                         ),
                                       ),
@@ -1881,7 +1883,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                         trailing: _selectMode
                                             ? null
                                             : PopupMenuButton<String>(
-                                                tooltip: 'Session actions',
+                                                tooltip: '会话操作',
                                                 onSelected: (v) async {
                                                   switch (v) {
                                                     case 'export':
@@ -1915,7 +1917,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                         ).showSnackBar(
                                                           const SnackBar(
                                                             content: Text(
-                                                              'Session ids copied',
+                                                              '会话 ID 已复制',
                                                             ),
                                                             duration: Duration(
                                                               seconds: 1,
@@ -1939,7 +1941,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                   ),
                                                   const PopupMenuItem(
                                                     value: 'copy_key',
-                                                    child: Text('Copy ids'),
+                                                    child: Text('复制 ID'),
                                                   ),
                                                   PopupMenuItem(
                                                     value: 'archive',
@@ -1961,7 +1963,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                   ),
                                                   const PopupMenuItem(
                                                     value: 'export',
-                                                    child: Text('Export meta'),
+                                                    child: Text('导出元数据'),
                                                   ),
                                                   const PopupMenuItem(
                                                     value: 'term',

@@ -7,6 +7,8 @@ import '../services/app_settings_controller.dart';
 import '../services/connection_controller.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
+import '../utils/catalog_ui.dart';
+import '../utils/query_match.dart';
 import 'activity_screen.dart';
 import 'agents_screen.dart';
 import 'logs_screen.dart';
@@ -77,14 +79,13 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
   }
 
   void _armTimer() {
-    _timer?.cancel();
-    if (!mounted || !_autoRefresh) return;
-    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
-    if (sec <= 0) return;
-    _timer = Timer.periodic(Duration(seconds: sec), (_) {
-      if (!mounted || _loading) return;
-      _refresh(silent: true);
-    });
+    _timer = CatalogUi.armAutoRefresh(
+      context: context,
+      current: _timer,
+      enabled: _autoRefresh,
+      isBusy: () => _loading,
+      onTick: () => _refresh(silent: true),
+    );
   }
 
   Future<void> _refresh({bool silent = false}) async {
@@ -179,7 +180,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Copied ${caps.length} capabilities'),
+        content: Text('已复制 ${caps.length} 项能力'),
         duration: const Duration(seconds: 1),
       ),
     );
@@ -208,7 +209,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Status copied (no token)'),
+        content: Text('状态已复制（无令牌）'),
         duration: Duration(seconds: 1),
       ),
     );
@@ -274,30 +275,30 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
             icon: const Icon(Icons.extension_outlined),
           ),
           IconButton(
-            tooltip: 'Copy CSV',
+            tooltip: '复制 CSV',
             onPressed: _status.isEmpty && _error == null ? null : _copyCsv,
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
-            tooltip: _wrapLines ? 'Clamp details' : 'Wrap details',
+            tooltip: _wrapLines ? '截断详情' : '换行详情',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
           IconButton(
             tooltip: _relativeTs
-                ? 'Absolute timestamps'
-                : 'Relative timestamps',
+                ? '绝对时间戳'
+                : '相对时间戳',
             onPressed: () => setState(() => _relativeTs = !_relativeTs),
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
           IconButton(
             tooltip: _sortByKey
-                ? (_sortAsc ? 'Keys Z→A' : 'Keys A→Z')
+                ? (_sortAsc ? '键 Z→A' : '键 A→Z')
                 : (_sortByType
-                      ? (_sortAsc ? 'Type Z→A' : 'Type A→Z')
+                      ? (_sortAsc ? '类型 Z→A' : '类型 A→Z')
                       : (_sortByValue
-                            ? (_sortAsc ? 'Values Z→A' : 'Values A→Z')
-                            : (_sortAsc ? 'Keys Z→A' : 'Keys A→Z'))),
+                            ? (_sortAsc ? '值 Z→A' : '值 A→Z')
+                            : (_sortAsc ? '键 Z→A' : '键 A→Z'))),
             onPressed: () {
               setState(() {
                 if (!_sortByValue && !_sortByType && !_sortByKey && _sortAsc) {
@@ -346,7 +347,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
           ),
 
           IconButton(
-            tooltip: 'Jump to top',
+            tooltip: '回到顶部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -358,7 +359,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
             icon: const Icon(Icons.vertical_align_top),
           ),
           IconButton(
-            tooltip: 'Jump to end',
+            tooltip: '跳到底部',
             onPressed: () {
               if (!_scroll.hasClients) return;
               _scroll.animateTo(
@@ -370,7 +371,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
             icon: const Icon(Icons.vertical_align_bottom),
           ),
           IconButton(
-            tooltip: _autoRefresh ? 'Pause auto-refresh' : 'Auto-refresh',
+            tooltip: _autoRefresh ? '暂停刷新' : '自动刷新',
             onPressed: () {
               setState(() => _autoRefresh = !_autoRefresh);
               _armTimer();
@@ -390,7 +391,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
         ],
       ),
       body: cfg == null
-          ? const Center(child: Text('Not connected'))
+          ? const Center(child: Text('未连接'))
           : RefreshIndicator(
               onRefresh: _refresh,
               child: ListView(
@@ -465,7 +466,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                         label = 'Status error';
                       } else if (degraded) {
                         barColor = Colors.orange;
-                        label = 'Health degraded (heartbeat)';
+                        label = '健康降级（心跳）';
                       } else if (healthy) {
                         barColor = Colors.green;
                         label = 'Host healthy';
@@ -500,7 +501,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                             ),
                           ),
                           subtitle: Text(
-                            'Last OK: $age · auto ${refreshSec == 0 ? "off" : "${refreshSec}s"}'
+                            '上次成功：$age · 自动 ${refreshSec == 0 ? "关" : "${refreshSec}s"}'
                             '${_error != null ? "\n$_error" : ""}',
                             style: TextStyle(
                               fontSize: 11,
@@ -509,7 +510,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                           ),
                           trailing: TextButton(
                             onPressed: _loading ? null : () => _refresh(),
-                            child: const Text('Check'),
+                            child: const Text('检查'),
                           ),
                         ),
                       );
@@ -557,7 +558,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                           (_status['capabilities'] as List? ?? const []);
                       if (caps.isEmpty) return 'Capabilities';
                       if (_capFilter.isEmpty)
-                        return 'Capabilities (${caps.length})';
+                        return '能力 (${caps.length})';
                       return 'Capabilities · $_capFilter';
                     })(),
                     style: Theme.of(context).textTheme.titleSmall,
@@ -572,11 +573,11 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                         prefixIcon: IconButton(
                           tooltip: _queryRegex
                               ? (_queryCase
-                                    ? 'Regex · case on (long-press: plain filter)'
-                                    : 'Regex · case off (long-press: plain filter)')
+                                    ? '正则 · 大小写 开（长按恢复普通筛选）'
+                                    : '正则 · 大小写 关（长按恢复普通筛选）')
                               : (_queryCase
-                                    ? 'Case-sensitive (long-press: regex)'
-                                    : 'Case-insensitive (long-press: regex)'),
+                                    ? '区分大小写（长按切换正则）'
+                                    : '不区分大小写（长按切换正则）'),
                           icon: Icon(
                             _queryRegex
                                 ? Icons.code
@@ -704,7 +705,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Text(
-                        'Selected capability: $_capFilter (filter is visual highlight only)',
+                        '已选能力：$_capFilter（筛选仅视觉高亮）',
                         style: TextStyle(
                           fontSize: 12,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -713,13 +714,13 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                     ),
                   const Divider(height: 32),
                   Text(
-                    'Shortcuts',
+                    '快捷入口',
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
                   ListTile(
                     leading: const Icon(Icons.folder_open),
-                    title: const Text('Workspace (readonly)'),
-                    subtitle: const Text('Browse host files + mock git status'),
+                    title: const Text('工作区（只读）'),
+                    subtitle: const Text('浏览主机文件 + mock git 状态'),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => WorkspaceScreen(config: cfg),
@@ -728,8 +729,8 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.difference_outlined),
-                    title: const Text('Git diff (readonly)'),
-                    subtitle: const Text('Unified diff from Host'),
+                    title: const Text('Git Diff（只读）'),
+                    subtitle: const Text('来自主机的统一 Diff'),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => DiffScreen(config: cfg),
@@ -738,8 +739,8 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.psychology_outlined),
-                    title: const Text('Host memory'),
-                    subtitle: const Text('Readonly catalog from Host'),
+                    title: const Text('主机记忆'),
+                    subtitle: const Text('来自主机的只读目录'),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => MemoryScreen(config: cfg),
@@ -748,8 +749,8 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.schedule),
-                    title: const Text('Host schedules'),
-                    subtitle: const Text('Readonly cron jobs'),
+                    title: const Text('主机定时任务'),
+                    subtitle: const Text('只读定时任务'),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => CronScreen(config: cfg),
@@ -758,7 +759,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.auto_awesome),
-                    title: const Text('Skills'),
+                    title: const Text('技能'),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => SkillsScreen(config: cfg),
@@ -774,8 +775,8 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.bolt_outlined),
-                    title: const Text('Host activity'),
-                    subtitle: const Text('Readonly event feed'),
+                    title: const Text('主机活动'),
+                    subtitle: const Text('只读事件流'),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => ActivityScreen(config: cfg),
@@ -785,7 +786,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                   ListTile(
                     leading: const Icon(Icons.smart_toy_outlined),
                     title: const Text('Agents'),
-                    subtitle: const Text('Host agent catalog'),
+                    subtitle: const Text('主机 Agent 目录'),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => AgentsScreen(config: cfg),
@@ -795,7 +796,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
 
                   ListTile(
                     leading: const Icon(Icons.qr_code_2),
-                    title: const Text('Pairing URI'),
+                    title: const Text('配对 URI'),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => PairingScreen(config: cfg),
@@ -804,8 +805,8 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.article_outlined),
-                    title: const Text('Host logs'),
-                    subtitle: const Text('Readonly log feed'),
+                    title: const Text('主机日志'),
+                    subtitle: const Text('只读日志流'),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => LogsScreen(config: cfg),
@@ -815,7 +816,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
 
                   const SizedBox(height: 12),
                   ExpansionTile(
-                    title: const Text('Raw /status'),
+                    title: const Text('原始 /status'),
                     children: [
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -826,11 +827,11 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                             prefixIcon: IconButton(
                               tooltip: _queryRegex
                                   ? (_queryCase
-                                        ? 'Regex · case on (long-press: plain filter)'
-                                        : 'Regex · case off (long-press: plain filter)')
+                                        ? '正则 · 大小写 开（长按恢复普通筛选）'
+                                        : '正则 · 大小写 关（长按恢复普通筛选）')
                                   : (_queryCase
-                                        ? 'Case-sensitive (long-press: regex)'
-                                        : 'Case-insensitive (long-press: regex)'),
+                                        ? '区分大小写（长按切换正则）'
+                                        : '不区分大小写（长按切换正则）'),
                               icon: Icon(
                                 _queryRegex
                                     ? Icons.code
@@ -850,7 +851,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                                       : 'Filter (regex)')
                                 : (_queryCase
                                       ? 'Filter (case-sensitive)'
-                                      : 'Filter keys / values'),
+                                      : '筛选键 / 值'),
                             border: const OutlineInputBorder(),
                             suffixIcon: _keyQuery.isEmpty
                                 ? null
@@ -911,7 +912,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                               FilterChip(
                                 visualDensity: VisualDensity.compact,
                                 label: Text(
-                                  t.isEmpty ? 'Any type' : t,
+                                  t.isEmpty ? '任意类型' : t,
                                   style: const TextStyle(fontSize: 11),
                                 ),
                                 selected: _typeFilter == t,

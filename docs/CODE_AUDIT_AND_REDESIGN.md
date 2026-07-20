@@ -122,11 +122,13 @@ lib/
 - [x] Sessions 主路径：中文 tooltip、AppBar 收敛到 overflow、接门面 store
 - [x] 烟测与版本 bump
 
-### Phase B — Catalog 收敛（后续刀）
+### Phase B — Catalog 收敛（0.1.182）
 
-- 抽出 `HostCatalogScreen` 模板（load + filter + sort + refresh + export）
-- Skills/MCP/Cron/Memory/… 改为配置驱动，删重复 `_armTimer`
-- 全屏中文化扫尾
+- [x] 抽出 `CatalogUi`（armAutoRefresh / copy / snack / commonActions / 中文标签）
+- [x] 14 屏 `_armTimer` → `CatalogUi.armAutoRefresh`
+- [x] 8 屏查询 → `QueryMatch`
+- [x] 全屏中文化扫尾（Settings/Status/Dashboard/Pairing/Chat/…）
+- 完整 `HostCatalogScreen` 配置驱动模板仍可后续深化
 
 ### Phase C — Chat / Terminal 体验
 
