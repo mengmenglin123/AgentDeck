@@ -1388,6 +1388,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     project: widget.session.project,
                     connected: _chat.connected,
                     connecting: _chat.connecting,
+                    onSuggestion: (text) {
+                      _input.text = text;
+                      _input.selection = TextSelection.fromPosition(
+                          TextPosition(offset: text.length));
+                    },
                   )
                 : Builder(
                     builder: (context) {
@@ -1500,22 +1505,31 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       icon: const Icon(Icons.attach_file),
                     ),
                     Expanded(
-                      child: TextField(
-                        controller: _input,
-                        minLines: 1,
-                        maxLines: 5,
-                        decoration: InputDecoration(
-                          hintText: _chat.connected
-                              ? 'Message…  (/perm for permission demo)'
-                              : 'Connecting to agent…',
-                          border: const OutlineInputBorder(),
-                          filled: true,
-                          fillColor:
-                              cs.surfaceContainerHighest.withOpacity(0.35),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: cs.surfaceContainerHighest.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                              color: cs.outlineVariant.withOpacity(0.5)),
                         ),
-                        textInputAction: TextInputAction.send,
-                        onSubmitted: (_) => _send(),
-                        enabled: _chat.connected && !_chat.sending,
+                        child: TextField(
+                          controller: _input,
+                          minLines: 1,
+                          maxLines: 5,
+                          decoration: InputDecoration(
+                            hintText: _chat.connected
+                                ? '输入消息...'
+                                : 'Connecting to agent…',
+                            hintStyle: TextStyle(
+                                color: cs.onSurfaceVariant.withOpacity(0.6)),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 18, vertical: 12),
+                          ),
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _send(),
+                          enabled: _chat.connected && !_chat.sending,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -1632,35 +1646,155 @@ class _EmptyChat extends StatelessWidget {
     required this.project,
     required this.connected,
     required this.connecting,
+    this.onSuggestion,
   });
 
   final String project;
   final bool connected;
   final bool connecting;
+  final ValueChanged<String>? onSuggestion;
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final subtitle = connecting
         ? 'Connecting to host…'
         : connected
-            ? project == 'hermes'
-                ? 'Hermes project (Mock/ADR-002). Try a task, /help, or attach demo.'
-                : 'Send a message to drive $project on your server.\nTry /help, /perm, or a normal task.'
+            ? '有什么我能帮您的吗？'
             : 'Offline — tap Retry when the host is reachable.';
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.smart_toy_outlined,
-                size: 48, color: Theme.of(context).colorScheme.outline),
-            const SizedBox(height: 12),
-            Text('No messages yet',
-                style: Theme.of(context).textTheme.titleMedium),
+            // Logo with gradient background
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF4A90E2).withOpacity(0.15),
+                    const Color(0xFF4A90E2).withOpacity(0.05),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Icon(Icons.auto_awesome,
+                  size: 40, color: const Color(0xFF4A90E2)),
+            ),
+            const SizedBox(height: 20),
+            Text('你好',
+                style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: cs.onSurface)),
             const SizedBox(height: 8),
-            Text(subtitle, textAlign: TextAlign.center),
+            Text(subtitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 14, color: cs.onSurfaceVariant)),
+            if (connected) ...[
+              const SizedBox(height: 32),
+              // Suggestion cards
+              _SuggestionCard(
+                icon: Icons.code_outlined,
+                title: '帮我编程',
+                subtitle: '编写和调试代码',
+                color: const Color(0xFF4A90E2),
+                onTap: () => onSuggestion?.call('帮我写一段代码'),
+              ),
+              const SizedBox(height: 10),
+              _SuggestionCard(
+                icon: Icons.edit_outlined,
+                title: '帮我写作',
+                subtitle: '撰写文档和文章',
+                color: const Color(0xFF7CB342),
+                onTap: () => onSuggestion?.call('帮我写一篇文章'),
+              ),
+              const SizedBox(height: 10),
+              _SuggestionCard(
+                icon: Icons.analytics_outlined,
+                title: '帮我分析',
+                subtitle: '分析数据和问题',
+                color: const Color(0xFFFF8A65),
+                onTap: () => onSuggestion?.call('帮我分析一下'),
+              ),
+            ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SuggestionCard extends StatelessWidget {
+  const _SuggestionCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.06),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withOpacity(0.15)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 20, color: color),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.onSurface)),
+                    Text(subtitle,
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant)),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios,
+                  size: 14,
+                  color: color.withOpacity(0.5)),
+            ],
+          ),
         ),
       ),
     );
@@ -1786,13 +1920,17 @@ class _MessageBubble extends StatelessWidget {
     if (!showTools && isTool) {
       return const SizedBox.shrink();
     }
+    // LiveAgent-style colors: clean whites and soft blues
     final bg = isUser
-        ? cs.primaryContainer
+        ? const Color(0xFFE3F2FD) // Soft blue for user
         : isSystem
-            ? cs.surfaceContainerHighest
+            ? const Color(0xFFF5F5F5) // Light gray for system
             : isTool
-                ? cs.tertiaryContainer
-                : cs.secondaryContainer;
+                ? const Color(0xFFFAFAFA) // Very light gray for tools
+                : Colors.white; // White for assistant
+    final borderColor = isUser
+        ? null
+        : const Color(0xFFE5E7EB); // Subtle gray border for non-user
     final align = isUser ? Alignment.centerRight : Alignment.centerLeft;
     final buttons = _buttons;
     final useMd =
@@ -1851,27 +1989,58 @@ class _MessageBubble extends StatelessWidget {
         },
         child: Container(
           margin: EdgeInsets.symmetric(vertical: compact ? 2 : 4),
-          padding: EdgeInsets.all(compact ? 6 : 10),
+          padding: EdgeInsets.all(compact ? 8 : 14),
           constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.88),
+              maxWidth: MediaQuery.of(context).size.width * 0.85),
           decoration: BoxDecoration(
             color: bg,
-            borderRadius: BorderRadius.circular(12),
-            border: borderColor != null
-                ? Border.all(
-                    color: borderColor, width: isActiveSearchHit ? 2 : 1.5)
-                : null,
+            borderRadius: BorderRadius.circular(16),
+            border: isUser
+                ? null
+                : Border.all(
+                    color: isActiveSearchHit
+                        ? cs.primary
+                        : hl
+                            ? Colors.amber
+                            : borderColor ?? const Color(0xFFE5E7EB),
+                    width: isActiveSearchHit ? 2 : 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
+                  Icon(
+                    isUser
+                        ? Icons.person_outline
+                        : isTool
+                            ? Icons.build_outlined
+                            : isSystem
+                                ? Icons.info_outline
+                                : Icons.auto_awesome,
+                    size: 14,
+                    color: cs.onSurfaceVariant.withOpacity(0.7),
+                  ),
+                  const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      role + (message.streaming ? ' …' : ''),
+                      isUser
+                          ? 'You'
+                          : isTool
+                              ? 'Tool'
+                              : isSystem
+                                  ? 'System'
+                                  : 'Assistant' + (message.streaming ? ' …' : ''),
                       style: TextStyle(
-                          fontSize: compact ? 9 : 10,
+                          fontSize: compact ? 10 : 11,
+                          fontWeight: FontWeight.w500,
                           color: cs.onSurfaceVariant),
                     ),
                   ),
