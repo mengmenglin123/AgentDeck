@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.184
+
+- Phase D mock / MD 维护性：
+  - mock_host：`MOCK_TERM_HANDLERS` 表驱动调度（140+ 简单命令），catalog 扩至 224 并与 help/which/type 锁步
+  - 修复 help/perm 缺 return 与 `import time` 局部遮蔽导致 date 崩
+  - MarkdownLite 核心路径瘦身（~2.0k → ~1.4k）；legacy HTML 拆到 `markdown_lite_legacy.dart`
+  - 协议回归 15/15 + py_compile
+
+
 ## 0.1.183
 
 - Phase C Chat/Terminal 体验：

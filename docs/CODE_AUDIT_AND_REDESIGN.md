@@ -7,11 +7,11 @@
 
 | 区域 | 规模 | 备注 |
 |------|------|------|
-| Flutter `lib/` | ~25k 行 Dart | 19 个 Screen，多数 600–2200 行 |
-| `mock_host.py` | ~4.7k 行 | 终端 mock 巨石；功能完整但难维护 |
+| Flutter `lib/` | ~25k 行 Dart（MD 已拆 legacy） | 19 个 Screen，多数 600–2200 行 |
+| `mock_host.py` | ~5.3k 行（含 registry） | 终端 mock 巨石；功能完整但难维护 |
 | 协议包测试 | 15/15 绿 | 基础协议可信 |
 | Flutter 测试 | 7 个文件 | 几乎不覆盖巨型 Screen |
-| 版本 | `0.1.180+180` | P0–P3 与大量 P4 切片已 ship |
+| 版本 | `0.1.184+184` | P0–P3 与大量 P4 切片已 ship |
 
 ### 架构（正确部分）
 
@@ -139,10 +139,12 @@ lib/
 - [x] 中文扫尾（Chat/Terminal/AppStrings）
 - 真实 PTY 仍未接入（协议通道演示 + 明确提示）
 
-### Phase D — mock / MD 维护性
+### Phase D — mock / MD 维护性（0.1.184）
 
-- mock 命令表驱动（handler registry）
-- MarkdownLite 核心路径 vs legacy HTML 分文件或裁剪
+- [x] mock 命令表驱动（`MOCK_TERM_FIXED` + `MOCK_TERM_HANDLERS` + `mock_term_dispatch`）
+- [x] catalog 224 命令与 help/which/type 锁步；简单 demo 走 registry，复杂工作区命令仍 elif
+- [x] MarkdownLite 核心 vs legacy 分文件（`markdown_lite_legacy.dart`）
+- [x] 修 help 双输出 / `import time` 遮蔽 date
 
 ## 6. 风险与约束
 

@@ -28,7 +28,7 @@ import time
 import traceback
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.parse import parse_qs, urlparse
 
 
@@ -181,6 +181,622 @@ WORKSPACE_TREE: Dict[str, Any] = {
     },
 }
 
+
+
+# ── Mock terminal command catalog (lockstep source of truth) ──
+# help / which / type all derive from MOCK_TERM_COMMANDS.
+# Handlers remain in _handle_terminal_input; registry maps name→doc for discovery.
+MOCK_TERM_COMMANDS: List[str] = [
+    "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date",
+    "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df",
+    "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true",
+    "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export",
+    "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs",
+    "hexdump", "xxd", "od", "jq", "file", "type", "expr", "test", "factor", "bc",
+    "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who",
+    "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join",
+    "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac",
+    "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate",
+    "install", "shred", "timeout", "nice", "nohup", "watch", "stdbuf", "flock", "ionice", "taskset",
+    "prlimit", "chroot", "unshare", "nsenter", "setpriv", "capsh", "runcon", "ldd", "ldconfig", "uuidgen",
+    "rmdir", "mkfifo", "getopt", "strings", "csplit", "diff", "patch", "sdiff", "pr", "dircolors",
+    "tput", "tset", "tabs", "script", "scriptreplay", "infocmp", "toe", "reset", "resize", "login",
+    "mesg", "write", "wall", "newgrp", "su", "sudo", "chfn", "chsh", "passwd", "lastlog",
+    "lastb", "faillog", "chage", "ulimit", "finger", "nologin", "unset", "alias", "unalias", "kill",
+    "jobs", "bg", "fg", "less", "more", "awk", "sed", "cp", "mv", "rm",
+    "chmod", "chown", "chgrp", "bash", "sh", "exit", "logout", "source", "set", "curl",
+    "wget", "ssh", "scp", "rsync", "ping", "tar", "gzip", "gunzip", "zip", "unzip",
+    "ip", "netstat", "traceroute",
+    "at", "base32", "base64", "cron", "crontab", "dd", "diff3", "fdisk", "groupadd", "groupdel", "info", "lsblk", "mail", "man", "md5sum", "mount", "nano", "screen", "service", "sha1sum", "sha224sum", "sha256sum", "sha384sum", "sha512sum", "systemctl", "tmux", "umount", "useradd", "userdel", "usermod", "vi",
+]
+
+MOCK_TERM_KNOWN = set(MOCK_TERM_COMMANDS)
+MOCK_TERM_BUILTINS = set(MOCK_TERM_COMMANDS)
+
+# name → short doc (discovery)
+MOCK_TERM_DOCS: Dict[str, str] = {name: f"mock builtin: {name}" for name in MOCK_TERM_COMMANDS}
+
+# Table-driven simple handlers: name → (body, exit_code)
+# Complex commands stay in the _handle_terminal_input elif chain.
+# Registry is checked first; matching names short-circuit the chain.
+MOCK_TERM_FIXED: Dict[str, Tuple[str, int]] = {
+    # identity / system
+    "whoami": ("huanhermes-mock\n", 0),
+    "arch": ("x86_64\n", 0),
+    "nproc": ("4\n", 0),
+    "logname": ("huan\n", 0),
+    "users": ("huan\n", 0),
+    "groups": ("huan sudo docker\n", 0),
+    "tty": ("/dev/pts/0\n", 0),
+    "sync": ("", 0),
+    "true": ("", 0),
+    "false": ("", 1),
+    "reset": ("\n", 0),
+    "logout": ("logout\n", 0),
+    "exit": ("exit\n", 0),
+    "bash": ("", 0),
+    "sh": ("", 0),
+    "unalias": ("", 0),
+    "unset": ("", 0),
+    "mesg": ("is y\n", 0),
+    "uuidgen": ("00000000-0000-4000-8000-000000000001\n", 0),
+    "dircolors": ("LS_COLORS='*.py=01;32:'\n", 0),
+    "toe": ("xterm-256color\nvt100\nansi\n", 0),
+    "resize": ("COLUMNS=80;\nLINES=24;\nexport COLUMNS LINES;\n", 0),
+    "nologin": ("This account is currently not available.\n", 1),
+    "login": ("login: (mock) not a real login\n", 1),
+    "chsh": ("chsh: (mock) not permitted\n", 1),
+    "passwd": ("passwd: (mock) Authentication token manipulation error\n", 1),
+    "chage": ("chage: (mock) permission denied\n", 1),
+    "chfn": ("chfn: (mock) not permitted\n", 1),
+    "su": ("su: (mock) Authentication failure\n", 1),
+    "sudo": ("sudo: (mock) a password is required\n", 1),
+    "newgrp": ("newgrp: (mock) not permitted\n", 1),
+    "vi": ("vi: (mock) not available in demo mode\n", 1),
+    "nano": ("nano: (mock) not available in demo mode\n", 1),
+    "screen": ("screen: (mock) not available in demo mode\n", 1),
+    "tmux": ("tmux: (mock) not available in demo mode\n", 1),
+    "cron": ("cron: (mock) not available in demo mode\n", 1),
+    "mail": ("mail: (mock) not available in demo mode\n", 1),
+    # fixed tables / dumps
+    "uptime": (" 12:00:00 up 3 days,  4:56,  1 user,  load average: 0.10, 0.20, 0.30\n", 0),
+    "hostname": ("huanhermes-mock\n", 0),
+    "cal": (
+        "     July 2026\n"
+        "Su Mo Tu We Th Fr Sa\n"
+        "          1  2  3  4\n"
+        " 5  6  7  8  9 10 11\n"
+        "12 13 14 15 16 17 18\n"
+        "19 20 21 22 23 24 25\n"
+        "26 27 28 29 30 31\n",
+        0,
+    ),
+    "base32": ("JBSWY3DPEBLW64TMMQ======\n", 0),
+    "sha224sum": ("0" * 56 + "  -\n", 0),
+    "sha384sum": ("0" * 96 + "  -\n", 0),
+    "sha512sum": ("0" * 128 + "  -\n", 0),
+    "pr": ("\n\n", 0),
+    "bg": ("[1]+ sleep 100 &\n", 0),
+    "fg": ("[1]+ sleep 100\n", 0),
+    "jobs": ("[1]+  Stopped                 vim\n[2]-  Running                 sleep 100 &\n", 0),
+    "lastb": (
+        "huan     pts/0        127.0.0.1        Mon Jul 18 07:00 - 07:01  (00:01)\n"
+        "\n"
+        "btmp begins Mon Jul 18 00:00:01 2026\n",
+        0,
+    ),
+    "faillog": (
+        "Login       Failures Maximum Latest\n"
+        "huan              0       0   **Never logged in**\n",
+        0,
+    ),
+    "lastlog": (
+        "Username         Port     From             Latest\n"
+        "huan             pts/0    127.0.0.1        Mon Jul 18 07:00:00 +0000 2026\n",
+        0,
+    ),
+    "ldd": ("\tlinux-vdso.so.1 (0x0000)\n\tlibc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x0000)\n", 0),
+    "ldconfig": ("\tlibc.so.6 (libc6,x86-64) => /lib/x86_64-linux-gnu/libc.so.6\n", 0),
+    "capsh": ("Current: =ep\nBounding set: =ep\n", 0),
+    "lsblk": (
+        "NAME  MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT\n"
+        "sda     8:0    0  40G  0 disk\n"
+        "└─sda1  8:1    0  40G  0 part /\n",
+        0,
+    ),
+    "ip": (
+        "1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536\n"
+        "    inet 127.0.0.1/8 scope host lo\n"
+        "2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500\n"
+        "    inet 10.0.0.2/24 scope global eth0\n",
+        0,
+    ),
+    "netstat": (
+        "Proto Recv-Q Send-Q Local Address           Foreign Address         State\n"
+        "tcp        0      0 0.0.0.0:9810            0.0.0.0:*               LISTEN\n"
+        "tcp        0      0 0.0.0.0:9820            0.0.0.0:*               LISTEN\n",
+        0,
+    ),
+    "finger": (
+        "Login     Name       Tty      Idle  Login Time   Office\n"
+        "huan      Huan Mock  pts/0          Jul 18 07:00 (mock)\n",
+        0,
+    ),
+    "w": (
+        " 12:00:00 up 3 days,  4:56,  1 user,  load average: 0.10, 0.20, 0.30\n"
+        "USER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT\n"
+        "huan     pts/0    127.0.0.1        07:00    0.00s  0.10s  0.01s mock\n",
+        0,
+    ),
+    "who": ("huan pts/0 2026-07-18 07:00 (mock)\n", 0),
+    "last": (
+        "huan     pts/0        127.0.0.1        Mon Jul 18 07:00   still logged in\n"
+        "\n"
+        "wtmp begins Mon Jul  1 00:00:01 2026\n",
+        0,
+    ),
+    "lscpu": (
+        "Architecture:        x86_64\n"
+        "CPU(s):              4\n"
+        "Model name:          HuanHermes Mock CPU\n"
+        "Thread(s) per core:  1\n"
+        "Core(s) per socket:  4\n",
+        0,
+    ),
+    "df": (
+        "Filesystem     1K-blocks    Used Available Use% Mounted on\n"
+        "/dev/sda1       41943040 8388608  33554432  20% /\n"
+        "tmpfs             524288   1024    523264   1% /tmp\n",
+        0,
+    ),
+    "free": (
+        "              total        used        free      shared  buff/cache   available\n"
+        "Mem:        5939200     2100000     1800000       12000     2039200     3600000\n"
+        "Swap:             0           0           0\n",
+        0,
+    ),
+    "ps": (
+        "  PID TTY          TIME CMD\n"
+        "    1 ?        00:00:01 systemd\n"
+        "   42 pts/0    00:00:00 mock_host\n"
+        "   99 pts/0    00:00:00 ps\n",
+        0,
+    ),
+}
+
+# Callable handlers for light arg-aware demos: (raw_data, lower) -> Optional[(body, exit)]
+TermHandler = Callable[[str, str], Optional[Tuple[str, int]]]
+MOCK_TERM_HANDLERS: Dict[str, TermHandler] = {}
+
+
+def _reg_fixed() -> None:
+    """Install fixed-output handlers from MOCK_TERM_FIXED."""
+    for name, (body, code) in MOCK_TERM_FIXED.items():
+        def _make(b: str, c: int) -> TermHandler:
+            def _h(_raw: str, _lower: str) -> Optional[Tuple[str, int]]:
+                return b, c
+            return _h
+        MOCK_TERM_HANDLERS[name] = _make(body, code)
+
+
+def _reg(name: str, fn: TermHandler) -> None:
+    MOCK_TERM_HANDLERS[name] = fn
+
+
+def _reg_many(names: List[str], fn: TermHandler) -> None:
+    for n in names:
+        MOCK_TERM_HANDLERS[n] = fn
+
+
+def mock_term_help_commands() -> str:
+    """Comma-separated command list for help output (stable order)."""
+    return ", ".join(MOCK_TERM_COMMANDS)
+
+
+def mock_term_registry() -> Dict[str, str]:
+    """name → short doc. Used by which/type discovery & table-driven handlers."""
+    return dict(MOCK_TERM_DOCS)
+
+
+def mock_term_dispatch(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    """Try table-driven handler. Returns (body, exit_code) or None to fall through."""
+    if not lower:
+        return None
+    cmd0 = lower.split()[0]
+    # strip leading ./ 
+    if cmd0.startswith("./"):
+        cmd0 = cmd0[2:]
+    fn = MOCK_TERM_HANDLERS.get(cmd0)
+    if fn is None:
+        return None
+    return fn(raw, lower)
+
+
+# Register fixed table first
+_reg_fixed()
+
+
+# Light arg-aware registry handlers (still simple demos)
+def _h_echo(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    # leave complex echo (with escapes) to elif chain if needed — simple path:
+    if lower == "echo" or lower.startswith("echo "):
+        text = raw.strip()[4:].lstrip() if lower.startswith("echo") else ""
+        # strip surrounding quotes lightly
+        if len(text) >= 2 and text[0] == text[-1] and text[0] in "\"'":
+            text = text[1:-1]
+        return text + "\n", 0
+    return None
+
+
+def _h_which(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    name = raw.strip()[6:].strip() if lower.startswith("which ") else ""
+    if not name:
+        return "which: missing operand\n", 1
+    if name.split()[0] in MOCK_TERM_KNOWN:
+        return f"/usr/bin/{name.split()[0]}\n", 0
+    return f"which: no {name} in ($PATH)\n", 1
+
+
+def _h_type(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    name = raw.strip()[4:].strip() if lower.startswith("type ") else ("" if lower == "type" else "")
+    if lower == "type" or not name:
+        return "type: missing operand\n", 1
+    base = name.split()[0]
+    if base in MOCK_TERM_BUILTINS:
+        return f"{base} is a shell builtin\n", 0
+    return f"type: {base}: not found\n", 1
+
+
+def _h_uname(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    # bare uname → Linux; -a full; -r release; else Linux
+    args = raw.strip().split()[1:] if lower.startswith("uname") else []
+    if not args:
+        return "Linux\n", 0
+    flag = args[0]
+    if flag in ("-a", "--all"):
+        return "Linux huanhermes-mock 6.1.0-mock #1 SMP x86_64 GNU/Linux\n", 0
+    if flag in ("-r", "--kernel-release"):
+        return "6.1.0-mock\n", 0
+    if flag in ("-m", "--machine"):
+        return "x86_64\n", 0
+    if flag in ("-n", "--nodename"):
+        return "huanhermes-mock\n", 0
+    if flag in ("-s", "--kernel-name"):
+        return "Linux\n", 0
+    return "Linux\n", 0
+
+
+def _h_id(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    args = raw.strip().split()[1:] if lower.startswith("id") else []
+    joined = " ".join(args)
+    if not args:
+        return "uid=1000(mock) gid=1000(mock) groups=1000(mock)\n", 0
+    if joined in ("-u",) or args == ["-u"]:
+        return "1000\n", 0
+    if joined in ("-g",) or args == ["-g"]:
+        return "1000\n", 0
+    if "-un" in args or (len(args) >= 2 and "-u" in args and "-n" in args) or joined == "-un":
+        return "mock\n", 0
+    return "uid=1000(mock) gid=1000(mock) groups=1000(mock)\n", 0
+
+
+def _h_strings(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    args = raw.strip().split()[1:]
+    if not args:
+        return "strings: missing operand\n", 1
+    return "hello\nworld\n", 0
+
+
+def _h_csplit(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    args = raw.strip().split()[1:]
+    if not args:
+        return "csplit: missing operand\n", 1
+    return "0\n", 0
+
+
+def _h_kill(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    args = raw.strip().split()[1:]
+    if not args:
+        return "kill: usage: kill [-s sigspec | -n signum | -sigspec] pid | jobspec ... or kill -l [sigspec]\n", 1
+    return "", 0
+
+
+def _h_ping(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    args = raw.strip().split()[1:]
+    if not args:
+        return "ping: usage error: Destination address required\n", 1
+    host = args[0]
+    return (
+        f"PING {host} (127.0.0.1) 56(84) bytes of data.\n"
+        f"64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.05 ms\n"
+        f"\n--- {host} ping statistics ---\n"
+        f"1 packets transmitted, 1 received, 0% packet loss\n",
+        0,
+    )
+
+
+def _h_ssh(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    args = raw.strip().split()[1:]
+    if not args:
+        return "usage: ssh [-46AaCfGgKkMNnqsTtVvXxYy] ... destination [command]\n", 255
+    return f"ssh: connect to host {args[0]} port 22: Connection refused\n", 255
+
+
+def _h_silent_need_args(usage: str, code: int = 1) -> TermHandler:
+    def _h(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+        args = raw.strip().split()[1:]
+        if not args:
+            return usage, code
+        return "", 0
+    return _h
+
+
+def _h_demo_unavailable(name: str) -> TermHandler:
+    def _h(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+        return f"{name}: (mock) not available in demo mode\n", 1
+    return _h
+
+
+_reg("which", _h_which)
+_reg("type", _h_type)
+_reg("uname", _h_uname)
+_reg("id", _h_id)
+_reg("strings", _h_strings)
+_reg("csplit", _h_csplit)
+_reg("kill", _h_kill)
+_reg("ping", _h_ping)
+_reg("ssh", _h_ssh)
+
+# silent-with-args / usage-bare family
+_reg("cp", _h_silent_need_args("cp: missing file operand\n"))
+_reg("mv", _h_silent_need_args("mv: missing file operand\n"))
+_reg("rm", _h_silent_need_args("rm: missing operand\n"))
+_reg("chmod", _h_silent_need_args("chmod: missing operand\n"))
+_reg("chown", _h_silent_need_args("chown: missing operand\n"))
+_reg("chgrp", _h_silent_need_args("chgrp: missing operand\n"))
+_reg("touch", _h_silent_need_args("touch: missing file operand\n"))
+_reg("rmdir", _h_silent_need_args("rmdir: missing operand\n"))
+_reg("mkfifo", _h_silent_need_args("mkfifo: missing operand\n"))
+_reg("link", _h_silent_need_args("link: missing file operand\n"))
+_reg("ln", _h_silent_need_args("ln: missing file operand\n"))
+_reg("install", _h_silent_need_args("install: missing file operand\n"))
+_reg("shred", _h_silent_need_args("shred: missing file operand\n"))
+_reg("chroot", _h_silent_need_args("chroot: missing operand\n"))
+_reg("runcon", _h_silent_need_args("runcon: missing operand\n"))
+_reg("patch", _h_silent_need_args("patch: missing operand\n"))
+_reg("useradd", _h_silent_need_args("useradd: missing operand\n"))
+_reg("userdel", _h_silent_need_args("userdel: missing operand\n"))
+_reg("usermod", _h_silent_need_args("usermod: missing operand\n"))
+_reg("groupadd", _h_silent_need_args("groupadd: missing operand\n"))
+_reg("groupdel", _h_silent_need_args("groupdel: missing operand\n"))
+_reg("crontab", _h_silent_need_args("crontab: usage error\n"))
+_reg("at", _h_silent_need_args("at: missing operand\n"))
+_reg("umount", _h_silent_need_args("umount: missing operand\n"))
+_reg("dd", _h_silent_need_args("dd: missing operand\n"))
+_reg("fdisk", _h_silent_need_args("fdisk: missing operand\n"))
+_reg("service", _h_silent_need_args("service: missing operand\n"))
+_reg("systemctl", _h_silent_need_args("systemctl: missing operand\n"))
+_reg("curl", _h_silent_need_args("curl: try 'curl --help' for more information\n", 2))
+_reg("wget", _h_silent_need_args("wget: missing URL\n"))
+_reg("scp", _h_silent_need_args("usage: scp [-46ABCOpqRrsTv] ...\n"))
+_reg("rsync", _h_silent_need_args("rsync: missing operand\n"))
+_reg("tar", _h_silent_need_args("tar: Cowardly refusing to create an empty archive\n", 2))
+_reg("gzip", _h_silent_need_args("gzip: compressed data not written to a terminal.\n"))
+_reg("gunzip", _h_silent_need_args("gunzip: compressed data not written to a terminal.\n"))
+_reg("zip", _h_silent_need_args("zip error: Nothing to do!\n", 12))
+_reg("unzip", _h_silent_need_args("unzip:  missing archive name\n"))
+_reg("awk", _h_silent_need_args("Usage: awk [OPTION]... [program] [file]\n"))
+_reg("sed", _h_silent_need_args("Usage: sed [OPTION]... {script} [input-file]\n"))
+_reg("source", _h_silent_need_args("source: filename argument required\n"))
+_reg("nice", _h_silent_need_args("nice: missing operand\n"))
+_reg("nohup", _h_silent_need_args("nohup: missing operand\n"))
+_reg("stdbuf", _h_silent_need_args("stdbuf: missing operand\n"))
+_reg("timeout", _h_silent_need_args("timeout: missing operand\n"))
+_reg("taskset", _h_silent_need_args("taskset: missing operand\n"))
+_reg("unshare", _h_silent_need_args("unshare: missing operand\n"))
+_reg("nsenter", _h_silent_need_args("nsenter: missing operand\n"))
+_reg("setpriv", _h_silent_need_args("setpriv: missing operand\n"))
+_reg("man", _h_silent_need_args("What manual page do you want?\n", 16))
+_reg("info", _h_silent_need_args("info: missing menu item\n"))
+
+# write/wall need args message
+def _h_write(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    args = raw.strip().split()[1:]
+    if not args:
+        return "write: missing user argument\n", 1
+    return "", 0
+
+def _h_wall(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    return "", 0
+
+_reg("write", _h_write)
+_reg("wall", _h_wall)
+
+def _h_alias(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    args = raw.strip().split()[1:]
+    if not args:
+        return "alias ll='ls -la'\nalias la='ls -A'\nalias l='ls -CF'\n", 0
+    return "", 0
+
+_reg("alias", _h_alias)
+
+def _h_set(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    args = raw.strip().split()[1:]
+    if not args:
+        return (
+            "BASH=/bin/bash\n"
+            "HOME=/home/mock\n"
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\n"
+            "SHELL=/bin/bash\n"
+            "USER=mock\n"
+            "PWD=/workspace\n",
+            0,
+        )
+    return "", 0
+
+_reg("set", _h_set)
+
+def _h_ulimit(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    if lower in ("ulimit", "ulimit -a"):
+        return (
+            "core file size          (blocks, -c) 0\n"
+            "data seg size           (kbytes, -d) unlimited\n"
+            "scheduling priority             (-e) 0\n"
+            "file size               (blocks, -f) unlimited\n"
+            "pending signals                 (-i) 15127\n"
+            "max locked memory       (kbytes, -l) 65536\n"
+            "max memory size         (kbytes, -m) unlimited\n"
+            "open files                      (-n) 1024\n"
+            "pipe size            (512 bytes, -p) 8\n"
+            "POSIX message queues     (bytes, -q) 819200\n"
+            "real-time priority              (-r) 0\n"
+            "stack size              (kbytes, -s) 8192\n"
+            "cpu time               (seconds, -t) unlimited\n"
+            "max user processes              (-u) 15127\n"
+            "virtual memory          (kbytes, -v) unlimited\n"
+            "file locks                      (-x) unlimited\n",
+            0,
+        )
+    return "unlimited\n", 0
+
+_reg("ulimit", _h_ulimit)
+
+def _h_locale(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    args = raw.strip().split()[1:]
+    if not args:
+        return "LANG=C.UTF-8\nLC_ALL=C.UTF-8\n", 0
+    if args[0] == "-a":
+        return "C\nC.UTF-8\nen_US.UTF-8\n", 0
+    return "locale: usage: locale [-a]\n", 1
+
+_reg("locale", _h_locale)
+
+def _h_umask(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    args = raw.strip().split()[1:]
+    if not args:
+        return "0022\n", 0
+    mode = args[0]
+    if re.fullmatch(r"0?[0-7]{3}", mode):
+        return "", 0
+    return f"umask: {mode}: invalid mode\n", 1
+
+_reg("umask", _h_umask)
+
+def _h_printenv(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    demo = {
+        "PATH": "/usr/local/bin:/usr/bin:/bin",
+        "HOME": "/home/huan",
+        "USER": "huan",
+        "SHELL": "/bin/bash",
+        "LANG": "C.UTF-8",
+        "PWD": "/workspace",
+    }
+    args = raw.strip().split()[1:]
+    if not args:
+        return "".join(f"{k}={v}\n" for k, v in demo.items()), 0
+    key = args[0]
+    if key in demo:
+        return demo[key] + "\n", 0
+    return "", 1
+
+_reg("printenv", _h_printenv)
+
+def _h_getconf(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    args = raw.strip().split()[1:]
+    if not args:
+        return "getconf: missing operand\n", 1
+    key = args[0]
+    table = {
+        "NPROCESSORS_ONLN": "4",
+        "_NPROCESSORS_ONLN": "4",
+        "PAGE_SIZE": "4096",
+        "PAGESIZE": "4096",
+    }
+    if key in table:
+        return table[key] + "\n", 0
+    return f"getconf: {key}: unknown variable\n", 1
+
+_reg("getconf", _h_getconf)
+
+def _h_diff(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    args = raw.strip().split()[1:]
+    if len(args) < 2:
+        return "diff: missing operand\n", 1
+    return "--- a\n+++ b\n@@ -1 +1 @@\n-old\n+new\n", 1
+
+def _h_sdiff(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    args = raw.strip().split()[1:]
+    if len(args) < 2:
+        return "sdiff: missing operand\n", 1
+    return "old\t\t\t\tnew\n", 1
+
+def _h_diff3(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    args = raw.strip().split()[1:]
+    if len(args) < 3:
+        return "diff3: missing operand\n", 1
+    return "====\n1:1c\n  a\n2:1c\n  b\n3:1c\n  c\n", 1
+
+_reg("diff", _h_diff)
+_reg("sdiff", _h_sdiff)
+_reg("diff3", _h_diff3)
+
+def _h_mount(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    args = raw.strip().split()[1:]
+    if not args:
+        return (
+            "/dev/sda1 on / type ext4 (rw,relatime)\n"
+            "tmpfs on /tmp type tmpfs (rw,nosuid,nodev)\n",
+            0,
+        )
+    return "", 0
+
+_reg("mount", _h_mount)
+
+def _h_traceroute(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    args = raw.strip().split()[1:]
+    if not args:
+        return "traceroute: missing host operand\n", 1
+    host = args[0]
+    return (
+        f"traceroute to {host} (127.0.0.1), 30 hops max\n"
+        f" 1  127.0.0.1  0.05 ms  0.04 ms  0.03 ms\n",
+        0,
+    )
+
+_reg("traceroute", _h_traceroute)
+
+def _h_yes(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    args = raw.strip().split()[1:]
+    word = args[0] if args else "y"
+    return (word + "\n") * 5, 0
+
+_reg("yes", _h_yes)
+
+def _h_factor(raw: str, lower: str) -> Optional[Tuple[str, int]]:
+    args = raw.strip().split()[1:]
+    if not args:
+        return "factor: missing operand\n", 1
+    try:
+        n = int(args[0])
+    except ValueError:
+        return "factor: invalid number\n", 1
+    if n <= 1:
+        return f"{n}:\n", 0
+    if abs(n) > 10**12:
+        return "factor: number too large for mock\n", 1
+    x = abs(n)
+    factors = []
+    d = 2
+    while d * d <= x:
+        while x % d == 0:
+            factors.append(str(d))
+            x //= d
+        d += 1 if d == 2 else 2
+    if x > 1:
+        factors.append(str(x))
+    return f"{n}: " + " ".join(factors) + "\n", 0
+
+_reg("factor", _h_factor)
 
 
 def _ws_walk_files(node: Optional[Dict[str, Any]], prefix: str = "") -> List[Tuple[str, Dict[str, Any]]]:
@@ -961,7 +1577,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         pty_mgr.get_or_spawn(sk, cols=cols, rows=rows)
         pty_mgr.write(sk, data + "\n")
         # Read output with a small delay to let the shell process
-        import time
+        # (module-level `time` — do not re-import here or it shadows date/handlers)
         time.sleep(0.1)
         output = pty_mgr.read(sk, timeout=0.2)
         if output:
@@ -988,21 +1604,25 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         rows_h = st_h.get("term_rows") or 24
         out(
             "HuanHermes Mock terminal (Bridge terminal_input).\n"
-            "Commands: help, pwd, cd, ls, tree, mkdir, whoami, which, uname, hostname, id, date, env, export, cat, head, tail, wc, stat, du, basename, dirname, realpath, grep, find, seq, sort, uniq, cut, nl, fold, tr, rev, cmp, yes, tee, xargs, hexdump, xxd, od, jq, md5sum, sha1sum, sha256sum, base64, file, type, expr, test, factor, bc, nproc, arch, getconf, numfmt, logname, groups, printenv, users, tty, who, w, last, cal, lscpu, fmt, shuf, paste, column, comm, join, split, getent, locale, umask, readlink, cksum, sum, expand, unexpand, tac, namei, dir, vdir, tsort, pathchk, mktemp, sync, link, ln, truncate, install, shred, timeout, nice, nohup, watch, stdbuf, flock, ionice, taskset, prlimit, chroot, unshare, nsenter, setpriv, capsh, runcon, ldd, ldconfig, uuidgen, df, free, ps, uptime, true, false, printf, sleep, touch, rmdir, mkfifo, getopt, strings, csplit, diff, patch, sdiff, diff3, pr, sha512sum, base32, sha224sum, sha384sum, dircolors, tput, tset, tabs, script, scriptreplay, infocmp, toe, reset, resize, login, mesg, write, wall, newgrp, su, sudo, chfn, chsh, passwd, lastlog, lastb, faillog, chage, ulimit, finger, nologin, ulimit, finger, nologin, bash, logout, source, tar, gzip, gunzip, zip, unzip, curl, wget, ssh, scp, rsync, ping, vi, nano, screen, tmux, mount, umount, service, systemctl, lsblk, fdisk, cron, crontab, useradd, userdel, usermod, groupadd, groupdel, mail, ip, netstat, traceroute, kill, jobs, bg, fg, unset, history, alias, unalias, cp, mv, rm, chmod, chown, chgrp, less, more, awk, sed, kill, jobs, bg, fg, echo <text>, stty, y/n, clear, exit\n"
+            f"Commands: {mock_term_help_commands()}\n"
             f"Geometry: {cols_h}x{rows_h} (from terminal_resize)\n"
             "Quick interrupt: Ctrl-C (^C)\n"
             "This is protocol demo only — not a real remote shell.\n",
             done=True,
             exit_code=0,
         )
-    elif lower.startswith("/perm"):
+        return
+    if lower.startswith("/perm"):
         # Mock permission request: sends a card with Allow/Deny buttons
         tool_name = data.strip().split(maxsplit=1)[1] if len(data.strip().split()) > 1 else "file_write"
         card_msg = {
             "type": "card",
             "session_key": sk,
             "stream_id": stream_id,
-            "text": f"Agent requests permission to use tool: {tool_name}\n\nDetails: The agent wants to {tool_name} a file. This is a mock permission request for testing.",
+            "text": (
+                f"Agent requests permission to use tool: {tool_name}\n\n"
+                f"Details: The agent wants to {tool_name} a file. This is a mock permission request."
+            ),
             "buttons": [
                 {"text": "Allow", "data": "allow"},
                 {"text": "Allow all", "data": "allow_all"},
@@ -1011,7 +1631,17 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         }
         ws_send_text(conn, json.dumps(card_msg))
         out(f"Permission request sent for tool: {tool_name}\n", done=True, exit_code=0)
-    elif lower == "pwd":
+        return
+
+    # ── Phase D: table-driven registry (simple demos) ──
+    # Complex workspace/session commands fall through to the chain below.
+    _reg_hit = mock_term_dispatch(data, lower)
+    if _reg_hit is not None:
+        _body, _code = _reg_hit
+        out(_body, done=True, exit_code=_code)
+        return
+
+    if lower == "pwd":
         st = _session_state(sk)
         out((st.get("workdir") or "/workspace") + "\n", done=True, exit_code=0)
     elif lower == "cd" or lower.startswith("cd "):
@@ -1100,9 +1730,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         out("huanhermes-mock\n", done=True, exit_code=0)
     elif lower.startswith("which "):
         name = data.strip()[6:].strip()
-        known = {
-            "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "export", "uniq", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "file", "type", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch", "stdbuf", "flock", "ionice", "taskset", "prlimit", "chroot", "unshare", "nsenter", "setpriv", "capsh", "runcon", "ldd", "ldconfig", "uuidgen", "rmdir", "mkfifo", "getopt", "strings", "csplit", "diff", "patch", "sdiff", "pr", "dircolors", "tput", "tset", "tabs", "script", "scriptreplay", "infocmp", "toe", "reset", "resize", "login", "mesg", "write", "wall", "newgrp", "su", "sudo", "chfn", "chsh", "passwd", "lastlog", "lastb", "faillog", "chage", "ulimit", "finger", "nologin", "unset", "alias", "unalias", "kill", "jobs", "bg", "fg", "less", "more", "awk", "sed", "cp", "mv", "rm", "chmod", "chown", "chgrp", "bash", "sh", "exit", "logout", "source", "set", "curl", "wget", "ssh", "scp", "rsync", "ping", "tar", "gzip", "gunzip", "zip", "unzip", "ip", "netstat", "traceroute",
-        }
+        known = MOCK_TERM_KNOWN
         if name in known:
             out(f"/usr/bin/{name}\n", done=True, exit_code=0)
         else:
@@ -1718,9 +2346,7 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
         if not name:
             out("type: missing operand\n", done=True, exit_code=1)
         else:
-            builtins = {
-                "ls", "pwd", "cd", "cat", "head", "tail", "wc", "echo", "env", "export", "date", "uname", "hostname", "id", "clear", "mkdir", "stty", "whoami", "help", "tree", "df", "free", "ps", "uptime", "stat", "du", "basename", "dirname", "realpath", "which", "true", "false", "printf", "sleep", "touch", "history", "grep", "find", "seq", "sort", "file", "uniq", "type", "cut", "nl", "fold", "tr", "rev", "cmp", "yes", "tee", "xargs", "hexdump", "xxd", "od", "jq", "expr", "test", "factor", "bc", "nproc", "arch", "getconf", "numfmt", "logname", "groups", "printenv", "users", "tty", "who", "w", "last", "cal", "lscpu", "fmt", "shuf", "paste", "column", "comm", "join", "split", "getent", "locale", "umask", "readlink", "cksum", "sum", "expand", "unexpand", "tac", "namei", "dir", "vdir", "tsort", "pathchk", "mktemp", "sync", "link", "ln", "truncate", "install", "shred", "timeout", "nice", "nohup", "watch", "stdbuf", "flock", "ionice", "taskset", "prlimit", "chroot", "unshare", "nsenter", "setpriv", "capsh", "runcon", "ldd", "ldconfig", "uuidgen", "rmdir", "mkfifo", "getopt", "strings", "csplit", "diff", "patch", "sdiff", "pr", "dircolors", "tput", "tset", "tabs", "script", "scriptreplay", "infocmp", "toe", "reset", "resize", "login", "mesg", "write", "wall", "newgrp", "su", "sudo", "chfn", "chsh", "passwd", "lastlog", "lastb", "faillog", "chage", "ulimit", "finger", "nologin", "unset", "alias", "unalias", "kill", "jobs", "bg", "fg", "less", "more", "awk", "sed", "cp", "mv", "rm", "chmod", "chown", "chgrp", "bash", "sh", "exit", "logout", "source", "set", "tar", "gzip", "gunzip", "zip", "unzip", "curl", "wget", "ssh", "scp", "rsync", "ping", "ip", "netstat", "traceroute",
-                            }
+            builtins = MOCK_TERM_BUILTINS
             if name.split()[0] in builtins:
                 out(f"{name.split()[0]} is a shell builtin\n", done=True, exit_code=0)
             else:
