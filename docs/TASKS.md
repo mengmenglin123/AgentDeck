@@ -703,5 +703,5 @@ PYTHONPATH=packages/huan_protocol python3 -m unittest discover -s packages/huan_
 - [x] HomeShell + ToolsHub
 - [x] Sessions AppBar 收敛 + embedded + 中文
 - [x] Phase B：Catalog 模板收敛（0.1.182 · CatalogUi + QueryMatch + 中文扫尾）
-- [ ] Phase C：Chat/Terminal 体验深化（后续）
+- [x] Phase C：Chat/Terminal 体验深化（0.1.183 · 工具折叠/权限条/AppBar 收敛）
 

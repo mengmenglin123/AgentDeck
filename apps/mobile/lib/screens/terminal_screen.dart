@@ -11,6 +11,7 @@ import '../services/bridge_client.dart';
 import '../services/terminal_history_store.dart';
 import '../utils/security.dart';
 import '../utils/catalog_ui.dart';
+import '../l10n/app_strings.dart';
 import '../utils/query_match.dart';
 
 /// Lightweight terminal console over Bridge `terminal_input` / `terminal_out`.
@@ -64,7 +65,7 @@ class _TerminalScreenState extends State<TerminalScreen>
       'HuanHermes 终端通道（会话 ${widget.session.sessionKey}）',
     );
     _buf.writeln('输入 help · 仅协议演示');
-    _buf.writeln('↑/↓ local history · device only');
+    _buf.writeln('↑/↓ 本机历史 · 仅本设备');
     _buf.writeln('');
     _loadHistory();
     try {
@@ -317,7 +318,7 @@ class _TerminalScreenState extends State<TerminalScreen>
               title: const Text('命令历史'),
               subtitle: const Text('仅本机'),
               trailing: IconButton(
-                tooltip: 'Clear',
+                tooltip: '清空',
                 icon: const Icon(Icons.delete_sweep_outlined),
                 onPressed: () async {
                   await _history.clear();
@@ -404,7 +405,7 @@ class _TerminalScreenState extends State<TerminalScreen>
             .where((l) => (_findCase ? l : l.toLowerCase()).contains(q))
             .toList();
       }
-      if (lines.isEmpty) return '(no lines match find: $_findQuery)\n';
+      if (lines.isEmpty) return '(${AppStrings.terminalNoMatch}: $_findQuery)\n';
     }
     if (_showTs) {
       // Display-only synthetic stamps (not from Host) — local console aid.
@@ -457,7 +458,7 @@ class _TerminalScreenState extends State<TerminalScreen>
             ),
             Expanded(
               child: Text(
-                'Terminal · ${widget.session.project} · ${_termCols}x$_termRows',
+                '${AppStrings.terminalTitle} · ${widget.session.project} · ${_termCols}x$_termRows',
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -465,34 +466,7 @@ class _TerminalScreenState extends State<TerminalScreen>
         ),
         actions: [
           IconButton(
-            tooltip: 'Clear local',
-            onPressed: () {
-              setState(() {
-                _buf.clear();
-                _busy = false;
-              });
-            },
-            icon: const Icon(Icons.delete_sweep_outlined),
-          ),
-          IconButton(
-            tooltip: _wrapLines ? 'No wrap' : 'Wrap lines',
-            onPressed: () => setState(() => _wrapLines = !_wrapLines),
-            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
-          ),
-          IconButton(
-            tooltip: _newestFirst ? 'Oldest lines first' : 'Newest lines first',
-            onPressed: () => setState(() => _newestFirst = !_newestFirst),
-            icon: Icon(_newestFirst ? Icons.south : Icons.north),
-          ),
-          IconButton(
-            tooltip: _showTs ? '隐藏时间戳' : 'Show timestamps',
-            onPressed: () => setState(() => _showTs = !_showTs),
-            icon: Icon(
-              _showTs ? Icons.timer_off_outlined : Icons.timer_outlined,
-            ),
-          ),
-          IconButton(
-            tooltip: _showFind ? '隐藏查找' : '缓冲区内查找',
+            tooltip: _showFind ? '隐藏查找' : AppStrings.terminalFind,
             onPressed: () {
               setState(() {
                 _showFind = !_showFind;
@@ -505,91 +479,9 @@ class _TerminalScreenState extends State<TerminalScreen>
             icon: Icon(_showFind ? Icons.search_off : Icons.search),
           ),
           IconButton(
-            tooltip: 'Smaller text',
-            onPressed: _termScale <= 0.85
-                ? null
-                : () => _setTermScale(_termScale - 0.1),
-            icon: const Icon(Icons.text_decrease),
-          ),
-          IconButton(
-            tooltip: '更大字号',
-            onPressed: _termScale >= 1.4
-                ? null
-                : () => _setTermScale(_termScale + 0.1),
-            icon: const Icon(Icons.text_increase),
-          ),
-          IconButton(
-            tooltip: '历史',
+            tooltip: AppStrings.terminalHistory,
             onPressed: _pickHistory,
             icon: const Icon(Icons.history),
-          ),
-          IconButton(
-            tooltip: '回到顶部',
-            onPressed: () {
-              if (!_scroll.hasClients) return;
-              _scroll.animateTo(
-                0,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOut,
-              );
-            },
-            icon: const Icon(Icons.vertical_align_top),
-          ),
-          IconButton(
-            tooltip: '跳到底部',
-            onPressed: () {
-              if (!_scroll.hasClients) return;
-              _scroll.animateTo(
-                _scroll.position.maxScrollExtent,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOut,
-              );
-            },
-            icon: const Icon(Icons.vertical_align_bottom),
-          ),
-          IconButton(
-            tooltip: '复制全部',
-            onPressed: () async {
-              final text = _buf.toString();
-              if (text.trim().isEmpty) return;
-              await Clipboard.setData(ClipboardData(text: text));
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('已复制 ${text.length} 字符'),
-                  duration: const Duration(seconds: 1),
-                ),
-              );
-            },
-            icon: const Icon(Icons.copy_all_outlined),
-          ),
-          IconButton(
-            tooltip: 'Copy buffer CSV',
-            onPressed: () async {
-              final raw = _buf.toString();
-              if (raw.trim().isEmpty) return;
-              final lines = raw.split('\n');
-              final buf = StringBuffer();
-              buf.writeln('n,text');
-              for (var i = 0; i < lines.length; i++) {
-                final text = lines[i].replaceAll('"', '""');
-                buf.writeln('$i,"$text"');
-              }
-              await Clipboard.setData(ClipboardData(text: buf.toString()));
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Copied CSV (${lines.length} lines)'),
-                  duration: const Duration(seconds: 1),
-                ),
-              );
-            },
-            icon: const Icon(Icons.table_chart_outlined),
-          ),
-          IconButton(
-            tooltip: 'Clear local buffer',
-            onPressed: () => setState(_buf.clear),
-            icon: const Icon(Icons.delete_outline),
           ),
           IconButton(
             tooltip: '重新连接',
@@ -601,10 +493,140 @@ class _TerminalScreenState extends State<TerminalScreen>
                   },
             icon: const Icon(Icons.refresh),
           ),
+          PopupMenuButton<String>(
+            tooltip: AppStrings.more,
+            onSelected: (value) async {
+              switch (value) {
+                case 'clear':
+                  setState(() {
+                    _buf.clear();
+                    _busy = false;
+                  });
+                  break;
+                case 'copy':
+                  final text = _buf.toString();
+                  if (text.trim().isEmpty) return;
+                  await Clipboard.setData(ClipboardData(text: text));
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('已复制 ${text.length} 字符'),
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
+                  break;
+                case 'csv':
+                  final raw = _buf.toString();
+                  if (raw.trim().isEmpty) return;
+                  final lines = raw.split('\n');
+                  final buf = StringBuffer();
+                  buf.writeln('n,text');
+                  for (var i = 0; i < lines.length; i++) {
+                    final text = lines[i].replaceAll('"', '""');
+                    buf.writeln('$i,"$text"');
+                  }
+                  await Clipboard.setData(ClipboardData(text: buf.toString()));
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('已复制 CSV（${lines.length} 行）'),
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
+                  break;
+                case 'top':
+                  if (!_scroll.hasClients) return;
+                  _scroll.animateTo(0,
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOut);
+                  break;
+                case 'bottom':
+                  if (!_scroll.hasClients) return;
+                  _scroll.animateTo(_scroll.position.maxScrollExtent,
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOut);
+                  break;
+                case 'smaller':
+                  if (_termScale > 0.85) await _setTermScale(_termScale - 0.1);
+                  break;
+                case 'larger':
+                  if (_termScale < 1.4) await _setTermScale(_termScale + 0.1);
+                  break;
+              }
+            },
+            itemBuilder: (ctx) => const [
+              PopupMenuItem(
+                value: 'copy',
+                child: ListTile(
+                  leading: Icon(Icons.copy_all_outlined),
+                  title: Text('复制全部'),
+                  dense: true,
+                ),
+              ),
+              PopupMenuItem(
+                value: 'csv',
+                child: ListTile(
+                  leading: Icon(Icons.table_chart_outlined),
+                  title: Text('复制 CSV'),
+                  dense: true,
+                ),
+              ),
+              PopupMenuItem(
+                value: 'clear',
+                child: ListTile(
+                  leading: Icon(Icons.delete_sweep_outlined),
+                  title: Text(AppStrings.terminalClear),
+                  dense: true,
+                ),
+              ),
+              PopupMenuDivider(),
+              PopupMenuItem(
+                value: 'top',
+                child: ListTile(
+                  leading: Icon(Icons.vertical_align_top),
+                  title: Text(AppStrings.jumpTop),
+                  dense: true,
+                ),
+              ),
+              PopupMenuItem(
+                value: 'bottom',
+                child: ListTile(
+                  leading: Icon(Icons.vertical_align_bottom),
+                  title: Text(AppStrings.jumpBottom),
+                  dense: true,
+                ),
+              ),
+              PopupMenuItem(
+                value: 'smaller',
+                child: ListTile(
+                  leading: Icon(Icons.text_decrease),
+                  title: Text('更小字号'),
+                  dense: true,
+                ),
+              ),
+              PopupMenuItem(
+                value: 'larger',
+                child: ListTile(
+                  leading: Icon(Icons.text_increase),
+                  title: Text('更大字号'),
+                  dense: true,
+                ),
+              ),
+            ],
+          ),
         ],
       ),
       body: Column(
         children: [
+          Material(
+            color: Theme.of(context).colorScheme.surfaceContainerLow,
+            child: ListTile(
+              dense: true,
+              leading: const Icon(Icons.info_outline, size: 18),
+              title: const Text(AppStrings.terminalHint),
+              subtitle: Text('Bridge terminal_input / terminal_out · 几何 ${_termCols}×${_termRows}'),
+            ),
+          ),
           if (_error != null)
             Material(
               color: cs.errorContainer,
@@ -627,16 +649,16 @@ class _TerminalScreenState extends State<TerminalScreen>
             child: Row(
               children: [
                 for (final item in <(String, bool, void Function(bool))>[
-                  ('Wrap', _wrapLines, (v) => setState(() => _wrapLines = v)),
+                  (AppStrings.terminalWrap, _wrapLines, (v) => setState(() => _wrapLines = v)),
                   (
-                    'Newest',
+                    AppStrings.terminalNewest,
                     _newestFirst,
                     (v) => setState(() => _newestFirst = v),
                   ),
-                  ('Timestamps', _showTs, (v) => setState(() => _showTs = v)),
-                  ('Find', _showFind, (v) => setState(() => _showFind = v)),
-                  ('Regex', _findRegex, (v) => setState(() => _findRegex = v)),
-                  ('Case', _findCase, (v) => setState(() => _findCase = v)),
+                  (AppStrings.terminalTimestamps, _showTs, (v) => setState(() => _showTs = v)),
+                  (AppStrings.terminalFindChip, _showFind, (v) => setState(() => _showFind = v)),
+                  (AppStrings.regex, _findRegex, (v) => setState(() => _findRegex = v)),
+                  (AppStrings.matchCase, _findCase, (v) => setState(() => _findCase = v)),
                 ])
                   Padding(
                     padding: const EdgeInsets.only(right: 6),
@@ -698,18 +720,18 @@ class _TerminalScreenState extends State<TerminalScreen>
                 decoration: InputDecoration(
                   hintText: _findRegex
                       ? (_findCase
-                          ? 'Regex find (case-sensitive, client-only)'
-                          : 'Regex find (client-only)')
+                          ? '正则查找（区分大小写，仅客户端）'
+                          : '正则查找（仅客户端）')
                       : (_findCase
-                          ? 'Find (case-sensitive, client-only)'
+                          ? '查找（区分大小写，仅客户端）'
                           : '本地缓冲查找（仅客户端）'),
                   isDense: true,
                   border: const OutlineInputBorder(),
                   prefixIcon: IconButton(
                     tooltip: _findRegex
                         ? (_findCase
-                            ? 'Regex · case on (long-press: plain find)'
-                            : 'Regex · case off (long-press: plain find)')
+                            ? '正则 · 大小写开（长按普通查找）'
+                            : '正则 · 大小写关（长按普通查找）')
                         : (_findCase
                             ? '区分大小写（长按切换正则）'
                             : '不区分大小写（长按切换正则）'),
@@ -787,7 +809,7 @@ class _TerminalScreenState extends State<TerminalScreen>
                     icon: const Icon(Icons.keyboard_arrow_up),
                   ),
                   IconButton(
-                    tooltip: '更新',
+                    tooltip: '更新（历史下一条）',
                     onPressed: _histIndex < 0 ? null : _histDown,
                     icon: const Icon(Icons.keyboard_arrow_down),
                   ),
@@ -797,7 +819,7 @@ class _TerminalScreenState extends State<TerminalScreen>
                       enabled: !_connecting && _bridge != null,
                       style: const TextStyle(fontFamily: 'monospace'),
                       decoration: InputDecoration(
-                        hintText: '$_workdir › command…',
+                        hintText: '$_workdir › 命令…',
                         border: const OutlineInputBorder(),
                         isDense: true,
                       ),
@@ -811,7 +833,7 @@ class _TerminalScreenState extends State<TerminalScreen>
                     onPressed: (_connecting || _bridge == null || _busy)
                         ? null
                         : _send,
-                    child: const Text('Run'),
+                    child: const Text(AppStrings.terminalRun),
                   ),
                 ],
               ),

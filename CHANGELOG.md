@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.183
+
+- Phase C Chat/Terminal 体验：
+  - 默认折叠工具消息（`showToolsDefault=false`），气泡内可展开/收起工具输出
+  - 权限请求顶部快捷条 + 权限气泡强调按钮（允许/拒绝/全部允许）
+  - Chat AppBar 收敛：导出/复制/清除/重载/审计进 overflow；ListView `cacheExtent`
+  - Terminal AppBar 收敛为查找/历史/重连 + overflow；非完整 PTY 提示条
+  - Chat/Terminal 中文扫尾；`AppStrings` 扩展聊天/终端文案
+
 ## 0.1.182
 
 - Phase B Catalog 收敛：`CatalogUi` 统一 auto-refresh / copy snack / 中文标签

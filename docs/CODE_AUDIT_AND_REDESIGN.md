@@ -130,11 +130,14 @@ lib/
 - [x] 全屏中文化扫尾（Settings/Status/Dashboard/Pairing/Chat/…）
 - 完整 `HostCatalogScreen` 配置驱动模板仍可后续深化
 
-### Phase C — Chat / Terminal 体验
+### Phase C — Chat / Terminal 体验（0.1.183）
 
-- 消息列表虚拟化评估、工具块折叠默认策略
-- 输入区与权限条再设计
-- Terminal 与真实 PTY 体验统一
+- [x] 工具块默认折叠（设置项 + 气泡展开/收起）
+- [x] 权限快捷条 + 权限气泡按钮中文
+- [x] Chat/Terminal AppBar 收敛到 overflow
+- [x] ListView `cacheExtent` 轻量虚拟化
+- [x] 中文扫尾（Chat/Terminal/AppStrings）
+- 真实 PTY 仍未接入（协议通道演示 + 明确提示）
 
 ### Phase D — mock / MD 维护性
 

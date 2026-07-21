@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:flutter/material.dart';
+import '../l10n/app_strings.dart';
 import '../utils/responsive.dart';
 import 'permissions_screen.dart';
 import 'package:flutter/services.dart';
@@ -59,7 +60,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   String _searchQ = '';
   bool _searchCase = false;
   bool _searchRegex = false;
-  bool _showTools = true;
+  bool _showTools = false;
   String _roleFilter = 'all';
   bool _wrapLines = true;
   bool _stickToBottom = true;
@@ -80,7 +81,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     try {
       _showTools = context.read<AppSettingsController>().showToolsDefault;
     } catch (_) {
-      _showTools = true;
+      _showTools = false;
     }
     if (widget.projectCapabilities.isNotEmpty) {
       _chat.applyProjectCapabilities(widget.projectCapabilities);
@@ -443,7 +444,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const ListTile(title: Text('Model')),
+            const ListTile(title: Text('模型')),
             ...options.map(
               (m) => ListTile(
                 title: Text(m),
@@ -480,7 +481,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-            child: const Text('Set'),
+            child: const Text('设置'),
           ),
         ],
       ),
@@ -525,11 +526,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       child: Row(
                         children: [
                           Expanded(
-                            child: Text('Prompts',
+                            child: Text('提示词',
                                 style: Theme.of(ctx).textTheme.titleMedium),
                           ),
                           IconButton(
-                            tooltip: 'Clear recent',
+                            tooltip: '清空最近',
                             onPressed: () async {
                               await store.clearRecent();
                               recent = await store.recent();
@@ -577,7 +578,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         children: [
                           if (fFavs.isNotEmpty) ...[
                             const ListTile(
-                                dense: true, title: Text('Favorites')),
+                                dense: true, title: Text('收藏')),
                             for (final t in fFavs)
                               _promptTile(
                                 ctx: ctx,
@@ -603,7 +604,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                 },
                               ),
                           ],
-                          const ListTile(dense: true, title: Text('Recent')),
+                          const ListTile(dense: true, title: Text('最近')),
                           if (fRecent.isEmpty)
                             const ListTile(title: Text('没有匹配的提示词')),
                           for (final t in fRecent)
@@ -683,7 +684,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         spacing: 0,
         children: [
           IconButton(
-              tooltip: 'Copy',
+              tooltip: '复制',
               icon: const Icon(Icons.copy, size: 18),
               onPressed: onCopy),
           IconButton(
@@ -692,7 +693,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             onPressed: onStar,
           ),
           IconButton(
-            tooltip: 'Append',
+            tooltip: '追加',
             icon: const Icon(Icons.playlist_add, size: 18),
             onPressed: () => onUse('append'),
           ),
@@ -844,7 +845,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               child: const Text('取消')),
           FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Clear')),
+              child: const Text('清空')),
         ],
       ),
     );
@@ -854,7 +855,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Local transcript cleared'),
+            content: Text('本机对话视图已清除'),
             duration: Duration(seconds: 1)),
       );
     }
@@ -885,7 +886,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Copied ${md.length} chars Markdown transcript'),
+        content: Text('已复制 ${md.length} 字符 Markdown 对话'),
         action: SnackBarAction(
           label: 'Plain',
           onPressed: () {
@@ -943,7 +944,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 if (_showJumpBottom)
                   FloatingActionButton.small(
                     heroTag: 'chat_jump_bottom',
-                    tooltip: 'Jump to latest',
+                    tooltip: AppStrings.jumpToLatest,
                     onPressed: _jumpToBottom,
                     child: const Icon(Icons.arrow_downward),
                   ),
@@ -976,13 +977,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     [
                       widget.session.project,
                       _chat.model,
-                      '${_chat.messages.length} msg',
+                      '${_chat.messages.length} 条消息',
                       if (_chat.connecting)
                         '连接中…'
                       else if (_chat.connected)
-                        'live'
+                        AppStrings.live
                       else
-                        'offline',
+                        AppStrings.offline,
                       if (!_showTools) '工具消息已隐藏',
                       if (_chat.reconnectHint != null &&
                           _chat.reconnectHint!.isNotEmpty)
@@ -1027,6 +1028,18 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 case 'audit':
                   page = AuditScreen(audit: _chat.audit);
                   break;
+                case 'export':
+                  if (_chat.messages.isNotEmpty) _exportTranscript();
+                  return;
+                case 'copy_all':
+                  if (_chat.messages.isNotEmpty) _copyAllMessages();
+                  return;
+                case 'clear_local':
+                  if (_chat.messages.isNotEmpty) _clearLocalTranscript();
+                  return;
+                case 'reload':
+                  if (!_chat.reloading) _chat.reloadTranscript();
+                  return;
               }
               if (page != null) {
                 Navigator.of(context).push(
@@ -1039,7 +1052,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 value: 'terminal',
                 child: ListTile(
                   leading: Icon(Icons.terminal),
-                  title: Text('Terminal'),
+                  title: Text(AppStrings.toolTerminal),
                   dense: true,
                 ),
               ),
@@ -1047,7 +1060,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 value: 'workspace',
                 child: ListTile(
                   leading: Icon(Icons.folder_outlined),
-                  title: Text('Workspace'),
+                  title: Text(AppStrings.toolWorkspace),
                   dense: true,
                 ),
               ),
@@ -1055,7 +1068,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 value: 'skills',
                 child: ListTile(
                   leading: Icon(Icons.extension_outlined),
-                  title: Text('Skills'),
+                  title: Text(AppStrings.toolSkills),
                   dense: true,
                 ),
               ),
@@ -1063,7 +1076,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 value: 'mcp',
                 child: ListTile(
                   leading: Icon(Icons.hub_outlined),
-                  title: Text('MCP'),
+                  title: Text(AppStrings.toolMcp),
                   dense: true,
                 ),
               ),
@@ -1071,7 +1084,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 value: 'cron',
                 child: ListTile(
                   leading: Icon(Icons.schedule),
-                  title: Text('Schedules'),
+                  title: Text(AppStrings.toolCron),
                   dense: true,
                 ),
               ),
@@ -1079,7 +1092,48 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 value: 'memory',
                 child: ListTile(
                   leading: Icon(Icons.memory),
-                  title: Text('Memory'),
+                  title: Text(AppStrings.toolMemory),
+                  dense: true,
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'export',
+                child: ListTile(
+                  leading: Icon(Icons.ios_share_outlined),
+                  title: Text(AppStrings.exportTranscript),
+                  dense: true,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'copy_all',
+                child: ListTile(
+                  leading: Icon(Icons.copy_all_outlined),
+                  title: Text(AppStrings.copyAllMessages),
+                  dense: true,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'clear_local',
+                child: ListTile(
+                  leading: Icon(Icons.cleaning_services_outlined),
+                  title: Text(AppStrings.clearLocalView),
+                  dense: true,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'reload',
+                child: ListTile(
+                  leading: Icon(Icons.history),
+                  title: Text(AppStrings.reloadTranscript),
+                  dense: true,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'audit',
+                child: ListTile(
+                  leading: Icon(Icons.receipt_long_outlined),
+                  title: Text(AppStrings.toolAudit),
                   dense: true,
                 ),
               ),
@@ -1125,7 +1179,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           '${_chat.offlineQueue.length} 条消息等待发送'),
                       const SizedBox(height: 8),
                       const Text(
-                          'These will be sent automatically when connection is restored.',
+                          AppStrings.offlineQueueHint,
                           style: TextStyle(fontSize: 12)),
                     ],
                   ),
@@ -1140,7 +1194,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     ),
                     FilledButton(
                         onPressed: () => Navigator.pop(ctx),
-                        child: const Text('OK')),
+                        child: const Text(AppStrings.confirm)),
                   ],
                 ),
               ),
@@ -1157,41 +1211,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   ? Icons.build_circle
                   : Icons.build_circle_outlined),
             ),
-          IconButton(
-            tooltip: 'Export transcript',
-            onPressed: _chat.messages.isEmpty ? null : _exportTranscript,
-            icon: const Icon(Icons.ios_share_outlined),
-          ),
-          IconButton(
-            tooltip: '复制全部 messages',
-            onPressed: _chat.messages.isEmpty ? null : _copyAllMessages,
-            icon: const Icon(Icons.copy_all_outlined),
-          ),
-          IconButton(
-            tooltip: _wrapLines ? '截断消息' : '展开消息',
-            onPressed: () => setState(() => _wrapLines = !_wrapLines),
-            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
-          ),
-          IconButton(
-            tooltip: 'Clear local view',
-            onPressed: _chat.messages.isEmpty ? null : _clearLocalTranscript,
-            icon: const Icon(Icons.cleaning_services_outlined),
-          ),
-          IconButton(
-            tooltip: '重新加载对话',
-            onPressed: _chat.reloading ? null : _chat.reloadTranscript,
-            icon: const Icon(Icons.history),
-          ),
-          IconButton(
-            tooltip: '审计日志',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                    builder: (_) => AuditScreen(audit: _chat.audit)),
-              );
-            },
-            icon: const Icon(Icons.receipt_long_outlined),
-          ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: Center(
@@ -1232,12 +1251,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         onPressed: _chat.connecting
                             ? null
                             : () => _chat.reconnectNow(),
-                        child: const Text('Reconnect'),
+                        child: const Text('重新连接'),
                       )
                     else
                       TextButton(
                         onPressed: () => _chat.connect(),
-                        child: const Text('Retry'),
+                        child: const Text(AppStrings.retry),
                       ),
                   ],
                 ),
@@ -1250,12 +1269,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               child: Row(
                 children: [
                   for (final f in const [
-                    ('all', 'All'),
-                    ('user', 'User'),
-                    ('assistant', '助手'),
-                    ('system', '系统'),
-                    ('tool', '工具'),
-                    ('permission', 'Permission'),
+                    ('all', AppStrings.roleAll),
+                    ('user', AppStrings.roleUser),
+                    ('assistant', AppStrings.roleAssistant),
+                    ('system', AppStrings.roleSystem),
+                    ('tool', AppStrings.roleTool),
+                    ('permission', AppStrings.rolePermission),
                   ])
                     Padding(
                       padding: const EdgeInsets.only(right: 6),
@@ -1270,7 +1289,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     padding: const EdgeInsets.only(right: 6),
                     child: FilterChip(
                       visualDensity: VisualDensity.compact,
-                      label: const Text('Wrap', style: TextStyle(fontSize: 11)),
+                      label: const Text(AppStrings.wrap, style: TextStyle(fontSize: 11)),
                       selected: _wrapLines,
                       onSelected: (v) => setState(() => _wrapLines = v),
                     ),
@@ -1280,7 +1299,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     child: FilterChip(
                       visualDensity: VisualDensity.compact,
                       label:
-                          const Text('Regex', style: TextStyle(fontSize: 11)),
+                          const Text(AppStrings.regex, style: TextStyle(fontSize: 11)),
                       selected: _searchRegex,
                       onSelected: (v) => setState(() => _searchRegex = v),
                     ),
@@ -1289,7 +1308,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     padding: const EdgeInsets.only(right: 6),
                     child: FilterChip(
                       visualDensity: VisualDensity.compact,
-                      label: const Text('Case', style: TextStyle(fontSize: 11)),
+                      label: const Text(AppStrings.matchCase, style: TextStyle(fontSize: 11)),
                       selected: _searchCase,
                       onSelected: (v) => setState(() => _searchCase = v),
                     ),
@@ -1299,7 +1318,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     child: FilterChip(
                       visualDensity: VisualDensity.compact,
                       label:
-                          const Text('Tools', style: TextStyle(fontSize: 11)),
+                          const Text('工具', style: TextStyle(fontSize: 11)),
                       selected: _showTools,
                       onSelected: (v) => setState(() => _showTools = v),
                     ),
@@ -1319,11 +1338,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       decoration: InputDecoration(
                         hintText: _searchRegex
                             ? (_searchCase
-                                ? 'Regex search (case-sensitive)'
-                                : 'Regex search in transcript')
+                                ? '正则搜索（区分大小写）'
+                                : '正则搜索对话')
                             : (_searchCase
-                                ? 'Search (case-sensitive)'
-                                : 'Search in transcript'),
+                                ? '搜索（区分大小写）'
+                                : '搜索对话'),
                         isDense: true,
                         border: const OutlineInputBorder(),
                         prefixIcon: IconButton(
@@ -1504,6 +1523,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         controller: _scroll,
                         padding: const EdgeInsets.all(12),
                         itemCount: visible.length,
+                        cacheExtent: 900,
+                        addAutomaticKeepAlives: false,
                         itemBuilder: (context, i) {
                           final m = visible[i];
                           final key = _msgKeys.putIfAbsent(i, GlobalKey.new);
@@ -1544,6 +1565,51 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     },
                   ),
           ),
+          Builder(
+            builder: (context) {
+              final pending = _chat.messages.where((m) =>
+                  m.role == 'permission' &&
+                  (m.meta['buttons'] as List? ?? []).isNotEmpty).toList();
+              if (pending.isEmpty) return const SizedBox.shrink();
+              final last = pending.last;
+              final preview = last.content.replaceAll(RegExp(r'\s+'), ' ').trim();
+              final short = preview.length > 80
+                  ? '${preview.substring(0, 80)}…'
+                  : preview;
+              return Material(
+                color: Theme.of(context).colorScheme.tertiaryContainer.withOpacity(0.55),
+                child: ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.shield_outlined),
+                  title: const Text(AppStrings.pendingPermission),
+                  subtitle: Text(
+                    short.isEmpty ? '主机请求确认' : short,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: Wrap(
+                    spacing: 4,
+                    children: [
+                      TextButton(
+                        onPressed: () => _chat.respondPermission('deny'),
+                        child: const Text(AppStrings.permissionDeny),
+                      ),
+                      FilledButton(
+                        onPressed: () => _chat.respondPermission('allow'),
+                        child: const Text(AppStrings.permissionAllow),
+                      ),
+                    ],
+                  ),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PermissionsScreen(chat: _chat),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
           SafeArea(
             top: false,
             child: Column(
@@ -1559,7 +1625,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       dense: true,
                       leading: const Icon(Icons.format_quote, size: 18),
                       title: Text(
-                        'Quote (${_quoteRole ?? 'msg'})',
+                        '引用（${_quoteRole ?? '消息'}）',
                         style: const TextStyle(
                             fontSize: 12, fontWeight: FontWeight.w600),
                       ),
@@ -1570,7 +1636,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         style: const TextStyle(fontSize: 12),
                       ),
                       trailing: IconButton(
-                        tooltip: 'Clear quote',
+                        tooltip: AppStrings.clearQuote,
                         icon: const Icon(Icons.close, size: 18),
                         onPressed: () => setState(() {
                           _quoteText = null;
@@ -1690,11 +1756,11 @@ class _AgentToolbar extends StatelessWidget {
     final chips = <Widget>[];
     if (showMode) {
       chips.add(ActionChip(
-          label: Text('mode:$mode'), onPressed: connected ? onMode : null));
+          label: Text('模式:$mode'), onPressed: connected ? onMode : null));
     }
     if (showModel) {
       chips.add(ActionChip(
-          label: Text('model:$model'), onPressed: connected ? onModel : null));
+          label: Text('模型:$model'), onPressed: connected ? onModel : null));
     }
     if (showDir) {
       chips.add(
@@ -1707,13 +1773,13 @@ class _AgentToolbar extends StatelessWidget {
       );
     }
     chips.add(ActionChip(
-        label: const Text('status'), onPressed: connected ? onStatus : null));
+        label: const Text(AppStrings.agentStatus), onPressed: connected ? onStatus : null));
     if (showStop) {
       chips.add(
         ActionChip(
           avatar:
               Icon(Icons.stop, size: 16, color: runActive ? Colors.red : null),
-          label: const Text('stop'),
+          label: const Text(AppStrings.agentStop),
           onPressed: (connected && runActive) ? onStop : null,
         ),
       );
@@ -1930,10 +1996,10 @@ class _StatusChip extends StatelessWidget {
       label = '…';
     } else if (connected) {
       c = typing || runActive ? Colors.blue : Colors.green;
-      label = typing ? 'typing' : (runActive ? 'run' : 'live');
+      label = typing ? '输入中' : (runActive ? '运行中' : AppStrings.live);
     } else {
       c = Colors.red;
-      label = reconnectHint != null ? 're…' : 'off';
+      label = reconnectHint != null ? '重连…' : AppStrings.offline;
     }
     return InkWell(
       onTap: connected ? null : onReconnect,
@@ -1969,7 +2035,7 @@ String _fmtTime(DateTime dt) {
   return '$h:$m';
 }
 
-class _MessageBubble extends StatelessWidget {
+class _MessageBubble extends StatefulWidget {
   const _MessageBubble({
     required this.message,
     required this.onPermission,
@@ -1996,8 +2062,15 @@ class _MessageBubble extends StatelessWidget {
   final double fontScale;
   final bool wrapLines;
 
+  @override
+  State<_MessageBubble> createState() => _MessageBubbleState();
+}
+
+class _MessageBubbleState extends State<_MessageBubble> {
+  bool _toolExpanded = false;
+
   List<Map<String, dynamic>> get _buttons {
-    final raw = message.meta['buttons'];
+    final raw = widget.message.meta['buttons'];
     final out = <Map<String, dynamic>>[];
     if (raw is List) {
       for (final row in raw) {
@@ -2013,13 +2086,32 @@ class _MessageBubble extends StatelessWidget {
     return out;
   }
 
+  String _toolSummary(String content) {
+    final one = content.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (one.isEmpty) return '（空输出）';
+    return one.length > 96 ? '${one.substring(0, 96)}…' : one;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final message = widget.message;
+    final onPermission = widget.onPermission;
+    final showTools = widget.showTools;
+    final highlight = widget.highlight;
+    final isSearchHit = widget.isSearchHit;
+    final isActiveSearchHit = widget.isActiveSearchHit;
+    final onQuote = widget.onQuote;
+    final compact = widget.compact;
+    final mono = widget.mono;
+    final fontScale = widget.fontScale;
+    final wrapLines = widget.wrapLines;
+
     final cs = Theme.of(context).colorScheme;
     final role = message.role;
     final isUser = role == 'user';
     final isSystem = role == 'system';
-    final isTool = role == 'tool';
+    final isTool = role == 'tool' || role == 'tool_result';
+    final isPermission = role == 'permission';
     if (!showTools && isTool) {
       return const SizedBox.shrink();
     }
@@ -2028,13 +2120,23 @@ class _MessageBubble extends StatelessWidget {
         ? (isDark ? cs.primaryContainer : const Color(0xFFE3F2FD))
         : isSystem
             ? Colors.transparent
-            : isTool
-                ? (isDark ? cs.surfaceContainerHighest : const Color(0xFFF5F5F5))
-                : (isDark ? cs.surfaceContainerHigh : Colors.white);
-    final align = isSystem ? Alignment.center : (isUser ? Alignment.centerRight : Alignment.centerLeft);
+            : isPermission
+                ? (isDark
+                    ? cs.tertiaryContainer.withOpacity(0.45)
+                    : const Color(0xFFFFF8E1))
+                : isTool
+                    ? (isDark
+                        ? cs.surfaceContainerHighest
+                        : const Color(0xFFF5F5F5))
+                    : (isDark ? cs.surfaceContainerHigh : Colors.white);
+    final align = isSystem
+        ? Alignment.center
+        : (isUser ? Alignment.centerRight : Alignment.centerLeft);
     final buttons = _buttons;
-    final useMd =
-        !isUser && !isTool && message.content.contains(RegExp(r'[#*`>\n-]'));
+    final useMd = !isUser &&
+        !isTool &&
+        !isPermission &&
+        message.content.contains(RegExp(r'[#*`>\n-]'));
     final hl = isSearchHit ||
         (highlight.trim().isNotEmpty &&
             message.content
@@ -2042,9 +2144,12 @@ class _MessageBubble extends StatelessWidget {
                 .contains(highlight.trim().toLowerCase()));
     final borderColor = isActiveSearchHit
         ? cs.primary
-        : hl
-            ? Colors.amber
-            : null;
+        : isPermission
+            ? cs.tertiary
+            : hl
+                ? Colors.amber
+                : null;
+    final toolCollapsed = isTool && !_toolExpanded;
 
     return Align(
       alignment: align,
@@ -2070,6 +2175,15 @@ class _MessageBubble extends StatelessWidget {
                       title: const Text('引用到输入框'),
                       onTap: () => Navigator.pop(ctx, 'quote'),
                     ),
+                  if (isTool)
+                    ListTile(
+                      leading: Icon(
+                          _toolExpanded ? Icons.unfold_less : Icons.unfold_more),
+                      title: Text(_toolExpanded
+                          ? AppStrings.collapseTool
+                          : AppStrings.expandTool),
+                      onTap: () => Navigator.pop(ctx, 'toggle_tool'),
+                    ),
                 ],
               ),
             ),
@@ -2085,6 +2199,8 @@ class _MessageBubble extends StatelessWidget {
             }
           } else if (action == 'quote') {
             onQuote?.call();
+          } else if (action == 'toggle_tool') {
+            setState(() => _toolExpanded = !_toolExpanded);
           }
         },
         child: Container(
@@ -2100,10 +2216,15 @@ class _MessageBubble extends StatelessWidget {
                 : Border.all(
                     color: isActiveSearchHit
                         ? cs.primary
-                        : hl
-                            ? Colors.amber
-                            : borderColor ?? (isDark ? cs.outlineVariant : const Color(0xFFE5E7EB)),
-                    width: isActiveSearchHit ? 2 : 1),
+                        : isPermission
+                            ? cs.tertiary
+                            : hl
+                                ? Colors.amber
+                                : borderColor ??
+                                    (isDark
+                                        ? cs.outlineVariant
+                                        : const Color(0xFFE5E7EB)),
+                    width: isActiveSearchHit || isPermission ? 2 : 1),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
@@ -2120,11 +2241,13 @@ class _MessageBubble extends StatelessWidget {
                   Icon(
                     isUser
                         ? Icons.person_outline
-                        : isTool
-                            ? Icons.build_outlined
-                            : isSystem
-                                ? Icons.info_outline
-                                : Icons.auto_awesome,
+                        : isPermission
+                            ? Icons.shield_outlined
+                            : isTool
+                                ? Icons.build_outlined
+                                : isSystem
+                                    ? Icons.info_outline
+                                    : Icons.auto_awesome,
                     size: 14,
                     color: cs.onSurfaceVariant.withOpacity(0.7),
                   ),
@@ -2133,11 +2256,13 @@ class _MessageBubble extends StatelessWidget {
                     child: Text(
                       isUser
                           ? '你'
-                          : isTool
-                              ? '工具'
-                              : isSystem
-                                  ? '系统'
-                                  : 'Assistant${message.streaming ? ' …' : ''}',
+                          : isPermission
+                              ? AppStrings.rolePermission
+                              : isTool
+                                  ? AppStrings.roleTool
+                                  : isSystem
+                                      ? AppStrings.roleSystem
+                                      : '助手${message.streaming ? ' …' : ''}',
                       style: TextStyle(
                           fontSize: compact ? 10 : 11,
                           fontWeight: FontWeight.w500,
@@ -2145,6 +2270,24 @@ class _MessageBubble extends StatelessWidget {
                           color: cs.onSurfaceVariant),
                     ),
                   ),
+                  if (isTool)
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints:
+                          const BoxConstraints(minWidth: 28, minHeight: 28),
+                      tooltip: _toolExpanded
+                          ? AppStrings.collapseTool
+                          : AppStrings.expandTool,
+                      icon: Icon(
+                        _toolExpanded
+                            ? Icons.expand_less
+                            : Icons.expand_more,
+                        size: 18,
+                      ),
+                      onPressed: () =>
+                          setState(() => _toolExpanded = !_toolExpanded),
+                    ),
                   Text(
                     _fmtTime(message.at),
                     style: TextStyle(
@@ -2155,7 +2298,32 @@ class _MessageBubble extends StatelessWidget {
                 ],
               ),
               SizedBox(height: compact ? 2 : 4),
-              if (useMd)
+              if (toolCollapsed)
+                InkWell(
+                  onTap: () => setState(() => _toolExpanded = true),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _toolSummary(message.content),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: mono ? 'monospace' : null,
+                            fontSize: 12 * fontScale,
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () =>
+                            setState(() => _toolExpanded = true),
+                        child: const Text(AppStrings.expandTool),
+                      ),
+                    ],
+                  ),
+                )
+              else if (useMd)
                 Builder(
                   builder: (context) {
                     final contentStyle = TextStyle(
@@ -2191,27 +2359,72 @@ class _MessageBubble extends StatelessWidget {
                   ),
                   maxLines: wrapLines ? null : 12,
                 ),
+              if (isTool && _toolExpanded)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () =>
+                        setState(() => _toolExpanded = false),
+                    icon: const Icon(Icons.expand_less, size: 16),
+                    label: const Text(AppStrings.collapseTool),
+                  ),
+                ),
               if (buttons.isNotEmpty) ...[
                 const SizedBox(height: 8),
+                if (isPermission)
+                  Text(
+                    AppStrings.pendingPermission,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: cs.tertiary,
+                    ),
+                  ),
+                if (isPermission) const SizedBox(height: 6),
                 Wrap(
                   spacing: 6,
+                  runSpacing: 6,
                   children: buttons
                       .map(
-                        (b) => FilledButton.tonal(
-                          onPressed: () {
-                            final action = b['data']?.toString() ??
-                                b['text']?.toString() ??
-                                '';
-                            if (action.contains('allow_all')) {
-                              onPermission('allow_all');
-                            } else if (action.contains('deny')) {
-                              onPermission('deny');
-                            } else {
-                              onPermission('allow');
-                            }
-                          },
-                          child: Text(b['text']?.toString() ?? 'action'),
-                        ),
+                        (b) {
+                          final action = b['data']?.toString() ??
+                              b['text']?.toString() ??
+                              '';
+                          final label = b['text']?.toString() ?? '操作';
+                          final isDeny = action.contains('deny');
+                          final isAllowAll = action.contains('allow_all');
+                          final zhLabel = isDeny
+                              ? AppStrings.permissionDeny
+                              : isAllowAll
+                                  ? AppStrings.permissionAllowAll
+                                  : (action.contains('allow')
+                                      ? AppStrings.permissionAllow
+                                      : label);
+                          if (isPermission) {
+                            return isDeny
+                                ? OutlinedButton(
+                                    onPressed: () => onPermission('deny'),
+                                    child: Text(zhLabel),
+                                  )
+                                : FilledButton(
+                                    onPressed: () => onPermission(
+                                        isAllowAll ? 'allow_all' : 'allow'),
+                                    child: Text(zhLabel),
+                                  );
+                          }
+                          return FilledButton.tonal(
+                            onPressed: () {
+                              if (isAllowAll) {
+                                onPermission('allow_all');
+                              } else if (isDeny) {
+                                onPermission('deny');
+                              } else {
+                                onPermission('allow');
+                              }
+                            },
+                            child: Text(zhLabel),
+                          );
+                        },
                       )
                       .toList(),
                 ),

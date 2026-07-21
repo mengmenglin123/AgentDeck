@@ -28,7 +28,7 @@ class AppSettingsController extends ChangeNotifier {
   int dashboardRefreshSec = 15;
 
   /// Default for chat tools visibility preference (UI hint only).
-  bool showToolsDefault = true;
+  bool showToolsDefault = false;
 
   /// Session list sort: updated | title | project | created | recent
   String sessionSort = 'updated';
@@ -66,7 +66,7 @@ class AppSettingsController extends ChangeNotifier {
     if (dashboardRefreshSec < 0 || dashboardRefreshSec > 120) {
       dashboardRefreshSec = 15;
     }
-    showToolsDefault = p.getBool(_kShowTools) ?? true;
+    showToolsDefault = p.getBool(_kShowTools) ?? false;
     sessionSort = p.getString(_kSort) ?? 'updated';
     const allowed = {
       'updated',
@@ -204,7 +204,7 @@ class AppSettingsController extends ChangeNotifier {
     textScale = 1.0;
     compactMode = false;
     dashboardRefreshSec = 15;
-    showToolsDefault = true;
+    showToolsDefault = false;
     sessionSort = 'updated';
     highContrast = false;
     hapticsEnabled = true;
