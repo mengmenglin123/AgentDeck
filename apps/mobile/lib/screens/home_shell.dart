@@ -38,78 +38,102 @@ class _HomeShellState extends State<HomeShell> {
       const SettingsScreen(),
     ];
 
-    final cs = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final host = conn.saved?.host ?? '—';
     final degraded = conn.healthDegraded;
-    final statusColor = degraded ? Colors.orange : const Color(0xFF22C55E);
+    final statusColor =
+        degraded ? const Color(0xFFF59E0B) : const Color(0xFF10B981);
     final statusLabel = degraded ? '心跳降级' : AppStrings.hostOnline;
 
     return Scaffold(
       body: Column(
         children: [
-          // LiveAgent-style connection strip (compact)
           Material(
-            color: cs.surfaceContainerHighest.withOpacity(0.55),
+            color: isDark
+                ? const Color(0xFF0F1011)
+                : cs.surface.withOpacity(0.96),
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 6, 8, 6),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: statusColor,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: statusColor.withOpacity(0.45),
-                            blurRadius: 6,
-                          ),
-                        ],
+                padding: const EdgeInsets.fromLTRB(14, 8, 10, 10),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.03)
+                        : cs.surfaceContainerHighest.withOpacity(0.55),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withOpacity(0.07)
+                          : cs.outlineVariant.withOpacity(0.7),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: statusColor,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: statusColor.withOpacity(0.45),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            statusLabel,
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelMedium
-                                ?.copyWith(fontWeight: FontWeight.w700),
-                          ),
-                          Text(
-                            host,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(color: cs.onSurfaceVariant),
-                          ),
-                        ],
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              statusLabel,
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.1,
+                              ),
+                            ),
+                            const SizedBox(height: 1),
+                            Text(
+                              host,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: cs.onSurfaceVariant,
+                                fontFamily: 'monospace',
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const ConnectScreen(),
-                          ),
-                        );
-                      },
-                      child: const Text(AppStrings.switchConnection),
-                    ),
-                  ],
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ConnectScreen(),
+                            ),
+                          );
+                        },
+                        child: const Text(AppStrings.switchConnection),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-          Divider(height: 1, color: cs.outlineVariant.withOpacity(0.45)),
           Expanded(
             child: IndexedStack(index: _index, children: pages),
           ),

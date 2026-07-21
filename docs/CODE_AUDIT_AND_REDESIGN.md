@@ -139,6 +139,11 @@ lib/
 - [x] 中文扫尾（Chat/Terminal/AppStrings）
 - 真实 PTY 仍未接入（协议通道演示 + 明确提示）
 
+### Phase F — UI 设计系统升级（0.1.186）
+
+- [x] AppTheme Linear 风 token（暗色原生 / indigo 强调 / 半透明边框）
+- [x] Connect / HomeShell / Chat / console_widgets 主路径视觉现代化
+
 ### Phase E — UI 中文与主路径体验（0.1.185）
 
 - [x] 全屏 FilterChip / snack / 菜单中文扫尾（AppStrings 扩展）

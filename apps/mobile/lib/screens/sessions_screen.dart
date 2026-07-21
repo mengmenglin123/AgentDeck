@@ -678,7 +678,22 @@ class _SessionsScreenState extends State<SessionsScreen> {
     final conn = context.watch<ConnectionController>();
     final sessions = _sessions;
     if (sessions == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(strokeWidth: 2.4),
+            ),
+            SizedBox(height: 12),
+            Text('加载会话…', style: TextStyle(fontSize: 13)),
+          ],
+        ),
+      ),
+    );
     }
 
     return AnimatedBuilder(

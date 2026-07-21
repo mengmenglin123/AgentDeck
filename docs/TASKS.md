@@ -706,4 +706,5 @@ PYTHONPATH=packages/huan_protocol python3 -m unittest discover -s packages/huan_
 - [x] Phase C：Chat/Terminal 体验深化（0.1.183 · 工具折叠/权限条/AppBar 收敛）
 - [x] Phase D：mock 表驱动 + MarkdownLite legacy 拆分（0.1.184）
 - [x] UI 优化：中文扫尾 + HomeShell 连接条 + 主题转场（0.1.185）
+- [x] UI 设计升级：Linear 风 token + Connect/HomeShell/Chat/组件（0.1.186）
 

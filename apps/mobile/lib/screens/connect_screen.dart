@@ -571,108 +571,139 @@ class _ConnectScreenState extends State<ConnectScreen> {
           controller: _scroll,
           padding: EdgeInsets.zero,
           children: [
-            // ── Hero Section with Gradient Background ──
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 36, 24, 32),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF4A90E2), Color(0xFF357ABD), Color(0xFF2A5F9E)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(28),
-                  bottomRight: Radius.circular(28),
-                ),
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.15),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF4A90E2).withOpacity(0.4),
-                          blurRadius: 30,
-                          spreadRadius: 5,
-                        ),
-                      ],
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.2),
+            // ── Modern hero (Linear-inspired, theme-aware) ──
+            Builder(
+              builder: (context) {
+                final cs = Theme.of(context).colorScheme;
+                final isDark = Theme.of(context).brightness == Brightness.dark;
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF0F1011) : cs.surface,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.06)
+                            : cs.outlineVariant.withOpacity(0.7),
                       ),
-                      child: const Icon(Icons.hub_outlined, size: 48, color: Colors.white),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'HuanHermes',
-                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              gradient: LinearGradient(
+                                colors: [
+                                  cs.primary,
+                                  cs.primary.withOpacity(0.72),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: cs.primary.withOpacity(0.28),
+                                  blurRadius: 18,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.hub_rounded,
+                              size: 26,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'HuanHermes',
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: -0.4,
+                                    color: cs.onSurface,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '连接 Host 控制台',
+                                  style: TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: cs.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        '纯控制台 · 代理在服务器运行 · 密钥本地安全存储',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          height: 1.4,
+                          color: cs.onSurfaceVariant.withOpacity(0.9),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _HeroPill(
+                            icon: Icons.forum_outlined,
+                            label: '会话',
+                            color: cs.primary,
+                          ),
+                          _HeroPill(
+                            icon: Icons.terminal,
+                            label: '终端',
+                            color: const Color(0xFF10B981),
+                          ),
+                          _HeroPill(
+                            icon: Icons.extension_outlined,
+                            label: '技能',
+                            color: const Color(0xFFF59E0B),
+                          ),
+                          _HeroPill(
+                            icon: Icons.schedule,
+                            label: '定时',
+                            color: const Color(0xFFA78BFA),
+                          ),
+                          _HeroPill(
+                            icon: Icons.hub_outlined,
+                            label: 'MCP',
+                            color: const Color(0xFF2DD4BF),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '连接到服务器',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white.withOpacity(0.9)),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '输入服务器信息以开始使用',
-                    style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.7)),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '纯控制台工具 · 代理运行在服务器上',
-                      style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.85)),
-                    ),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
-            const SizedBox(height: 20),
-            // ── Feature Cards ──
+            const SizedBox(height: 16),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                '功能特色',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade800),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 100,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                children: const [
-                  _FeatureCard(icon: Icons.chat_bubble_outline, label: '会话管理', color: Color(0xFF4A90E2)),
-                  SizedBox(width: 12),
-                  _FeatureCard(icon: Icons.terminal, label: '终端控制', color: Color(0xFF7CB342)),
-                  SizedBox(width: 12),
-                  _FeatureCard(icon: Icons.extension_outlined, label: '技能商店', color: Color(0xFFFF8A65)),
-                  SizedBox(width: 12),
-                  _FeatureCard(icon: Icons.schedule, label: '定时任务', color: Color(0xFFAB47BC)),
-                  SizedBox(width: 12),
-                  _FeatureCard(icon: Icons.hub_outlined, label: 'MCP 集成', color: Color(0xFF26A69A)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'HuanHermes 是一个纯控制台工具 — 代理运行在服务器上。密钥保存在安全存储中。',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey.shade600,
+                'HuanHermes 是纯控制台工具 — 代理在服务器运行，密钥保存在本机安全存储。',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -682,7 +713,10 @@ class _ConnectScreenState extends State<ConnectScreen> {
               const SizedBox(height: 16),
               Text(
                 '已保存的主机',
-                style: Theme.of(context).textTheme.titleSmall,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
+                    ),
               ),
               const SizedBox(height: 8),
               Wrap(
@@ -1056,13 +1090,31 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: FilledButton.icon(
-                  onPressed: busy ? null : _onConnect,
+                  onPressed: busy ? null : _testAndConnect,
                   style: FilledButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
+                    minimumSize: const Size.fromHeight(52),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(12),
                     ),
+                  ),
+                  icon: busy
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.bolt_rounded),
+                  label: Text(
+                    busy ? '连接中…' : '测试并连接',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.1,
+                    ),
+                  ),
+                ),
                   ),
                   icon: busy
                       ? const SizedBox(
@@ -1146,12 +1198,12 @@ class _ConnectionStatusBanner extends StatelessWidget {
     switch (phase) {
       case ConnectionPhase.ready:
         if (controller.healthDegraded) {
-          color = Colors.orange;
+          color = const Color(0xFFF59E0B);
           icon = Icons.warning_amber_rounded;
           title = '已连接 · 健康状态异常';
           subtitle = controller.lastHealthError ?? '上次 /status 探测失败';
         } else {
-          color = Colors.green;
+          color = const Color(0xFF10B981);
           icon = Icons.check_circle_outline;
           title = '已连接 · 就绪';
           final ok = controller.lastHealthOkAt;
@@ -1160,7 +1212,7 @@ class _ConnectionStatusBanner extends StatelessWidget {
               : '上次健康检查正常 ${ok.toLocal().toIso8601String().substring(11, 19)}';
         }
       case ConnectionPhase.testing:
-        color = Colors.amber.shade800;
+        color = const Color(0xFFF59E0B);
         icon = Icons.hourglass_top;
         title = '正在测试连接…';
         subtitle = '正在探测管理端口和桥接端口';
@@ -1177,30 +1229,65 @@ class _ConnectionStatusBanner extends StatelessWidget {
     }
     final lat = controller.lastTestLatencyMs;
     if (lat != null && phase != ConnectionPhase.testing) {
-      subtitle = subtitle + ' · last test ' + lat.toString() + ' ms';
+      subtitle = '$subtitle · 上次测试 ${lat} ms';
     }
-    return Card(
-      color: color.withOpacity(0.12),
-      child: ListTile(
-        dense: true,
-        leading: Icon(icon, color: color),
-        title: Text(
-          title,
-          style: TextStyle(fontWeight: FontWeight.w600, color: color),
-        ),
-        subtitle: Text(
-          subtitle,
-          maxLines: wrapLines ? 8 : 3,
-          overflow: TextOverflow.ellipsis,
-          softWrap: true,
-        ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(isDark ? 0.12 : 0.10),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withOpacity(0.28)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.16),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                    letterSpacing: -0.1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: wrapLines ? 8 : 3,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    height: 1.35,
+                    color: cs.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _FeatureCard extends StatelessWidget {
-  const _FeatureCard({
+class _HeroPill extends StatelessWidget {
+  const _HeroPill({
     required this.icon,
     required this.label,
     required this.color,
@@ -1212,44 +1299,38 @@ class _FeatureCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      width: 90,
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.15),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: isDark
+            ? Colors.white.withOpacity(0.04)
+            : color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.08)
+              : color.withOpacity(0.18),
+        ),
       ),
-      child: Column(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, size: 22, color: color),
-          ),
-          const SizedBox(height: 8),
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
           Text(
             label,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: color,
+              color: isDark ? cs.onSurface : cs.onSurface,
+              letterSpacing: -0.1,
             ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
 }
+

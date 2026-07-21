@@ -1820,7 +1820,7 @@ class _EmptyChat extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final subtitle = connecting
-        ? 'Connecting to host…'
+        ? '正在连接主机…'
         : connected
             ? '有什么我能帮您的吗？'
             : '离线 — 主机可达时点重试。';
@@ -1830,33 +1830,34 @@ class _EmptyChat extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Logo with gradient background
+            // Modern brand mark
             Container(
-              width: 80,
-              height: 80,
+              width: 72,
+              height: 72,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(20),
                 gradient: LinearGradient(
-                  colors: [cs.primary, cs.tertiary],
+                  colors: [cs.primary, cs.primary.withOpacity(0.72)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: cs.primary.withOpacity(0.3),
-                    blurRadius: 16,
-                    offset: const Offset(0, 4),
+                    color: cs.primary.withOpacity(0.28),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
                   ),
                 ],
               ),
               child: const Icon(Icons.auto_awesome,
-                  size: 40, color: Colors.white),
+                  size: 34, color: Colors.white),
             ),
             const SizedBox(height: 20),
             Text('你好',
                 style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.4,
                     color: cs.onSurface)),
             const SizedBox(height: 8),
             Text(subtitle,
@@ -1917,17 +1918,20 @@ class _SuggestionCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Material(
-      color: isDark ? cs.surfaceContainerHigh : Colors.white,
-      borderRadius: BorderRadius.circular(12),
+      color: isDark ? Colors.white.withOpacity(0.03) : cs.surfaceContainer,
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
-                color: isDark ? cs.outlineVariant : color.withOpacity(0.15)),
+              color: isDark
+                  ? Colors.white.withOpacity(0.08)
+                  : cs.outlineVariant.withOpacity(0.75),
+            ),
           ),
           child: Row(
             children: [
@@ -1935,8 +1939,9 @@ class _SuggestionCard extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(8),
+                  color: color.withOpacity(isDark ? 0.16 : 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: color.withOpacity(0.14)),
                 ),
                 child: Icon(icon, size: 20, color: color),
               ),

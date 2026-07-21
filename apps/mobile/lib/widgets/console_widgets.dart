@@ -97,19 +97,21 @@ class ConsoleEmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 72,
-              height: 72,
+              width: 76,
+              height: 76,
               decoration: BoxDecoration(
-                color: cs.primaryContainer.withOpacity(0.45),
-                shape: BoxShape.circle,
+                color: cs.primaryContainer.withOpacity(0.35),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: cs.primary.withOpacity(0.12)),
               ),
-              child: Icon(icon, size: 36, color: cs.primary),
+              child: Icon(icon, size: 34, color: cs.primary),
             ),
             const SizedBox(height: 16),
             Text(
               title,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
                   ),
               textAlign: TextAlign.center,
             ),
@@ -174,13 +176,20 @@ class ConsoleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final card = Container(
       margin: margin,
       padding: padding,
       decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest.withOpacity(0.55),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cs.outlineVariant.withOpacity(0.35)),
+        color: isDark
+            ? Colors.white.withOpacity(0.03)
+            : cs.surfaceContainer,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.08)
+              : cs.outlineVariant.withOpacity(0.7),
+        ),
       ),
       child: child,
     );
@@ -188,7 +197,7 @@ class ConsoleCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         onTap: onTap,
         child: card,
       ),
@@ -216,23 +225,23 @@ class ConsoleToolTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Ink(
           decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: cs.outlineVariant.withOpacity(0.4)),
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            color: isDark
+                ? Colors.white.withOpacity(0.03)
+                : cs.surfaceContainer,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withOpacity(0.08)
+                  : cs.outlineVariant.withOpacity(0.7),
+            ),
           ),
           child: Padding(
             padding: const EdgeInsets.all(14),
@@ -243,27 +252,30 @@ class ConsoleToolTile extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.12),
+                    color: color.withOpacity(isDark ? 0.16 : 0.12),
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: color.withOpacity(0.16)),
                   ),
-                  child: Icon(icon, color: color, size: 22),
+                  child: Icon(icon, color: color, size: 21),
                 ),
                 const Spacer(),
                 Text(
                   label,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
                       ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 if (subtitle != null) ...[
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 3),
                   Text(
                     subtitle!,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: cs.onSurfaceVariant,
-                          fontSize: 11,
+                          fontSize: 11.5,
+                          height: 1.25,
                         ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -302,6 +314,7 @@ class ConsoleSectionHeader extends StatelessWidget {
               count == null ? title : '$title · $count',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
                   ),
             ),
           ),
