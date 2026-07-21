@@ -624,7 +624,7 @@ class _TerminalScreenState extends State<TerminalScreen>
               dense: true,
               leading: const Icon(Icons.info_outline, size: 18),
               title: const Text(AppStrings.terminalHint),
-              subtitle: Text('Bridge terminal_input / terminal_out · 几何 ${_termCols}×${_termRows}'),
+              subtitle: Text('协议演示通道 · 非完整 PTY'),
             ),
           ),
           if (_error != null)

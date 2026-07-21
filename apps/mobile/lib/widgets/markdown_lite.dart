@@ -63,7 +63,7 @@ class MarkdownLite extends StatelessWidget {
                           ),
                         ),
                         IconButton(
-                          tooltip: 'Copy code',
+                          tooltip: '复制代码',
                           visualDensity: VisualDensity.compact,
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(
@@ -82,7 +82,7 @@ class MarkdownLite extends StatelessWidget {
                             if (context.mounted) {
                               ScaffoldMessenger.maybeOf(context)?.showSnackBar(
                                 const SnackBar(
-                                  content: Text('Code copied'),
+                                  content: Text('代码已复制'),
                                   duration: Duration(seconds: 1),
                                 ),
                               );

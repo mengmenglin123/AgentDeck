@@ -139,6 +139,13 @@ lib/
 - [x] 中文扫尾（Chat/Terminal/AppStrings）
 - 真实 PTY 仍未接入（协议通道演示 + 明确提示）
 
+### Phase E — UI 中文与主路径体验（0.1.185）
+
+- [x] 全屏 FilterChip / snack / 菜单中文扫尾（AppStrings 扩展）
+- [x] HomeShell 连接状态条（在线指示 + 切换连接）
+- [x] AppTheme 页转场 + Dialog/BottomSheet 圆角
+- [x] 主机看板健康文案中文化
+
 ### Phase D — mock / MD 维护性（0.1.184）
 
 - [x] mock 命令表驱动（`MOCK_TERM_FIXED` + `MOCK_TERM_HANDLERS` + `mock_term_dispatch`）

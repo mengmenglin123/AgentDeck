@@ -335,7 +335,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
               }
               Navigator.pop(ctx);
             },
-            child: const Text('Add'),
+            child: const Text('添加'),
           ),
         ],
       ),

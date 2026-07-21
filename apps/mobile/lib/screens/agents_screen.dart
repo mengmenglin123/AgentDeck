@@ -9,6 +9,7 @@ import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 import '../utils/catalog_ui.dart';
 import '../utils/query_match.dart';
+import '../l10n/app_strings.dart';
 
 /// Readonly Host agents / platforms catalog (`GET /agents`).
 class AgentsScreen extends StatefulWidget {
@@ -933,7 +934,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                 for (final f in const [
                   ('all', 'All'),
                   ('agents', 'Agents'),
-                  ('platforms', 'Platforms'),
+                  ('platforms', AppStrings.platforms),
                   ('projects', 'Projects'),
                 ])
                   FilterChip(
@@ -949,13 +950,13 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text('Regex', style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.regex, style: TextStyle(fontSize: 11)),
                   selected: _queryRegex,
                   onSelected: (v) => setState(() => _queryRegex = v),
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text('Case', style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.matchCase, style: TextStyle(fontSize: 11)),
                   selected: _queryCase,
                   onSelected: (v) => setState(() => _queryCase = v),
                   visualDensity: VisualDensity.compact,
@@ -1175,7 +1176,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   if (_section == 'all' || _section == 'platforms') ...[
                     const SizedBox(height: 16),
                     Text(
-                      'Platforms',
+                      AppStrings.platforms,
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     const SizedBox(height: 6),

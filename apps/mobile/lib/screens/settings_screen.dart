@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../services/app_settings_controller.dart';
 import '../services/theme_controller.dart';
 import '../services/connection_controller.dart';
+import '../l10n/app_strings.dart';
 
 /// Device-local console settings (theme, text scale, compact, dashboard refresh).
 class SettingsScreen extends StatefulWidget {
@@ -160,7 +161,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: FilterChip(
-                    label: const Text('Regex', style: TextStyle(fontSize: 11)),
+                    label: const Text(AppStrings.regex, style: TextStyle(fontSize: 11)),
                     selected: _prefRegex,
                     onSelected: (v) => setState(() => _prefRegex = v),
                     visualDensity: VisualDensity.compact,
@@ -169,7 +170,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: FilterChip(
-                    label: const Text('Case', style: TextStyle(fontSize: 11)),
+                    label: const Text(AppStrings.matchCase, style: TextStyle(fontSize: 11)),
                     selected: _prefCase,
                     onSelected: (v) => setState(() => _prefCase = v),
                     visualDensity: VisualDensity.compact,
@@ -248,8 +249,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onChanged: settings.setCompactMode,
             ),
           const Divider(height: 28),
-          if (_matchPref('Sessions', 'sort'))
-            Text('Sessions', style: Theme.of(context).textTheme.titleSmall),
+          if (_matchPref(AppStrings.sessionsLabel, 'sort'))
+            Text(AppStrings.sessionsLabel, style: Theme.of(context).textTheme.titleSmall),
           if (_matchPref('默认排序', 'session sort'))
             ListTile(
               leading: const Icon(Icons.sort),
@@ -264,8 +265,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 for (final e in const [
                   ('updated', 'Updated'),
                   ('recent', 'Recent'),
-                  ('title', 'Title'),
-                  ('project', 'Project'),
+                  ('title', AppStrings.sortByTitle),
+                  ('project', AppStrings.sortByProject),
                   ('created', 'Created'),
                   ('model', 'Model'),
                   ('key', 'Key'),
@@ -289,8 +290,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const Divider(height: 28),
-          if (_matchPref('Console', 'tools haptic'))
-            Text('Console', style: Theme.of(context).textTheme.titleSmall),
+          if (_matchPref(AppStrings.consoleLabel, 'tools haptic'))
+            Text(AppStrings.consoleLabel, style: Theme.of(context).textTheme.titleSmall),
           if (_matchPref('仪表盘自动刷新', 'seconds'))
             ListTile(
               leading: const Icon(Icons.timer_outlined),
@@ -523,14 +524,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               leading: const Icon(Icons.tag),
               title: const Text('应用版本'),
               subtitle: _sub(
-                '0.1.184+184 · ${context.watch<ConnectionController>().isRealHermes ? '真 Hermes' : 'Mock'} 主机',
+                '0.1.185+185 · ${context.watch<ConnectionController>().isRealHermes ? '真 Hermes' : 'Mock'} 主机',
               ),
               trailing: IconButton(
                 tooltip: '复制关于',
                 icon: const Icon(Icons.copy_outlined),
                 onPressed: () async {
                   const text =
-                      'HuanHermes App 0.1.184+184\n控制台 · Mock 或真 Hermes 主机\n设备上无 agent loop · 关于文本不含令牌';
+                      'HuanHermes App 0.1.185+185\n控制台 · Mock 或真 Hermes 主机\n设备上无 agent loop · 关于文本不含令牌';
                   await Clipboard.setData(const ClipboardData(text: text));
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

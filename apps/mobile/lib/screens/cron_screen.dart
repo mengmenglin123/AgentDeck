@@ -9,6 +9,7 @@ import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 import '../utils/catalog_ui.dart';
 import '../utils/query_match.dart';
+import '../l10n/app_strings.dart';
 
 /// Readonly Host scheduled jobs (`GET /cron`). Console view only.
 class CronScreen extends StatefulWidget {
@@ -745,13 +746,13 @@ class _CronScreenState extends State<CronScreen> {
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text('Regex', style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.regex, style: TextStyle(fontSize: 11)),
                   selected: _queryRegex,
                   onSelected: (v) => setState(() => _queryRegex = v),
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text('Case', style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.matchCase, style: TextStyle(fontSize: 11)),
                   selected: _queryCase,
                   onSelected: (v) => setState(() => _queryCase = v),
                   visualDensity: VisualDensity.compact,

@@ -9,6 +9,7 @@ import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 import '../utils/catalog_ui.dart';
 import '../utils/query_match.dart';
+import '../l10n/app_strings.dart';
 
 /// Readonly MCP server catalog from Host `GET /mcp`.
 class McpScreen extends StatefulWidget {
@@ -600,7 +601,7 @@ class _McpScreenState extends State<McpScreen> {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
                   child: Text(
-                    'Catalog only — App does not start MCP servers. Host owns tools.',
+                    AppStrings.catalogOnlyMcp,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
@@ -710,7 +711,7 @@ class _McpScreenState extends State<McpScreen> {
                     children: [
                       FilterChip(
                         label: const Text(
-                          'Wrap',
+                          AppStrings.wrap,
                           style: TextStyle(fontSize: 11),
                         ),
                         selected: _wrapLines,
@@ -719,7 +720,7 @@ class _McpScreenState extends State<McpScreen> {
                       ),
                       FilterChip(
                         label: const Text(
-                          'Regex',
+                          AppStrings.regex,
                           style: TextStyle(fontSize: 11),
                         ),
                         selected: _queryRegex,
@@ -728,7 +729,7 @@ class _McpScreenState extends State<McpScreen> {
                       ),
                       FilterChip(
                         label: const Text(
-                          'Case',
+                          AppStrings.matchCase,
                           style: TextStyle(fontSize: 11),
                         ),
                         selected: _queryCase,
@@ -737,7 +738,7 @@ class _McpScreenState extends State<McpScreen> {
                       ),
                       FilterChip(
                         label: const Text(
-                          'Auto',
+                          AppStrings.autoRefresh,
                           style: TextStyle(fontSize: 11),
                         ),
                         selected: _autoRefresh,

@@ -9,6 +9,7 @@ import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 import '../utils/catalog_ui.dart';
 import '../utils/query_match.dart';
+import '../l10n/app_strings.dart';
 
 /// Readonly unified diff viewer (`GET /workspace/diff`).
 class DiffScreen extends StatefulWidget {
@@ -646,19 +647,19 @@ class _DiffScreenState extends State<DiffScreen> {
                   ),
                   FilterChip(
                     visualDensity: VisualDensity.compact,
-                    label: const Text('Regex', style: TextStyle(fontSize: 11)),
+                    label: const Text(AppStrings.regex, style: TextStyle(fontSize: 11)),
                     selected: _diffRegex,
                     onSelected: (v) => setState(() => _diffRegex = v),
                   ),
                   FilterChip(
                     visualDensity: VisualDensity.compact,
-                    label: const Text('Case', style: TextStyle(fontSize: 11)),
+                    label: const Text(AppStrings.matchCase, style: TextStyle(fontSize: 11)),
                     selected: _diffCase,
                     onSelected: (v) => setState(() => _diffCase = v),
                   ),
                   FilterChip(
                     visualDensity: VisualDensity.compact,
-                    label: const Text('Line#', style: TextStyle(fontSize: 11)),
+                    label: const Text(AppStrings.lineNumbers, style: TextStyle(fontSize: 11)),
                     selected: _lineNums,
                     onSelected: (v) => setState(() => _lineNums = v),
                   ),

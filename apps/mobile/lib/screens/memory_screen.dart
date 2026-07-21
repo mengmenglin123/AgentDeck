@@ -9,6 +9,7 @@ import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 import '../utils/catalog_ui.dart';
 import '../utils/query_match.dart';
+import '../l10n/app_strings.dart';
 
 /// Readonly Host memory catalog (`GET /memory`) — Host is source of truth.
 /// Inspired by remote-console memory browsers; not a local agent memory engine.
@@ -597,7 +598,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
                 for (final f in const [
                   ('all', 'All'),
                   ('global', 'Global'),
-                  ('project', 'Project'),
+                  ('project', AppStrings.sortByProject),
                 ])
                   FilterChip(
                     label: Text(f.$2, style: const TextStyle(fontSize: 12)),
@@ -673,13 +674,13 @@ class _MemoryScreenState extends State<MemoryScreen> {
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text('Regex', style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.regex, style: TextStyle(fontSize: 11)),
                   selected: _queryRegex,
                   onSelected: (v) => setState(() => _queryRegex = v),
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text('Case', style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.matchCase, style: TextStyle(fontSize: 11)),
                   selected: _queryCase,
                   onSelected: (v) => setState(() => _queryCase = v),
                   visualDensity: VisualDensity.compact,
@@ -694,7 +695,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text('Newest', style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.newestFirst, style: TextStyle(fontSize: 11)),
                   selected: _newestFirst,
                   onSelected: (v) => setState(() => _newestFirst = v),
                   visualDensity: VisualDensity.compact,

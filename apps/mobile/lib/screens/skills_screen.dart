@@ -10,6 +10,7 @@ import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 import '../utils/catalog_ui.dart';
 import '../utils/query_match.dart';
+import '../l10n/app_strings.dart';
 
 class SkillsScreen extends StatefulWidget {
   const SkillsScreen({super.key, required this.config});
@@ -529,7 +530,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
                         ('', 'All'),
                         ('builtin', 'Builtin'),
                         ('user', 'User'),
-                        ('project', 'Project'),
+                        ('project', AppStrings.sortByProject),
                         ('plugin', 'Plugin'),
                         ('host', 'Host'),
                         ('other', 'Other'),
@@ -609,7 +610,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
                     children: [
                       FilterChip(
                         label: const Text(
-                          'Wrap',
+                          AppStrings.wrap,
                           style: TextStyle(fontSize: 11),
                         ),
                         selected: _wrapLines,
@@ -618,7 +619,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
                       ),
                       FilterChip(
                         label: const Text(
-                          'Regex',
+                          AppStrings.regex,
                           style: TextStyle(fontSize: 11),
                         ),
                         selected: _queryRegex,
@@ -627,7 +628,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
                       ),
                       FilterChip(
                         label: const Text(
-                          'Case',
+                          AppStrings.matchCase,
                           style: TextStyle(fontSize: 11),
                         ),
                         selected: _queryCase,
@@ -636,7 +637,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
                       ),
                       FilterChip(
                         label: const Text(
-                          'Auto',
+                          AppStrings.autoRefresh,
                           style: TextStyle(fontSize: 11),
                         ),
                         selected: _autoRefresh,

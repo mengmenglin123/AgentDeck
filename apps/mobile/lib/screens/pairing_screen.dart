@@ -14,6 +14,7 @@ import '../utils/security.dart';
 import '../utils/catalog_ui.dart';
 import '../utils/query_match.dart';
 import '../widgets/connection_fingerprint.dart';
+import '../l10n/app_strings.dart';
 
 class PairingScreen extends StatefulWidget {
   const PairingScreen({super.key, required this.config});
@@ -304,17 +305,17 @@ class _PairingScreenState extends State<PairingScreen> {
                         for (final item
                             in <(String, bool, void Function(bool))>[
                               (
-                                'Wrap',
+                                AppStrings.wrap,
                                 _wrapLines,
                                 (v) => setState(() => _wrapLines = v),
                               ),
                               (
-                                'Regex',
+                                AppStrings.regex,
                                 _payloadRegex,
                                 (v) => setState(() => _payloadRegex = v),
                               ),
                               (
-                                'Case',
+                                AppStrings.matchCase,
                                 _payloadCase,
                                 (v) => setState(() => _payloadCase = v),
                               ),
@@ -324,7 +325,7 @@ class _PairingScreenState extends State<PairingScreen> {
                                 (v) => setState(() => _payloadSorted = v),
                               ),
                               (
-                                'Auto',
+                                AppStrings.autoRefresh,
                                 _autoRefresh,
                                 (v) {
                                   setState(() => _autoRefresh = v);

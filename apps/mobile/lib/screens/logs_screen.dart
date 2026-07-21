@@ -9,6 +9,7 @@ import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 import '../utils/catalog_ui.dart';
 import '../utils/query_match.dart';
+import '../l10n/app_strings.dart';
 
 /// Readonly Host logs feed (`GET /logs`).
 class LogsScreen extends StatefulWidget {
@@ -601,7 +602,7 @@ class _LogsScreenState extends State<LogsScreen> {
                     ),
                     FilterChip(
                       label: const Text(
-                        'Regex',
+                        AppStrings.regex,
                         style: TextStyle(fontSize: 11),
                       ),
                       selected: _queryRegex,
@@ -609,7 +610,7 @@ class _LogsScreenState extends State<LogsScreen> {
                       visualDensity: VisualDensity.compact,
                     ),
                     FilterChip(
-                      label: const Text('Case', style: TextStyle(fontSize: 11)),
+                      label: const Text(AppStrings.matchCase, style: TextStyle(fontSize: 11)),
                       selected: _queryCase,
                       onSelected: (v) => setState(() => _queryCase = v),
                       visualDensity: VisualDensity.compact,
@@ -622,7 +623,7 @@ class _LogsScreenState extends State<LogsScreen> {
                     ),
                     FilterChip(
                       label: const Text(
-                        'Newest',
+                        AppStrings.newestFirst,
                         style: TextStyle(fontSize: 11),
                       ),
                       selected: _newestFirst,

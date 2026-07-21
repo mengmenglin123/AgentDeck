@@ -176,7 +176,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Copied CSV (${list.length})'),
+        content: Text('${AppStrings.copiedCsvN}（${list.length}）'),
         duration: const Duration(seconds: 1),
       ),
     );
@@ -276,7 +276,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
           controller: ctrl,
           autofocus: true,
           decoration: const InputDecoration(
-            labelText: 'Title',
+            labelText: AppStrings.sortByTitle,
             border: OutlineInputBorder(),
           ),
           onSubmitted: (_) => Navigator.pop(ctx, true),
@@ -1283,7 +1283,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                         ? sessions.selectedProject
                         : null,
                     decoration: const InputDecoration(
-                      labelText: 'Project',
+                      labelText: AppStrings.sortByProject,
                       border: OutlineInputBorder(),
                       isDense: true,
                     ),
@@ -1372,7 +1372,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       ),
                     FilterChip(
                       label: const Text(
-                        'Group',
+                        AppStrings.groupBy,
                         style: TextStyle(fontSize: 12),
                       ),
                       selected: _groupByProject,
@@ -1384,14 +1384,14 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       visualDensity: VisualDensity.compact,
                     ),
                     FilterChip(
-                      label: const Text('Wrap', style: TextStyle(fontSize: 11)),
+                      label: const Text(AppStrings.wrap, style: TextStyle(fontSize: 11)),
                       selected: _wrapLines,
                       onSelected: (v) => setState(() => _wrapLines = v),
                       visualDensity: VisualDensity.compact,
                     ),
                     FilterChip(
                       label: const Text(
-                        'Regex',
+                        AppStrings.regex,
                         style: TextStyle(fontSize: 11),
                       ),
                       selected: _queryRegex,
@@ -1399,13 +1399,13 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       visualDensity: VisualDensity.compact,
                     ),
                     FilterChip(
-                      label: const Text('Case', style: TextStyle(fontSize: 11)),
+                      label: const Text(AppStrings.matchCase, style: TextStyle(fontSize: 11)),
                       selected: _queryCase,
                       onSelected: (v) => setState(() => _queryCase = v),
                       visualDensity: VisualDensity.compact,
                     ),
                     FilterChip(
-                      label: const Text('Auto', style: TextStyle(fontSize: 11)),
+                      label: const Text(AppStrings.autoRefresh, style: TextStyle(fontSize: 11)),
                       selected: _autoRefresh,
                       onSelected: (v) {
                         setState(() => _autoRefresh = v);
@@ -1526,8 +1526,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
                               avatar: const Icon(Icons.sort, size: 16),
                               label: Text(
                                 {
-                                      'title': 'Title',
-                                      'project': 'Project',
+                                      'title': AppStrings.sortByTitle,
+                                      'project': AppStrings.sortByProject,
                                       'created': 'Created',
                                       'model': 'Model',
                                       'key': 'Key',
@@ -1575,7 +1575,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                     FilledButton.icon(
                       onPressed: sessions.loading ? null : _create,
                       icon: const Icon(Icons.add),
-                      label: const Text('New'),
+                      label: const Text(AppStrings.createNew),
                     ),
                   ],
                 ),
@@ -1955,11 +1955,11 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                   ),
                                                   const PopupMenuItem(
                                                     value: 'note',
-                                                    child: Text('Note'),
+                                                    child: Text(AppStrings.note),
                                                   ),
                                                   const PopupMenuItem(
                                                     value: 'rename',
-                                                    child: Text('Rename'),
+                                                    child: Text(AppStrings.rename),
                                                   ),
                                                   const PopupMenuItem(
                                                     value: 'export',
@@ -1971,7 +1971,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                   ),
                                                   const PopupMenuItem(
                                                     value: 'delete',
-                                                    child: Text('Delete'),
+                                                    child: Text(AppStrings.delete),
                                                   ),
                                                 ],
                                               ),

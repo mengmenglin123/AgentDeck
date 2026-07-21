@@ -11,6 +11,7 @@ import '../utils/security.dart';
 import '../utils/catalog_ui.dart';
 import '../utils/query_match.dart';
 import 'chat_screen.dart';
+import '../l10n/app_strings.dart';
 
 /// Readonly Host activity feed (`GET /activity`).
 class ActivityScreen extends StatefulWidget {
@@ -798,13 +799,13 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: Text('Regex', style: const TextStyle(fontSize: 11)),
+                  label: Text(AppStrings.regex, style: const TextStyle(fontSize: 11)),
                   selected: _queryRegex,
                   onSelected: (v) => setState(() => _queryRegex = v),
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: Text('Case', style: const TextStyle(fontSize: 11)),
+                  label: Text(AppStrings.matchCase, style: const TextStyle(fontSize: 11)),
                   selected: _queryCase,
                   onSelected: (v) => setState(() => _queryCase = v),
                   visualDensity: VisualDensity.compact,
@@ -816,7 +817,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text('Newest', style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.newestFirst, style: TextStyle(fontSize: 11)),
                   selected: _newestFirst,
                   onSelected: (v) => setState(() => _newestFirst = v),
                   visualDensity: VisualDensity.compact,

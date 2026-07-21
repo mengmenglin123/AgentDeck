@@ -11,6 +11,7 @@ import '../utils/catalog_ui.dart';
 import '../utils/query_match.dart';
 import 'diff_screen.dart';
 import '../widgets/markdown_lite.dart';
+import '../l10n/app_strings.dart';
 
 /// Readonly Host workspace browser (`GET /workspace`, `/workspace/git`).
 /// Console-only — no write/delete; Host is source of truth.
@@ -336,7 +337,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     final msg = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Git Commit'),
+        title: const Text(AppStrings.gitCommitTitle),
         content: TextField(
           controller: msgCtrl,
           decoration: const InputDecoration(
@@ -459,7 +460,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: 'Copy path',
+            tooltip: '复制路径',
             onPressed: () async {
               final p = _path.isEmpty ? '/' : '/$_path';
               await Clipboard.setData(ClipboardData(text: p));
@@ -475,7 +476,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             icon: const Icon(Icons.link),
           ),
           IconButton(
-            tooltip: 'Copy listing',
+            tooltip: '复制列表',
             onPressed: () async {
               final list = <String>[];
               final p = _path.isEmpty ? '/' : '/$_path';
@@ -509,7 +510,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             icon: const Icon(Icons.playlist_add_check_outlined),
           ),
           IconButton(
-            tooltip: 'Copy listing CSV',
+            tooltip: '复制列表 CSV',
             onPressed: () async {
               final buf = StringBuffer();
               buf.writeln('name,type,size,path');
@@ -787,7 +788,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
           IconButton(
-            tooltip: 'Copy content',
+            tooltip: '复制内容',
             onPressed: !isFile
                 ? null
                 : () async {
@@ -805,7 +806,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             icon: const Icon(Icons.copy_all_outlined),
           ),
           IconButton(
-            tooltip: 'Copy git summary',
+            tooltip: '复制 Git 摘要',
             onPressed: _git == null
                 ? null
                 : () async {
@@ -842,12 +843,12 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             icon: const Icon(Icons.account_tree_outlined),
           ),
           IconButton(
-            tooltip: 'Git diff',
+            tooltip: 'Git 对比',
             onPressed: () => _openDiff(isFile ? _path : null),
             icon: const Icon(Icons.difference_outlined),
           ),
           PopupMenuButton<String>(
-            tooltip: 'Git actions',
+            tooltip: 'Git 操作',
             icon: const Icon(Icons.commit_outlined),
             onSelected: (action) async {
               switch (action) {
@@ -867,7 +868,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                 value: 'commit',
                 child: ListTile(
                   leading: Icon(Icons.commit),
-                  title: Text('Commit'),
+                  title: Text(AppStrings.gitCommit),
                   dense: true,
                 ),
               ),
@@ -875,7 +876,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                 value: 'push',
                 child: ListTile(
                   leading: Icon(Icons.upload),
-                  title: Text('Push'),
+                  title: Text(AppStrings.gitPush),
                   dense: true,
                 ),
               ),
@@ -883,14 +884,14 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                 value: 'pull',
                 child: ListTile(
                   leading: Icon(Icons.download),
-                  title: Text('Pull'),
+                  title: Text('拉取'),
                   dense: true,
                 ),
               ),
             ],
           ),
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: AppStrings.refresh,
             onPressed: _loading ? null : () => _load(),
             icon: const Icon(Icons.refresh),
           ),
@@ -941,25 +942,25 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text('Wrap', style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.wrap, style: TextStyle(fontSize: 11)),
                   selected: _wrapLines,
                   onSelected: (_) => setState(() => _wrapLines = !_wrapLines),
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text('Regex', style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.regex, style: TextStyle(fontSize: 11)),
                   selected: _queryRegex,
                   onSelected: (_) => setState(() => _queryRegex = !_queryRegex),
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text('Case', style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.matchCase, style: TextStyle(fontSize: 11)),
                   selected: _queryCase,
                   onSelected: (_) => setState(() => _queryCase = !_queryCase),
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text('Auto', style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.autoRefresh, style: TextStyle(fontSize: 11)),
                   selected: _autoRefresh,
                   onSelected: (_) {
                     setState(() => _autoRefresh = !_autoRefresh);
@@ -1011,7 +1012,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             ),
             trailing: TextButton(
               onPressed: () => _openDiff(),
-              child: const Text('Diff'),
+              child: const Text('对比'),
             ),
           ),
           if (_git != null &&
@@ -1175,7 +1176,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                             },
                             trailing: e['type'] == 'file'
                                 ? IconButton(
-                                    tooltip: 'Diff',
+                                    tooltip: '对比',
                                     icon: const Icon(
                                       Icons.difference_outlined,
                                       size: 18,

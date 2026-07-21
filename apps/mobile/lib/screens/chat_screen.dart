@@ -266,7 +266,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           mainAxisSize: MainAxisSize.min,
           children: [
             const ListTile(
-                title: Text('Attach'), subtitle: Text('选择来源')),
+                title: Text(AppStrings.attach), subtitle: Text('选择来源')),
             ListTile(
               leading: const Icon(Icons.folder_open),
               title: const Text('选择文件'),
@@ -875,7 +875,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-          content: Text('Copied ${msgs.length} message(s)'),
+          content: Text('${AppStrings.copiedMessagesN}（${msgs.length}）'),
           duration: const Duration(seconds: 1)),
     );
   }
@@ -888,7 +888,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       SnackBar(
         content: Text('已复制 ${md.length} 字符 Markdown 对话'),
         action: SnackBarAction(
-          label: 'Plain',
+          label: AppStrings.plainText,
           onPressed: () {
             Clipboard.setData(
                 ClipboardData(text: _chat.exportTranscriptPlain()));

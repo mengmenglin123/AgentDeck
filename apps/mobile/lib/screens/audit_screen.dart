@@ -8,6 +8,7 @@ import '../utils/query_match.dart';
 
 import '../services/app_settings_controller.dart';
 import '../services/audit_log.dart';
+import '../l10n/app_strings.dart';
 
 class AuditScreen extends StatefulWidget {
   const AuditScreen({super.key, required this.audit});
@@ -471,19 +472,19 @@ class _AuditScreenState extends State<AuditScreen> {
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text('Regex', style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.regex, style: TextStyle(fontSize: 11)),
                   selected: _queryRegex,
                   onSelected: (v) => setState(() => _queryRegex = v),
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text('Case', style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.matchCase, style: TextStyle(fontSize: 11)),
                   selected: _queryCase,
                   onSelected: (v) => setState(() => _queryCase = v),
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text('Newest', style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.newestFirst, style: TextStyle(fontSize: 11)),
                   selected: _newestFirst,
                   onSelected: (v) => setState(() => _newestFirst = v),
                   visualDensity: VisualDensity.compact,

@@ -12,6 +12,7 @@ import '../utils/catalog_ui.dart';
 import '../utils/query_match.dart';
 import 'host_dashboard_screen.dart';
 import 'sessions_screen.dart';
+import '../l10n/app_strings.dart';
 
 /// Post-connect Host snapshot + quick actions.
 class StatusScreen extends StatefulWidget {
@@ -731,13 +732,13 @@ class _StatusScreenState extends State<StatusScreen> {
                 ),
                 FilterChip(
                   visualDensity: VisualDensity.compact,
-                  label: const Text('Regex', style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.regex, style: TextStyle(fontSize: 11)),
                   selected: _queryRegex,
                   onSelected: (v) => setState(() => _queryRegex = v),
                 ),
                 FilterChip(
                   visualDensity: VisualDensity.compact,
-                  label: const Text('Case', style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.matchCase, style: TextStyle(fontSize: 11)),
                   selected: _queryCase,
                   onSelected: (v) => setState(() => _queryCase = v),
                 ),

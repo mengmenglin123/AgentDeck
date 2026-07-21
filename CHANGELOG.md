@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.185
+
+- UI 优化（中文 + LiveAgent 风主路径）：
+  - `AppStrings` 扩展筛选/排序/Git/状态文案；全屏 FilterChip（换行/正则/大小写/自动刷新/最新在前…）中文化
+  - 主机看板健康条/最近成功/自动刷新文案中文化；会话菜单 备注/重命名/删除 中文化
+  - `HomeShell` 顶部连接状态条（在线指示 + 主机 + 切换连接）
+  - `AppTheme`：Cupertino 页转场、圆角 Dialog/BottomSheet
+  - 工具宫格：代理/对比 中文标签；Markdown 复制提示中文
+  - 协议回归 15/15 + py_compile
+
+
 ## 0.1.184
 
 - Phase D mock / MD 维护性：

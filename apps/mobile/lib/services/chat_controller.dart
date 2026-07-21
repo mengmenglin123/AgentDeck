@@ -414,7 +414,7 @@ class ChatController extends ChangeNotifier {
       if (buttons.isNotEmpty) {
         NotificationService.instance.show(
           id: 'perm_${session.displayTitle}'.hashCode & 0x7FFFFFFF,
-          title: 'Permission Required: ${session.displayTitle}',
+          title: '需要权限：${session.displayTitle}',
           body: text.length > 100 ? '${text.substring(0, 100)}...' : text,
           payload: 'permission:${session.sessionKey}',
         );
@@ -426,7 +426,7 @@ class ChatController extends ChangeNotifier {
           payload['message']?.toString() ??
           'Unknown error';
       NotificationService.instance.showError(
-        title: 'Error: ${session.displayTitle}',
+        title: '出错：${session.displayTitle}',
         message: errorMsg,
       );
     }
@@ -445,7 +445,7 @@ class ChatController extends ChangeNotifier {
     // Notify user about disconnection
     NotificationService.instance.show(
       id: 'disconnect_${session.displayTitle}'.hashCode & 0x7FFFFFFF,
-      title: 'Disconnected: ${session.displayTitle}',
+      title: '已断开：${session.displayTitle}',
       body: 'Bridge connection lost. Attempting to reconnect...',
     );
     typing = false;

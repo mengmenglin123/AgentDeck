@@ -19,6 +19,7 @@ import 'memory_screen.dart';
 import 'pairing_screen.dart';
 import 'skills_screen.dart';
 import 'workspace_screen.dart';
+import '../l10n/app_strings.dart';
 
 /// Live Host status dashboard (refreshable /status + quick links).
 class HostDashboardScreen extends StatefulWidget {
@@ -165,7 +166,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Copied status CSV'),
+        content: Text(AppStrings.copiedStatusCsv),
         duration: Duration(seconds: 1),
       ),
     );
@@ -260,17 +261,17 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
       appBar: AppBar(
         title: Text(
           _autoRefresh && refreshSec > 0
-              ? 'Host status · auto ${refreshSec}s'
-              : 'Host status',
+              ? '主机状态 · 自动 ${refreshSec}s'
+              : '主机状态',
         ),
         actions: [
           IconButton(
-            tooltip: 'Copy status',
+            tooltip: AppStrings.copyStatus,
             onPressed: _status.isEmpty && _error == null ? null : _copyStatus,
             icon: const Icon(Icons.copy_all_outlined),
           ),
           IconButton(
-            tooltip: 'Copy capabilities',
+            tooltip: AppStrings.copyCapabilities,
             onPressed: _status.isEmpty ? null : _copyCapabilities,
             icon: const Icon(Icons.extension_outlined),
           ),
@@ -384,7 +385,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
           ),
 
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: AppStrings.refresh,
             onPressed: _loading ? null : _refresh,
             icon: const Icon(Icons.refresh),
           ),
@@ -424,7 +425,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                               visualDensity: VisualDensity.compact,
                               avatar: const Icon(Icons.schedule, size: 16),
                               label: Text(
-                                'Last ok ${_lastOk!.toLocal().toIso8601String().substring(11, 19)}',
+                                '最近成功 ${_lastOk!.toLocal().toIso8601String().substring(11, 19)}',
                                 style: const TextStyle(fontSize: 12),
                               ),
                             ),
@@ -438,8 +439,8 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                             ),
                             label: Text(
                               refreshSec > 0
-                                  ? 'Auto every ${refreshSec}s'
-                                  : 'Auto refresh off',
+                                  ? '每 ${refreshSec}s 自动刷新'
+                                  : '自动刷新已关',
                               style: const TextStyle(fontSize: 12),
                             ),
                           ),
@@ -457,22 +458,22 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                       final String label;
                       if (_loading && _status.isEmpty) {
                         barColor = Colors.amber;
-                        label = 'Probing Host /status…';
+                        label = '正在探测主机状态…';
                       } else if (!connOk && _error != null) {
                         barColor = cs.error;
-                        label = 'Host unreachable';
+                        label = '主机不可达';
                       } else if (_error != null) {
                         barColor = cs.error;
-                        label = 'Status error';
+                        label = '状态错误';
                       } else if (degraded) {
                         barColor = Colors.orange;
                         label = '健康降级（心跳）';
                       } else if (healthy) {
                         barColor = Colors.green;
-                        label = 'Host healthy';
+                        label = '主机健康';
                       } else {
                         barColor = Colors.orange;
-                        label = 'Waiting for status';
+                        label = '等待状态';
                       }
                       final age = _lastOk == null
                           ? 'never'
@@ -620,7 +621,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                       FilterChip(
                         visualDensity: VisualDensity.compact,
                         label: const Text(
-                          'Wrap',
+                          AppStrings.wrap,
                           style: TextStyle(fontSize: 11),
                         ),
                         selected: _wrapLines,
@@ -629,7 +630,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                       FilterChip(
                         visualDensity: VisualDensity.compact,
                         label: const Text(
-                          'Regex',
+                          AppStrings.regex,
                           style: TextStyle(fontSize: 11),
                         ),
                         selected: _queryRegex,
@@ -638,7 +639,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                       FilterChip(
                         visualDensity: VisualDensity.compact,
                         label: const Text(
-                          'Case',
+                          AppStrings.matchCase,
                           style: TextStyle(fontSize: 11),
                         ),
                         selected: _queryCase,
@@ -693,7 +694,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                       FilterChip(
                         visualDensity: VisualDensity.compact,
                         label: const Text(
-                          'Auto',
+                          AppStrings.autoRefresh,
                           style: TextStyle(fontSize: 11),
                         ),
                         selected: _autoRefresh,
@@ -729,7 +730,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.difference_outlined),
-                    title: const Text('Git Diff（只读）'),
+                    title: const Text('Git 对比（只读）'),
                     subtitle: const Text('来自主机的统一 Diff'),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
@@ -785,7 +786,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.smart_toy_outlined),
-                    title: const Text('Agents'),
+                    title: const Text('代理'),
                     subtitle: const Text('主机 Agent 目录'),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
@@ -875,7 +876,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                             FilterChip(
                               visualDensity: VisualDensity.compact,
                               label: const Text(
-                                'Wrap',
+                                AppStrings.wrap,
                                 style: TextStyle(fontSize: 11),
                               ),
                               selected: _wrapLines,
@@ -884,7 +885,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                             FilterChip(
                               visualDensity: VisualDensity.compact,
                               label: const Text(
-                                'Regex',
+                                AppStrings.regex,
                                 style: TextStyle(fontSize: 11),
                               ),
                               selected: _queryRegex,
@@ -894,7 +895,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                             FilterChip(
                               visualDensity: VisualDensity.compact,
                               label: const Text(
-                                'Case',
+                                AppStrings.matchCase,
                                 style: TextStyle(fontSize: 11),
                               ),
                               selected: _queryCase,
