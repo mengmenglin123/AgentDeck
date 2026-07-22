@@ -266,112 +266,6 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: AppStrings.copyStatus,
-            onPressed: _status.isEmpty && _error == null ? null : _copyStatus,
-            icon: const Icon(Icons.copy_all_outlined),
-          ),
-          IconButton(
-            tooltip: AppStrings.copyCapabilities,
-            onPressed: _status.isEmpty ? null : _copyCapabilities,
-            icon: const Icon(Icons.extension_outlined),
-          ),
-          IconButton(
-            tooltip: '复制 CSV',
-            onPressed: _status.isEmpty && _error == null ? null : _copyCsv,
-            icon: const Icon(Icons.table_chart_outlined),
-          ),
-          IconButton(
-            tooltip: _wrapLines ? '截断详情' : '换行详情',
-            onPressed: () => setState(() => _wrapLines = !_wrapLines),
-            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
-          ),
-          IconButton(
-            tooltip: _relativeTs
-                ? '绝对时间戳'
-                : '相对时间戳',
-            onPressed: () => setState(() => _relativeTs = !_relativeTs),
-            icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
-          ),
-          IconButton(
-            tooltip: _sortByKey
-                ? (_sortAsc ? '键 Z→A' : '键 A→Z')
-                : (_sortByType
-                      ? (_sortAsc ? '类型 Z→A' : '类型 A→Z')
-                      : (_sortByValue
-                            ? (_sortAsc ? '值 Z→A' : '值 A→Z')
-                            : (_sortAsc ? '键 Z→A' : '键 A→Z'))),
-            onPressed: () {
-              setState(() {
-                if (!_sortByValue && !_sortByType && !_sortByKey && _sortAsc) {
-                  _sortAsc = false;
-                } else if (!_sortByValue &&
-                    !_sortByType &&
-                    !_sortByKey &&
-                    !_sortAsc) {
-                  _sortByValue = true;
-                  _sortByType = false;
-                  _sortByKey = false;
-                  _sortAsc = true;
-                } else if (_sortByValue && _sortAsc) {
-                  _sortAsc = false;
-                } else if (_sortByValue && !_sortAsc) {
-                  _sortByValue = false;
-                  _sortByType = true;
-                  _sortByKey = false;
-                  _sortAsc = true;
-                } else if (_sortByType && _sortAsc) {
-                  _sortAsc = false;
-                } else if (_sortByType && !_sortAsc) {
-                  _sortByValue = false;
-                  _sortByType = false;
-                  _sortByKey = true;
-                  _sortAsc = true;
-                } else if (_sortByKey && _sortAsc) {
-                  _sortAsc = false;
-                } else {
-                  _sortByValue = false;
-                  _sortByType = false;
-                  _sortByKey = false;
-                  _sortAsc = true;
-                }
-              });
-            },
-            icon: Icon(
-              _sortByKey
-                  ? Icons.vpn_key_outlined
-                  : (_sortByType
-                        ? Icons.category_outlined
-                        : (_sortByValue
-                              ? Icons.text_fields
-                              : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))),
-            ),
-          ),
-
-          IconButton(
-            tooltip: '回到顶部',
-            onPressed: () {
-              if (!_scroll.hasClients) return;
-              _scroll.animateTo(
-                0,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOut,
-              );
-            },
-            icon: const Icon(Icons.vertical_align_top),
-          ),
-          IconButton(
-            tooltip: '跳到底部',
-            onPressed: () {
-              if (!_scroll.hasClients) return;
-              _scroll.animateTo(
-                _scroll.position.maxScrollExtent,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOut,
-              );
-            },
-            icon: const Icon(Icons.vertical_align_bottom),
-          ),
-          IconButton(
             tooltip: _autoRefresh ? '暂停刷新' : '自动刷新',
             onPressed: () {
               setState(() => _autoRefresh = !_autoRefresh);
@@ -383,11 +277,128 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                   : Icons.play_circle_outline,
             ),
           ),
-
           IconButton(
             tooltip: AppStrings.refresh,
             onPressed: _loading ? null : _refresh,
             icon: const Icon(Icons.refresh),
+          ),
+          PopupMenuButton<String>(
+            tooltip: AppStrings.more,
+            onSelected: (v) {
+              switch (v) {
+                case 'copy_status':
+                  if (_status.isEmpty && _error == null) return;
+                  _copyStatus();
+                  return;
+                case 'copy_caps':
+                  if (_status.isEmpty) return;
+                  _copyCapabilities();
+                  return;
+                case 'copy_csv':
+                  if (_status.isEmpty && _error == null) return;
+                  _copyCsv();
+                  return;
+                case 'wrap':
+                  setState(() => _wrapLines = !_wrapLines);
+                  return;
+                case 'relative':
+                  setState(() => _relativeTs = !_relativeTs);
+                  return;
+                case 'sort_cycle':
+                  setState(() {
+                    if (!_sortByValue &&
+                        !_sortByType &&
+                        !_sortByKey &&
+                        _sortAsc) {
+                      _sortAsc = false;
+                    } else if (!_sortByValue &&
+                        !_sortByType &&
+                        !_sortByKey &&
+                        !_sortAsc) {
+                      _sortByValue = true;
+                      _sortByType = false;
+                      _sortByKey = false;
+                      _sortAsc = true;
+                    } else if (_sortByValue && _sortAsc) {
+                      _sortAsc = false;
+                    } else if (_sortByValue && !_sortAsc) {
+                      _sortByValue = false;
+                      _sortByType = true;
+                      _sortByKey = false;
+                      _sortAsc = true;
+                    } else if (_sortByType && _sortAsc) {
+                      _sortAsc = false;
+                    } else if (_sortByType && !_sortAsc) {
+                      _sortByValue = false;
+                      _sortByType = false;
+                      _sortByKey = true;
+                      _sortAsc = true;
+                    } else if (_sortByKey && _sortAsc) {
+                      _sortAsc = false;
+                    } else {
+                      _sortByValue = false;
+                      _sortByType = false;
+                      _sortByKey = false;
+                      _sortAsc = true;
+                    }
+                  });
+                  return;
+                case 'top':
+                  if (!_scroll.hasClients) return;
+                  _scroll.animateTo(
+                    0,
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOut,
+                  );
+                  return;
+                case 'bottom':
+                  if (!_scroll.hasClients) return;
+                  _scroll.animateTo(
+                    _scroll.position.maxScrollExtent,
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOut,
+                  );
+                  return;
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'copy_status',
+                enabled: !(_status.isEmpty && _error == null),
+                child: Text(AppStrings.copyStatus),
+              ),
+              PopupMenuItem(
+                value: 'copy_caps',
+                enabled: _status.isNotEmpty,
+                child: Text(AppStrings.copyCapabilities),
+              ),
+              PopupMenuItem(
+                value: 'copy_csv',
+                enabled: !(_status.isEmpty && _error == null),
+                child: const Text('复制 CSV'),
+              ),
+              const PopupMenuDivider(),
+              PopupMenuItem(
+                value: 'wrap',
+                child: Text(_wrapLines ? '截断详情' : '换行详情'),
+              ),
+              PopupMenuItem(
+                value: 'relative',
+                child: Text(_relativeTs ? '绝对时间戳' : '相对时间戳'),
+              ),
+              const PopupMenuItem(
+                value: 'sort_cycle',
+                child: Text('切换排序'),
+              ),
+              const PopupMenuItem(
+                value: 'top',
+                child: Text('回到顶部'),
+              ),
+              const PopupMenuItem(
+                value: 'bottom',
+                child: Text('跳到底部'),
+              ),
+            ],
           ),
         ],
       ),

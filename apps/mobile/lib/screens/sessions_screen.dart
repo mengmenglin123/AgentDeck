@@ -716,38 +716,57 @@ class _SessionsScreenState extends State<SessionsScreen> {
             actions: [
               if (_selectMode) ...[
                 IconButton(
-                  tooltip: AppStrings.exportSelected,
-                  onPressed: _selected.isEmpty
-                      ? null
-                      : () => _exportVisibleMeta(
-                          _selectedSessions(sessions.sessions),
-                        ),
-                  icon: const Icon(Icons.copy_all_outlined),
-                ),
-                IconButton(
-                  tooltip: AppStrings.pinSelected,
-                  onPressed: _selected.isEmpty
-                      ? null
-                      : () => _bulkPin(pin: true),
-                  icon: const Icon(Icons.push_pin),
-                ),
-                IconButton(
-                  tooltip: AppStrings.archiveSelected,
-                  onPressed: _selected.isEmpty
-                      ? null
-                      : () => _bulkArchive(archive: _filter != 'archived'),
-                  icon: Icon(
-                    _filter == 'archived'
-                        ? Icons.unarchive_outlined
-                        : Icons.archive_outlined,
-                  ),
-                ),
-                IconButton(
                   tooltip: AppStrings.deleteSelected,
                   onPressed: _selected.isEmpty
                       ? null
                       : () => _bulkDelete(sessions, sessions.sessions),
                   icon: const Icon(Icons.delete_outline),
+                ),
+                PopupMenuButton<String>(
+                  tooltip: AppStrings.more,
+                  enabled: _selected.isNotEmpty,
+                  onSelected: (v) async {
+                    final picked = _selectedSessions(sessions.sessions);
+                    switch (v) {
+                      case 'export':
+                        _exportVisibleMeta(picked);
+                        return;
+                      case 'pin':
+                        await _bulkPin(pin: true);
+                        return;
+                      case 'unpin':
+                        await _bulkPin(pin: false);
+                        return;
+                      case 'archive':
+                        await _bulkArchive(archive: true);
+                        return;
+                      case 'unarchive':
+                        await _bulkArchive(archive: false);
+                        return;
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'export',
+                      child: Text(AppStrings.exportSelected),
+                    ),
+                    const PopupMenuItem(
+                      value: 'pin',
+                      child: Text(AppStrings.pinSelected),
+                    ),
+                    const PopupMenuItem(
+                      value: 'unpin',
+                      child: Text('取消置顶所选'),
+                    ),
+                    PopupMenuItem(
+                      value: _filter == 'archived' ? 'unarchive' : 'archive',
+                      child: Text(
+                        _filter == 'archived'
+                            ? '取消归档所选'
+                            : AppStrings.archiveSelected,
+                      ),
+                    ),
+                  ],
                 ),
               ] else ...[
                 IconButton(

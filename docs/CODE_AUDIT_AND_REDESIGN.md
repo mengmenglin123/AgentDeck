@@ -139,6 +139,11 @@ lib/
 - [x] 中文扫尾（Chat/Terminal/AppStrings）
 - 真实 PTY 仍未接入（协议通道演示 + 明确提示）
 
+### Phase I — 手机 AppBar 扫尾（0.1.189）
+
+- [x] Sessions 多选 / Host 看板 AppBar 收敛
+- [x] Tools 宫格手机密度
+
 ### Phase H — 手机列表与首连路径（0.1.188）
 
 - [x] Sessions 卡片化列表

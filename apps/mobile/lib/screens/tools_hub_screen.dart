@@ -211,7 +211,7 @@ class ToolsHubScreen extends StatelessWidget {
               builder: (context, constraints) {
                 final cols = constraints.maxWidth >= 900
                     ? 4
-                    : constraints.maxWidth >= 600
+                    : constraints.maxWidth >= 700
                         ? 3
                         : 2;
                 return GridView.builder(
@@ -220,7 +220,7 @@ class ToolsHubScreen extends StatelessWidget {
                     crossAxisCount: cols,
                     mainAxisSpacing: 10,
                     crossAxisSpacing: 10,
-                    childAspectRatio: 1.2,
+                    childAspectRatio: 1.05,
                   ),
                   itemCount: tools.length,
                   itemBuilder: (context, i) {
