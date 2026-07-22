@@ -282,273 +282,6 @@ class _ConnectScreenState extends State<ConnectScreen> {
         title: const Text('连接服务器'),
         actions: [
           IconButton(
-            tooltip: '复制公开信息',
-            onPressed: () async {
-              final host = _host.text.trim();
-              if (host.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('请先输入主机地址'),
-                    duration: const Duration(seconds: 1),
-                  ),
-                );
-                return;
-              }
-              final bridge = int.tryParse(_bridgePort.text.trim()) ?? 19810;
-              final mgmt = int.tryParse(_mgmtPort.text.trim()) ?? 19820;
-              final cfg = ConnectionConfig(
-                host: host,
-                bridgePort: bridge,
-                mgmtPort: mgmt,
-                bridgeToken: '',
-                mgmtToken: '',
-                useTls: _useTls,
-              );
-              await Clipboard.setData(
-                ClipboardData(text: cfg.toPublicSummary()),
-              );
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('已复制公开摘要（不含令牌）'),
-                  duration: Duration(seconds: 1),
-                ),
-              );
-            },
-            icon: const Icon(Icons.ios_share_outlined),
-          ),
-          IconButton(
-            tooltip: '复制指纹',
-            onPressed: () async {
-              final host = _host.text.trim();
-              if (host.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('请先输入主机地址'),
-                    duration: const Duration(seconds: 1),
-                  ),
-                );
-                return;
-              }
-              final bridge = int.tryParse(_bridgePort.text.trim()) ?? 19810;
-              final mgmt = int.tryParse(_mgmtPort.text.trim()) ?? 19820;
-              final cfg = ConnectionConfig(
-                host: host,
-                bridgePort: bridge,
-                mgmtPort: mgmt,
-              );
-              final hex = _fpHex(cfg.toPairingUri());
-              await Clipboard.setData(ClipboardData(text: hex));
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('指纹 $hex'),
-                  duration: const Duration(seconds: 1),
-                ),
-              );
-            },
-            icon: const Icon(Icons.fingerprint),
-          ),
-          IconButton(
-            tooltip: '复制配置（不含令牌）',
-            onPressed: controller.profiles.isEmpty
-                ? null
-                : () async {
-                    final list = controller.profiles
-                        .map((p) => p.toPublicJson())
-                        .toList();
-                    final text = const JsonEncoder.withIndent('  ').convert({
-                      'huanhermes.profiles_public.v1': true,
-                      'count': list.length,
-                      'profiles': list,
-                    });
-                    await Clipboard.setData(ClipboardData(text: text));
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            '已复制 ${list.length} 个公开配置',
-                          ),
-                          duration: const Duration(seconds: 1),
-                        ),
-                      );
-                    }
-                  },
-            icon: const Icon(Icons.ios_share_outlined),
-          ),
-          IconButton(
-            tooltip: '复制配置 CSV',
-            onPressed: controller.profiles.isEmpty
-                ? null
-                : () async {
-                    final buf = StringBuffer();
-                    buf.writeln(
-                      'id,name,host,bridge_port,mgmt_port,use_tls,note',
-                    );
-                    for (final p in controller.profiles) {
-                      final id = p.id.replaceAll('"', '""');
-                      final name = p.name.replaceAll('"', '""');
-                      final host = p.config.host.replaceAll('"', '""');
-                      final note = (p.note ?? '').replaceAll('"', '""');
-                      buf.writeln(
-                        '"$id","$name","$host",${p.config.bridgePort},${p.config.mgmtPort},${p.config.useTls},"$note"',
-                      );
-                    }
-                    await Clipboard.setData(
-                      ClipboardData(text: buf.toString()),
-                    );
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            '已复制配置 CSV (${controller.profiles.length})',
-                          ),
-                          duration: const Duration(seconds: 1),
-                        ),
-                      );
-                    }
-                  },
-            icon: const Icon(Icons.table_chart_outlined),
-          ),
-          IconButton(
-            tooltip: _wrapLines ? '截断健康文本' : '换行显示健康文本',
-            onPressed: () => setState(() => _wrapLines = !_wrapLines),
-            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
-          ),
-          IconButton(
-            tooltip: _sortMode == 'deviceId'
-                ? (_sortAsc ? '设备ID Z→A' : '设备ID A→Z')
-                : (_sortMode == 'id'
-                    ? (_sortAsc ? 'ID Z→A' : 'ID A→Z')
-                    : (_sortMode == 'platform'
-                        ? (_sortAsc ? '平台 Z→A' : '平台 A→Z')
-                        : (_sortMode == 'tls'
-                            ? (_sortAsc ? 'TLS优先' : '明文优先')
-                            : (_sortMode == 'bridgePort'
-                                ? (_sortAsc
-                                    ? '桥接端口 高→低'
-                                    : '桥接端口 低→高')
-                                : (_sortMode == 'note'
-                                    ? (_sortAsc ? '备注 Z→A' : '备注 A→Z')
-                                    : (_sortMode == 'port'
-                                        ? (_sortAsc
-                                            ? '管理端口 高→低'
-                                            : '管理端口 低→高')
-                                        : (_sortMode == 'host'
-                                            ? (_sortAsc
-                                                ? '主机 Z→A'
-                                                : '主机 A→Z')
-                                            : (_sortMode == 'updated'
-                                                ? (_sortAsc
-                                                    ? '更新 新→旧'
-                                                    : '更新 旧→新')
-                                                : (_sortAsc
-                                                    ? '名称 Z→A'
-                                                    : '名称 A→Z'))))))))),
-            onPressed: () {
-              setState(() {
-                if (_sortMode == 'name' && _sortAsc) {
-                  _sortAsc = false;
-                } else if (_sortMode == 'name' && !_sortAsc) {
-                  _sortMode = 'host';
-                  _sortAsc = true;
-                } else if (_sortMode == 'host' && _sortAsc) {
-                  _sortAsc = false;
-                } else if (_sortMode == 'host' && !_sortAsc) {
-                  _sortMode = 'updated';
-                  _sortAsc = false; // new first
-                } else if (_sortMode == 'updated' && !_sortAsc) {
-                  _sortAsc = true;
-                } else if (_sortMode == 'updated' && _sortAsc) {
-                  _sortMode = 'port';
-                  _sortAsc = false;
-                } else if (_sortMode == 'port' && !_sortAsc) {
-                  _sortAsc = true;
-                } else if (_sortMode == 'port' && _sortAsc) {
-                  _sortMode = 'note';
-                  _sortAsc = true;
-                } else if (_sortMode == 'note' && _sortAsc) {
-                  _sortAsc = false;
-                } else if (_sortMode == 'note' && !_sortAsc) {
-                  _sortMode = 'bridgePort';
-                  _sortAsc = false;
-                } else if (_sortMode == 'bridgePort' && !_sortAsc) {
-                  _sortAsc = true;
-                } else if (_sortMode == 'bridgePort' && _sortAsc) {
-                  _sortMode = 'tls';
-                  _sortAsc = true;
-                } else if (_sortMode == 'tls' && _sortAsc) {
-                  _sortAsc = false;
-                } else if (_sortMode == 'tls' && !_sortAsc) {
-                  _sortMode = 'platform';
-                  _sortAsc = true;
-                } else if (_sortMode == 'platform' && _sortAsc) {
-                  _sortAsc = false;
-                } else if (_sortMode == 'platform' && !_sortAsc) {
-                  _sortMode = 'id';
-                  _sortAsc = true;
-                } else if (_sortMode == 'id' && _sortAsc) {
-                  _sortAsc = false;
-                } else if (_sortMode == 'id' && !_sortAsc) {
-                  _sortMode = 'deviceId';
-                  _sortAsc = true;
-                } else if (_sortMode == 'deviceId' && _sortAsc) {
-                  _sortAsc = false;
-                } else {
-                  _sortMode = 'name';
-                  _sortAsc = true;
-                }
-              });
-            },
-            icon: Icon(
-              _sortMode == 'deviceId'
-                  ? Icons.phonelink_setup
-                  : (_sortMode == 'id'
-                      ? Icons.tag
-                      : (_sortMode == 'platform'
-                          ? Icons.devices_other_outlined
-                          : (_sortMode == 'tls'
-                              ? Icons.lock_outline
-                              : (_sortMode == 'bridgePort'
-                                  ? Icons.cable
-                                  : (_sortMode == 'note'
-                                      ? Icons.sticky_note_2_outlined
-                                      : (_sortMode == 'port'
-                                          ? Icons.numbers
-                                          : (_sortMode == 'host'
-                                              ? Icons.dns_outlined
-                                              : (_sortMode == 'updated'
-                                                  ? Icons.schedule
-                                                  : (_sortAsc
-                                                      ? Icons.sort_by_alpha
-                                                      : Icons.sort))))))))),
-            ),
-          ),
-          IconButton(
-            tooltip: '回到顶部',
-            onPressed: () {
-              if (!_scroll.hasClients) return;
-              _scroll.animateTo(
-                0,
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeOut,
-              );
-            },
-            icon: const Icon(Icons.vertical_align_top),
-          ),
-          IconButton(
-            tooltip: '跳到底部',
-            onPressed: () {
-              if (!_scroll.hasClients) return;
-              _scroll.animateTo(
-                _scroll.position.maxScrollExtent,
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeOut,
-              );
-            },
-            icon: const Icon(Icons.vertical_align_bottom),
-          ),
-          IconButton(
             tooltip: '导入配对 URI',
             onPressed: busy ? null : _importPairing,
             icon: const Icon(Icons.qr_code_scanner),
@@ -563,6 +296,226 @@ class _ConnectScreenState extends State<ConnectScreen> {
                     setState(() {});
                   },
             icon: const Icon(Icons.add),
+          ),
+          PopupMenuButton<String>(
+            tooltip: '更多',
+            onSelected: (v) async {
+              if (v == 'wrap') {
+                setState(() => _wrapLines = !_wrapLines);
+                return;
+              }
+              if (v == 'sort_cycle') {
+                setState(() {
+                  if (_sortMode == 'name' && _sortAsc) {
+                    _sortAsc = false;
+                  } else if (_sortMode == 'name' && !_sortAsc) {
+                    _sortMode = 'host';
+                    _sortAsc = true;
+                  } else if (_sortMode == 'host' && _sortAsc) {
+                    _sortAsc = false;
+                  } else if (_sortMode == 'host' && !_sortAsc) {
+                    _sortMode = 'updated';
+                    _sortAsc = false;
+                  } else if (_sortMode == 'updated' && !_sortAsc) {
+                    _sortAsc = true;
+                  } else if (_sortMode == 'updated' && _sortAsc) {
+                    _sortMode = 'port';
+                    _sortAsc = false;
+                  } else if (_sortMode == 'port' && !_sortAsc) {
+                    _sortAsc = true;
+                  } else if (_sortMode == 'port' && _sortAsc) {
+                    _sortMode = 'note';
+                    _sortAsc = true;
+                  } else if (_sortMode == 'note' && _sortAsc) {
+                    _sortAsc = false;
+                  } else if (_sortMode == 'note' && !_sortAsc) {
+                    _sortMode = 'bridgePort';
+                    _sortAsc = false;
+                  } else if (_sortMode == 'bridgePort' && !_sortAsc) {
+                    _sortAsc = true;
+                  } else if (_sortMode == 'bridgePort' && _sortAsc) {
+                    _sortMode = 'tls';
+                    _sortAsc = true;
+                  } else if (_sortMode == 'tls' && _sortAsc) {
+                    _sortAsc = false;
+                  } else if (_sortMode == 'tls' && !_sortAsc) {
+                    _sortMode = 'platform';
+                    _sortAsc = true;
+                  } else if (_sortMode == 'platform' && _sortAsc) {
+                    _sortAsc = false;
+                  } else if (_sortMode == 'platform' && !_sortAsc) {
+                    _sortMode = 'id';
+                    _sortAsc = true;
+                  } else if (_sortMode == 'id' && _sortAsc) {
+                    _sortAsc = false;
+                  } else if (_sortMode == 'id' && !_sortAsc) {
+                    _sortMode = 'deviceId';
+                    _sortAsc = true;
+                  } else if (_sortMode == 'deviceId' && _sortAsc) {
+                    _sortAsc = false;
+                  } else {
+                    _sortMode = 'name';
+                    _sortAsc = true;
+                  }
+                });
+                return;
+              }
+              if (v == 'top') {
+                if (!_scroll.hasClients) return;
+                _scroll.animateTo(0,
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOut);
+                return;
+              }
+              if (v == 'bottom') {
+                if (!_scroll.hasClients) return;
+                _scroll.animateTo(_scroll.position.maxScrollExtent,
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOut);
+                return;
+              }
+              if (v == 'copy_public') {
+                final host = _host.text.trim();
+                if (host.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('请先输入主机地址'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                  return;
+                }
+                final bridge = int.tryParse(_bridgePort.text.trim()) ?? 19810;
+                final mgmt = int.tryParse(_mgmtPort.text.trim()) ?? 19820;
+                final cfg = ConnectionConfig(
+                  host: host,
+                  bridgePort: bridge,
+                  mgmtPort: mgmt,
+                  bridgeToken: '',
+                  mgmtToken: '',
+                  useTls: _useTls,
+                );
+                await Clipboard.setData(
+                  ClipboardData(text: cfg.toPublicSummary()),
+                );
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('已复制公开摘要（不含令牌）'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+                return;
+              }
+              if (v == 'copy_fp') {
+                final host = _host.text.trim();
+                if (host.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('请先输入主机地址'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                  return;
+                }
+                final bridge = int.tryParse(_bridgePort.text.trim()) ?? 19810;
+                final mgmt = int.tryParse(_mgmtPort.text.trim()) ?? 19820;
+                final cfg = ConnectionConfig(
+                  host: host,
+                  bridgePort: bridge,
+                  mgmtPort: mgmt,
+                );
+                final hex = _fpHex(cfg.toPairingUri());
+                await Clipboard.setData(ClipboardData(text: hex));
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('指纹 $hex'),
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+                return;
+              }
+              if (v == 'copy_profiles') {
+                if (controller.profiles.isEmpty) return;
+                final list =
+                    controller.profiles.map((p) => p.toPublicJson()).toList();
+                final text = const JsonEncoder.withIndent('  ').convert({
+                  'huanhermes.profiles_public.v1': true,
+                  'count': list.length,
+                  'profiles': list,
+                });
+                await Clipboard.setData(ClipboardData(text: text));
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('已复制 ${list.length} 个公开配置'),
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+                return;
+              }
+              if (v == 'copy_csv') {
+                if (controller.profiles.isEmpty) return;
+                final buf = StringBuffer();
+                buf.writeln(
+                    'id,name,host,bridge_port,mgmt_port,use_tls,note');
+                for (final p in controller.profiles) {
+                  final id = p.id.replaceAll('"', '""');
+                  final name = p.name.replaceAll('"', '""');
+                  final host = p.config.host.replaceAll('"', '""');
+                  final note = (p.note ?? '').replaceAll('"', '""');
+                  buf.writeln(
+                      '"$id","$name","$host",${p.config.bridgePort},${p.config.mgmtPort},${p.config.useTls},"$note"');
+                }
+                await Clipboard.setData(ClipboardData(text: buf.toString()));
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                        '已复制配置 CSV (${controller.profiles.length})'),
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'copy_public',
+                child: Text('复制公开信息'),
+              ),
+              PopupMenuItem(
+                value: 'copy_fp',
+                child: Text('复制指纹'),
+              ),
+              PopupMenuItem(
+                value: 'copy_profiles',
+                enabled: controller.profiles.isNotEmpty,
+                child: Text('复制配置（不含令牌）'),
+              ),
+              PopupMenuItem(
+                value: 'copy_csv',
+                enabled: controller.profiles.isNotEmpty,
+                child: Text('复制配置 CSV'),
+              ),
+              const PopupMenuDivider(),
+              PopupMenuItem(
+                value: 'wrap',
+                child: Text(_wrapLines ? '截断健康文本' : '换行显示健康文本'),
+              ),
+              PopupMenuItem(
+                value: 'sort_cycle',
+                child: Text('切换排序'),
+              ),
+              const PopupMenuItem(
+                value: 'top',
+                child: Text('回到顶部'),
+              ),
+              const PopupMenuItem(
+                value: 'bottom',
+                child: Text('跳到底部'),
+              ),
+            ],
           ),
         ],
       ),

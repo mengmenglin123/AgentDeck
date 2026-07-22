@@ -18,11 +18,13 @@ class ConsoleFilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FilterChip(
-      label: Text(label, style: const TextStyle(fontSize: 11)),
+      label: Text(label, style: const TextStyle(fontSize: 12)),
       selected: selected,
       onSelected: onSelected,
-      visualDensity: VisualDensity.compact,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      // Prefer finger-friendly targets on phones (>= ~40–44px).
+      visualDensity: VisualDensity.standard,
+      materialTapTargetSize: MaterialTapTargetSize.padded,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
     );
   }
 }
@@ -49,8 +51,8 @@ class QueryOptionChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: 6,
-      runSpacing: 4,
+      spacing: 8,
+      runSpacing: 8,
       children: [
         ConsoleFilterChip(
           label: AppStrings.wrap,

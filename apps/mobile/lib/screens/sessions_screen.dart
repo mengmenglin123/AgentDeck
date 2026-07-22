@@ -750,31 +750,22 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   icon: const Icon(Icons.delete_outline),
                 ),
               ] else ...[
-                Builder(
-                  builder: (context) {
-                    final theme = context.watch<ThemeController>();
-                    return IconButton(
-                      tooltip: '${AppStrings.theme}: ${theme.label}',
-                      icon: Icon(theme.icon),
-                      onPressed: () => theme.cycle(),
-                    );
-                  },
-                ),
                 IconButton(
                   tooltip: AppStrings.refresh,
                   onPressed: sessions.loading ? null : sessions.refresh,
                   icon: const Icon(Icons.refresh),
-                ),
-                IconButton(
-                  tooltip: AppStrings.select,
-                  onPressed: () => _enterSelectMode(),
-                  icon: const Icon(Icons.checklist),
                 ),
                 PopupMenuButton<String>(
                   tooltip: AppStrings.more,
                   onSelected: (v) async {
                     final cfg = conn.saved;
                     switch (v) {
+                      case 'theme':
+                        context.read<ThemeController>().cycle();
+                        return;
+                      case 'select':
+                        _enterSelectMode();
+                        return;
                       case 'share':
                         _shareConnection(conn);
                         return;
@@ -903,6 +894,14 @@ class _SessionsScreenState extends State<SessionsScreen> {
                     }
                   },
                   itemBuilder: (ctx) => [
+                    PopupMenuItem(
+                      value: 'theme',
+                      child: Text(AppStrings.theme),
+                    ),
+                    const PopupMenuItem(
+                      value: 'select',
+                      child: Text(AppStrings.select),
+                    ),
                     PopupMenuItem(
                       value: 'share',
                       child: Text(AppStrings.connectionShare),

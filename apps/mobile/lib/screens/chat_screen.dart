@@ -1612,104 +1612,151 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           ),
           SafeArea(
             top: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_quoteText != null && _quoteText!.isNotEmpty)
-                  Material(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
-                        .withOpacity(0.7),
-                    child: ListTile(
-                      dense: true,
-                      leading: const Icon(Icons.format_quote, size: 18),
-                      title: Text(
-                        '引用（${_quoteRole ?? '消息'}）',
-                        style: const TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                      subtitle: Text(
-                        _quoteText!,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      trailing: IconButton(
-                        tooltip: AppStrings.clearQuote,
-                        icon: const Icon(Icons.close, size: 18),
-                        onPressed: () => setState(() {
-                          _quoteText = null;
-                          _quoteRole = null;
-                        }),
-                      ),
-                    ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: isDark
+                    ? const Color(0xFF0F1011)
+                    : cs.surface,
+                border: Border(
+                  top: BorderSide(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.06)
+                        : cs.outlineVariant.withOpacity(0.7),
                   ),
-                Row(
-                  children: [
-                    IconButton(
-                      tooltip: '提示词历史',
-                      onPressed: _openPromptHistory,
-                      icon: const Icon(Icons.bookmark_border),
-                    ),
-                    IconButton(
-                      tooltip: '斜杠命令',
-                      onPressed: (_chat.connected && !_chat.sending)
-                          ? _openSlashPalette
-                          : null,
-                      icon: const Icon(Icons.flash_on_outlined),
-                    ),
-                    IconButton(
-                      tooltip: '附件演示',
-                      onPressed: (_chat.connected && !_chat.sending)
-                          ? _attachDemo
-                          : null,
-                      icon: const Icon(Icons.attach_file),
-                    ),
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: isDark ? cs.surfaceContainerHigh : const Color(0xFFF5F7FA),
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(
-                              color: cs.outlineVariant.withOpacity(0.5)),
-                        ),
-                        child: TextField(
-                          controller: _input,
-                          minLines: 1,
-                          maxLines: 5,
-                          decoration: InputDecoration(
-                            hintText: _chat.connected
-                                ? '输入消息...'
-                                : '正在连接 agent…',
-                            hintStyle: TextStyle(
-                                color: cs.onSurfaceVariant.withOpacity(0.6)),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 18, vertical: 12),
-                          ),
-                          textInputAction: TextInputAction.send,
-                          onSubmitted: (_) => _send(),
-                          enabled: _chat.connected && !_chat.sending,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    if (_chat.runActive && _chat.hasCap('cancel'))
-                      IconButton.filledTonal(
-                        tooltip: '停止运行',
-                        onPressed: _chat.cancelRun,
-                        icon: const Icon(Icons.stop),
-                      )
-                    else
-                      IconButton.filled(
-                        onPressed:
-                            (_chat.connected && !_chat.sending) ? _send : null,
-                        icon: const Icon(Icons.send),
-                      ),
-                  ],
                 ),
-              ],
+              ),
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_quoteText != null && _quoteText!.isNotEmpty)
+                    Material(
+                      color: cs.surfaceContainerHighest.withOpacity(0.55),
+                      borderRadius: BorderRadius.circular(12),
+                      child: ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.format_quote, size: 18),
+                        title: Text(
+                          '引用（${_quoteRole ?? '消息'}）',
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          _quoteText!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        trailing: IconButton(
+                          tooltip: AppStrings.clearQuote,
+                          icon: const Icon(Icons.close, size: 18),
+                          onPressed: () => setState(() {
+                            _quoteText = null;
+                            _quoteRole = null;
+                          }),
+                        ),
+                      ),
+                    ),
+                  if (_quoteText != null && _quoteText!.isNotEmpty)
+                    const SizedBox(height: 8),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      PopupMenuButton<String>(
+                        tooltip: '更多输入',
+                        icon: const Icon(Icons.add_circle_outline),
+                        onSelected: (v) {
+                          if (v == 'history') {
+                            _openPromptHistory();
+                          } else if (v == 'slash') {
+                            if (_chat.connected && !_chat.sending) {
+                              _openSlashPalette();
+                            }
+                          } else if (v == 'attach') {
+                            if (_chat.connected && !_chat.sending) {
+                              _attachDemo();
+                            }
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'history',
+                            child: Text('提示词历史'),
+                          ),
+                          PopupMenuItem(
+                            value: 'slash',
+                            enabled: _chat.connected && !_chat.sending,
+                            child: const Text('斜杠命令'),
+                          ),
+                          PopupMenuItem(
+                            value: 'attach',
+                            enabled: _chat.connected && !_chat.sending,
+                            child: const Text('附件演示'),
+                          ),
+                        ],
+                      ),
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.white.withOpacity(0.04)
+                                : const Color(0xFFF5F7FA),
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.08)
+                                  : cs.outlineVariant.withOpacity(0.7),
+                            ),
+                          ),
+                          child: TextField(
+                            controller: _input,
+                            minLines: 1,
+                            maxLines: 5,
+                            decoration: InputDecoration(
+                              hintText: _chat.connected
+                                  ? '输入消息…'
+                                  : '正在连接 agent…',
+                              hintStyle: TextStyle(
+                                color: cs.onSurfaceVariant.withOpacity(0.65),
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                            textInputAction: TextInputAction.send,
+                            onSubmitted: (_) => _send(),
+                            enabled: _chat.connected && !_chat.sending,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (_chat.runActive && _chat.hasCap('cancel'))
+                        IconButton.filledTonal(
+                          tooltip: '停止运行',
+                          style: IconButton.styleFrom(
+                            minimumSize: const Size(48, 48),
+                          ),
+                          onPressed: _chat.cancelRun,
+                          icon: const Icon(Icons.stop),
+                        )
+                      else
+                        IconButton.filled(
+                          tooltip: '发送',
+                          style: IconButton.styleFrom(
+                            minimumSize: const Size(48, 48),
+                          ),
+                          onPressed: (_chat.connected && !_chat.sending)
+                              ? _send
+                              : null,
+                          icon: const Icon(Icons.send_rounded),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],

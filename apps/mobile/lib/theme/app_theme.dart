@@ -162,7 +162,7 @@ class AppTheme {
         showCheckmark: false,
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: 64,
+        height: 68,
         elevation: 0,
         backgroundColor: isDark ? darkPanel : scheme.surface,
         surfaceTintColor: Colors.transparent,
@@ -187,7 +187,13 @@ class AppTheme {
           );
         }),
       ),
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          minimumSize: const Size(44, 44),
+          tapTargetSize: MaterialTapTargetSize.padded,
+        ),
+      ),
+            floatingActionButtonTheme: FloatingActionButtonThemeData(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radius),
         ),
