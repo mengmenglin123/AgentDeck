@@ -37,6 +37,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
   final _profileFilterCtrl = TextEditingController();
   final _scroll = ScrollController();
   bool _useTls = false;
+  bool _showAdvanced = false;
 
   @override
   void initState() {
@@ -898,21 +899,27 @@ class _ConnectScreenState extends State<ConnectScreen> {
             ],
             const SizedBox(height: 16),
             Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white.withOpacity(0.03)
+                    : Theme.of(context).colorScheme.surfaceContainer,
                 borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white.withOpacity(0.08)
+                      : Theme.of(context).colorScheme.outlineVariant.withOpacity(0.7),
+                ),
               ),
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
+                  // 短路径：名称 + 主机 + 双令牌
                   TextField(
                     controller: _name,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: '配置名称',
                       hintText: '家庭 / 公司 / 测试',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
                     ),
                     enabled: !busy,
                     onChanged: controller.updateDraftProfileName,
@@ -920,89 +927,31 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: _host,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: '主机地址',
-                      hintText: '127.0.0.1 或 your.domain',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                      hintText: 'IP 或域名',
+                      prefixIcon: Icon(Icons.dns_outlined),
                     ),
                     textInputAction: TextInputAction.next,
                     enabled: !busy,
                     onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _bridgePort,
-                          decoration: InputDecoration(
-                            labelText: '桥接端口',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                          enabled: !busy,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: _mgmtPort,
-                          decoration: InputDecoration(
-                            labelText: '管理端口',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                          enabled: !busy,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('使用 TLS (wss / https)'),
-                    subtitle: const Text('公网环境推荐使用'),
-                    value: _useTls,
-                    onChanged: busy
-                        ? null
-                        : (v) {
-                            setState(() => _useTls = v);
-                          },
-                  ),
-                  if (warnTls)
-                    Card(
-                      color: Colors.orange.shade50,
-                      child: const ListTile(
-                        leading: Icon(Icons.warning_amber, color: Colors.orange),
-                        title: Text('明文连接到非本地主机'),
-                        subtitle: Text(
-                          '流量未加密。建议使用 TLS 反向代理，或在服务器上启用 TLS。令牌仍保存在本地。',
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 8),
                   TextField(
                     controller: _bridgeToken,
                     obscureText: _obscureBridge,
                     decoration: InputDecoration(
                       labelText: '桥接令牌',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                      prefixIcon: const Icon(Icons.key_outlined),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscureBridge ? Icons.visibility : Icons.visibility_off,
+                          _obscureBridge
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                         ),
-                        onPressed: () =>
-                            setState(() => _obscureBridge = !_obscureBridge),
+                        onPressed: () => setState(
+                          () => _obscureBridge = !_obscureBridge,
+                        ),
                       ),
                     ),
                     enabled: !busy,
@@ -1013,41 +962,153 @@ class _ConnectScreenState extends State<ConnectScreen> {
                     obscureText: _obscureMgmt,
                     decoration: InputDecoration(
                       labelText: '管理令牌',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                      prefixIcon: const Icon(Icons.vpn_key_outlined),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _obscureMgmt ? Icons.visibility : Icons.visibility_off,
+                          _obscureMgmt
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                         ),
-                        onPressed: () => setState(() => _obscureMgmt = !_obscureMgmt),
+                        onPressed: () =>
+                            setState(() => _obscureMgmt = !_obscureMgmt),
                       ),
                     ),
                     enabled: !busy,
                   ),
+                  const SizedBox(height: 8),
+                  // 高级选项折叠：端口 / TLS
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: busy
+                          ? null
+                          : () => setState(
+                                () => _showAdvanced = !_showAdvanced,
+                              ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _showAdvanced
+                                  ? Icons.expand_less
+                                  : Icons.expand_more,
+                              size: 22,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _showAdvanced ? '收起高级选项' : '高级选项（端口 / TLS）',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              '${_bridgePort.text}:${_mgmtPort.text}${_useTls ? ' · TLS' : ''}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontFamily: 'monospace',
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (_showAdvanced) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _bridgePort,
+                            decoration: const InputDecoration(
+                              labelText: '桥接端口',
+                            ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            enabled: !busy,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: _mgmtPort,
+                            decoration: const InputDecoration(
+                              labelText: '管理端口',
+                            ),
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            enabled: !busy,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('使用 TLS (wss / https)'),
+                      subtitle: const Text('公网环境推荐开启'),
+                      value: _useTls,
+                      onChanged: busy
+                          ? null
+                          : (v) => setState(() => _useTls = v),
+                    ),
+                    if (warnTls)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF59E0B).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFFF59E0B).withOpacity(0.35),
+                          ),
+                        ),
+                        child: const Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.warning_amber_rounded,
+                                color: Color(0xFFF59E0B), size: 20),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                '明文连接到非本地主机：流量未加密。建议 TLS 反向代理。',
+                                style: TextStyle(fontSize: 12.5, height: 1.35),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ],
               ),
             ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Theme.of(context).colorScheme.primary,
-                      Theme.of(context).colorScheme.primary.withOpacity(0.8),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(24),
-                ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: SizedBox(
+                width: double.infinity,
+                height: 52,
                 child: FilledButton.icon(
                   onPressed: busy ? null : _testAndConnect,
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(52),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                   icon: busy
@@ -1063,22 +1124,10 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   label: Text(
                     busy ? '连接中…' : '测试并连接',
                     style: const TextStyle(
+                      fontSize: 16,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.1,
                     ),
-                  ),
-                ),
-                  ),
-                  icon: busy
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Icon(Icons.link),
-                  label: Text(
-                    busy ? '连接中…' : '测试并连接',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),

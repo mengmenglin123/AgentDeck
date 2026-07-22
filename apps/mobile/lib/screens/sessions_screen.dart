@@ -1733,38 +1733,70 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                   )
                                 : ListView.separated(
                                     controller: _scroll,
+                                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
                                     itemCount: _visibleRows(visible).length,
                                     separatorBuilder: (_, __) =>
-                                        const Divider(height: 1),
+                                        const SizedBox(height: 8),
                                     itemBuilder: (context, i) {
                                       final row = _visibleRows(visible)[i];
                                       if (row is String) {
-                                        return Material(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .surfaceContainerHighest
-                                              .withOpacity(0.55),
-                                          child: ListTile(
-                                            dense: true,
-                                            visualDensity:
-                                                VisualDensity.compact,
-                                            leading: const Icon(
-                                              Icons.folder_outlined,
-                                              size: 18,
+                                        final count = visible
+                                            .where((s) =>
+                                                (s.project.isEmpty
+                                                    ? '(no project)'
+                                                    : s.project) ==
+                                                row)
+                                            .length;
+                                        final cs = Theme.of(context).colorScheme;
+                                        final isDark = Theme.of(context)
+                                                .brightness ==
+                                            Brightness.dark;
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 10,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: isDark
+                                                ? Colors.white.withOpacity(0.03)
+                                                : cs.surfaceContainerHighest
+                                                    .withOpacity(0.65),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: isDark
+                                                  ? Colors.white
+                                                      .withOpacity(0.06)
+                                                  : cs.outlineVariant
+                                                      .withOpacity(0.6),
                                             ),
-                                            title: Text(
-                                              row,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 13,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.folder_outlined,
+                                                size: 18,
+                                                color: cs.primary,
                                               ),
-                                            ),
-                                            subtitle: Text(
-                                              '${visible.where((s) => (s.project.isEmpty ? '(no project)' : s.project) == row).length} sessions',
-                                              style: const TextStyle(
-                                                fontSize: 11,
+                                              const SizedBox(width: 10),
+                                              Expanded(
+                                                child: Text(
+                                                  row,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 13,
+                                                    letterSpacing: -0.1,
+                                                  ),
+                                                ),
                                               ),
-                                            ),
+                                              Text(
+                                                '$count 个会话',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: cs.onSurfaceVariant,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         );
                                       }
@@ -1786,16 +1818,32 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                             (_) => true,
                                             orElse: () => const <String>[],
                                           );
+                                      final cs = Theme.of(context).colorScheme;
+                                      final isDark = Theme.of(context)
+                                              .brightness ==
+                                          Brightness.dark;
                                       final tile = ListTile(
                                         selected: selected,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 6,
+                                        ),
                                         visualDensity: compact
                                             ? VisualDensity.compact
-                                            : VisualDensity.standard,
+                                            : const VisualDensity(
+                                                horizontal: 0,
+                                                vertical: 1,
+                                              ),
                                         title: Text(
                                           s.displayTitle,
-                                          maxLines: _wrapLines ? 4 : 1,
+                                          maxLines: _wrapLines ? 4 : 2,
                                           overflow: TextOverflow.ellipsis,
                                           softWrap: true,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: -0.15,
+                                          ),
                                         ),
                                         subtitle: Column(
                                           crossAxisAlignment:
@@ -1868,17 +1916,61 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                 onChanged: (_) =>
                                                     _toggleSelected(s),
                                               )
-                                            : Icon(
-                                                pinned
-                                                    ? Icons.push_pin
-                                                    : s.running
-                                                    ? Icons.play_circle_fill
-                                                    : Icons.chat_bubble_outline,
-                                                color: pinned
-                                                    ? Colors.amber
-                                                    : s.running
-                                                    ? Colors.blue
-                                                    : null,
+                                            : Container(
+                                                width: 42,
+                                                height: 42,
+                                                decoration: BoxDecoration(
+                                                  color: pinned
+                                                      ? const Color(0xFFF59E0B)
+                                                          .withOpacity(0.14)
+                                                      : s.running
+                                                          ? const Color(
+                                                                  0xFF5E6AD2)
+                                                              .withOpacity(0.14)
+                                                          : (isDark
+                                                              ? Colors.white
+                                                                  .withOpacity(
+                                                                      0.05)
+                                                              : cs
+                                                                  .surfaceContainerHighest),
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                  border: Border.all(
+                                                    color: pinned
+                                                        ? const Color(
+                                                                0xFFF59E0B)
+                                                            .withOpacity(0.35)
+                                                        : s.running
+                                                            ? const Color(
+                                                                    0xFF5E6AD2)
+                                                                .withOpacity(
+                                                                    0.3)
+                                                            : (isDark
+                                                                ? Colors.white
+                                                                    .withOpacity(
+                                                                        0.08)
+                                                                : cs
+                                                                    .outlineVariant
+                                                                    .withOpacity(
+                                                                        0.7)),
+                                                  ),
+                                                ),
+                                                child: Icon(
+                                                  pinned
+                                                      ? Icons.push_pin
+                                                      : s.running
+                                                          ? Icons
+                                                              .play_circle_fill
+                                                          : Icons
+                                                              .chat_bubble_outline,
+                                                  size: 20,
+                                                  color: pinned
+                                                      ? const Color(0xFFF59E0B)
+                                                      : s.running
+                                                          ? const Color(
+                                                              0xFF5E6AD2)
+                                                          : cs.onSurfaceVariant,
+                                                ),
                                               ),
                                         onTap: () {
                                           if (_selectMode) {
@@ -1950,7 +2042,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                   PopupMenuItem(
                                                     value: 'pin',
                                                     child: Text(
-                                                      pinned ? 'Unpin' : 'Pin',
+                                                      pinned ? '取消置顶' : '置顶',
                                                     ),
                                                   ),
                                                   const PopupMenuItem(
@@ -1963,8 +2055,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                       _archived.contains(
                                                             s.sessionKey,
                                                           )
-                                                          ? 'Unarchive'
-                                                          : 'Archive',
+                                                          ? '取消归档'
+                                                          : '归档',
                                                     ),
                                                   ),
                                                   const PopupMenuItem(
@@ -1990,11 +2082,45 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                 ],
                                               ),
                                       );
-                                      if (_selectMode) return tile;
+                                      Widget cardWrap(Widget child) {
+                                        return Container(
+                                          decoration: BoxDecoration(
+                                            color: selected
+                                                ? cs.primaryContainer
+                                                    .withOpacity(
+                                                        isDark ? 0.28 : 0.45)
+                                                : (isDark
+                                                    ? Colors.white
+                                                        .withOpacity(0.03)
+                                                    : cs.surfaceContainer),
+                                            borderRadius:
+                                                BorderRadius.circular(14),
+                                            border: Border.all(
+                                              color: selected
+                                                  ? cs.primary.withOpacity(0.45)
+                                                  : (isDark
+                                                      ? Colors.white
+                                                          .withOpacity(0.08)
+                                                      : cs.outlineVariant
+                                                          .withOpacity(0.7)),
+                                            ),
+                                          ),
+                                          clipBehavior: Clip.antiAlias,
+                                          child: child,
+                                        );
+                                      }
+
+                                      if (_selectMode) {
+                                        return cardWrap(tile);
+                                      }
                                       return Dismissible(
                                         key: ValueKey('sess-${s.sessionKey}'),
                                         background: Container(
-                                          color: Colors.amber.shade700,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFF59E0B),
+                                            borderRadius:
+                                                BorderRadius.circular(14),
+                                          ),
                                           alignment: Alignment.centerLeft,
                                           padding: const EdgeInsets.only(
                                             left: 20,
@@ -2005,7 +2131,11 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                           ),
                                         ),
                                         secondaryBackground: Container(
-                                          color: Colors.blueGrey.shade600,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF64748B),
+                                            borderRadius:
+                                                BorderRadius.circular(14),
+                                          ),
                                           alignment: Alignment.centerRight,
                                           padding: const EdgeInsets.only(
                                             right: 20,
@@ -2026,7 +2156,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                           }
                                           return false; // keep tile; state updates list
                                         },
-                                        child: tile,
+                                        child: cardWrap(tile),
                                       );
                                     },
                                   ),
