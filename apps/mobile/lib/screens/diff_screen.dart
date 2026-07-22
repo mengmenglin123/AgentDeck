@@ -318,13 +318,13 @@ class _DiffScreenState extends State<DiffScreen> {
           final stats = (s.adds == 0 && s.dels == 0)
               ? ''
               : ' · +${s.adds}/-${s.dels}';
-          if (_path == null) return 'Git diff$stats';
-          if (_diffQuery.trim().isEmpty) return 'Diff · $_path$stats';
-          return 'Diff · $_path (find)$stats';
+          if (_path == null) return 'Git 对比$stats';
+          if (_diffQuery.trim().isEmpty) return '对比 · $_path$stats';
+          return '对比 · $_path（查找）$stats';
         }()),
         actions: [
           IconButton(
-            tooltip: _lineNums ? '隐藏行号' : 'Show line numbers',
+            tooltip: _lineNums ? '隐藏行号' : '显示行号',
             onPressed: () => setState(() => _lineNums = !_lineNums),
             icon: Icon(
               _lineNums
@@ -338,11 +338,11 @@ class _DiffScreenState extends State<DiffScreen> {
                 : (_sortByPath
                       ? (_sortAsc ? '路径 Z→A' : '路径 A→Z')
                       : (_sortByDels
-                            ? (_sortAsc ? 'Dels high→low' : 'Dels low→high')
+                            ? (_sortAsc ? '删除 多→少' : '删除 少→多')
                             : (_sortByAdds
                                   ? (_sortAsc
-                                        ? 'Adds high→low'
-                                        : 'Adds low→high')
+                                        ? '新增 多→少'
+                                        : '新增 少→多')
                                   : (_sortByStatus
                                         ? (_sortAsc
                                               ? '状态 Z→A'

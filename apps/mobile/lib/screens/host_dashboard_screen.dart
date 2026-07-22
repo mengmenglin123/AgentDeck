@@ -53,12 +53,12 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
   final _capQueryCtrl = TextEditingController();
 
   String _valueTypeLabel(dynamic v) {
-    if (v == null) return 'null';
-    if (v is bool) return 'bool';
-    if (v is num) return 'number';
-    if (v is List) return 'list';
+    if (v == null) return '空';
+    if (v is bool) return '布尔';
+    if (v is num) return '数字';
+    if (v is List) return '列表';
     if (v is Map) return 'map';
-    return 'string';
+    return '文本';
   }
 
   @override
@@ -535,31 +535,31 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                     runSpacing: 8,
                     children: [
                       _StatChip(
-                        label: 'version',
+                        label: '版本',
                         value: '${_status['version'] ?? '—'}',
                       ),
                       _StatChip(
-                        label: 'uptime',
+                        label: '运行',
                         value: _fmtUptime(_status['uptime_seconds']),
                       ),
                       _StatChip(
-                        label: 'projects',
+                        label: '项目',
                         value: '${_status['projects_count'] ?? '—'}',
                       ),
                       _StatChip(
-                        label: 'sessions',
+                        label: '会话',
                         value: '${_status['sessions_count'] ?? '—'}',
                       ),
                       _StatChip(
-                        label: 'runs',
+                        label: '运行中',
                         value: '${_status['active_runs'] ?? '—'}',
                       ),
                       if (_status['hermes'] is Map)
                         _StatChip(
-                          label: 'hermes',
+                          label: 'Hermes',
                           value:
                               '${((_status['hermes'] as Map)['adapter'] ?? '—')}'
-                              '${((_status['hermes'] as Map)['process'] == true) ? ' · live' : ' · mock'}',
+                              '${((_status['hermes'] as Map)['process'] == true) ? ' · 在线' : ' · 模拟'}',
                         ),
                     ],
                   ),
@@ -568,10 +568,10 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                     (() {
                       final caps =
                           (_status['capabilities'] as List? ?? const []);
-                      if (caps.isEmpty) return 'Capabilities';
+                      if (caps.isEmpty) return '能力';
                       if (_capFilter.isEmpty)
                         return '能力 (${caps.length})';
-                      return 'Capabilities · $_capFilter';
+                      return '能力 · $_capFilter';
                     })(),
                     style: Theme.of(context).textTheme.titleSmall,
                   ),

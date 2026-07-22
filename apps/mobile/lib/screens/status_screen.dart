@@ -559,16 +559,16 @@ class _StatusScreenState extends State<StatusScreen> {
                   label: Text('项目 ${status['projects_count'] ?? '—'}'),
                 ),
                 Chip(
-                  label: Text('sessions ${status['sessions_count'] ?? '—'}'),
+                  label: Text('会话 ${status['sessions_count'] ?? '—'}'),
                 ),
-                Chip(label: Text('runs ${status['active_runs'] ?? '—'}')),
+                Chip(label: Text('运行中 ${status['active_runs'] ?? '—'}')),
               ],
             ),
             if (status['bridge_adapters'] is List &&
                 (status['bridge_adapters'] as List).isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(
-                'Bridge 适配器',
+                '桥接适配器',
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               const SizedBox(height: 6),

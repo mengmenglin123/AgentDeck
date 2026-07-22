@@ -263,23 +263,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
               spacing: 8,
               children: [
                 for (final e in const [
-                  ('updated', 'Updated'),
-                  ('recent', 'Recent'),
+                  ('updated', '更新时间'),
+                  ('recent', '最近'),
                   ('title', AppStrings.sortByTitle),
                   ('project', AppStrings.sortByProject),
-                  ('created', 'Created'),
-                  ('model', 'Model'),
-                  ('key', 'Key'),
-                  ('platform', 'Platform'),
-                  ('agent', 'Agent'),
-                  ('mode', 'Mode'),
-                  ('workdir', 'Workdir'),
-                  ('running', 'Running'),
-                  ('live', 'Live'),
-                  ('last', 'Last msg'),
-                  ('pinned', 'Pinned'),
-                  ('note', 'Note'),
-                  ('archived', 'Archived'),
+                  ('created', '创建时间'),
+                  ('model', '模型'),
+                  ('key', '键'),
+                  ('platform', '平台'),
+                  ('agent', '代理'),
+                  ('mode', '模式'),
+                  ('workdir', '工作目录'),
+                  ('running', '运行中'),
+                  ('live', '实时'),
+                  ('last', '最近消息'),
+                  ('pinned', '置顶'),
+                  ('note', '备注'),
+                  ('archived', '已归档'),
                 ])
                   ChoiceChip(
                     label: Text(e.$2),
@@ -309,7 +309,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 for (final sec in const [0, 10, 15, 30, 60])
                   ChoiceChip(
-                    label: Text(sec == 0 ? 'Off' : '${sec}s'),
+                    label: Text(sec == 0 ? '关' : '${sec}s'),
                     selected: settings.dashboardRefreshSec == sec,
                     onSelected: (_) => settings.setDashboardRefreshSec(sec),
                   ),
@@ -524,14 +524,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               leading: const Icon(Icons.tag),
               title: const Text('应用版本'),
               subtitle: _sub(
-                '0.1.191+191 · ${context.watch<ConnectionController>().isRealHermes ? '真 Hermes' : 'Mock'} 主机',
+                '0.1.192+192 · ${context.watch<ConnectionController>().isRealHermes ? '真 Hermes' : 'Mock'} 主机',
               ),
               trailing: IconButton(
                 tooltip: '复制关于',
                 icon: const Icon(Icons.copy_outlined),
                 onPressed: () async {
                   const text =
-                      'HuanHermes App 0.1.191+191\n控制台 · Mock 或真 Hermes 主机\n设备上无 agent loop · 关于文本不含令牌';
+                      'HuanHermes App 0.1.192+192\n控制台 · Mock 或真 Hermes 主机\n设备上无 agent loop · 关于文本不含令牌';
                   await Clipboard.setData(const ClipboardData(text: text));
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -575,7 +575,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       case 'platform':
         return '按平台再按标题';
       case 'agent':
-        return '按 Agent 类型再按标题';
+        return '按代理类型再按标题';
       case 'mode':
         return '按模式再按标题';
       case 'workdir':
@@ -583,7 +583,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       case 'running':
         return '运行中优先（再按标题）';
       case 'live':
-        return 'Live 优先（再按标题）';
+        return '实时优先（再按标题）';
       case 'last':
         return '按最后用户消息再按标题';
       case 'pinned':
