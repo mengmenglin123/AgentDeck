@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.190
+
+- **修 CI 编译**（APK 构建失败根因）：
+  - Connect CTA 调用 `_onConnect`（误用已删 `_testAndConnect`）
+  - `AppTheme` 补 `cupertino.dart`（`CupertinoPageTransitionsBuilder`）
+  - Sessions 补 `CatalogUi` import
+  - Workspace `onTick: _load`（勿立即调用）
+  - Status 健康卡 `Card` 双 ListTile 包 `Column`
+  - 协议 15/15 + 静态括号校验
+
+
 ## 0.1.189
 
 - **手机可用性扫尾**：

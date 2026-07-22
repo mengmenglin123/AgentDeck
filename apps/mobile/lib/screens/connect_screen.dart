@@ -1104,7 +1104,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 width: double.infinity,
                 height: 52,
                 child: FilledButton.icon(
-                  onPressed: busy ? null : _testAndConnect,
+                  onPressed: busy ? null : _onConnect,
                   style: FilledButton.styleFrom(
                     minimumSize: const Size.fromHeight(52),
                     shape: RoundedRectangleBorder(

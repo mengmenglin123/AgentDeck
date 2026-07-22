@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import '../utils/responsive.dart';
+import '../utils/catalog_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 

@@ -432,7 +432,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       current: _timer,
       enabled: _autoRefresh,
       isBusy: () => _loading,
-      onTick: _load(),
+      onTick: _load,
     );
   }
 

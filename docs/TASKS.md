@@ -710,4 +710,5 @@ PYTHONPATH=packages/huan_protocol python3 -m unittest discover -s packages/huan_
 - [x] 手机可用性：AppBar 收敛 + 触控目标 + Chat composer（0.1.187）
 - [x] 手机可用性续：会话卡片化 + Connect 短路径（0.1.188）
 - [x] 手机可用性扫尾：多选/主机 AppBar 收敛 + 工具格密度（0.1.189）
+- [x] 修 CI 编译错误，恢复 APK 构建（0.1.190）
 

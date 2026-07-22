@@ -473,56 +473,67 @@ class _StatusScreenState extends State<StatusScreen> {
               isThreeLine: true,
             ),
             Card(
-              child: ListTile(
-                leading: Icon(
-                  c.lastHealthError == null
-                      ? Icons.health_and_safety_outlined
-                      : Icons.report_gmailerrorred_outlined,
-                  color: c.lastHealthError == null ? Colors.green : cs.error,
-                ),
-                title: const Text('上次健康探测'),
-                subtitle: Text(
-                  [
-                    if (c.lastHealthOkAt != null)
-                      'OK at ${c.lastHealthOkAt!.toLocal().toIso8601String()}',
-                    if (c.lastHealthError != null)
-                      '错误：${c.lastHealthError}',
-                    if (c.lastHealthOkAt == null && c.lastHealthError == null)
-                      '尚未探测',
-                  ].join('\n'),
-                ),
-                isThreeLine: true,
-                trailing: c.lastHealthError == null
-                    ? null
-                    : IconButton(
-                        tooltip: '复制错误',
-                        icon: const Icon(Icons.copy, size: 18),
-                        onPressed: () async {
-                          await Clipboard.setData(
-                            ClipboardData(text: c.lastHealthError ?? ''),
-                          );
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('已复制健康错误'),
-                                duration: Duration(seconds: 1),
-                              ),
-                            );
-                          }
-                        },
-                      ),
-              ),
-              ListTile(
-                leading: Icon(
-                  Icons.speed,
-                  color: c.lastTestLatencyMs == null ? cs.outline : cs.primary,
-                ),
-                title: const Text('上次连接测试'),
-                subtitle: Text(
-                  c.lastTestLatencyMs == null
-                      ? '尚无连接延迟数据'
-                      : '${c.lastTestLatencyMs} ms（连接时 GET /status）',
-                ),
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: Icon(
+                      c.lastHealthError == null
+                          ? Icons.health_and_safety_outlined
+                          : Icons.report_gmailerrorred_outlined,
+                      color: c.lastHealthError == null
+                          ? Colors.green
+                          : cs.error,
+                    ),
+                    title: const Text('上次健康探测'),
+                    subtitle: Text(
+                      [
+                        if (c.lastHealthOkAt != null)
+                          'OK at ${c.lastHealthOkAt!.toLocal().toIso8601String()}',
+                        if (c.lastHealthError != null)
+                          '错误：${c.lastHealthError}',
+                        if (c.lastHealthOkAt == null &&
+                            c.lastHealthError == null)
+                          '尚未探测',
+                      ].join('\n'),
+                    ),
+                    isThreeLine: true,
+                    trailing: c.lastHealthError == null
+                        ? null
+                        : IconButton(
+                            tooltip: '复制错误',
+                            icon: const Icon(Icons.copy, size: 18),
+                            onPressed: () async {
+                              await Clipboard.setData(
+                                ClipboardData(
+                                  text: c.lastHealthError ?? '',
+                                ),
+                              );
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('已复制健康错误'),
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                  ),
+                  ListTile(
+                    leading: Icon(
+                      Icons.speed,
+                      color: c.lastTestLatencyMs == null
+                          ? cs.outline
+                          : cs.primary,
+                    ),
+                    title: const Text('上次连接测试'),
+                    subtitle: Text(
+                      c.lastTestLatencyMs == null
+                          ? '尚无连接延迟数据'
+                          : '${c.lastTestLatencyMs} ms（连接时 GET /status）',
+                    ),
+                  ),
+                ],
               ),
             ),
             const Divider(),
