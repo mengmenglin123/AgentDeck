@@ -134,7 +134,7 @@ class _PairingScreenState extends State<PairingScreen> {
             .where((l) => (_payloadCase ? l : l.toLowerCase()).contains(q))
             .toList();
       }
-      if (lines.isEmpty) return '(no payload lines match: $_payloadQuery)';
+      if (lines.isEmpty) return '（无匹配载荷行：$_payloadQuery）';
     }
     if (_payloadSorted) {
       lines = List<String>.from(lines)

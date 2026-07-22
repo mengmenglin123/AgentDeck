@@ -932,10 +932,10 @@ class _AgentsScreenState extends State<AgentsScreen> {
               spacing: 8,
               children: [
                 for (final f in const [
-                  ('all', 'All'),
-                  ('agents', 'Agents'),
+                  ('all', '全部'),
+                  ('agents', '代理'),
                   ('platforms', AppStrings.platforms),
-                  ('projects', 'Projects'),
+                  ('projects', '项目'),
                 ])
                   FilterChip(
                     label: Text(f.$2, style: const TextStyle(fontSize: 12)),
@@ -1017,7 +1017,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   ('hermes', 'hermes'),
                   ('claude', 'claude'),
                   ('codex', 'codex'),
-                  ('other', 'other'),
+                  ('other', '其他'),
                 ])
                   FilterChip(
                     visualDensity: VisualDensity.compact,
@@ -1042,7 +1042,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   ('claude', 'claude'),
                   ('codex', 'codex'),
                   ('gemini', 'gemini'),
-                  ('other', 'other'),
+                  ('other', '其他'),
                 ])
                   FilterChip(
                     visualDensity: VisualDensity.compact,
@@ -1062,12 +1062,12 @@ class _AgentsScreenState extends State<AgentsScreen> {
               runSpacing: 4,
               children: [
                 for (final f in const [
-                  ('', 'Any platform'),
+                  ('', '全部平台'),
                   ('telegram', 'telegram'),
                   ('discord', 'discord'),
                   ('slack', 'slack'),
                   ('feishu', 'feishu'),
-                  ('other', 'other'),
+                  ('other', '其他'),
                 ])
                   FilterChip(
                     visualDensity: VisualDensity.compact,

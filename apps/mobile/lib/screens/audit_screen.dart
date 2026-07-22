@@ -155,7 +155,7 @@ class _AuditScreenState extends State<AuditScreen> {
             : 'Audit (${visible.length}/$total)');
     return Scaffold(
       appBar: AppBar(
-        title: Text(_autoRefresh ? '$title · auto' : title),
+        title: Text(_autoRefresh ? '$title · 自动' : title),
         actions: [
           IconButton(
             tooltip: '复制全部',
@@ -244,7 +244,7 @@ class _AuditScreenState extends State<AuditScreen> {
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
-            tooltip: _newestFirst ? 'Oldest first' : 'Newest first',
+            tooltip: _newestFirst ? '最旧在前' : '最新在前',
             onPressed: () => setState(() => _newestFirst = !_newestFirst),
             icon: Icon(_newestFirst ? Icons.south : Icons.north),
           ),
@@ -420,10 +420,10 @@ class _AuditScreenState extends State<AuditScreen> {
               spacing: 8,
               children: [
                 for (final f in const [
-                  ('all', 'All'),
-                  ('info', 'Info'),
-                  ('warn', 'Warn'),
-                  ('error', 'Error'),
+                  ('all', '全部'),
+                  ('info', '信息'),
+                  ('warn', '警告'),
+                  ('error', '错误'),
                 ])
                   FilterChip(
                     label: Text(f.$2, style: const TextStyle(fontSize: 12)),
@@ -441,15 +441,15 @@ class _AuditScreenState extends State<AuditScreen> {
               children: [
                 for (final f in const [
                   ('all', '任意动作'),
-                  ('bridge', 'bridge'),
-                  ('session', 'session'),
-                  ('chat', 'chat'),
-                  ('permission', 'permission'),
-                  ('host', 'host'),
+                  ('bridge', '桥接'),
+                  ('session', '会话'),
+                  ('chat', '聊天'),
+                  ('permission', '权限'),
+                  ('host', '主机'),
                   ('git', 'git'),
-                  ('settings', 'settings'),
-                  ('terminal', 'terminal'),
-                  ('other', 'other'),
+                  ('settings', '设置'),
+                  ('terminal', '终端'),
+                  ('other', '其他'),
                 ])
                   FilterChip(
                     label: Text(f.$2, style: const TextStyle(fontSize: 12)),

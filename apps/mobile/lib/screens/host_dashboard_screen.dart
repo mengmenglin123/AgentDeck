@@ -176,7 +176,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
     final caps = (_status['capabilities'] as List? ?? const [])
         .map((e) => '$e')
         .toList();
-    final text = caps.isEmpty ? '(no capabilities)' : caps.join('\n');
+    final text = caps.isEmpty ? '（无能力列表）' : caps.join('\n');
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(

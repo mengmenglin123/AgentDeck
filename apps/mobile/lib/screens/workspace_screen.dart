@@ -451,7 +451,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               ? '工作区'
               : (() {
                   final vis = _visibleEntries;
-                  if (entries.isEmpty) return 'Workspace';
+                  if (entries.isEmpty) return '工作区';
                   if (vis.length == entries.length) {
                     return '工作区 (${vis.length})';
                   }
@@ -922,9 +922,9 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               spacing: 8,
               children: [
                 for (final f in const [
-                  ('all', 'All'),
-                  ('dir', 'Dirs'),
-                  ('file', 'Files'),
+                  ('all', '全部'),
+                  ('dir', '目录'),
+                  ('file', '文件'),
                 ])
                   FilterChip(
                     label: Text(f.$2, style: const TextStyle(fontSize: 12)),
@@ -983,7 +983,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   ('dart', 'dart'),
                   ('py', 'py'),
                   ('json', 'json'),
-                  ('other', 'other'),
+                  ('other', '其他'),
                 ])
                   FilterChip(
                     label: Text(f.$2, style: const TextStyle(fontSize: 11)),

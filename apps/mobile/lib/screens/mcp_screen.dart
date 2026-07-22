@@ -611,12 +611,12 @@ class _McpScreenState extends State<McpScreen> {
                     spacing: 8,
                     children: [
                       for (final f in const [
-                        ('', 'All'),
-                        ('ok', 'Ok'),
-                        ('connected', 'Connected'),
-                        ('error', 'Error'),
-                        ('disabled', 'Disabled'),
-                        ('unknown', 'Unknown'),
+                        ('', '全部'),
+                        ('ok', '正常'),
+                        ('connected', '已连接'),
+                        ('error', '错误'),
+                        ('disabled', '已禁用'),
+                        ('unknown', '未知'),
                       ])
                         FilterChip(
                           label: Text(
@@ -637,9 +637,9 @@ class _McpScreenState extends State<McpScreen> {
                     children: [
                       for (final f in const [
                         ('', '任意启用状态'),
-                        ('on', 'enabled'),
-                        ('off', 'disabled'),
-                        ('unknown', 'enabled?'),
+                        ('on', '启用'),
+                        ('off', '禁用'),
+                        ('unknown', '未知'),
                       ])
                         FilterChip(
                           label: Text(
@@ -664,7 +664,7 @@ class _McpScreenState extends State<McpScreen> {
                         ('sse', 'SSE'),
                         ('http', 'HTTP'),
                         ('ws', 'WS'),
-                        ('other', 'Other'),
+                        ('other', '其他'),
                       ])
                         FilterChip(
                           label: Text(
@@ -690,7 +690,7 @@ class _McpScreenState extends State<McpScreen> {
                         ('stdio', 'stdio'),
                         ('sse', 'sse'),
                         ('http', 'http'),
-                        ('other', 'other'),
+                        ('other', '其他'),
                       ])
                         FilterChip(
                           label: Text(

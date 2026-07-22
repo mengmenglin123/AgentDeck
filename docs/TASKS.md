@@ -713,4 +713,5 @@ PYTHONPATH=packages/huan_protocol python3 -m unittest discover -s packages/huan_
 - [x] 修 CI 编译错误，恢复 APK 构建（0.1.190）
 - [x] 中文扫尾：权限/会话排序/状态主机文案（0.1.191）
 - [x] 中文扫尾：主机芯片/Diff/设置排序（0.1.192）
+- [x] Catalog/日志筛选中文扫尾（0.1.193）
 

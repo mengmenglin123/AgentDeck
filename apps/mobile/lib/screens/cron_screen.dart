@@ -676,9 +676,9 @@ class _CronScreenState extends State<CronScreen> {
               spacing: 8,
               children: [
                 for (final f in const [
-                  ('all', 'All'),
-                  ('on', 'Enabled'),
-                  ('off', 'Disabled'),
+                  ('all', '全部'),
+                  ('on', '启用'),
+                  ('off', '禁用'),
                 ])
                   FilterChip(
                     label: Text(f.$2, style: const TextStyle(fontSize: 12)),
@@ -700,7 +700,7 @@ class _CronScreenState extends State<CronScreen> {
                   ('prompt', 'prompt'),
                   ('http', 'http'),
                   ('bash', 'bash'),
-                  ('other', 'other'),
+                  ('other', '其他'),
                 ])
                   FilterChip(
                     label: Text(f.$2, style: const TextStyle(fontSize: 11)),
@@ -720,9 +720,9 @@ class _CronScreenState extends State<CronScreen> {
                 for (final f in const [
                   ('all', '任意状态'),
                   ('ok', 'ok'),
-                  ('error', 'error'),
+                  ('error', '错误'),
                   ('running', 'running'),
-                  ('other', 'other'),
+                  ('other', '其他'),
                 ])
                   FilterChip(
                     label: Text(f.$2, style: const TextStyle(fontSize: 11)),

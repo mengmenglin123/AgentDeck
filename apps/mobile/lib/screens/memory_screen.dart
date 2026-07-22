@@ -360,7 +360,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
-            tooltip: _newestFirst ? 'Oldest first' : 'Newest first',
+            tooltip: _newestFirst ? '最旧在前' : '最新在前',
             onPressed: () => setState(() => _newestFirst = !_newestFirst),
             icon: Icon(
               _newestFirst ? Icons.arrow_downward : Icons.arrow_upward,
@@ -596,8 +596,8 @@ class _MemoryScreenState extends State<MemoryScreen> {
               spacing: 8,
               children: [
                 for (final f in const [
-                  ('all', 'All'),
-                  ('global', 'Global'),
+                  ('all', '全部'),
+                  ('global', '全局'),
                   ('project', AppStrings.sortByProject),
                 ])
                   FilterChip(
@@ -619,13 +619,13 @@ class _MemoryScreenState extends State<MemoryScreen> {
               children: [
                 for (final f in const [
                   ('all', '全部类型'),
-                  ('note', 'Note'),
-                  ('fact', 'Fact'),
-                  ('pref', 'Pref'),
-                  ('rule', 'Rule'),
-                  ('snippet', 'Snippet'),
-                  ('doc', 'Doc'),
-                  ('other', 'Other'),
+                  ('note', '备注'),
+                  ('fact', '事实'),
+                  ('pref', '偏好'),
+                  ('rule', '规则'),
+                  ('snippet', '片段'),
+                  ('doc', '文档'),
+                  ('other', '其他'),
                 ])
                   FilterChip(
                     label: Text(f.$2, style: const TextStyle(fontSize: 12)),
@@ -651,7 +651,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
                   ('style', 'style'),
                   ('pairing', 'pairing'),
                   ('console', 'console'),
-                  ('other', 'other'),
+                  ('other', '其他'),
                 ])
                   FilterChip(
                     label: Text(f.$2, style: const TextStyle(fontSize: 11)),

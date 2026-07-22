@@ -66,7 +66,7 @@ class NotificationService {
   }) async {
     await show(
       id: sessionName.hashCode & 0x7FFFFFFF,
-      title: 'Task Complete: $sessionName',
+      title: '任务完成：$sessionName',
       body: summary,
       payload: 'session:$sessionName',
     );

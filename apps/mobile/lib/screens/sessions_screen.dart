@@ -1392,11 +1392,11 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   spacing: 8,
                   children: [
                     for (final f in const [
-                      ('all', 'All'),
-                      ('pinned', 'Pinned'),
-                      ('running', 'Running'),
-                      ('notes', 'Notes'),
-                      ('archived', 'Archived'),
+                      ('all', '全部'),
+                      ('pinned', '置顶'),
+                      ('running', '运行中'),
+                      ('notes', '备注'),
+                      ('archived', '已归档'),
                     ])
                       FilterChip(
                         label: Text(f.$2, style: const TextStyle(fontSize: 12)),
@@ -1452,7 +1452,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       ('hermes', 'hermes'),
                       ('claude', 'claude'),
                       ('codex', 'codex'),
-                      ('other', 'other'),
+                      ('other', '其他'),
                     ])
                       FilterChip(
                         label: Text(f.$2, style: const TextStyle(fontSize: 11)),
@@ -1466,7 +1466,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       ('discord', 'discord'),
                       ('slack', 'slack'),
                       ('feishu', 'feishu'),
-                      ('other', 'other'),
+                      ('other', '其他'),
                     ])
                       FilterChip(
                         label: Text(f.$2, style: const TextStyle(fontSize: 11)),

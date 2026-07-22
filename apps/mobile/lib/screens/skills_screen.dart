@@ -527,13 +527,13 @@ class _SkillsScreenState extends State<SkillsScreen> {
                     spacing: 8,
                     children: [
                       for (final f in const [
-                        ('', 'All'),
-                        ('builtin', 'Builtin'),
-                        ('user', 'User'),
+                        ('', '全部'),
+                        ('builtin', '内置'),
+                        ('user', '用户'),
                         ('project', AppStrings.sortByProject),
-                        ('plugin', 'Plugin'),
-                        ('host', 'Host'),
-                        ('other', 'Other'),
+                        ('plugin', '插件'),
+                        ('host', '主机'),
+                        ('other', '其他'),
                       ])
                         FilterChip(
                           label: Text(
@@ -554,14 +554,14 @@ class _SkillsScreenState extends State<SkillsScreen> {
                     runSpacing: 4,
                     children: [
                       for (final f in const [
-                        ('', 'Any category'),
+                        ('', '全部分类'),
                         ('autonomous', 'autonomous'),
                         ('github', 'github'),
                         ('software', 'software'),
                         ('memory', 'memory'),
                         ('devops', 'devops'),
                         ('research', 'research'),
-                        ('other', 'other'),
+                        ('other', '其他'),
                       ])
                         FilterChip(
                           label: Text(
@@ -585,10 +585,10 @@ class _SkillsScreenState extends State<SkillsScreen> {
                         ('', '任意标签'),
                         ('hermes', 'hermes'),
                         ('git', 'git'),
-                        ('debug', 'debug'),
+                        ('debug', '调试'),
                         ('plan', 'plan'),
                         ('memory', 'memory'),
-                        ('other', 'other'),
+                        ('other', '其他'),
                       ])
                         FilterChip(
                           label: Text(

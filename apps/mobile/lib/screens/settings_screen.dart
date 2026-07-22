@@ -508,7 +508,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
           const Divider(height: 28),
-          if (_matchPref('About', 'console only') || _matchPref('关于', '控制台'))
+          if (_matchPref('关于', '纯控制台') || _matchPref('关于', '控制台'))
             ListTile(
               leading: const Icon(Icons.info_outline),
               title: const Text('关于'),
@@ -524,14 +524,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               leading: const Icon(Icons.tag),
               title: const Text('应用版本'),
               subtitle: _sub(
-                '0.1.192+192 · ${context.watch<ConnectionController>().isRealHermes ? '真 Hermes' : 'Mock'} 主机',
+                '0.1.193+193 · ${context.watch<ConnectionController>().isRealHermes ? '真 Hermes' : 'Mock'} 主机',
               ),
               trailing: IconButton(
                 tooltip: '复制关于',
                 icon: const Icon(Icons.copy_outlined),
                 onPressed: () async {
                   const text =
-                      'HuanHermes App 0.1.192+192\n控制台 · Mock 或真 Hermes 主机\n设备上无 agent loop · 关于文本不含令牌';
+                      'HuanHermes App 0.1.193+193\n控制台 · Mock 或真 Hermes 主机\n设备上无 agent loop · 关于文本不含令牌';
                   await Clipboard.setData(const ClipboardData(text: text));
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

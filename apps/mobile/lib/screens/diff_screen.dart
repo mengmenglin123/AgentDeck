@@ -289,7 +289,7 @@ class _DiffScreenState extends State<DiffScreen> {
           .where((l) => (_diffCase ? l : l.toLowerCase()).contains(q))
           .toList();
     }
-    if (hit.isEmpty) return '(no diff lines match: $_diffQuery)';
+    if (hit.isEmpty) return '（无匹配对比行：$_diffQuery）';
     return hit.join('\n');
   }
 

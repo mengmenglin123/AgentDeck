@@ -364,7 +364,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 TextField(
                     controller: bodyCtrl,
                     decoration:
-                        const InputDecoration(labelText: 'text content'),
+                        const InputDecoration(labelText: '文本内容'),
                     maxLines: 3),
               ],
             ),

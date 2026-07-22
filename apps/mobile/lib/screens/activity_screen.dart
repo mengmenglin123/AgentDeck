@@ -426,7 +426,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
             icon: const Icon(Icons.table_chart_outlined),
           ),
           IconButton(
-            tooltip: _newestFirst ? 'Oldest first' : 'Newest first',
+            tooltip: _newestFirst ? '最旧在前' : '最新在前',
             onPressed: () => setState(() => _newestFirst = !_newestFirst),
             icon: Icon(
               _newestFirst ? Icons.arrow_downward : Icons.arrow_upward,
@@ -727,12 +727,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
               spacing: 8,
               children: [
                 for (final f in const [
-                  ('', 'All'),
-                  ('session', 'Session'),
-                  ('chat', 'Chat'),
-                  ('host', 'Host'),
-                  ('cron', 'Cron'),
-                  ('other', 'Other'),
+                  ('', '全部'),
+                  ('session', '会话'),
+                  ('chat', '聊天'),
+                  ('host', '主机'),
+                  ('cron', '定时'),
+                  ('other', '其他'),
                 ])
                   FilterChip(
                     label: Text(f.$2, style: const TextStyle(fontSize: 12)),
@@ -750,10 +750,10 @@ class _ActivityScreenState extends State<ActivityScreen> {
               children: [
                 for (final f in const [
                   ('', '任意级别'),
-                  ('info', 'info'),
-                  ('warn', 'warn'),
-                  ('error', 'error'),
-                  ('debug', 'debug'),
+                  ('info', '信息'),
+                  ('warn', '警告'),
+                  ('error', '错误'),
+                  ('debug', '调试'),
                 ])
                   FilterChip(
                     label: Text(f.$2, style: const TextStyle(fontSize: 11)),
@@ -772,11 +772,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 for (final f in const [
                   ('', '任意来源'),
                   ('mock-host', 'mock-host'),
-                  ('bridge', 'bridge'),
-                  ('session', 'session'),
-                  ('terminal', 'terminal'),
+                  ('bridge', '桥接'),
+                  ('session', '会话'),
+                  ('terminal', '终端'),
                   ('hermes', 'hermes'),
-                  ('other', 'other'),
+                  ('other', '其他'),
                 ])
                   FilterChip(
                     label: Text(f.$2, style: const TextStyle(fontSize: 11)),
