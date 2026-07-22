@@ -524,14 +524,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               leading: const Icon(Icons.tag),
               title: const Text('应用版本'),
               subtitle: _sub(
-                '0.1.190+190 · ${context.watch<ConnectionController>().isRealHermes ? '真 Hermes' : 'Mock'} 主机',
+                '0.1.191+191 · ${context.watch<ConnectionController>().isRealHermes ? '真 Hermes' : 'Mock'} 主机',
               ),
               trailing: IconButton(
                 tooltip: '复制关于',
                 icon: const Icon(Icons.copy_outlined),
                 onPressed: () async {
                   const text =
-                      'HuanHermes App 0.1.190+190\n控制台 · Mock 或真 Hermes 主机\n设备上无 agent loop · 关于文本不含令牌';
+                      'HuanHermes App 0.1.191+191\n控制台 · Mock 或真 Hermes 主机\n设备上无 agent loop · 关于文本不含令牌';
                   await Clipboard.setData(const ClipboardData(text: text));
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

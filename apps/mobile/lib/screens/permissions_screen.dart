@@ -48,7 +48,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
             onSelected: (v) => setState(() => _filter = v),
             itemBuilder: (_) => [
               const PopupMenuItem(value: 'pending', child: Text('待处理')),
-              const PopupMenuItem(value: 'all', child: Text('All')),
+              const PopupMenuItem(value: 'all', child: Text('全部')),
               const PopupMenuItem(value: 'approved', child: Text('已批准')),
               const PopupMenuItem(value: 'denied', child: Text('已拒绝')),
             ],
@@ -63,7 +63,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
             margin: const EdgeInsets.all(8),
             child: ExpansionTile(
               title: const Text('自动批准规则'),
-              subtitle: Text('${_autoApproveRules.length} rules configured'),
+              subtitle: Text('已配置 ${_autoApproveRules.length} 条规则'),
               children: [
                 Padding(
                   padding: const EdgeInsets.all(12),
@@ -79,13 +79,13 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                         spacing: 6,
                         runSpacing: 4,
                         children: [
-                          _buildRuleChip('file_read', 'Read files', cs),
-                          _buildRuleChip('file_write', 'Write files', cs),
-                          _buildRuleChip('terminal', 'Run commands', cs),
-                          _buildRuleChip('browser', 'Browse web', cs),
-                          _buildRuleChip('search', 'Search', cs),
+                          _buildRuleChip('file_read', '读文件', cs),
+                          _buildRuleChip('file_write', '写文件', cs),
+                          _buildRuleChip('terminal', '终端命令', cs),
+                          _buildRuleChip('browser', '浏览网页', cs),
+                          _buildRuleChip('search', '搜索', cs),
                           ActionChip(
-                            label: const Text('+ Add rule'),
+                            label: const Text('+ 添加规则'),
                             onPressed: () => _showAddRuleDialog(),
                           ),
                         ],
@@ -160,8 +160,8 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                         const SizedBox(height: 8),
                         Text(
                           _filter == 'pending'
-                              ? 'No pending permissions'
-                              : 'No permission history',
+                              ? '暂无待处理权限'
+                              : '暂无权限历史',
                           style: TextStyle(color: cs.onSurfaceVariant),
                         ),
                       ],
@@ -220,7 +220,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
     final buttons =
         (msg.meta['buttons'] as List? ?? []) as List<dynamic>? ?? [];
     final toolMatch = RegExp(r'tool[=:]\s*(\w+)').firstMatch(text);
-    final toolName = toolMatch?.group(1) ?? 'unknown';
+    final toolName = toolMatch?.group(1) ?? '未知';
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -298,7 +298,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                       backgroundColor:
                           isDeny ? cs.errorContainer : cs.primaryContainer,
                     ),
-                    child: Text(b['text']?.toString() ?? 'action'),
+                    child: Text(b['text']?.toString() ?? '操作'),
                   );
                 }).toList(),
               ),
@@ -318,7 +318,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
         content: TextField(
           controller: ctrl,
           decoration: const InputDecoration(
-            hintText: 'Tool name (e.g., file_read)',
+            hintText: '工具名（如 file_read）',
             border: OutlineInputBorder(),
           ),
         ),

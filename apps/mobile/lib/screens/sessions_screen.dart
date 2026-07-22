@@ -607,7 +607,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
     if (!_groupByProject) return List<Object>.from(visible);
     final map = <String, List<SessionInfo>>{};
     for (final s in visible) {
-      final p = s.project.isEmpty ? '(no project)' : s.project;
+      final p = s.project.isEmpty ? '（无项目）' : s.project;
       map.putIfAbsent(p, () => []).add(s);
     }
     final keys = map.keys.toList()
@@ -1151,7 +1151,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    conn.lastError ?? 'Switch failed',
+                                    conn.lastError ?? '切换失败',
                                   ),
                                   backgroundColor: Colors.red.shade700,
                                 ),
@@ -1287,7 +1287,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                         if (conn.lastHealthOkAt != null)
                           'Last OK: ${conn.lastHealthOkAt!.toLocal().toIso8601String().substring(11, 19)}',
                         if (conn.lastHealthError != null)
-                          'Error: ${conn.lastHealthError}',
+                          '错误：${conn.lastHealthError}',
                         if (conn.lastStatus != null &&
                             conn.lastStatus!['version'] != null)
                           'version: ${conn.lastStatus!['version']}',
@@ -1511,7 +1511,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                             ),
                             PopupMenuItem(
                               value: 'key',
-                              child: Text('排序：Key'),
+                              child: Text('排序：键'),
                             ),
                             PopupMenuItem(
                               value: 'platform',
@@ -1519,7 +1519,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                             ),
                             PopupMenuItem(
                               value: 'agent',
-                              child: Text('排序：Agent'),
+                              child: Text('排序：代理'),
                             ),
                             PopupMenuItem(
                               value: 'mode',
@@ -1535,7 +1535,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                             ),
                             PopupMenuItem(
                               value: 'live',
-                              child: Text('排序：Live'),
+                              child: Text('排序：实时'),
                             ),
                             PopupMenuItem(
                               value: 'last',
@@ -1562,22 +1562,22 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                 {
                                       'title': AppStrings.sortByTitle,
                                       'project': AppStrings.sortByProject,
-                                      'created': 'Created',
-                                      'model': 'Model',
-                                      'key': 'Key',
-                                      'recent': 'Recent',
-                                      'platform': 'Platform',
-                                      'agent': 'Agent',
-                                      'mode': 'Mode',
-                                      'workdir': 'Workdir',
-                                      'running': 'Running',
-                                      'live': 'Live',
-                                      'last': 'Last msg',
-                                      'pinned': 'Pinned',
-                                      'note': 'Note',
-                                      'archived': 'Archived',
+                                      'created': '创建时间',
+                                      'model': '模型',
+                                      'key': '键',
+                                      'recent': '最近',
+                                      'platform': '平台',
+                                      'agent': '代理',
+                                      'mode': '模式',
+                                      'workdir': '工作目录',
+                                      'running': '运行中',
+                                      'live': '实时',
+                                      'last': '最近消息',
+                                      'pinned': '置顶',
+                                      'note': '备注',
+                                      'archived': '已归档',
                                     }[settings.sessionSort] ??
-                                    'Updated',
+                                    '更新时间',
                                 style: const TextStyle(fontSize: 12),
                               ),
                               visualDensity: VisualDensity.compact,
@@ -1662,7 +1662,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                         '1) Confirm Host health above is OK\n'
                                         '2) Pick a project if listed\n'
                                         '3) Tap New to create a session\n'
-                                        '4) Open chat to control Claude Code / Codex / Hermes',
+                                        '4) 打开会话控制 Claude Code / Codex / Hermes',
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                           color: Theme.of(
@@ -1763,7 +1763,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                         final count = visible
                                             .where((s) =>
                                                 (s.project.isEmpty
-                                                    ? '(no project)'
+                                                    ? '（无项目）'
                                                     : s.project) ==
                                                 row)
                                             .length;
@@ -1871,7 +1871,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                           children: [
                                             Text(
                                               [
-                                                '${s.project} · ${s.model ?? "model?"}',
+                                                '${s.project} · ${s.model ?? "未知模型"}',
                                                 s.sessionKey,
                                                 if (note != null &&
                                                     note.isNotEmpty)

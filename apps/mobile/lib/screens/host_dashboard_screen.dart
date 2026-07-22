@@ -416,7 +416,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                     leading: Icon(Icons.dns, color: cs.primary),
                     title: Text(cfg.host),
                     subtitle: Text(
-                      'Mgmt ${cfg.mgmtBaseUrl}\nBridge ${cfg.bridgeWsUrlRedacted}',
+                      '管理 ${cfg.mgmtBaseUrl}\n桥接 ${cfg.bridgeWsUrlRedacted}',
                       style: const TextStyle(fontSize: 12),
                       maxLines: _wrapLines ? 6 : 2,
                       overflow: TextOverflow.ellipsis,

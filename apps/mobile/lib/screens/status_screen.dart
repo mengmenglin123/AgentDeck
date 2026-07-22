@@ -453,7 +453,7 @@ class _StatusScreenState extends State<StatusScreen> {
                   ),
                 ),
                 subtitle: Text(
-                  _error ?? 'Mgmt ${cfg.mgmtBaseUrl}',
+                  _error ?? '管理 ${cfg.mgmtBaseUrl}',
                   style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
                 ),
                 trailing: TextButton(
@@ -468,7 +468,7 @@ class _StatusScreenState extends State<StatusScreen> {
               leading: const Icon(Icons.dns_outlined),
               title: Text(cfg.host),
               subtitle: Text(
-                'Mgmt ${cfg.mgmtBaseUrl}\nBridge ${cfg.bridgeWsUrlRedacted}',
+                '管理 ${cfg.mgmtBaseUrl}\n桥接 ${cfg.bridgeWsUrlRedacted}',
               ),
               isThreeLine: true,
             ),
@@ -488,7 +488,7 @@ class _StatusScreenState extends State<StatusScreen> {
                     subtitle: Text(
                       [
                         if (c.lastHealthOkAt != null)
-                          'OK at ${c.lastHealthOkAt!.toLocal().toIso8601String()}',
+                          '正常时间 ${c.lastHealthOkAt!.toLocal().toIso8601String()}',
                         if (c.lastHealthError != null)
                           '错误：${c.lastHealthError}',
                         if (c.lastHealthOkAt == null &&
@@ -543,20 +543,20 @@ class _StatusScreenState extends State<StatusScreen> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                Chip(label: Text('version ${status['version'] ?? '—'}')),
+                Chip(label: Text('版本 ${status['version'] ?? '—'}')),
                 if (status['hermes'] is Map)
                   Chip(
                     avatar: const Icon(Icons.psychology_alt_outlined, size: 16),
                     label: Text(
                       'hermes ${((status['hermes'] as Map)['adapter'] ?? '—')}'
-                      '${((status['hermes'] as Map)['process'] == true) ? ' · live' : ' · no process'}',
+                      '${((status['hermes'] as Map)['process'] == true) ? ' · 进程在线' : ' · 无进程'}',
                     ),
                   ),
                 Chip(
-                  label: Text('uptime ${_fmtUptime(status['uptime_seconds'])}'),
+                  label: Text('运行 ${_fmtUptime(status['uptime_seconds'])}'),
                 ),
                 Chip(
-                  label: Text('projects ${status['projects_count'] ?? '—'}'),
+                  label: Text('项目 ${status['projects_count'] ?? '—'}'),
                 ),
                 Chip(
                   label: Text('sessions ${status['sessions_count'] ?? '—'}'),
