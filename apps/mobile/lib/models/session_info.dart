@@ -1,3 +1,5 @@
+import 'host_capabilities.dart';
+
 class SessionInfo {
   SessionInfo({
     required this.id,
@@ -50,8 +52,8 @@ class SessionInfo {
   factory SessionInfo.fromJson(Map<String, dynamic> json) {
     final sk = (json['session_key'] ?? json['id'] ?? '').toString();
     final id = (json['id'] ?? sk).toString();
-    final title = (json['title'] ?? json['name'] ?? json['chat_name'])
-        ?.toString();
+    final title =
+        (json['title'] ?? json['name'] ?? json['chat_name'])?.toString();
     // last message can be string or object
     String? lastUser = json['last_user']?.toString();
     final lm = json['last_message'];
@@ -72,8 +74,7 @@ class SessionInfo {
       createdAt: _asDouble(
         json['created_at'] ?? json['createdAt'] ?? json['created'],
       ),
-      running:
-          json['running'] == true ||
+      running: json['running'] == true ||
           json['live'] == true ||
           json['active'] == true,
       mode: json['mode']?.toString(),
@@ -106,6 +107,8 @@ class ProjectInfo {
     this.note,
     this.platforms = const [],
     this.capabilities = const [],
+    this.models = const [],
+    this.channels = const [],
   });
 
   final String name;
@@ -114,8 +117,12 @@ class ProjectInfo {
   final String? note;
   final List<String> platforms;
   final List<String> capabilities;
+  final List<String> models;
+  final List<String> channels;
 
-  bool hasCapability(String c) => capabilities.contains(c);
+  CapabilitySet get capabilitySet => CapabilitySet.from(capabilities);
+
+  bool hasCapability(String c) => capabilitySet.supports(c);
 
   factory ProjectInfo.fromJson(Map<String, dynamic> json) {
     final plats = <String>[];
@@ -136,6 +143,8 @@ class ProjectInfo {
         if (c != null) caps.add(c.toString());
       }
     }
+    final models = _strings(json['models'] ?? json['model_catalog']);
+    final channels = _strings(json['channels'] ?? json['providers']);
     return ProjectInfo(
       name: (json['name'] ?? '').toString(),
       agentType: (json['agent_type'] ?? json['agentType'] ?? '').toString(),
@@ -145,6 +154,22 @@ class ProjectInfo {
       note: json['note']?.toString(),
       platforms: plats,
       capabilities: caps,
+      models: models,
+      channels: channels,
     );
+  }
+
+  static List<String> _strings(dynamic raw) {
+    if (raw is! List) return const [];
+    return raw
+        .map((item) {
+          if (item is Map) {
+            return (item['id'] ?? item['name'] ?? item['model'] ?? '')
+                .toString();
+          }
+          return item?.toString() ?? '';
+        })
+        .where((item) => item.trim().isNotEmpty)
+        .toList(growable: false);
   }
 }

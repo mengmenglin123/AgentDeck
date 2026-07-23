@@ -1,14 +1,11 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 
 import '../models/connection_config.dart';
-import '../services/app_settings_controller.dart';
 import '../models/session_info.dart';
+import '../services/catalog_state.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
-import '../utils/catalog_ui.dart';
 import '../utils/query_match.dart';
 import 'chat_screen.dart';
 import '../l10n/app_strings.dart';
@@ -31,10 +28,10 @@ class ActivityScreen extends StatefulWidget {
 }
 
 class _ActivityScreenState extends State<ActivityScreen> {
-  late final MgmtClient _mgmt = MgmtClient(config: widget.config);
-  bool _loading = true;
-  String? _error;
-  List<Map<String, dynamic>> _events = [];
+  late final CatalogState<List<Map<String, dynamic>>> _catalog;
+  bool get _loading => _catalog.loading;
+  String? get _error => _catalog.error;
+  List<Map<String, dynamic>> get _events => _catalog.value ?? const [];
   String _query = '';
   bool _queryCase = false;
   bool _queryRegex = false;
@@ -55,61 +52,53 @@ class _ActivityScreenState extends State<ActivityScreen> {
   bool _sortByPriority = false;
   bool _sortAsc = true;
   bool _relativeTs = false;
-  Timer? _timer;
-  bool _autoRefresh = false;
+  bool get _autoRefresh => _catalog.autoRefresh;
   final _scroll = ScrollController();
   final _q = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    _catalog = CatalogState(
+      loader: _fetch,
+      errorMapper: (error) => Security.redactText(error.toString()),
+    )..addListener(_onCatalogChanged);
     _load();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
+  }
+
+  @override
+  void didUpdateWidget(covariant ActivityScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.config != widget.config) {
+      _catalog.updateLoader(_fetch);
+    }
+  }
+
+  void _onCatalogChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
     _scroll.dispose();
-    _timer?.cancel();
+    _catalog.removeListener(_onCatalogChanged);
+    _catalog.dispose();
     _q.dispose();
     super.dispose();
   }
 
-  void _armTimer() {
-    _timer = CatalogUi.armAutoRefresh(
-      context: context,
-      current: _timer,
-      enabled: _autoRefresh,
-      isBusy: () => _loading,
-      onTick: _load,
-    );
+  Future<List<Map<String, dynamic>>> _fetch() async {
+    final mgmt = MgmtClient(config: widget.config);
+    final data = await mgmt.listActivity(limit: 80);
+    final raw = data['events'];
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList(growable: false);
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final data = await _mgmt.listActivity(limit: 80);
-      final raw = data['events'];
-      final list = <Map<String, dynamic>>[];
-      if (raw is List) {
-        for (final e in raw) {
-          if (e is Map) list.add(Map<String, dynamic>.from(e));
-        }
-      }
-      setState(() {
-        _events = list;
-        _loading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _loading = false;
-        _error = Security.redactText(e.toString());
-      });
-    }
-  }
+  Future<void> _load() => _catalog.refresh();
 
   String _fmtTs(dynamic v) {
     DateTime? dt;
@@ -205,8 +194,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
       final kind = (e['kind'] ?? e['type'] ?? 'event').toString().toLowerCase();
       if (_kind.isNotEmpty) {
         if (_kind == 'other') {
-          final known =
-              kind.contains('session') ||
+          final known = kind.contains('session') ||
               kind.contains('chat') ||
               kind.contains('message') ||
               kind.contains('host') ||
@@ -228,8 +216,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 .toString()
                 .toLowerCase();
         if (_source == 'other') {
-          final known =
-              src.contains('mock') ||
+          final known = src.contains('mock') ||
               src.contains('bridge') ||
               src.contains('session') ||
               src.contains('terminal') ||
@@ -356,8 +343,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
           final base = items.isEmpty
               ? '主机活动'
               : (_events.isEmpty || items.length == _events.length
-                    ? 'Host activity (${items.length})'
-                    : 'Host activity (${items.length}/${_events.length})');
+                  ? 'Host activity (${items.length})'
+                  : 'Host activity (${items.length}/${_events.length})');
           return _autoRefresh ? '$base · auto' : base;
         }()),
         actions: [
@@ -433,9 +420,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
             ),
           ),
           IconButton(
-            tooltip: _relativeTs
-                ? '绝对时间戳'
-                : '相对时间戳',
+            tooltip: _relativeTs ? '绝对时间戳' : '相对时间戳',
             onPressed: () => setState(() => _relativeTs = !_relativeTs),
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
@@ -443,32 +428,28 @@ class _ActivityScreenState extends State<ActivityScreen> {
             tooltip: _sortByPriority
                 ? (_sortAsc ? 'Priority Z→A' : 'Priority A→Z')
                 : (_sortByTs
-                      ? (_sortAsc ? 'Time old→new' : 'Time new→old')
-                      : (_sortByChannel
-                            ? (_sortAsc ? 'Channel Z→A' : 'Channel A→Z')
-                            : (_sortByType
-                                  ? (_sortAsc ? '类型 Z→A' : '类型 A→Z')
-                                  : (_sortByLevel
-                                        ? (_sortAsc ? '级别 Z→A' : '级别 A→Z')
-                                        : (_sortById
-                                              ? (_sortAsc ? 'ID Z→A' : 'ID A→Z')
-                                              : (_sortBySource
+                    ? (_sortAsc ? 'Time old→new' : 'Time new→old')
+                    : (_sortByChannel
+                        ? (_sortAsc ? 'Channel Z→A' : 'Channel A→Z')
+                        : (_sortByType
+                            ? (_sortAsc ? '类型 Z→A' : '类型 A→Z')
+                            : (_sortByLevel
+                                ? (_sortAsc ? '级别 Z→A' : '级别 A→Z')
+                                : (_sortById
+                                    ? (_sortAsc ? 'ID Z→A' : 'ID A→Z')
+                                    : (_sortBySource
+                                        ? (_sortAsc ? '来源 Z→A' : '来源 A→Z')
+                                        : (_sortBySession
+                                            ? (_sortAsc ? '会话 Z→A' : '会话 A→Z')
+                                            : (_sortBySummary
+                                                ? (_sortAsc
+                                                    ? '摘要 Z→A'
+                                                    : '摘要 A→Z')
+                                                : (_sortByKind
                                                     ? (_sortAsc
-                                                          ? '来源 Z→A'
-                                                          : '来源 A→Z')
-                                                    : (_sortBySession
-                                                          ? (_sortAsc
-                                                                ? '会话 Z→A'
-                                                                : '会话 A→Z')
-                                                          : (_sortBySummary
-                                                                ? (_sortAsc
-                                                                      ? '摘要 Z→A'
-                                                                      : '摘要 A→Z')
-                                                                : (_sortByKind
-                                                                      ? (_sortAsc
-                                                                            ? 'Kinds Z→A'
-                                                                            : 'Kinds A→Z')
-                                                                      : 'Sort by kind / summary / session / source / id / level / type / channel / time / priority'))))))))),
+                                                        ? 'Kinds Z→A'
+                                                        : 'Kinds A→Z')
+                                                    : 'Sort by kind / summary / session / source / id / level / type / channel / time / priority'))))))))),
             onPressed: () {
               setState(() {
                 if (!_sortByKind &&
@@ -638,41 +619,35 @@ class _ActivityScreenState extends State<ActivityScreen> {
               _sortByPriority
                   ? Icons.low_priority
                   : (_sortByTs
-                        ? Icons.schedule
-                        : (_sortByChannel
-                              ? Icons.cell_tower
-                              : (_sortByType
-                                    ? Icons.label_outline
-                                    : (_sortByLevel
-                                          ? Icons.low_priority
-                                          : (_sortById
-                                                ? Icons.tag
-                                                : (_sortBySource
-                                                      ? Icons.source_outlined
-                                                      : (_sortBySession
-                                                            ? Icons
-                                                                  .vpn_key_outlined
-                                                            : (_sortBySummary
-                                                                  ? Icons.notes
-                                                                  : (_sortByKind
-                                                                        ? Icons
-                                                                              .category_outlined
-                                                                        : Icons
-                                                                              .sort))))))))),
+                      ? Icons.schedule
+                      : (_sortByChannel
+                          ? Icons.cell_tower
+                          : (_sortByType
+                              ? Icons.label_outline
+                              : (_sortByLevel
+                                  ? Icons.low_priority
+                                  : (_sortById
+                                      ? Icons.tag
+                                      : (_sortBySource
+                                          ? Icons.source_outlined
+                                          : (_sortBySession
+                                              ? Icons.vpn_key_outlined
+                                              : (_sortBySummary
+                                                  ? Icons.notes
+                                                  : (_sortByKind
+                                                      ? Icons.category_outlined
+                                                      : Icons.sort))))))))),
             ),
           ),
-
           IconButton(
             tooltip: _wrapLines ? '截断详情' : '换行详情',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
-
           IconButton(
             tooltip: _autoRefresh ? '暂停刷新' : '自动刷新',
             onPressed: () {
-              setState(() => _autoRefresh = !_autoRefresh);
-              _armTimer();
+              _catalog.setAutoRefresh(!_autoRefresh);
             },
             icon: Icon(
               _autoRefresh
@@ -704,7 +679,6 @@ class _ActivityScreenState extends State<ActivityScreen> {
             },
             icon: const Icon(Icons.vertical_align_bottom),
           ),
-
           IconButton(
             onPressed: _loading ? null : _load,
             icon: const Icon(Icons.refresh),
@@ -799,13 +773,15 @@ class _ActivityScreenState extends State<ActivityScreen> {
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: Text(AppStrings.regex, style: const TextStyle(fontSize: 11)),
+                  label: Text(AppStrings.regex,
+                      style: const TextStyle(fontSize: 11)),
                   selected: _queryRegex,
                   onSelected: (v) => setState(() => _queryRegex = v),
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: Text(AppStrings.matchCase, style: const TextStyle(fontSize: 11)),
+                  label: Text(AppStrings.matchCase,
+                      style: const TextStyle(fontSize: 11)),
                   selected: _queryCase,
                   onSelected: (v) => setState(() => _queryCase = v),
                   visualDensity: VisualDensity.compact,
@@ -813,11 +789,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 FilterChip(
                   label: const Text('自动', style: TextStyle(fontSize: 11)),
                   selected: _autoRefresh,
-                  onSelected: (v) => setState(() => _autoRefresh = v),
+                  onSelected: _catalog.setAutoRefresh,
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text(AppStrings.newestFirst, style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.newestFirst,
+                      style: TextStyle(fontSize: 11)),
                   selected: _newestFirst,
                   onSelected: (v) => setState(() => _newestFirst = v),
                   visualDensity: VisualDensity.compact,
@@ -832,19 +809,15 @@ class _ActivityScreenState extends State<ActivityScreen> {
               decoration: InputDecoration(
                 hintText: _queryRegex
                     ? (_queryCase ? '筛选（正则 · 大小写）' : '筛选（正则）')
-                    : (_queryCase
-                          ? '筛选（区分大小写）'
-                          : '筛选类型 / 摘要 / 会话'),
+                    : (_queryCase ? '筛选（区分大小写）' : '筛选类型 / 摘要 / 会话'),
                 isDense: true,
                 border: const OutlineInputBorder(),
                 prefixIcon: IconButton(
                   tooltip: _queryRegex
                       ? (_queryCase
-                            ? '正则 · 大小写 开（长按恢复普通筛选）'
-                            : '正则 · 大小写 关（长按恢复普通筛选）')
-                      : (_queryCase
-                            ? '区分大小写（长按切换正则）'
-                            : '不区分大小写（长按切换正则）'),
+                          ? '正则 · 大小写 开（长按恢复普通筛选）'
+                          : '正则 · 大小写 关（长按恢复普通筛选）')
+                      : (_queryCase ? '区分大小写（长按切换正则）' : '不区分大小写（长按切换正则）'),
                   icon: Icon(
                     _queryRegex
                         ? Icons.code
@@ -872,9 +845,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
             child: items.isEmpty && !_loading
                 ? Center(
                     child: Text(
-                      _events.isEmpty
-                          ? '暂无活动（主机可能未暴露 /activity）'
-                          : '没有匹配的事件',
+                      _events.isEmpty ? '暂无活动（主机可能未暴露 /activity）' : '没有匹配的事件',
                     ),
                   )
                 : RefreshIndicator(

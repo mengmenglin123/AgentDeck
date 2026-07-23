@@ -1,18 +1,13 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../models/connection_config.dart';
-import '../services/app_settings_controller.dart';
+import '../services/catalog_state.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
-import '../utils/catalog_ui.dart';
-import '../utils/query_match.dart';
 import '../widgets/connection_fingerprint.dart';
 import '../l10n/app_strings.dart';
 
@@ -25,10 +20,10 @@ class PairingScreen extends StatefulWidget {
 }
 
 class _PairingScreenState extends State<PairingScreen> {
-  bool loading = true;
-  String? error;
-  Map<String, dynamic> data = {};
-  Timer? _timer;
+  late final CatalogState<Map<String, dynamic>> _catalog;
+  bool get loading => _catalog.loading;
+  String? get error => _catalog.error;
+  Map<String, dynamic> get data => _catalog.value ?? const {};
   bool _wrapLines = false;
   String _payloadQuery = '';
   bool _payloadCase = false;
@@ -36,52 +31,45 @@ class _PairingScreenState extends State<PairingScreen> {
   bool _payloadSortAsc = true;
   bool _payloadSorted = false;
   final _payloadFilterCtrl = TextEditingController();
-  bool _autoRefresh = false;
+  bool get _autoRefresh => _catalog.autoRefresh;
   final _scroll = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _catalog = CatalogState(
+      loader: _fetch,
+      errorMapper: (error) => Security.redactText(error.toString()),
+    )..addListener(_onCatalogChanged);
     _load();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
+  }
+
+  @override
+  void didUpdateWidget(covariant PairingScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.config != widget.config) {
+      _catalog.updateLoader(_fetch);
+    }
+  }
+
+  void _onCatalogChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
     _payloadFilterCtrl.dispose();
-    _timer?.cancel();
+    _catalog.removeListener(_onCatalogChanged);
+    _catalog.dispose();
     _scroll.dispose();
     super.dispose();
   }
 
-  void _armTimer() {
-    _timer = CatalogUi.armAutoRefresh(
-      context: context,
-      current: _timer,
-      enabled: _autoRefresh,
-      isBusy: () => loading,
-      onTick: _load,
-    );
+  Future<Map<String, dynamic>> _fetch() {
+    return MgmtClient(config: widget.config).pairingInfo();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      loading = true;
-      error = null;
-    });
-    try {
-      final d = await MgmtClient(config: widget.config).pairingInfo();
-      setState(() {
-        data = d;
-        loading = false;
-      });
-    } catch (e) {
-      setState(() {
-        error = e.toString();
-        loading = false;
-      });
-    }
-  }
+  Future<void> _load() => _catalog.refresh();
 
   String get code {
     final c = data['pairing_code']?.toString();
@@ -158,8 +146,7 @@ class _PairingScreenState extends State<PairingScreen> {
         actions: [
           IconButton(
             tooltip: '复制公开摘要',
-            onPressed: () =>
-                _copy(cfg.toPublicSummary(), '已复制公开摘要'),
+            onPressed: () => _copy(cfg.toPublicSummary(), '已复制公开摘要'),
             icon: const Icon(Icons.notes_outlined),
           ),
           IconButton(
@@ -181,8 +168,8 @@ class _PairingScreenState extends State<PairingScreen> {
                       if (!'${e.key}'.toLowerCase().contains('token') &&
                           !'${e.key}'.toLowerCase().contains('secret') &&
                           !'${e.value}'.toString().toLowerCase().contains(
-                            'token=',
-                          ))
+                                'token=',
+                              ))
                         e.key: e.value,
                   },
               };
@@ -248,8 +235,7 @@ class _PairingScreenState extends State<PairingScreen> {
           IconButton(
             tooltip: _autoRefresh ? '暂停刷新' : '自动刷新',
             onPressed: () {
-              setState(() => _autoRefresh = !_autoRefresh);
-              _armTimer();
+              _catalog.setAutoRefresh(!_autoRefresh);
             },
             icon: Icon(
               _autoRefresh
@@ -281,7 +267,6 @@ class _PairingScreenState extends State<PairingScreen> {
             },
             icon: const Icon(Icons.vertical_align_bottom),
           ),
-
           IconButton(
             onPressed: loading ? null : _load,
             icon: const Icon(Icons.refresh),
@@ -304,35 +289,34 @@ class _PairingScreenState extends State<PairingScreen> {
                       children: [
                         for (final item
                             in <(String, bool, void Function(bool))>[
-                              (
-                                AppStrings.wrap,
-                                _wrapLines,
-                                (v) => setState(() => _wrapLines = v),
-                              ),
-                              (
-                                AppStrings.regex,
-                                _payloadRegex,
-                                (v) => setState(() => _payloadRegex = v),
-                              ),
-                              (
-                                AppStrings.matchCase,
-                                _payloadCase,
-                                (v) => setState(() => _payloadCase = v),
-                              ),
-                              (
-                                'Sort',
-                                _payloadSorted,
-                                (v) => setState(() => _payloadSorted = v),
-                              ),
-                              (
-                                AppStrings.autoRefresh,
-                                _autoRefresh,
-                                (v) {
-                                  setState(() => _autoRefresh = v);
-                                  _armTimer();
-                                },
-                              ),
-                            ])
+                          (
+                            AppStrings.wrap,
+                            _wrapLines,
+                            (v) => setState(() => _wrapLines = v),
+                          ),
+                          (
+                            AppStrings.regex,
+                            _payloadRegex,
+                            (v) => setState(() => _payloadRegex = v),
+                          ),
+                          (
+                            AppStrings.matchCase,
+                            _payloadCase,
+                            (v) => setState(() => _payloadCase = v),
+                          ),
+                          (
+                            'Sort',
+                            _payloadSorted,
+                            (v) => setState(() => _payloadSorted = v),
+                          ),
+                          (
+                            AppStrings.autoRefresh,
+                            _autoRefresh,
+                            (v) {
+                              _catalog.setAutoRefresh(v);
+                            },
+                          ),
+                        ])
                           Padding(
                             padding: const EdgeInsets.only(right: 6),
                             child: FilterChip(
@@ -409,8 +393,7 @@ class _PairingScreenState extends State<PairingScreen> {
                   ),
                   Center(
                     child: TextButton.icon(
-                      onPressed: () =>
-                          _copy(_fpHex(publicUri), '指纹 hex 已复制'),
+                      onPressed: () => _copy(_fpHex(publicUri), '指纹 hex 已复制'),
                       icon: const Icon(Icons.tag, size: 16),
                       label: const Text('复制指纹 hex'),
                     ),
@@ -450,8 +433,7 @@ class _PairingScreenState extends State<PairingScreen> {
                         label: const Text('复制摘要'),
                       ),
                       OutlinedButton.icon(
-                        onPressed: () =>
-                            _copy(publicUri, '已复制公开配对 URI'),
+                        onPressed: () => _copy(publicUri, '已复制公开配对 URI'),
                         icon: const Icon(Icons.link),
                         label: const Text('复制公开 URI'),
                       ),
@@ -516,17 +498,17 @@ class _PairingScreenState extends State<PairingScreen> {
                       prefixIcon: IconButton(
                         tooltip: _payloadRegex
                             ? (_payloadCase
-                                  ? '正则 · 大小写 开（长按恢复普通筛选）'
-                                  : '正则 · 大小写 关（长按恢复普通筛选）')
+                                ? '正则 · 大小写 开（长按恢复普通筛选）'
+                                : '正则 · 大小写 关（长按恢复普通筛选）')
                             : (_payloadCase
-                                  ? '区分大小写（长按切换正则）'
-                                  : '不区分大小写（长按切换正则）'),
+                                ? '区分大小写（长按切换正则）'
+                                : '不区分大小写（长按切换正则）'),
                         icon: Icon(
                           _payloadRegex
                               ? Icons.code
                               : (_payloadCase
-                                    ? Icons.text_fields
-                                    : Icons.search),
+                                  ? Icons.text_fields
+                                  : Icons.search),
                           size: 18,
                         ),
                         onPressed: () =>
@@ -535,12 +517,8 @@ class _PairingScreenState extends State<PairingScreen> {
                             setState(() => _payloadRegex = !_payloadRegex),
                       ),
                       hintText: _payloadRegex
-                          ? (_payloadCase
-                                ? '筛选载荷（正则 · 大小写）'
-                                : '筛选载荷（正则）')
-                          : (_payloadCase
-                                ? '筛选载荷（区分大小写）'
-                                : '筛选载荷行'),
+                          ? (_payloadCase ? '筛选载荷（正则 · 大小写）' : '筛选载荷（正则）')
+                          : (_payloadCase ? '筛选载荷（区分大小写）' : '筛选载荷行'),
                       border: const OutlineInputBorder(),
                       suffixIcon: _payloadQuery.isEmpty
                           ? null
@@ -565,8 +543,7 @@ class _PairingScreenState extends State<PairingScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    data['note']?.toString() ??
-                        '令牌仅保存在各设备。只分享公开 URI 或二维码。',
+                    data['note']?.toString() ?? '令牌仅保存在各设备。只分享公开 URI 或二维码。',
                     style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
                   ),
                 ],

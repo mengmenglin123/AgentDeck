@@ -53,7 +53,12 @@ PROJECTS = [
             "mode",
             "model",
             "tools_visible",
+            "terminal",
+            "skills_catalog",
+            "mcp_catalog",
         ],
+        "models": ["claude-sonnet-4", "claude-opus-4"],
+        "channels": ["anthropic"],
     },
     {
         "name": "codex",
@@ -68,7 +73,12 @@ PROJECTS = [
             "mode",
             "model",
             "tools_visible",
+            "terminal",
+            "skills_catalog",
+            "mcp_catalog",
         ],
+        "models": ["gpt-5-codex", "o4-mini"],
+        "channels": ["openai"],
     },
     {
         "name": "hermes",
@@ -86,7 +96,10 @@ PROJECTS = [
             "memory_readonly",
             "skills_catalog",
             "mcp_catalog",
+            "terminal",
         ],
+        "models": ["hermes-default", "hermes-reasoning"],
+        "channels": ["hermes"],
         "note": "Mock Hermes — real adapter is ADR-002; not a live Hermes process",
         "adapter": "mock",
         "process": False,
@@ -1358,6 +1371,36 @@ def handle_bridge_client(conn: socket.socket, addr: Tuple[str, int]) -> None:
                 _handle_message(conn, msg)
                 continue
 
+            if mtype == "terminal_open":
+                sk_o = msg.get("session_key") or ""
+                stream_o = msg.get("stream_id") or f"term-{uuid.uuid4().hex[:8]}"
+                st_o = _session_state(sk_o)
+                st_o["terminal_stream_id"] = stream_o
+                st_o["term_cols"] = max(20, min(240, int(msg.get("cols") or 80)))
+                st_o["term_rows"] = max(5, min(120, int(msg.get("rows") or 24)))
+                ws_send_text(conn, json.dumps({
+                    "type": "terminal_open_ack", "ok": True,
+                    "session_key": sk_o, "stream_id": stream_o,
+                    "cols": st_o["term_cols"], "rows": st_o["term_rows"],
+                }))
+                continue
+
+            if mtype == "terminal_close":
+                sk_c = msg.get("session_key") or ""
+                stream_c = msg.get("stream_id") or ""
+                st_c = _session_state(sk_c)
+                active_c = st_c.get("terminal_stream_id")
+                if not stream_c or not active_c or stream_c == active_c:
+                    st_c.pop("terminal_stream_id", None)
+                    pty_mgr_c = _get_pty_manager()
+                    if pty_mgr_c is not None:
+                        pty_mgr_c.close(sk_c)
+                    ws_send_text(conn, json.dumps({
+                        "type": "terminal_exit", "session_key": sk_c,
+                        "stream_id": stream_c or active_c or "", "exit_code": 0,
+                    }))
+                continue
+
             if mtype == "terminal_input":
                 _handle_terminal_input(conn, msg)
                 continue
@@ -1386,6 +1429,7 @@ def handle_bridge_client(conn: socket.socket, addr: Tuple[str, int]) -> None:
                             "session_key": sk_r,
                             "cols": st_r["term_cols"],
                             "rows": st_r["term_rows"],
+                            "stream_id": msg.get("stream_id") or st_r.get("terminal_stream_id") or "",
                         }
                     ),
                 )
@@ -1525,6 +1569,9 @@ class RealPtyManager:
             except OSError:
                 pass
 
+    def close(self, sk: str) -> None:
+        self._close(sk)
+
     def cleanup_all(self) -> None:
         """Close all PTY processes."""
         for sk in list(self._ptys.keys()):
@@ -1550,6 +1597,14 @@ def _handle_terminal_input(conn: socket.socket, msg: Dict[str, Any]) -> None:
     sk = msg.get("session_key") or ""
     data = (msg.get("data") or msg.get("content") or "").rstrip("\r\n")
     stream_id = msg.get("stream_id") or f"term-{uuid.uuid4().hex[:8]}"
+    st_stream = _session_state(sk)
+    active_stream = st_stream.get("terminal_stream_id")
+    if active_stream and stream_id != active_stream:
+        ws_send_text(conn, json.dumps({
+            "type": "terminal_out", "session_key": sk, "stream_id": stream_id,
+            "data": "", "done": True, "exit_code": 409, "error": "stale terminal stream",
+        }))
+        return
 
     def out(chunk: str, *, done: bool = False, exit_code: Optional[int] = None) -> None:
         payload: Dict[str, Any] = {
@@ -4804,14 +4859,16 @@ class MgmtHandler(BaseHTTPRequestHandler):
         if not self._auth_ok():
             self._send(401, {"ok": False, "error": "unauthorized: missing or invalid token"})
             return
-        path = urlparse(self.path).path
+        parsed = urlparse(self.path)
+        path = parsed.path
+        project = parse_qs(parsed.query).get("project", [None])[0]
         if path == "/api/v1/status":
             self._send(
                 200,
                 {
                     "ok": True,
                     "data": {
-                        "version": "mock-0.1.116",
+                        "version": "mock-0.1.198",
                         "uptime_seconds": int(time.time() - START_TS),
                         "connected_platforms": ["bridge"],
                         "projects_count": len(PROJECTS),
@@ -4893,6 +4950,17 @@ class MgmtHandler(BaseHTTPRequestHandler):
             data["transcript"] = list(st.get("transcript") or [])
             self._send(200, {"ok": True, "data": data})
             return
+        if path == "/api/v1/agents" and project:
+            selected = next((p for p in PROJECTS if p["name"] == project), None)
+            if selected is not None:
+                agent_type = selected.get("agent_type", project)
+                self._send(200, {"ok": True, "data": {"agents": [{
+                    "id": project, "name": project, "status": "mock",
+                    "type": agent_type, "model": (selected.get("models") or [""])[0],
+                    "provider": (selected.get("channels") or [""])[0],
+                    "capabilities": selected.get("capabilities", []),
+                }], "platforms": selected.get("platforms", [])}})
+                return
         if path == "/api/v1/agents":
             self._send(
                 200,
@@ -4956,6 +5024,15 @@ class MgmtHandler(BaseHTTPRequestHandler):
         if path == "/api/v1/bridge/adapters":
             self._send(200, {"ok": True, "data": {"adapters": []}})
             return
+        if path == "/api/v1/mcp" and project in {"claude-code", "codex"}:
+            names = (["claude-files", "claude-git"] if project == "claude-code"
+                     else ["codex-files", "codex-git"])
+            self._send(200, {"ok": True, "data": {"servers": [
+                {"name": name, "status": "mock", "kind": "stdio",
+                 "enabled": True, "tools": ["read", "list"],
+                 "description": f"{project} project MCP (readonly mock)"} for name in names
+            ]}})
+            return
         if path == "/api/v1/mcp":
             self._send(
                 200,
@@ -5009,6 +5086,16 @@ class MgmtHandler(BaseHTTPRequestHandler):
                     },
                 },
             )
+            return
+        if path == "/api/v1/skills" and project in {"claude-code", "codex"}:
+            prefix = "Claude" if project == "claude-code" else "Codex"
+            names = (["claude-code-review", "anthropic-tools", "prompt-cache"]
+                     if project == "claude-code" else ["codex-cli", "openai-tools", "patch-review"])
+            self._send(200, {"ok": True, "data": {"skills": [
+                {"name": name, "description": f"{prefix} project skill (readonly mock)",
+                 "source": project, "category": "agent", "version": "0.1-mock",
+                 "tags": [project, "agent"]} for name in names
+            ]}})
             return
         if path == "/api/v1/skills":
             self._send(
@@ -5094,55 +5181,17 @@ class MgmtHandler(BaseHTTPRequestHandler):
         if path == "/api/v1/workspace/git":
             self._send(200, {"ok": True, "data": workspace_git_status()})
             return
-        if path == "/api/v1/workspace/git/commit" and self.command == "POST":
-            body = self._read_body()
-            msg = body.get("message", "mock commit")
-            files = body.get("files", [])
-            self._send(200, {
-                "ok": True,
-                "data": {
-                    "sha": f"mock-{uuid.uuid4().hex[:7]}",
-                    "message": msg,
-                    "files": files or ["src/main.py"],
-                    "author": "HuanHermes Mock",
-                    "timestamp": datetime.utcnow().isoformat() + "Z",
-                },
-            })
-            return
-        if path == "/api/v1/workspace/git/push" and self.command == "POST":
-            body = self._read_body()
-            remote = body.get("remote", "origin")
-            branch = body.get("branch", "main")
-            self._send(200, {
-                "ok": True,
-                "data": {
-                    "remote": remote,
-                    "branch": branch,
-                    "commits_pushed": 1,
-                    "output": f"Enumerating objects: 3, done.\nTo {remote}/{branch}\n   abc1234..def5678  {branch} -> {branch}\n",
-                },
-            })
-            return
-        if path == "/api/v1/workspace/git/pull" and self.command == "POST":
-            body = self._read_body()
-            remote = body.get("remote", "origin")
-            branch = body.get("branch", "main")
-            self._send(200, {
-                "ok": True,
-                "data": {
-                    "remote": remote,
-                    "branch": branch,
-                    "files_changed": 2,
-                    "output": f"From {remote}\n * branch            {branch}     -> FETCH_HEAD\nUpdating abc1234..def5678\nFast-forward\n src/main.py | 5 +++--\n 1 file changed, 3 insertions(+), 2 deletions(-)\n",
-                },
-            })
-            return
-
         if path == "/api/v1/memory":
             q = parse_qs(urlparse(self.path).query)
+            memory_project = (q.get("project") or [None])[0]
             scope = (q.get("scope") or [None])[0]
             qtext = ((q.get("q") or [""])[0] or "").lower()
             items = list(MEMORY_ENTRIES)
+            if memory_project:
+                items = [
+                    item for item in items
+                    if item.get("scope") == "global" or item.get("project") == memory_project
+                ]
             if scope:
                 items = [m for m in items if m.get("scope") == scope]
             if qtext:

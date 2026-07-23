@@ -6,13 +6,12 @@ import '../errors/app_errors.dart';
 import '../models/connection_config.dart';
 import '../models/session_info.dart';
 
-typedef HttpSender =
-    Future<http.Response> Function(
-      String method,
-      Uri url, {
-      Map<String, String>? headers,
-      Object? body,
-    });
+typedef HttpSender = Future<http.Response> Function(
+  String method,
+  Uri url, {
+  Map<String, String>? headers,
+  Object? body,
+});
 
 /// Management REST client.
 ///
@@ -26,31 +25,30 @@ class MgmtClient {
     required this.config,
     HttpSender? sender,
     Future<http.Response> Function(Uri url, {Map<String, String>? headers})?
-    get,
-  }) : _send =
-           sender ??
-           ((method, url, {headers, body}) async {
-             switch (method) {
-               case 'GET':
-                 return http.get(url, headers: headers);
-               case 'POST':
-                 return http.post(url, headers: headers, body: body);
-               case 'PATCH':
-                 return http.patch(url, headers: headers, body: body);
-               case 'PUT':
-                 return http.put(url, headers: headers, body: body);
-               case 'DELETE':
-                 return http.delete(url, headers: headers);
-               default:
-                 throw ProtocolError('unsupported method $method');
-             }
-           }),
-       _legacyGet = get;
+        get,
+  })  : _send = sender ??
+            ((method, url, {headers, body}) async {
+              switch (method) {
+                case 'GET':
+                  return http.get(url, headers: headers);
+                case 'POST':
+                  return http.post(url, headers: headers, body: body);
+                case 'PATCH':
+                  return http.patch(url, headers: headers, body: body);
+                case 'PUT':
+                  return http.put(url, headers: headers, body: body);
+                case 'DELETE':
+                  return http.delete(url, headers: headers);
+                default:
+                  throw ProtocolError('unsupported method $method');
+              }
+            }),
+        _legacyGet = get;
 
   final ConnectionConfig config;
   final HttpSender _send;
   final Future<http.Response> Function(Uri url, {Map<String, String>? headers})?
-  _legacyGet;
+      _legacyGet;
 
   /// Detected host dialect after first successful call: `flat` | `project` | null.
   String? dialect;
@@ -71,18 +69,18 @@ class MgmtClient {
     return _request('GET', '/projects/${Uri.encodeComponent(name)}');
   }
 
-  Future<Map<String, dynamic>> agents() async {
+  Future<Map<String, dynamic>> agents({String? project}) async {
     try {
-      return await _request('GET', '/agents');
+      return await _request('GET', _scopedPath('/agents', project));
     } on ProtocolError {
       return {'agents': <String>[], 'platforms': <String>[]};
     }
   }
 
   /// Readonly skills list when Host exposes GET /skills (Mock + optional Host).
-  Future<List<Map<String, dynamic>>> listSkills() async {
+  Future<List<Map<String, dynamic>>> listSkills({String? project}) async {
     try {
-      final data = await _request('GET', '/skills');
+      final data = await _request('GET', _scopedPath('/skills', project));
       final list = data['skills'];
       if (list is! List) return const [];
       return list
@@ -95,13 +93,18 @@ class MgmtClient {
   }
 
   /// Readonly MCP catalog when Host exposes GET /mcp.
-  Future<Map<String, dynamic>> listMcp() async {
+  Future<Map<String, dynamic>> listMcp({String? project}) async {
     try {
-      final data = await _request('GET', '/mcp');
+      final data = await _request('GET', _scopedPath('/mcp', project));
       return Map<String, dynamic>.from(data);
     } on ProtocolError {
       return {'servers': <dynamic>[]};
     }
+  }
+
+  String _scopedPath(String path, String? project) {
+    if (project == null || project.trim().isEmpty) return path;
+    return '$path?project=${Uri.encodeQueryComponent(project.trim())}';
   }
 
   /// Pairing payload for text share (no live secrets returned by Mock).
@@ -138,51 +141,22 @@ class MgmtClient {
     }
   }
 
-  /// Git commit: POST /workspace/git/commit
-  Future<Map<String, dynamic>> gitCommit({
-    required String message,
-    List<String>? files,
-  }) async {
-    return await _request(
-      'POST',
-      '/workspace/git/commit',
-      body: {'message': message, if (files != null) 'files': files},
-    );
-  }
-
-  /// Git push: POST /workspace/git/push
-  Future<Map<String, dynamic>> gitPush({
-    String remote = 'origin',
-    String branch = 'main',
-  }) async {
-    return await _request(
-      'POST',
-      '/workspace/git/push',
-      body: {'remote': remote, 'branch': branch},
-    );
-  }
-
-  /// Git pull: POST /workspace/git/pull
-  Future<Map<String, dynamic>> gitPull({
-    String remote = 'origin',
-    String branch = 'main',
-  }) async {
-    return await _request(
-      'POST',
-      '/workspace/git/pull',
-      body: {'remote': remote, 'branch': branch},
-    );
-  }
-
   /// Readonly unified diff: GET /workspace/diff?path=
   Future<Map<String, dynamic>> workspaceDiff({String path = ''}) async {
     final q = path.isEmpty ? '' : '?path=${Uri.encodeQueryComponent(path)}';
     return _request('GET', '/workspace/diff$q');
   }
 
-  /// Host memory catalog (readonly): GET /memory
-  Future<Map<String, dynamic>> listMemory({String? scope, String? q}) async {
+  /// Host memory catalog (readonly): GET /memory?project=&scope=&q=
+  Future<Map<String, dynamic>> listMemory({
+    String? project,
+    String? scope,
+    String? q,
+  }) async {
     final parts = <String>[];
+    if (project != null && project.isNotEmpty) {
+      parts.add('project=${Uri.encodeQueryComponent(project)}');
+    }
     if (scope != null && scope.isNotEmpty) {
       parts.add('scope=${Uri.encodeQueryComponent(scope)}');
     }

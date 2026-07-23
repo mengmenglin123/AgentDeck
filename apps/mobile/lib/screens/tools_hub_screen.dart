@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../l10n/app_strings.dart';
 import '../models/session_info.dart';
 import '../services/connection_controller.dart';
+import '../services/session_controller.dart';
 import '../widgets/console_widgets.dart';
 import 'activity_screen.dart';
 import 'agents_screen.dart';
@@ -26,6 +27,18 @@ class ToolsHubScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final conn = context.watch<ConnectionController>();
     final cfg = conn.saved;
+    final sessions = context.watch<SessionController>();
+    final project = sessions.selectedProject;
+    final projectInfo =
+        sessions.projects.where((item) => item.name == project).firstOrNull;
+    bool supports(String capability) {
+      return projectInfo == null || projectInfo.hasCapability(capability);
+    }
+
+    String gatedSubtitle(String normal, String capability) {
+      return supports(capability) ? normal : '当前 Agent 不支持';
+    }
+
     final cs = Theme.of(context).colorScheme;
 
     final tools = <({
@@ -38,16 +51,16 @@ class ToolsHubScreen extends StatelessWidget {
       (
         icon: Icons.terminal,
         label: AppStrings.toolTerminal,
-        subtitle: '远程终端通道',
+        subtitle: gatedSubtitle('远程终端通道', 'terminal'),
         color: const Color(0xFF0EA5E9),
-        onTap: cfg == null
+        onTap: cfg == null || !supports('terminal')
             ? null
             : () {
                 final session = SessionInfo(
                   id: 'term-adhoc',
                   sessionKey: 'adhoc',
                   title: '终端',
-                  project: 'console',
+                  project: project ?? 'console',
                 );
                 Navigator.of(context).push(
                   MaterialPageRoute(
@@ -73,23 +86,26 @@ class ToolsHubScreen extends StatelessWidget {
       (
         icon: Icons.auto_awesome_outlined,
         label: AppStrings.toolSkills,
-        subtitle: '技能目录',
+        subtitle: gatedSubtitle('技能目录', 'skills_catalog'),
         color: const Color(0xFF8B5CF6),
-        onTap: cfg == null
+        onTap: cfg == null || !supports('skills_catalog')
             ? null
             : () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => SkillsScreen(config: cfg)),
+                  MaterialPageRoute(
+                      builder: (_) =>
+                          SkillsScreen(config: cfg, project: project)),
                 ),
       ),
       (
         icon: Icons.extension_outlined,
         label: AppStrings.toolMcp,
-        subtitle: 'MCP 目录',
+        subtitle: gatedSubtitle('MCP 目录', 'mcp_catalog'),
         color: const Color(0xFF14B8A6),
-        onTap: cfg == null
+        onTap: cfg == null || !supports('mcp_catalog')
             ? null
             : () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => McpScreen(config: cfg)),
+                  MaterialPageRoute(
+                      builder: (_) => McpScreen(config: cfg, project: project)),
                 ),
       ),
       (
@@ -106,12 +122,14 @@ class ToolsHubScreen extends StatelessWidget {
       (
         icon: Icons.psychology_outlined,
         label: AppStrings.toolMemory,
-        subtitle: '主机记忆',
+        subtitle: gatedSubtitle('主机记忆', 'memory_readonly'),
         color: const Color(0xFFEC4899),
-        onTap: cfg == null
+        onTap: cfg == null || !supports('memory_readonly')
             ? null
             : () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => MemoryScreen(config: cfg)),
+                  MaterialPageRoute(
+                    builder: (_) => MemoryScreen(config: cfg, project: project),
+                  ),
                 ),
       ),
       (
@@ -122,7 +140,9 @@ class ToolsHubScreen extends StatelessWidget {
         onTap: cfg == null
             ? null
             : () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => AgentsScreen(config: cfg)),
+                  MaterialPageRoute(
+                      builder: (_) =>
+                          AgentsScreen(config: cfg, project: project)),
                 ),
       ),
       (
@@ -177,8 +197,8 @@ class ToolsHubScreen extends StatelessWidget {
         subtitle: '连接健康',
         color: cs.primary,
         onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const StatusScreen()),
-        ),
+              MaterialPageRoute(builder: (_) => const StatusScreen()),
+            ),
       ),
     ];
 

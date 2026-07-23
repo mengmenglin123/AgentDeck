@@ -164,12 +164,18 @@ class TestWithMockHost(unittest.TestCase):
         client = BridgeClient(cfg, on_message=on_msg)
         client.connect()
         sk = f"huanhermes-app:claude-code:term-test"
-        client.terminal_input(session_key=sk, data="help")
+        stream_id = "term-test-stream"
+        client.terminal_open(session_key=sk, stream_id=stream_id, cols=100, rows=30)
+        client.terminal_resize(session_key=sk, stream_id=stream_id, cols=110, rows=35)
+        client.terminal_input(session_key=sk, stream_id=stream_id, data="help")
         self.assertTrue(done.wait(8), f"no terminal_out done events={events}")
         types = [e.get("type") for e in events]
+        self.assertIn("terminal_open_ack", types)
+        self.assertIn("terminal_ack", types)
         self.assertIn("terminal_out", types)
         blobs = "".join((e.get("data") or "") for e in events if e.get("type") == "terminal_out")
         self.assertIn("Mock terminal", blobs)
+        client.terminal_close(session_key=sk, stream_id=stream_id)
         client.close()
 
 

@@ -230,7 +230,7 @@ class BridgeClient:
                 "type": "register",
                 "platform": self.config.platform_name,
                 "capabilities": ["text", "buttons", "typing", "preview"],
-                "metadata": {"version": "0.1.0", "device_id": self.config.device_id},
+                "metadata": {"version": "0.1.195", "device_id": self.config.device_id},
             }
         )
 
@@ -239,6 +239,7 @@ class BridgeClient:
         content: str,
         *,
         conversation_id: str,
+        project: Optional[str] = None,
         user_id: str = "user",
         user_name: str = "User",
         session_key_override: Optional[str] = None,
@@ -255,6 +256,7 @@ class BridgeClient:
                 "type": "message",
                 "msg_id": msg_id,
                 "session_key": sk,
+                **({"project": project} if project else {}),
                 "user_id": user_id,
                 "user_name": user_name,
                 "content": content,
@@ -266,25 +268,71 @@ class BridgeClient:
         )
         return {"session_key": sk, "reply_ctx": reply_ctx, "msg_id": msg_id}
 
-    def send_card_action(self, session_key: str, action: str, reply_ctx: str) -> None:
+    def send_card_action(
+        self,
+        session_key: str,
+        action: str,
+        reply_ctx: str,
+        project: Optional[str] = None,
+    ) -> None:
         self.send(
             {
                 "type": "card_action",
                 "session_key": session_key,
                 "action": action,
                 "reply_ctx": reply_ctx,
+                **({"project": project} if project else {}),
             }
         )
 
-    def cancel(self, session_key: str, reply_ctx: str = "") -> None:
+    def cancel(
+        self,
+        session_key: str,
+        reply_ctx: str = "",
+        project: Optional[str] = None,
+    ) -> None:
         self.send(
             {
                 "type": "cancel",
                 "session_key": session_key,
                 "reply_ctx": reply_ctx or "",
+                **({"project": project} if project else {}),
             }
         )
 
+
+
+    def terminal_open(
+        self,
+        *,
+        session_key: str,
+        stream_id: str,
+        project: Optional[str] = None,
+        cols: int = 80,
+        rows: int = 24,
+    ) -> None:
+        self.send({
+            "type": "terminal_open",
+            "session_key": session_key,
+            "stream_id": stream_id,
+            **({"project": project} if project else {}),
+            "cols": cols,
+            "rows": rows,
+        })
+
+    def terminal_close(
+        self,
+        *,
+        session_key: str,
+        stream_id: Optional[str] = None,
+        project: Optional[str] = None,
+    ) -> None:
+        payload = {"type": "terminal_close", "session_key": session_key}
+        if stream_id:
+            payload["stream_id"] = stream_id
+        if project:
+            payload["project"] = project
+        self.send(payload)
 
     def terminal_input(
         self,
@@ -292,6 +340,7 @@ class BridgeClient:
         session_key: str,
         data: str,
         stream_id: Optional[str] = None,
+        project: Optional[str] = None,
     ) -> None:
         payload = {
             "type": "terminal_input",
@@ -300,17 +349,26 @@ class BridgeClient:
         }
         if stream_id:
             payload["stream_id"] = stream_id
+        if project:
+            payload["project"] = project
         self.send(payload)
 
-    def terminal_resize(self, *, session_key: str, cols: int = 80, rows: int = 24) -> None:
-        self.send(
-            {
-                "type": "terminal_resize",
-                "session_key": session_key,
-                "cols": cols,
-                "rows": rows,
-            }
-        )
+    def terminal_resize(
+        self, *, session_key: str, cols: int = 80, rows: int = 24,
+        stream_id: Optional[str] = None,
+        project: Optional[str] = None,
+    ) -> None:
+        payload = {
+            "type": "terminal_resize",
+            "session_key": session_key,
+            "cols": cols,
+            "rows": rows,
+        }
+        if stream_id:
+            payload["stream_id"] = stream_id
+        if project:
+            payload["project"] = project
+        self.send(payload)
 
     def ping(self) -> None:
         self.send({"type": "ping", "ts": int(time.time() * 1000)})

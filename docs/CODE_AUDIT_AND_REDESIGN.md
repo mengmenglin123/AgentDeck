@@ -1,7 +1,14 @@
-# HuanHermes 代码审计与重设计（0.1.181）
+# HuanHermes 代码审计与重设计（更新至 0.1.196）
 
-> 用当前模型对 `main`（约 0.1.180）全仓复审后的结论与落地路线。  
+> 初始审计基于约 0.1.180；2026-07-22 已按 0.1.196 再次全仓复审。
 > 原则：**修根因、保协议兼容、不改渠道/密钥、中文 UI、可验证小步 ship**。
+
+## 0. 0.1.194 复审补充
+
+- Workspace Git 写入口已移除，继续遵守只读 ADR；若未来开放必须先更新协议和权限模型。
+- 真相机扫码和真 file/image picker 已存在，旧 handoff 的“仍远期”结论作废。
+- CI 已加入 Flutter analyze/test、Python compile/test；端点契约变化会触发验证。
+- 当前优先架构工作见 `docs/DEVELOPMENT_PLAN.md`：HostCapabilities → CatalogState → 精确通知深链 → Production Host Adapter。
 
 ## 1. 现状快照
 
@@ -9,9 +16,9 @@
 |------|------|------|
 | Flutter `lib/` | ~25k 行 Dart（MD 已拆 legacy） | 19 个 Screen，多数 600–2200 行 |
 | `mock_host.py` | ~5.3k 行（含 registry） | 终端 mock 巨石；功能完整但难维护 |
-| 协议包测试 | 15/15 绿 | 基础协议可信 |
-| Flutter 测试 | 7 个文件 | 几乎不覆盖巨型 Screen |
-| 版本 | `0.1.184+184` | P0–P3 与大量 P4 切片已 ship |
+| 协议包测试 | 17 个 | 增加 Workspace 只读契约回归 |
+| Flutter 测试 | 15 个文件 / 44 个测试 | 已补附件/通知/Host 语义；巨型 Screen 仍不足 |
+| 版本 | `0.1.198+198` | 加入 Agent 作用域、CatalogState 与通知深链 |
 
 ### 架构（正确部分）
 
@@ -66,8 +73,8 @@ App (Flutter) ──WSS Bridge + HTTPS Mgmt──► Host (Mock / 自研)
 
 - 多处 `v.toDouble()` 时间戳解析重复。
 - Catalog 屏 7–10 个 `_sortBy*` 布尔而非 enum。
-- `NotificationService` 点击跳转 TODO。
-- CONTINUE 锚点仍写 0.1.179，文档漂移。
+- 通知已能回到会话 Tab；按 session key 精确打开 Chat 仍待深化。
+- 版本与能力文档需要继续由 CI/发布流程约束，避免再次漂移。
 
 ## 3. 重设计目标
 

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../errors/app_errors.dart';
 import '../models/connection_config.dart';
+import '../models/host_capabilities.dart';
 import '../models/session_info.dart';
 import '../models/transcript.dart';
 import 'audit_log.dart';
@@ -46,7 +47,7 @@ class ChatController extends ChangeNotifier {
   String mode = 'default';
   String model = 'mock-sonnet';
   String workdir = '/workspace';
-  List<String> capabilities = const [
+  CapabilitySet capabilitySet = CapabilitySet.from(const [
     'stream',
     'buttons',
     'cancel',
@@ -54,7 +55,7 @@ class ChatController extends ChangeNotifier {
     'mode',
     'model',
     'tools_visible',
-  ];
+  ]);
   int reconnectAttempts = 0;
 
   /// Device-local; mirrored from AppSettings when ChatScreen boots.
@@ -62,11 +63,13 @@ class ChatController extends ChangeNotifier {
   bool autoReconnect = true;
   Timer? _reconnectTimer;
   bool _disposed = false;
+  bool _offlineLoaded = false;
   String? reconnectHint;
 
   List<TranscriptMessage> get messages => List.unmodifiable(reducer.messages);
   bool get isEmpty => messages.isEmpty;
-  bool hasCap(String c) => capabilities.isEmpty || capabilities.contains(c);
+  List<String> get capabilities => capabilitySet.toList();
+  bool hasCap(String c) => capabilitySet.isEmpty || capabilitySet.supports(c);
 
   Future<void> connect({bool silent = false}) async {
     if (connected || connecting) return;
@@ -87,6 +90,11 @@ class ChatController extends ChangeNotifier {
       _bridge = client;
       await client.connect();
       connected = true;
+      if (!_offlineLoaded) {
+        await offlineQueue.load();
+        _offlineLoaded = true;
+      }
+      await _flushOfflineQueue();
       reconnectAttempts = 0;
       reconnectHint = silent ? 'Reconnected' : null;
       if (silent) {
@@ -161,7 +169,7 @@ class ChatController extends ChangeNotifier {
       workdir = (data['workdir'] ?? workdir).toString();
       final caps = data['capabilities'];
       if (caps is List && caps.isNotEmpty) {
-        capabilities = caps.map((e) => e.toString()).toList();
+        capabilitySet = CapabilitySet.from(caps);
       }
       if (data['running'] == true) runActive = true;
       audit.add('session.reload', detail: session.id);
@@ -174,34 +182,53 @@ class ChatController extends ChangeNotifier {
     }
   }
 
-  Future<void> send(
+  Future<bool> send(
     String text, {
     List<Map<String, dynamic>> images = const [],
     List<Map<String, dynamic>> files = const [],
   }) async {
     final content = text.trim();
-    if (content.isEmpty && images.isEmpty && files.isEmpty) return;
+    if (content.isEmpty && images.isEmpty && files.isEmpty) return false;
     if (!connected || _bridge == null) {
       await connect();
-      if (!connected || _bridge == null) return;
+      if (!connected || _bridge == null) return false;
     }
     sending = true;
     error = null;
     final display = content.isEmpty
         ? '[attachment: ${images.length} image(s), ${files.length} file(s)]'
         : content;
-    reducer.apply(TranscriptEvent(kind: EventKind.user, text: display));
-    notifyListeners();
+    var accepted = false;
     try {
       final meta = _bridge!.sendUserMessage(
         content: content,
         conversationId: session.id,
+        project: session.project,
         sessionKeyOverride: session.sessionKey,
         images: images,
         files: files,
       );
       lastReplyCtx = meta['reply_ctx'];
       runActive = true;
+      accepted = true;
+    } on DisconnectedError catch (e) {
+      connected = false;
+      if (images.isNotEmpty || files.isNotEmpty) {
+        error = '附件未发送，请恢复连接后重试';
+      } else if (offlineQueue.enabled && content.isNotEmpty) {
+        accepted = offlineQueue.enqueue(
+          sessionKey: session.sessionKey,
+          content: content,
+        );
+        error = accepted ? '消息已加入离线队列' : '离线队列已满';
+      } else {
+        error = e.message;
+      }
+    } catch (e) {
+      error = e.toString();
+    }
+    if (accepted) {
+      reducer.apply(TranscriptEvent(kind: EventKind.user, text: display));
       if (content.isNotEmpty && !content.startsWith('/')) {
         await promptHistory.addRecent(content);
       }
@@ -209,36 +236,20 @@ class ChatController extends ChangeNotifier {
         'chat.send',
         detail: display.length > 80 ? '${display.substring(0, 80)}…' : display,
       );
-    } on DisconnectedError catch (e) {
-      error = e.message;
-      connected = false;
-      // Queue message for later delivery
-      if (offlineQueue.enabled && content.isNotEmpty) {
-        offlineQueue.enqueue(
-          sessionKey: session.sessionKey,
-          content: content,
-          extra: {
-            if (images.isNotEmpty) 'images': images,
-            if (files.isNotEmpty) 'files': files,
-          },
-        );
-      }
-    } catch (e) {
-      error = e.toString();
-    } finally {
-      sending = false;
-      notifyListeners();
     }
+    sending = false;
+    notifyListeners();
+    return accepted;
   }
 
   /// Apply project capabilities from Sessions list (P2-3).
   void applyProjectCapabilities(List<String> caps) {
     if (caps.isEmpty) return;
-    capabilities = List<String>.from(caps);
+    capabilitySet = CapabilitySet.from(caps);
     notifyListeners();
   }
 
-  Future<void> sendSlash(String command) => send(command);
+  Future<bool> sendSlash(String command) => send(command);
 
   /// Flush queued offline messages after reconnect.
   Future<void> _flushOfflineQueue() async {
@@ -248,6 +259,7 @@ class ChatController extends ChangeNotifier {
         _bridge!.sendUserMessage(
           content: msg.content,
           conversationId: session.id,
+          project: session.project,
           sessionKeyOverride: session.sessionKey,
         );
         return true;
@@ -305,7 +317,11 @@ class ChatController extends ChangeNotifier {
   Future<void> cancelRun() async {
     if (_bridge == null || !connected) return;
     try {
-      _bridge!.cancel(sessionKey: session.sessionKey, replyCtx: lastReplyCtx);
+      _bridge!.cancel(
+        sessionKey: session.sessionKey,
+        replyCtx: lastReplyCtx,
+        project: session.project,
+      );
       audit.add('chat.cancel', detail: lastReplyCtx ?? '');
       // also slash fallback
       // host accepts either
@@ -327,6 +343,7 @@ class ChatController extends ChangeNotifier {
         sessionKey: session.sessionKey,
         action: action,
         replyCtx: replyCtx,
+        project: session.project,
       );
       audit.add('permission.action', detail: action);
     } catch (e) {
@@ -403,6 +420,7 @@ class ChatController extends ChangeNotifier {
       // Show notification when task completes
       final summary = payload['summary']?.toString() ?? 'Task completed';
       NotificationService.instance.showTaskComplete(
+        sessionKey: session.sessionKey,
         sessionName: session.displayTitle,
         summary: summary,
       );

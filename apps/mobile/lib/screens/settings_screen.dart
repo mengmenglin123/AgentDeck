@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../app_meta.dart';
 import '../services/app_settings_controller.dart';
 import '../services/theme_controller.dart';
 import '../services/connection_controller.dart';
@@ -112,9 +113,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ? (_prefCase
                         ? '正则 · 大小写 开（长按恢复普通筛选）'
                         : '正则 · 大小写 关（长按恢复普通筛选）')
-                    : (_prefCase
-                        ? '区分大小写（长按切换正则）'
-                        : '不区分大小写（长按切换正则）'),
+                    : (_prefCase ? '区分大小写（长按切换正则）' : '不区分大小写（长按切换正则）'),
                 icon: Icon(
                   _prefRegex
                       ? Icons.code
@@ -125,12 +124,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onLongPress: () => setState(() => _prefRegex = !_prefRegex),
               ),
               hintText: _prefRegex
-                  ? (_prefCase
-                      ? '筛选设置（正则 · 大小写）'
-                      : '筛选设置（正则）')
-                  : (_prefCase
-                      ? '筛选设置（区分大小写）'
-                      : '筛选设置'),
+                  ? (_prefCase ? '筛选设置（正则 · 大小写）' : '筛选设置（正则）')
+                  : (_prefCase ? '筛选设置（区分大小写）' : '筛选设置'),
               border: const OutlineInputBorder(),
               suffixIcon: _prefQuery.isEmpty
                   ? null
@@ -161,7 +156,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: FilterChip(
-                    label: const Text(AppStrings.regex, style: TextStyle(fontSize: 11)),
+                    label: const Text(AppStrings.regex,
+                        style: TextStyle(fontSize: 11)),
                     selected: _prefRegex,
                     onSelected: (v) => setState(() => _prefRegex = v),
                     visualDensity: VisualDensity.compact,
@@ -170,7 +166,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: FilterChip(
-                    label: const Text(AppStrings.matchCase, style: TextStyle(fontSize: 11)),
+                    label: const Text(AppStrings.matchCase,
+                        style: TextStyle(fontSize: 11)),
                     selected: _prefCase,
                     onSelected: (v) => setState(() => _prefCase = v),
                     visualDensity: VisualDensity.compact,
@@ -250,7 +247,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           const Divider(height: 28),
           if (_matchPref(AppStrings.sessionsLabel, 'sort'))
-            Text(AppStrings.sessionsLabel, style: Theme.of(context).textTheme.titleSmall),
+            Text(AppStrings.sessionsLabel,
+                style: Theme.of(context).textTheme.titleSmall),
           if (_matchPref('默认排序', 'session sort'))
             ListTile(
               leading: const Icon(Icons.sort),
@@ -291,7 +289,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const Divider(height: 28),
           if (_matchPref(AppStrings.consoleLabel, 'tools haptic'))
-            Text(AppStrings.consoleLabel, style: Theme.of(context).textTheme.titleSmall),
+            Text(AppStrings.consoleLabel,
+                style: Theme.of(context).textTheme.titleSmall),
           if (_matchPref('仪表盘自动刷新', 'seconds'))
             ListTile(
               leading: const Icon(Icons.timer_outlined),
@@ -524,14 +523,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               leading: const Icon(Icons.tag),
               title: const Text('应用版本'),
               subtitle: _sub(
-                '0.1.193+193 · ${context.watch<ConnectionController>().isRealHermes ? '真 Hermes' : 'Mock'} 主机',
+                '${AppMeta.version} · ${context.watch<ConnectionController>().hostRuntime.displayLabel} 主机',
               ),
               trailing: IconButton(
                 tooltip: '复制关于',
                 icon: const Icon(Icons.copy_outlined),
                 onPressed: () async {
                   const text =
-                      'HuanHermes App 0.1.193+193\n控制台 · Mock 或真 Hermes 主机\n设备上无 agent loop · 关于文本不含令牌';
+                      'HuanHermes App ${AppMeta.version}\n控制台 · Mock 或兼容 Host\n设备上无 agent loop · 关于文本不含令牌';
                   await Clipboard.setData(const ClipboardData(text: text));
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

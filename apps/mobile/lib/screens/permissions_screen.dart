@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../utils/catalog_ui.dart';
-import '../utils/query_match.dart';
 
 import '../services/chat_controller.dart';
-import '../services/notification_service.dart';
 
 /// Screen for managing agent permission requests.
 /// Shows pending approvals, history, and auto-approve rules.

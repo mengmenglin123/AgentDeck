@@ -9,8 +9,8 @@ class SessionController extends ChangeNotifier {
   SessionController({
     required ConnectionConfig config,
     MgmtClient Function(ConnectionConfig config)? mgmtFactory,
-  }) : _config = config,
-       _mgmtFactory = mgmtFactory ?? ((c) => MgmtClient(config: c));
+  })  : _config = config,
+        _mgmtFactory = mgmtFactory ?? ((c) => MgmtClient(config: c));
 
   ConnectionConfig _config;
   final MgmtClient Function(ConnectionConfig config) _mgmtFactory;
@@ -20,6 +20,7 @@ class SessionController extends ChangeNotifier {
   String? selectedProject;
   bool loading = false;
   String? error;
+  int _refreshGeneration = 0;
 
   void updateConfig(ConnectionConfig config) {
     _config = config;
@@ -27,29 +28,96 @@ class SessionController extends ChangeNotifier {
 
   MgmtClient get _mgmt => _mgmtFactory(_config);
 
+  ProjectInfo? get selectedProjectInfo {
+    final name = selectedProject;
+    if (name == null) return null;
+    for (final project in projects) {
+      if (project.name == name) return project;
+    }
+    return null;
+  }
+
   Future<void> refresh() async {
+    final generation = ++_refreshGeneration;
     loading = true;
     error = null;
     notifyListeners();
     try {
-      projects = await _mgmt.projects();
-      if (selectedProject == null && projects.isNotEmpty) {
-        selectedProject = projects.first.name;
+      final nextProjects = await _mgmt.projects();
+      if (generation != _refreshGeneration) return;
+      projects = nextProjects;
+      final available = projects.map((project) => project.name).toSet();
+      if (selectedProject == null || !available.contains(selectedProject)) {
+        selectedProject = projects.isEmpty ? null : projects.first.name;
       }
-      sessions = await _mgmt.sessions(project: selectedProject);
-      // newest first
-      sessions.sort((a, b) => (b.updatedAt ?? 0).compareTo(a.updatedAt ?? 0));
+      final project = selectedProject;
+      final nextSessions = await _mgmt.sessions(project: project);
+      if (generation != _refreshGeneration || project != selectedProject)
+        return;
+      nextSessions.sort(
+        (a, b) => (b.updatedAt ?? 0).compareTo(a.updatedAt ?? 0),
+      );
+      sessions = nextSessions;
     } on AuthError catch (e) {
-      error = e.message;
+      if (generation == _refreshGeneration) error = e.message;
     } on DisconnectedError catch (e) {
-      error = 'Cannot reach host: ${e.message}';
+      if (generation == _refreshGeneration) {
+        error = 'Cannot reach host: ${e.message}';
+      }
     } on ProtocolError catch (e) {
-      error = e.message;
+      if (generation == _refreshGeneration) error = e.message;
     } catch (e) {
-      error = e.toString();
+      if (generation == _refreshGeneration) error = e.toString();
     } finally {
-      loading = false;
-      notifyListeners();
+      if (generation == _refreshGeneration) {
+        loading = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<SessionInfo?> locateSession(String reference) async {
+    final ref = reference.trim();
+    if (ref.isEmpty) return null;
+    SessionInfo? matchIn(Iterable<SessionInfo> values) {
+      for (final session in values) {
+        if (session.sessionKey == ref || session.id == ref) return session;
+      }
+      return null;
+    }
+
+    final current = matchIn(sessions);
+    if (current != null) return current;
+
+    final generation = ++_refreshGeneration;
+    loading = true;
+    error = null;
+    notifyListeners();
+    try {
+      final nextProjects = await _mgmt.projects();
+      if (generation != _refreshGeneration) return null;
+      projects = nextProjects;
+      for (final project in nextProjects) {
+        final projectSessions = await _mgmt.sessions(project: project.name);
+        if (generation != _refreshGeneration) return null;
+        final match = matchIn(projectSessions);
+        if (match == null) continue;
+        projectSessions.sort(
+          (a, b) => (b.updatedAt ?? 0).compareTo(a.updatedAt ?? 0),
+        );
+        selectedProject = project.name;
+        sessions = projectSessions;
+        return match;
+      }
+      return null;
+    } on Exception catch (exception) {
+      if (generation == _refreshGeneration) error = exception.toString();
+      return null;
+    } finally {
+      if (generation == _refreshGeneration) {
+        loading = false;
+        notifyListeners();
+      }
     }
   }
 

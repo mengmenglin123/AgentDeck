@@ -1,31 +1,29 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 
 import '../models/connection_config.dart';
-import '../services/app_settings_controller.dart';
+import '../services/catalog_state.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
-import '../utils/catalog_ui.dart';
 import '../utils/query_match.dart';
 import '../l10n/app_strings.dart';
 
 /// Readonly Host memory catalog (`GET /memory`) — Host is source of truth.
 /// Inspired by remote-console memory browsers; not a local agent memory engine.
 class MemoryScreen extends StatefulWidget {
-  const MemoryScreen({super.key, required this.config});
+  const MemoryScreen({super.key, required this.config, this.project});
 
   final ConnectionConfig config;
+  final String? project;
 
   @override
   State<MemoryScreen> createState() => _MemoryScreenState();
 }
 
 class _MemoryScreenState extends State<MemoryScreen> {
-  late final MgmtClient _mgmt = MgmtClient(config: widget.config);
-  bool _loading = true;
-  String? _error;
+  late final CatalogState<List<Map<String, dynamic>>> _catalog;
+  bool get _loading => _catalog.loading;
+  String? get _error => _catalog.error;
   String _scope = 'all';
   String _type = 'all';
   String _tag = 'all';
@@ -45,21 +43,37 @@ class _MemoryScreenState extends State<MemoryScreen> {
   bool _relativeTs = false;
   bool _newestFirst = true;
   final _scroll = ScrollController();
-  Timer? _timer;
-  bool _autoRefresh = false;
-  List<Map<String, dynamic>> _items = [];
+  bool get _autoRefresh => _catalog.autoRefresh;
+  List<Map<String, dynamic>> get _items => _catalog.value ?? const [];
   final _search = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    _catalog = CatalogState(
+      loader: _fetch,
+      errorMapper: (error) => Security.redactText(error.toString()),
+    )..addListener(_onCatalogChanged);
     _load();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
+  }
+
+  @override
+  void didUpdateWidget(covariant MemoryScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.config != widget.config ||
+        oldWidget.project != widget.project) {
+      _catalog.updateLoader(_fetch);
+    }
+  }
+
+  void _onCatalogChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _catalog.removeListener(_onCatalogChanged);
+    _catalog.dispose();
     _scroll.dispose();
     _search.dispose();
     super.dispose();
@@ -71,8 +85,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
       if (_type != 'all') {
         final t = (m['type'] ?? '').toString().toLowerCase();
         if (_type == 'other') {
-          final known =
-              t.contains('note') ||
+          final known = t.contains('note') ||
               t.contains('fact') ||
               t.contains('pref') ||
               t.contains('rule') ||
@@ -86,8 +99,8 @@ class _MemoryScreenState extends State<MemoryScreen> {
       if (_tag != 'all' && _tag.isNotEmpty) {
         final tags = m['tags'] is List
             ? (m['tags'] as List)
-                  .map((e) => e.toString().toLowerCase())
-                  .toList()
+                .map((e) => e.toString().toLowerCase())
+                .toList()
             : [(m['tags'] ?? '').toString().toLowerCase()];
         final joined = tags.join(' ');
         if (_tag == 'other') {
@@ -209,44 +222,22 @@ class _MemoryScreenState extends State<MemoryScreen> {
     return list;
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final data = await _mgmt.listMemory(
-        scope: _scope == 'all' ? null : _scope,
-        q: _q.isEmpty ? null : _q,
-      );
-      final raw = data['memories'];
-      final list = <Map<String, dynamic>>[];
-      if (raw is List) {
-        for (final e in raw) {
-          if (e is Map) list.add(Map<String, dynamic>.from(e));
-        }
-      }
-      setState(() {
-        _items = list;
-        _loading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _loading = false;
-        _error = Security.redactText(e.toString());
-      });
-    }
+  Future<List<Map<String, dynamic>>> _fetch() async {
+    final mgmt = MgmtClient(config: widget.config);
+    final data = await mgmt.listMemory(
+      project: widget.project,
+      scope: _scope == 'all' ? null : _scope,
+      q: _q.isEmpty ? null : _q,
+    );
+    final raw = data['memories'];
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList(growable: false);
   }
 
-  void _armTimer() {
-    _timer = CatalogUi.armAutoRefresh(
-      context: context,
-      current: _timer,
-      enabled: _autoRefresh,
-      isBusy: () => _loading,
-      onTick: _load,
-    );
-  }
+  Future<void> _load() => _catalog.refresh();
 
   String _fmtMemTs(Map m) {
     final v = m['updated_at'] ?? m['created_at'] ?? m['ts'] ?? m['time'];
@@ -280,8 +271,8 @@ class _MemoryScreenState extends State<MemoryScreen> {
           _visible.isEmpty
               ? '主机记忆'
               : (_visible.length == _items.length
-                    ? 'Host memory (${_visible.length})'
-                    : 'Host memory (${_visible.length}/${_items.length})'),
+                  ? 'Host memory (${_visible.length})'
+                  : 'Host memory (${_visible.length}/${_items.length})'),
         ),
         actions: [
           IconButton(
@@ -291,8 +282,8 @@ class _MemoryScreenState extends State<MemoryScreen> {
                 : () async {
                     final buf = StringBuffer();
                     for (final m in _visible) {
-                      final title = (m['title'] ?? m['id'] ?? 'memory')
-                          .toString();
+                      final title =
+                          (m['title'] ?? m['id'] ?? 'memory').toString();
                       final content = (m['content'] ?? '').toString();
                       final scope = (m['scope'] ?? '').toString();
                       final type = (m['type'] ?? '').toString();
@@ -324,21 +315,21 @@ class _MemoryScreenState extends State<MemoryScreen> {
                     buf.writeln('id,title,scope,type,content');
                     for (final m in _visible) {
                       final id = (m['id'] ?? '').toString().replaceAll(
-                        ',',
-                        ';',
-                      );
+                            ',',
+                            ';',
+                          );
                       final title = (m['title'] ?? '').toString().replaceAll(
-                        ',',
-                        ';',
-                      );
+                            ',',
+                            ';',
+                          );
                       final scope = (m['scope'] ?? '').toString().replaceAll(
-                        ',',
-                        ';',
-                      );
+                            ',',
+                            ';',
+                          );
                       final type = (m['type'] ?? '').toString().replaceAll(
-                        ',',
-                        ';',
-                      );
+                            ',',
+                            ';',
+                          );
                       final content = (m['content'] ?? '')
                           .toString()
                           .replaceAll(',', ';')
@@ -367,9 +358,8 @@ class _MemoryScreenState extends State<MemoryScreen> {
             ),
           ),
           IconButton(
-            tooltip: _relativeTs
-                ? 'Absolute timestamps'
-                : 'Relative timestamps',
+            tooltip:
+                _relativeTs ? 'Absolute timestamps' : 'Relative timestamps',
             onPressed: () => setState(() => _relativeTs = !_relativeTs),
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
@@ -377,28 +367,24 @@ class _MemoryScreenState extends State<MemoryScreen> {
             tooltip: _sortByTs
                 ? (_sortAsc ? 'Time old→new' : 'Time new→old')
                 : (_sortByPath
-                      ? (_sortAsc ? '路径 Z→A' : '路径 A→Z')
-                      : (_sortById
-                            ? (_sortAsc ? 'ID Z→A' : 'ID A→Z')
-                            : (_sortByScope
-                                  ? (_sortAsc ? 'Scope Z→A' : 'Scope A→Z')
-                                  : (_sortByConfidence
-                                        ? (_sortAsc
-                                              ? 'Confidence high→low'
-                                              : 'Confidence low→high')
-                                        : (_sortByContent
-                                              ? (_sortAsc
-                                                    ? 'Content Z→A'
-                                                    : 'Content A→Z')
-                                              : (_sortByType
-                                                    ? (_sortAsc
-                                                          ? 'Types Z→A'
-                                                          : 'Types A→Z')
-                                                    : (_sortByTitle
-                                                          ? (_sortAsc
-                                                                ? 'Titles Z→A'
-                                                                : 'Titles A→Z')
-                                                          : '按标题 / 类型 / 内容 / 置信度 / 范围 / id / 路径 / 时间排序'))))))),
+                    ? (_sortAsc ? '路径 Z→A' : '路径 A→Z')
+                    : (_sortById
+                        ? (_sortAsc ? 'ID Z→A' : 'ID A→Z')
+                        : (_sortByScope
+                            ? (_sortAsc ? 'Scope Z→A' : 'Scope A→Z')
+                            : (_sortByConfidence
+                                ? (_sortAsc
+                                    ? 'Confidence high→low'
+                                    : 'Confidence low→high')
+                                : (_sortByContent
+                                    ? (_sortAsc ? 'Content Z→A' : 'Content A→Z')
+                                    : (_sortByType
+                                        ? (_sortAsc ? 'Types Z→A' : 'Types A→Z')
+                                        : (_sortByTitle
+                                            ? (_sortAsc
+                                                ? 'Titles Z→A'
+                                                : 'Titles A→Z')
+                                            : '按标题 / 类型 / 内容 / 置信度 / 范围 / id / 路径 / 时间排序'))))))),
             onPressed: () {
               setState(() {
                 if (!_sortByTitle &&
@@ -521,30 +507,27 @@ class _MemoryScreenState extends State<MemoryScreen> {
               _sortByTs
                   ? Icons.schedule
                   : (_sortByPath
-                        ? Icons.folder_open
-                        : (_sortById
-                              ? Icons.tag
-                              : (_sortByScope
-                                    ? Icons.folder_outlined
-                                    : (_sortByConfidence
-                                          ? Icons.speed
-                                          : (_sortByContent
-                                                ? Icons.article_outlined
-                                                : (_sortByType
-                                                      ? Icons.category_outlined
-                                                      : (_sortByTitle
-                                                            ? Icons
-                                                                  .sort_by_alpha
-                                                            : Icons.sort))))))),
+                      ? Icons.folder_open
+                      : (_sortById
+                          ? Icons.tag
+                          : (_sortByScope
+                              ? Icons.folder_outlined
+                              : (_sortByConfidence
+                                  ? Icons.speed
+                                  : (_sortByContent
+                                      ? Icons.article_outlined
+                                      : (_sortByType
+                                          ? Icons.category_outlined
+                                          : (_sortByTitle
+                                              ? Icons.sort_by_alpha
+                                              : Icons.sort))))))),
             ),
           ),
-
           IconButton(
             tooltip: _wrapLines ? '截断详情' : '换行详情',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
-
           IconButton(
             tooltip: '回到顶部',
             onPressed: () {
@@ -572,8 +555,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
           IconButton(
             tooltip: _autoRefresh ? '暂停刷新' : '自动刷新',
             onPressed: () {
-              setState(() => _autoRefresh = !_autoRefresh);
-              _armTimer();
+              _catalog.setAutoRefresh(!_autoRefresh);
             },
             icon: Icon(
               _autoRefresh
@@ -581,7 +563,6 @@ class _MemoryScreenState extends State<MemoryScreen> {
                   : Icons.play_circle_outline,
             ),
           ),
-
           IconButton(
             onPressed: _loading ? null : _load,
             icon: const Icon(Icons.refresh),
@@ -674,13 +655,15 @@ class _MemoryScreenState extends State<MemoryScreen> {
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text(AppStrings.regex, style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.regex,
+                      style: TextStyle(fontSize: 11)),
                   selected: _queryRegex,
                   onSelected: (v) => setState(() => _queryRegex = v),
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text(AppStrings.matchCase, style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.matchCase,
+                      style: TextStyle(fontSize: 11)),
                   selected: _queryCase,
                   onSelected: (v) => setState(() => _queryCase = v),
                   visualDensity: VisualDensity.compact,
@@ -689,13 +672,13 @@ class _MemoryScreenState extends State<MemoryScreen> {
                   label: const Text('自动', style: TextStyle(fontSize: 11)),
                   selected: _autoRefresh,
                   onSelected: (v) {
-                    setState(() => _autoRefresh = v);
-                    _armTimer();
+                    _catalog.setAutoRefresh(v);
                   },
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text(AppStrings.newestFirst, style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.newestFirst,
+                      style: TextStyle(fontSize: 11)),
                   selected: _newestFirst,
                   onSelected: (v) => setState(() => _newestFirst = v),
                   visualDensity: VisualDensity.compact,
@@ -710,19 +693,17 @@ class _MemoryScreenState extends State<MemoryScreen> {
               decoration: InputDecoration(
                 hintText: _queryRegex
                     ? (_queryCase ? '搜索（正则 · 大小写）' : '搜索（正则）')
-                    : (_queryCase
-                          ? '搜索（区分大小写）'
-                          : '搜索标题/内容'),
+                    : (_queryCase ? '搜索（区分大小写）' : '搜索标题/内容'),
                 border: const OutlineInputBorder(),
                 isDense: true,
                 prefixIcon: IconButton(
                   tooltip: _queryRegex
                       ? (_queryCase
-                            ? '正则 · 大小写 开（长按恢复普通搜索）'
-                            : '正则 · 大小写 关（长按恢复普通搜索）')
+                          ? '正则 · 大小写 开（长按恢复普通搜索）'
+                          : '正则 · 大小写 关（长按恢复普通搜索）')
                       : (_queryCase
-                            ? 'Case-sensitive (long-press: regex)'
-                            : 'Case-insensitive (long-press: regex)'),
+                          ? 'Case-sensitive (long-press: regex)'
+                          : 'Case-insensitive (long-press: regex)'),
                   icon: Icon(
                     _queryRegex
                         ? Icons.code
@@ -774,95 +755,96 @@ class _MemoryScreenState extends State<MemoryScreen> {
                     child: Text('暂无记忆（主机可能未暴露 /memory）'),
                   )
                 : _visible.isEmpty && !_loading
-                ? const Center(child: Text('没有匹配的记忆'))
-                : RefreshIndicator(
-                    onRefresh: _load,
-                    child: ListView.separated(
-                      controller: _scroll,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      itemCount: _visible.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (ctx, i) {
-                        final m = _visible[i];
-                        final title = (m['title'] ?? m['id'] ?? 'memory')
-                            .toString();
-                        final content = (m['content'] ?? '').toString();
-                        final scope = (m['scope'] ?? '').toString();
-                        final type = (m['type'] ?? '').toString();
-                        final conf = (m['confidence'] ?? '').toString();
-                        final tags = m['tags'] is List
-                            ? (m['tags'] as List)
-                                  .map((e) => e.toString())
-                                  .where((e) => e.isNotEmpty)
-                                  .join(', ')
-                            : (m['tags']?.toString() ?? '');
-                        final full =
-                            '# $title\n\nscope: $scope\ntype: $type\nconfidence: $conf'
-                            '${tags.isNotEmpty ? '\ntags: $tags' : ''}\n\n$content';
-                        return ListTile(
-                          leading: Icon(
-                            scope == 'project'
-                                ? Icons.folder_special_outlined
-                                : Icons.psychology_outlined,
-                          ),
-                          title: Text(title),
-                          subtitle: Text(
-                            '[$scope/$type${conf.isNotEmpty ? ' · $conf' : ''}${_fmtMemTs(m).isNotEmpty ? ' · ${_fmtMemTs(m)}' : ''}${tags.isNotEmpty ? ' · $tags' : ''}]\n'
-                            '${_wrapLines ? content : (content.length > 160 ? '${content.substring(0, 160)}…' : content)}',
-                            maxLines: _wrapLines ? 12 : 4,
-                            overflow: TextOverflow.ellipsis,
-                            softWrap: true,
-                          ),
-                          isThreeLine: true,
-                          trailing: IconButton(
-                            tooltip: '复制',
-                            icon: const Icon(Icons.copy, size: 18),
-                            onPressed: () async {
-                              await Clipboard.setData(
-                                ClipboardData(text: full),
-                              );
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('记忆已复制'),
-                                    duration: Duration(seconds: 1),
+                    ? const Center(child: Text('没有匹配的记忆'))
+                    : RefreshIndicator(
+                        onRefresh: _load,
+                        child: ListView.separated(
+                          controller: _scroll,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          itemCount: _visible.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (ctx, i) {
+                            final m = _visible[i];
+                            final title =
+                                (m['title'] ?? m['id'] ?? 'memory').toString();
+                            final content = (m['content'] ?? '').toString();
+                            final scope = (m['scope'] ?? '').toString();
+                            final type = (m['type'] ?? '').toString();
+                            final conf = (m['confidence'] ?? '').toString();
+                            final tags = m['tags'] is List
+                                ? (m['tags'] as List)
+                                    .map((e) => e.toString())
+                                    .where((e) => e.isNotEmpty)
+                                    .join(', ')
+                                : (m['tags']?.toString() ?? '');
+                            final full =
+                                '# $title\n\nscope: $scope\ntype: $type\nconfidence: $conf'
+                                '${tags.isNotEmpty ? '\ntags: $tags' : ''}\n\n$content';
+                            return ListTile(
+                              leading: Icon(
+                                scope == 'project'
+                                    ? Icons.folder_special_outlined
+                                    : Icons.psychology_outlined,
+                              ),
+                              title: Text(title),
+                              subtitle: Text(
+                                '[$scope/$type${conf.isNotEmpty ? ' · $conf' : ''}${_fmtMemTs(m).isNotEmpty ? ' · ${_fmtMemTs(m)}' : ''}${tags.isNotEmpty ? ' · $tags' : ''}]\n'
+                                '${_wrapLines ? content : (content.length > 160 ? '${content.substring(0, 160)}…' : content)}',
+                                maxLines: _wrapLines ? 12 : 4,
+                                overflow: TextOverflow.ellipsis,
+                                softWrap: true,
+                              ),
+                              isThreeLine: true,
+                              trailing: IconButton(
+                                tooltip: '复制',
+                                icon: const Icon(Icons.copy, size: 18),
+                                onPressed: () async {
+                                  await Clipboard.setData(
+                                    ClipboardData(text: full),
+                                  );
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('记忆已复制'),
+                                        duration: Duration(seconds: 1),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                              onTap: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  builder: (_) => Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      16,
+                                      16,
+                                      32,
+                                    ),
+                                    child: SingleChildScrollView(
+                                      child: SelectableText(full),
+                                    ),
                                   ),
                                 );
-                              }
-                            },
-                          ),
-                          onTap: () {
-                            showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              builder: (_) => Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  16,
-                                  16,
-                                  16,
-                                  32,
-                                ),
-                                child: SingleChildScrollView(
-                                  child: SelectableText(full),
-                                ),
-                              ),
+                              },
+                              onLongPress: () async {
+                                await Clipboard.setData(
+                                    ClipboardData(text: full));
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('记忆已复制'),
+                                      duration: Duration(seconds: 1),
+                                    ),
+                                  );
+                                }
+                              },
                             );
                           },
-                          onLongPress: () async {
-                            await Clipboard.setData(ClipboardData(text: full));
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('记忆已复制'),
-                                  duration: Duration(seconds: 1),
-                                ),
-                              );
-                            }
-                          },
-                        );
-                      },
-                    ),
-                  ),
+                        ),
+                      ),
           ),
         ],
       ),

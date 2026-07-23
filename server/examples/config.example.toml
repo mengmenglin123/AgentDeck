@@ -4,10 +4,11 @@
 
 [server]
 # Bind addresses for your Host process
-bridge_host = "0.0.0.0"
+bridge_host = "127.0.0.1"
 bridge_port = 9810
-mgmt_host = "0.0.0.0"
+mgmt_host = "127.0.0.1"
 mgmt_port = 9820
+default_project = "codex"
 
 [auth]
 # Generate strong tokens; store only on server + enter in App UI
@@ -16,13 +17,54 @@ mgmt_token = "change-me-mgmt"
 
 [projects.claude-code]
 agent_type = "claudecode"
+command = ["/usr/local/bin/huan-claude-driver"]
+terminal_command = ["/bin/bash"]
+models = ["claude-sonnet-4"]
+channels = ["anthropic"]
+skills = ["claude-code-review", "anthropic-tools"]
+mcp_servers = ["claude-tools"]
 workdir = "/workspace"
 
 [projects.codex]
 agent_type = "codex"
+command = ["/usr/local/bin/huan-codex-driver"]
+terminal_command = ["/bin/bash"]
+models = ["gpt-5-codex", "o4-mini"]
+channels = ["openai"]
+skills = ["codex-cli", "openai-tools", "patch-review"]
+mcp_servers = ["openai-tools"]
 workdir = "/workspace"
 
 [projects.hermes]
 agent_type = "hermes"
+command = ["/usr/local/bin/huan-hermes-driver"]
+models = ["hermes-default"]
+channels = ["hermes"]
+skills = ["hermes-agent"]
+mcp_servers = ["hermes-skills"]
 workdir = "/workspace"
 # Host-side adapter maps Bridge sessions → Hermes process (ADR-002)
+
+# command and terminal_command are explicit argv arrays. The driver paths above
+# are Host-owned placeholders; configure them to match the deployed CLI adapter.
+# Do not replace them with a shell string or interpolate client-provided input.
+
+# Host process workdir policy: every Agent/PTY workdir must resolve below one
+# of these canonical existing directories. Do not let a client path bypass it.
+[workspace]
+roots = ["/workspace"]
+
+# Permission requests are short-lived and auditable. A production Host should
+# always configure a private absolute path on a local filesystem.
+[permissions]
+ttl_seconds = 120
+terminal_open_required = true
+
+[audit]
+permission_log_path = "/var/lib/huanhermes/permission-audit.jsonl"
+permission_log_max_bytes = 10485760
+permission_log_fsync = true
+
+[management]
+session_store_path = "/var/lib/huanhermes/sessions.json"
+session_store_max_bytes = 4194304

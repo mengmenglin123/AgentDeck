@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -6,9 +5,9 @@ import 'package:provider/provider.dart';
 import '../services/app_settings_controller.dart';
 import '../services/connection_controller.dart';
 import '../services/mgmt_client.dart';
+import '../services/refresh_scheduler.dart';
+import '../services/session_controller.dart';
 import '../utils/security.dart';
-import '../utils/catalog_ui.dart';
-import '../utils/query_match.dart';
 import 'activity_screen.dart';
 import 'agents_screen.dart';
 import 'logs_screen.dart';
@@ -33,7 +32,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
   Map<String, dynamic> _status = const {};
   String? _error;
   bool _loading = true;
-  Timer? _timer;
+  late final RefreshScheduler _refreshScheduler;
   bool _wrapLines = false;
   bool _sortAsc = true;
   bool _sortByValue = false;
@@ -64,9 +63,12 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    _refreshScheduler = RefreshScheduler(
+      onTick: () => _refresh(silent: true),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refresh();
-      _armTimer();
+      _configureRefresh();
     });
   }
 
@@ -75,17 +77,15 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
     _keyFilterCtrl.dispose();
     _capQueryCtrl.dispose();
     _scroll.dispose();
-    _timer?.cancel();
+    _refreshScheduler.dispose();
     super.dispose();
   }
 
-  void _armTimer() {
-    _timer = CatalogUi.armAutoRefresh(
-      context: context,
-      current: _timer,
+  void _configureRefresh() {
+    final seconds = context.read<AppSettingsController>().dashboardRefreshSec;
+    _refreshScheduler.configure(
       enabled: _autoRefresh,
-      isBusy: () => _loading,
-      onTick: () => _refresh(silent: true),
+      interval: Duration(seconds: seconds),
     );
   }
 
@@ -133,25 +133,25 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
       row('mgmt', cfg.mgmtBaseUrl);
       row('bridge', cfg.bridgeWsUrlRedacted);
     }
-    for (final e
-        in (_status.entries.toList()..sort((a, b) {
-          if (_sortByKey) {
-            final c = a.key.toLowerCase().compareTo(b.key.toLowerCase());
-            if (c != 0) return _sortAsc ? c : -c;
-          } else if (_sortByType) {
-            final c = _valueTypeLabel(
-              a.value,
-            ).compareTo(_valueTypeLabel(b.value));
-            if (c != 0) return _sortAsc ? c : -c;
-          } else if (_sortByValue) {
-            final c = '${a.value}'.toLowerCase().compareTo(
-              '${b.value}'.toLowerCase(),
-            );
-            if (c != 0) return _sortAsc ? c : -c;
-          }
+    for (final e in (_status.entries.toList()
+      ..sort((a, b) {
+        if (_sortByKey) {
           final c = a.key.toLowerCase().compareTo(b.key.toLowerCase());
-          return _sortAsc ? c : -c;
-        }))) {
+          if (c != 0) return _sortAsc ? c : -c;
+        } else if (_sortByType) {
+          final c = _valueTypeLabel(
+            a.value,
+          ).compareTo(_valueTypeLabel(b.value));
+          if (c != 0) return _sortAsc ? c : -c;
+        } else if (_sortByValue) {
+          final c = '${a.value}'.toLowerCase().compareTo(
+                '${b.value}'.toLowerCase(),
+              );
+          if (c != 0) return _sortAsc ? c : -c;
+        }
+        final c = a.key.toLowerCase().compareTo(b.key.toLowerCase());
+        return _sortAsc ? c : -c;
+      }))) {
       final v = e.value;
       if (v is List) {
         row(e.key, v.join('|'));
@@ -242,34 +242,32 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final conn = context.watch<ConnectionController>();
+    final selectedProject = context.watch<SessionController>().selectedProject;
     final cfg = conn.saved;
     final cs = Theme.of(context).colorScheme;
-    final refreshSec = context
-        .watch<AppSettingsController>()
-        .dashboardRefreshSec;
+    final refreshSec =
+        context.watch<AppSettingsController>().dashboardRefreshSec;
     // Re-arm timer when setting changes
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final armed = _timer != null;
+      final armed = _refreshScheduler.active;
       final want = refreshSec > 0 && _autoRefresh;
-      if (armed != want || (want && _timer?.isActive != true)) {
-        _armTimer();
+      if (armed != want || (want && !_refreshScheduler.active)) {
+        _configureRefresh();
       }
     });
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _autoRefresh && refreshSec > 0
-              ? '主机状态 · 自动 ${refreshSec}s'
-              : '主机状态',
+          _autoRefresh && refreshSec > 0 ? '主机状态 · 自动 ${refreshSec}s' : '主机状态',
         ),
         actions: [
           IconButton(
             tooltip: _autoRefresh ? '暂停刷新' : '自动刷新',
             onPressed: () {
               setState(() => _autoRefresh = !_autoRefresh);
-              _armTimer();
+              _configureRefresh();
             },
             icon: Icon(
               _autoRefresh
@@ -489,9 +487,9 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                       final age = _lastOk == null
                           ? 'never'
                           : _lastOk!.toLocal().toIso8601String().substring(
-                              11,
-                              19,
-                            );
+                                11,
+                                19,
+                              );
                       return Card(
                         color: barColor.withOpacity(0.12),
                         margin: const EdgeInsets.only(bottom: 8),
@@ -501,8 +499,8 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                             healthy
                                 ? Icons.favorite
                                 : (_error != null
-                                      ? Icons.heart_broken
-                                      : Icons.monitor_heart_outlined),
+                                    ? Icons.heart_broken
+                                    : Icons.monitor_heart_outlined),
                             color: barColor,
                           ),
                           title: Text(
@@ -569,8 +567,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                       final caps =
                           (_status['capabilities'] as List? ?? const []);
                       if (caps.isEmpty) return '能力';
-                      if (_capFilter.isEmpty)
-                        return '能力 (${caps.length})';
+                      if (_capFilter.isEmpty) return '能力 (${caps.length})';
                       return '能力 · $_capFilter';
                     })(),
                     style: Theme.of(context).textTheme.titleSmall,
@@ -585,17 +582,17 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                         prefixIcon: IconButton(
                           tooltip: _queryRegex
                               ? (_queryCase
-                                    ? '正则 · 大小写 开（长按恢复普通筛选）'
-                                    : '正则 · 大小写 关（长按恢复普通筛选）')
+                                  ? '正则 · 大小写 开（长按恢复普通筛选）'
+                                  : '正则 · 大小写 关（长按恢复普通筛选）')
                               : (_queryCase
-                                    ? '区分大小写（长按切换正则）'
-                                    : '不区分大小写（长按切换正则）'),
+                                  ? '区分大小写（长按切换正则）'
+                                  : '不区分大小写（长按切换正则）'),
                           icon: Icon(
                             _queryRegex
                                 ? Icons.code
                                 : (_queryCase
-                                      ? Icons.text_fields
-                                      : Icons.search),
+                                    ? Icons.text_fields
+                                    : Icons.search),
                             size: 18,
                           ),
                           onPressed: () =>
@@ -605,11 +602,11 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                         ),
                         hintText: _queryRegex
                             ? (_queryCase
-                                  ? 'Filter (regex · case)'
-                                  : 'Filter (regex)')
+                                ? 'Filter (regex · case)'
+                                : 'Filter (regex)')
                             : (_queryCase
-                                  ? 'Filter (case-sensitive)'
-                                  : 'Filter capabilities'),
+                                ? 'Filter (case-sensitive)'
+                                : 'Filter capabilities'),
                         border: const OutlineInputBorder(),
                         suffixIcon: _capQuery.isEmpty
                             ? null
@@ -682,9 +679,8 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                             }
                           }
                           final cq = _queryCase ? rawCq : rawCq.toLowerCase();
-                          final hay = _queryCase
-                              ? hayRaw
-                              : hayRaw.toLowerCase();
+                          final hay =
+                              _queryCase ? hayRaw : hayRaw.toLowerCase();
                           return hay.contains(cq);
                         }())
                           FilterChip(
@@ -709,7 +705,10 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                           style: TextStyle(fontSize: 11),
                         ),
                         selected: _autoRefresh,
-                        onSelected: (v) => setState(() => _autoRefresh = v),
+                        onSelected: (value) {
+                          setState(() => _autoRefresh = value);
+                          _configureRefresh();
+                        },
                       ),
                     ],
                   ),
@@ -755,7 +754,10 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                     subtitle: const Text('来自主机的只读目录'),
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => MemoryScreen(config: cfg),
+                        builder: (_) => MemoryScreen(
+                          config: cfg,
+                          project: selectedProject,
+                        ),
                       ),
                     ),
                   ),
@@ -839,17 +841,17 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                             prefixIcon: IconButton(
                               tooltip: _queryRegex
                                   ? (_queryCase
-                                        ? '正则 · 大小写 开（长按恢复普通筛选）'
-                                        : '正则 · 大小写 关（长按恢复普通筛选）')
+                                      ? '正则 · 大小写 开（长按恢复普通筛选）'
+                                      : '正则 · 大小写 关（长按恢复普通筛选）')
                                   : (_queryCase
-                                        ? '区分大小写（长按切换正则）'
-                                        : '不区分大小写（长按切换正则）'),
+                                      ? '区分大小写（长按切换正则）'
+                                      : '不区分大小写（长按切换正则）'),
                               icon: Icon(
                                 _queryRegex
                                     ? Icons.code
                                     : (_queryCase
-                                          ? Icons.text_fields
-                                          : Icons.search),
+                                        ? Icons.text_fields
+                                        : Icons.search),
                                 size: 18,
                               ),
                               onPressed: () =>
@@ -859,11 +861,11 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                             ),
                             hintText: _queryRegex
                                 ? (_queryCase
-                                      ? 'Filter (regex · case)'
-                                      : 'Filter (regex)')
+                                    ? 'Filter (regex · case)'
+                                    : 'Filter (regex)')
                                 : (_queryCase
-                                      ? 'Filter (case-sensitive)'
-                                      : '筛选键 / 值'),
+                                    ? 'Filter (case-sensitive)'
+                                    : '筛选键 / 值'),
                             border: const OutlineInputBorder(),
                             suffixIcon: _keyQuery.isEmpty
                                 ? null
@@ -973,13 +975,13 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                             if (c != 0) return _sortAsc ? c : -c;
                           } else if (_sortByValue) {
                             final c = '${a.value}'.toLowerCase().compareTo(
-                              '${b.value}'.toLowerCase(),
-                            );
+                                  '${b.value}'.toLowerCase(),
+                                );
                             if (c != 0) return _sortAsc ? c : -c;
                           }
                           final c = a.key.toLowerCase().compareTo(
-                            b.key.toLowerCase(),
-                          );
+                                b.key.toLowerCase(),
+                              );
                           return _sortAsc ? c : -c;
                         });
                         return entries;

@@ -5,6 +5,19 @@ on:
     branches: [main]
     paths:
       - 'apps/mobile/**'
+      - 'packages/huan_protocol/**'
+      - 'server/**'
+      - 'docs/protocol/**'
+      - 'docs/guides/**'
+      - '.github/workflows/build-apk.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/mobile/**'
+      - 'packages/huan_protocol/**'
+      - 'server/**'
+      - 'docs/protocol/**'
+      - 'docs/guides/**'
       - '.github/workflows/build-apk.yml'
   workflow_dispatch:
 
@@ -43,6 +56,28 @@ jobs:
         working-directory: apps/mobile
         run: flutter pub get
 
+      - name: Flutter analyze
+        working-directory: apps/mobile
+        run: flutter analyze --no-fatal-infos
+
+      - name: Flutter test
+        working-directory: apps/mobile
+        run: flutter test
+
+      - name: Python compile
+        run: python3 -m py_compile server/*.py server/mock-host/mock_host.py packages/huan_protocol/src/*.py packages/huan_protocol/test/*.py
+
+      - name: Protocol tests
+        env:
+          PYTHONPATH: packages/huan_protocol
+        run: python3 -m unittest discover -s packages/huan_protocol/test -v
+
+      - name: Host adapter and runtime tests
+        env:
+          PYTHONPATH: server
+          PYTHONWARNINGS: error::ResourceWarning
+        run: python3 -m unittest discover -s server -p 'test_*.py' -v
+
       - name: Build APK (debug)
         working-directory: apps/mobile
         run: flutter build apk --debug --target-platform android-arm64
@@ -56,7 +91,8 @@ jobs:
 
   # Optional: build release APK on manual trigger
   build-release:
-    if: github.event_name == 'workflow_dispatch'
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && needs.build.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 

@@ -9,6 +9,7 @@ import urllib.error
 import urllib.request
 import uuid
 from typing import Any, Dict, Optional
+from urllib.parse import urlencode
 
 from .models import AuthError, ConnectionConfig, ProtocolError
 
@@ -61,23 +62,29 @@ class MgmtClient:
     def project(self, name: str) -> Dict[str, Any]:
         return self._request("GET", f"/projects/{name}")
 
-    def agents(self) -> Dict[str, Any]:
+    def agents(self, project: Optional[str] = None) -> Dict[str, Any]:
         try:
-            return self._request("GET", "/agents")
+            return self._request("GET", f"/agents{self._project_query(project)}")
         except ProtocolError:
             return {"agents": [], "platforms": []}
 
-    def mcp(self) -> Dict[str, Any]:
+    def mcp(self, project: Optional[str] = None) -> Dict[str, Any]:
         try:
-            return self._request("GET", "/mcp")
+            return self._request("GET", f"/mcp{self._project_query(project)}")
         except ProtocolError:
             return {"servers": []}
 
-    def skills(self) -> Dict[str, Any]:
+    def skills(self, project: Optional[str] = None) -> Dict[str, Any]:
         try:
-            return self._request("GET", "/skills")
+            return self._request("GET", f"/skills{self._project_query(project)}")
         except ProtocolError:
             return {"skills": []}
+
+    @staticmethod
+    def _project_query(project: Optional[str]) -> str:
+        if not project:
+            return ""
+        return "?" + urlencode({"project": project})
 
     def pairing(self) -> Dict[str, Any]:
         try:
@@ -107,8 +114,15 @@ class MgmtClient:
         q = f"?path={path}" if path else ""
         return self._request("GET", f"/workspace/diff{q}")
 
-    def memory(self, scope: Optional[str] = None, q: Optional[str] = None) -> Dict[str, Any]:
+    def memory(
+        self,
+        project: Optional[str] = None,
+        scope: Optional[str] = None,
+        q: Optional[str] = None,
+    ) -> Dict[str, Any]:
         parts = []
+        if project:
+            parts.append(f"project={project}")
         if scope:
             parts.append(f"scope={scope}")
         if q:

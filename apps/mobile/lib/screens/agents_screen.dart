@@ -1,33 +1,38 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 
 import '../models/connection_config.dart';
-import '../services/app_settings_controller.dart';
+import '../services/catalog_state.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
-import '../utils/catalog_ui.dart';
 import '../utils/query_match.dart';
 import '../l10n/app_strings.dart';
 
 /// Readonly Host agents / platforms catalog (`GET /agents`).
 class AgentsScreen extends StatefulWidget {
-  const AgentsScreen({super.key, required this.config});
+  const AgentsScreen({super.key, required this.config, this.project});
 
   final ConnectionConfig config;
+  final String? project;
 
   @override
   State<AgentsScreen> createState() => _AgentsScreenState();
 }
 
+typedef _AgentsCatalog = ({
+  List<dynamic> agents,
+  List<dynamic> platforms,
+  List<Map<String, dynamic>> projects,
+});
+
 class _AgentsScreenState extends State<AgentsScreen> {
-  late final MgmtClient _mgmt = MgmtClient(config: widget.config);
-  bool _loading = true;
-  String? _error;
-  List<dynamic> _agents = [];
-  List<dynamic> _platforms = [];
-  List<Map<String, dynamic>> _projects = [];
+  late final CatalogState<_AgentsCatalog> _catalog;
+  bool get _loading => _catalog.loading;
+  String? get _error => _catalog.error;
+  List<dynamic> get _agents => _catalog.value?.agents ?? const [];
+  List<dynamic> get _platforms => _catalog.value?.platforms ?? const [];
+  List<Map<String, dynamic>> get _projects =>
+      _catalog.value?.projects ?? const [];
   final _q = TextEditingController();
   String _query = '';
   bool _queryCase = false;
@@ -60,59 +65,66 @@ class _AgentsScreenState extends State<AgentsScreen> {
   bool _sortByVersion = false;
   bool _sortAsc = true;
   final _scroll = ScrollController();
-  Timer? _timer;
-  bool _autoRefresh = false;
+  bool get _autoRefresh => _catalog.autoRefresh;
 
   @override
   void initState() {
     super.initState();
+    _catalog = CatalogState(
+      loader: _fetch,
+      errorMapper: (error) => Security.redactText(error.toString()),
+    )..addListener(_onCatalogChanged);
     _load();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
+  }
+
+  @override
+  void didUpdateWidget(covariant AgentsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.project != widget.project ||
+        oldWidget.config != widget.config) {
+      _catalog.updateLoader(_fetch);
+    }
+  }
+
+  void _onCatalogChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _catalog.removeListener(_onCatalogChanged);
+    _catalog.dispose();
     _scroll.dispose();
     _q.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final data = await _mgmt.agents();
-      final projects = await _mgmt.projects();
-      setState(() {
-        _agents = (data['agents'] is List)
-            ? List<dynamic>.from(data['agents'] as List)
-            : [];
-        _platforms = (data['platforms'] is List)
-            ? List<dynamic>.from(data['platforms'] as List)
-            : [];
-        _projects = projects
-            .map(
-              (p) => {
-                'name': p.name,
-                'agent_type': p.agentType,
-                'sessions_count': p.sessionsCount,
-                'note': p.note,
-                'capabilities': p.capabilities,
-              },
-            )
-            .toList();
-        _loading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _loading = false;
-        _error = Security.redactText(e.toString());
-      });
-    }
+  Future<_AgentsCatalog> _fetch() async {
+    final mgmt = MgmtClient(config: widget.config);
+    final data = await mgmt.agents(project: widget.project);
+    final projects = await mgmt.projects();
+    return (
+      agents: data['agents'] is List
+          ? List<dynamic>.from(data['agents'] as List)
+          : const <dynamic>[],
+      platforms: data['platforms'] is List
+          ? List<dynamic>.from(data['platforms'] as List)
+          : const <dynamic>[],
+      projects: projects
+          .map(
+            (project) => <String, dynamic>{
+              'name': project.name,
+              'agent_type': project.agentType,
+              'sessions_count': project.sessionsCount,
+              'note': project.note,
+              'capabilities': project.capabilities,
+            },
+          )
+          .toList(growable: false),
+    );
   }
+
+  Future<void> _load() => _catalog.refresh();
 
   String _agentTitle(dynamic a) {
     if (a is Map) {
@@ -373,22 +385,20 @@ class _AgentsScreenState extends State<AgentsScreen> {
         final c = ia.compareTo(ib);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByProject) {
-        final pa =
-            (a['project'] ??
-                    a['project_id'] ??
-                    a['cwd'] ??
-                    a['workspace'] ??
-                    '')
-                .toString()
-                .toLowerCase();
-        final pb =
-            (b['project'] ??
-                    b['project_id'] ??
-                    b['cwd'] ??
-                    b['workspace'] ??
-                    '')
-                .toString()
-                .toLowerCase();
+        final pa = (a['project'] ??
+                a['project_id'] ??
+                a['cwd'] ??
+                a['workspace'] ??
+                '')
+            .toString()
+            .toLowerCase();
+        final pb = (b['project'] ??
+                b['project_id'] ??
+                b['cwd'] ??
+                b['workspace'] ??
+                '')
+            .toString()
+            .toLowerCase();
         final c = pa.compareTo(pb);
         if (c != 0) return _sortAsc ? c : -c;
       } else if (_sortByPlatform) {
@@ -425,7 +435,6 @@ class _AgentsScreenState extends State<AgentsScreen> {
 
   List<dynamic> get _filteredPlatforms {
     final rawQ = _query.trim();
-    final q = _queryCase ? rawQ : rawQ.toLowerCase();
     final list = _platforms.where((p) {
       if (rawQ.isEmpty) return true;
       final hayRaw = '$p';
@@ -448,16 +457,6 @@ class _AgentsScreenState extends State<AgentsScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('已复制'), duration: Duration(seconds: 1)),
-    );
-  }
-
-  void _armTimer() {
-    _timer = CatalogUi.armAutoRefresh(
-      context: context,
-      current: _timer,
-      enabled: _autoRefresh,
-      isBusy: () => _loading,
-      onTick: _load,
     );
   }
 
@@ -560,46 +559,40 @@ class _AgentsScreenState extends State<AgentsScreen> {
             tooltip: _sortByVersion
                 ? (_sortAsc ? 'Version Z→A' : 'Version A→Z')
                 : (_sortByCaps
-                      ? (_sortAsc
-                            ? '能力 多→少'
-                            : '能力 少→多')
-                      : (_sortByNote
-                            ? (_sortAsc ? 'Note Z→A' : 'Note A→Z')
-                            : (_sortByCwd
-                                  ? (_sortAsc ? 'Cwd Z→A' : 'Cwd A→Z')
-                                  : (_sortBySessions
-                                        ? (_sortAsc
-                                              ? '会话 多→少'
-                                              : '会话 少→多')
-                                        : (_sortByProvider
-                                              ? (_sortAsc
-                                                    ? 'Provider Z→A'
-                                                    : 'Provider A→Z')
-                                              : (_sortById
+                    ? (_sortAsc ? '能力 多→少' : '能力 少→多')
+                    : (_sortByNote
+                        ? (_sortAsc ? 'Note Z→A' : 'Note A→Z')
+                        : (_sortByCwd
+                            ? (_sortAsc ? 'Cwd Z→A' : 'Cwd A→Z')
+                            : (_sortBySessions
+                                ? (_sortAsc ? '会话 多→少' : '会话 少→多')
+                                : (_sortByProvider
+                                    ? (_sortAsc
+                                        ? 'Provider Z→A'
+                                        : 'Provider A→Z')
+                                    : (_sortById
+                                        ? (_sortAsc ? 'ID Z→A' : 'ID A→Z')
+                                        : (_sortByProject
+                                            ? (_sortAsc ? '项目 Z→A' : '项目 A→Z')
+                                            : (_sortByPlatform
+                                                ? (_sortAsc
+                                                    ? '平台 Z→A'
+                                                    : '平台 A→Z')
+                                                : (_sortByStatus
                                                     ? (_sortAsc
-                                                          ? 'ID Z→A'
-                                                          : 'ID A→Z')
-                                                    : (_sortByProject
-                                                          ? (_sortAsc
-                                                                ? '项目 Z→A'
-                                                                : '项目 A→Z')
-                                                          : (_sortByPlatform
-                                                                ? (_sortAsc
-                                                                      ? '平台 Z→A'
-                                                                      : '平台 A→Z')
-                                                                : (_sortByStatus
-                                                                      ? (_sortAsc
-                                                                            ? '状态 Z→A'
-                                                                            : '状态 A→Z')
-                                                                      : (_sortByModel
-                                                                            ? (_sortAsc
-                                                                                  ? 'Model Z→A'
-                                                                                  : 'Model A→Z')
-                                                                            : (_sortByType
-                                                                                  ? (_sortAsc
-                                                                                        ? '类型 Z→A'
-                                                                                        : '类型 A→Z')
-                                                                                  : (_sortAsc ? '名称 Z→A' : '名称 A→Z')))))))))))),
+                                                        ? '状态 Z→A'
+                                                        : '状态 A→Z')
+                                                    : (_sortByModel
+                                                        ? (_sortAsc
+                                                            ? 'Model Z→A'
+                                                            : 'Model A→Z')
+                                                        : (_sortByType
+                                                            ? (_sortAsc
+                                                                ? '类型 Z→A'
+                                                                : '类型 A→Z')
+                                                            : (_sortAsc
+                                                                ? '名称 Z→A'
+                                                                : '名称 A→Z')))))))))))),
             onPressed: () {
               setState(() {
                 if (!_sortByType &&
@@ -840,31 +833,34 @@ class _AgentsScreenState extends State<AgentsScreen> {
               _sortByVersion
                   ? Icons.numbers
                   : (_sortByCaps
-                        ? Icons.extension_outlined
-                        : (_sortByNote
-                              ? Icons.sticky_note_2_outlined
-                              : (_sortByCwd
-                                    ? Icons.folder_outlined
-                                    : (_sortBySessions
-                                          ? Icons.forum_outlined
-                                          : (_sortByProvider
-                                                ? Icons.hub_outlined
-                                                : (_sortById
-                                                      ? Icons.tag
-                                                      : (_sortByProject
-                                                            ? Icons
-                                                                  .folder_special_outlined
-                                                            : (_sortByPlatform
+                      ? Icons.extension_outlined
+                      : (_sortByNote
+                          ? Icons.sticky_note_2_outlined
+                          : (_sortByCwd
+                              ? Icons.folder_outlined
+                              : (_sortBySessions
+                                  ? Icons.forum_outlined
+                                  : (_sortByProvider
+                                      ? Icons.hub_outlined
+                                      : (_sortById
+                                          ? Icons.tag
+                                          : (_sortByProject
+                                              ? Icons.folder_special_outlined
+                                              : (_sortByPlatform
+                                                  ? Icons.devices_other_outlined
+                                                  : (_sortByStatus
+                                                      ? Icons.flag_outlined
+                                                      : (_sortByModel
+                                                          ? Icons
+                                                              .memory_outlined
+                                                          : (_sortByType
+                                                              ? Icons
+                                                                  .category_outlined
+                                                              : (_sortAsc
                                                                   ? Icons
-                                                                        .devices_other_outlined
-                                                                  : (_sortByStatus
-                                                                        ? Icons
-                                                                              .flag_outlined
-                                                                        : (_sortByModel
-                                                                              ? Icons.memory_outlined
-                                                                              : (_sortByType
-                                                                                    ? Icons.category_outlined
-                                                                                    : (_sortAsc ? Icons.sort_by_alpha : Icons.sort)))))))))))),
+                                                                      .sort_by_alpha
+                                                                  : Icons
+                                                                      .sort)))))))))))),
             ),
           ),
           IconButton(
@@ -872,7 +868,6 @@ class _AgentsScreenState extends State<AgentsScreen> {
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
-
           IconButton(
             tooltip: '回到顶部',
             onPressed: () {
@@ -900,8 +895,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
           IconButton(
             tooltip: _autoRefresh ? '暂停刷新' : '自动刷新',
             onPressed: () {
-              setState(() => _autoRefresh = !_autoRefresh);
-              _armTimer();
+              _catalog.setAutoRefresh(!_autoRefresh);
             },
             icon: Icon(
               _autoRefresh
@@ -909,7 +903,6 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   : Icons.play_circle_outline,
             ),
           ),
-
           IconButton(
             onPressed: _loading ? null : _load,
             icon: const Icon(Icons.refresh),
@@ -950,13 +943,15 @@ class _AgentsScreenState extends State<AgentsScreen> {
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text(AppStrings.regex, style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.regex,
+                      style: TextStyle(fontSize: 11)),
                   selected: _queryRegex,
                   onSelected: (v) => setState(() => _queryRegex = v),
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text(AppStrings.matchCase, style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.matchCase,
+                      style: TextStyle(fontSize: 11)),
                   selected: _queryCase,
                   onSelected: (v) => setState(() => _queryCase = v),
                   visualDensity: VisualDensity.compact,
@@ -964,7 +959,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
                 FilterChip(
                   label: const Text('自动', style: TextStyle(fontSize: 11)),
                   selected: _autoRefresh,
-                  onSelected: (v) => setState(() => _autoRefresh = v),
+                  onSelected: _catalog.setAutoRefresh,
                   visualDensity: VisualDensity.compact,
                 ),
               ],
@@ -1087,19 +1082,15 @@ class _AgentsScreenState extends State<AgentsScreen> {
               decoration: InputDecoration(
                 hintText: _queryRegex
                     ? (_queryCase ? '筛选（正则 · 大小写）' : '筛选（正则）')
-                    : (_queryCase
-                          ? '筛选（区分大小写）'
-                          : '筛选 Agent / 平台 / 项目'),
+                    : (_queryCase ? '筛选（区分大小写）' : '筛选 Agent / 平台 / 项目'),
                 isDense: true,
                 border: const OutlineInputBorder(),
                 prefixIcon: IconButton(
                   tooltip: _queryRegex
                       ? (_queryCase
-                            ? '正则 · 大小写 开（长按恢复普通筛选）'
-                            : '正则 · 大小写 关（长按恢复普通筛选）')
-                      : (_queryCase
-                            ? '区分大小写（长按切换正则）'
-                            : '不区分大小写（长按切换正则）'),
+                          ? '正则 · 大小写 开（长按恢复普通筛选）'
+                          : '正则 · 大小写 关（长按恢复普通筛选）')
+                      : (_queryCase ? '区分大小写（长按切换正则）' : '不区分大小写（长按切换正则）'),
                   icon: Icon(
                     _queryRegex
                         ? Icons.code
@@ -1228,7 +1219,8 @@ class _AgentsScreenState extends State<AgentsScreen> {
                           isThreeLine:
                               (p['note'] != null && '${p['note']}'.isNotEmpty),
                           trailing: Text(
-                            ((p['capabilities'] as List?) ?? const []).length
+                            ((p['capabilities'] as List?) ?? const [])
+                                .length
                                 .toString(),
                             style: const TextStyle(fontSize: 11),
                           ),

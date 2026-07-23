@@ -153,9 +153,6 @@ class AppStrings {
   static const platforms = '平台';
   static const plainText = '纯文本';
   static const attach = '附件';
-  static const gitCommit = '提交';
-  static const gitPush = '推送';
-  static const gitCommitTitle = 'Git 提交';
   static const sessionsLabel = '会话';
   static const consoleLabel = '控制台';
   static const createNew = '新建';

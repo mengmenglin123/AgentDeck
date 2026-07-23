@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import '../app_meta.dart';
 import '../errors/app_errors.dart';
 import '../models/connection_config.dart';
 import 'package:uuid/uuid.dart';
@@ -19,7 +20,7 @@ class BridgeClient {
     this.onError,
     this.onClose,
     WebSocketChannel Function(Uri uri, {Iterable<String>? protocols})?
-    connector,
+        connector,
   }) : _connector = connector;
 
   final ConnectionConfig config;
@@ -27,7 +28,7 @@ class BridgeClient {
   BridgeErrorHandler? onError;
   BridgeCloseHandler? onClose;
   final WebSocketChannel Function(Uri uri, {Iterable<String>? protocols})?
-  _connector;
+      _connector;
 
   WebSocketChannel? _channel;
   StreamSubscription? _sub;
@@ -44,9 +45,8 @@ class BridgeClient {
     // Prefer query token (mock + protocol); also send headers when possible.
     final uri = Uri.parse(config.bridgeWsUrl);
     try {
-      final channel = _connector != null
-          ? _connector(uri)
-          : WebSocketChannel.connect(uri);
+      final channel =
+          _connector != null ? _connector(uri) : WebSocketChannel.connect(uri);
       _channel = channel;
       _sub = channel.stream.listen(
         _onData,
@@ -87,13 +87,14 @@ class BridgeClient {
       'type': 'register',
       'platform': config.platformName,
       'capabilities': ['text', 'buttons', 'typing', 'preview', 'terminal'],
-      'metadata': {'version': '0.1.11', 'device_id': config.deviceId},
+      'metadata': {'version': AppMeta.version, 'device_id': config.deviceId},
     });
   }
 
   Map<String, String> sendUserMessage({
     required String content,
     required String conversationId,
+    String? project,
     String userId = 'user',
     String userName = 'User',
     String? sessionKeyOverride,
@@ -109,6 +110,7 @@ class BridgeClient {
       'type': 'message',
       'msg_id': msgId,
       'session_key': sk,
+      if (project != null && project.isNotEmpty) 'project': project,
       'user_id': userId,
       'user_name': userName,
       'content': content,
@@ -124,12 +126,14 @@ class BridgeClient {
     required String sessionKey,
     required String action,
     required String replyCtx,
+    String? project,
   }) {
     send({
       'type': 'card_action',
       'session_key': sessionKey,
       'action': action,
       'reply_ctx': replyCtx,
+      if (project != null && project.isNotEmpty) 'project': project,
     });
   }
 
@@ -137,25 +141,70 @@ class BridgeClient {
     send({'type': 'ping', 'ts': DateTime.now().millisecondsSinceEpoch});
   }
 
-  void cancel({required String sessionKey, String? replyCtx}) {
+  void cancel({required String sessionKey, String? replyCtx, String? project}) {
     send({
       'type': 'cancel',
       'session_key': sessionKey,
       'reply_ctx': replyCtx ?? '',
+      if (project != null && project.isNotEmpty) 'project': project,
     });
   }
 
   /// Lightweight terminal channel (Host may map to PTY; Mock echoes).
+  void terminalOpen({
+    required String sessionKey,
+    required String streamId,
+    String? project,
+    int cols = 80,
+    int rows = 24,
+  }) {
+    send({
+      'type': 'terminal_open',
+      'session_key': sessionKey,
+      'stream_id': streamId,
+      if (project != null && project.isNotEmpty) 'project': project,
+      'cols': cols,
+      'rows': rows,
+    });
+  }
+
+  void terminalClose(
+      {required String sessionKey, String? streamId, String? project}) {
+    send({
+      'type': 'terminal_close',
+      'session_key': sessionKey,
+      if (streamId != null) 'stream_id': streamId,
+      if (project != null && project.isNotEmpty) 'project': project,
+    });
+  }
+
   void terminalInput({
     required String sessionKey,
     required String data,
     String? streamId,
+    String? project,
   }) {
     send({
       'type': 'terminal_input',
       'session_key': sessionKey,
       'data': data,
       if (streamId != null) 'stream_id': streamId,
+      if (project != null && project.isNotEmpty) 'project': project,
+    });
+  }
+
+  void terminalPermissionAction({
+    required String sessionKey,
+    required String streamId,
+    required String action,
+    String? project,
+  }) {
+    send({
+      'type': 'terminal_permission_action',
+      'session_key': sessionKey,
+      'stream_id': streamId,
+      'action': action,
+      if (project != null && project.isNotEmpty) 'project': project,
     });
   }
 
@@ -163,12 +212,16 @@ class BridgeClient {
     required String sessionKey,
     int cols = 80,
     int rows = 24,
+    String? streamId,
+    String? project,
   }) {
     send({
       'type': 'terminal_resize',
       'session_key': sessionKey,
       'cols': cols,
       'rows': rows,
+      if (streamId != null) 'stream_id': streamId,
+      if (project != null && project.isNotEmpty) 'project': project,
     });
   }
 

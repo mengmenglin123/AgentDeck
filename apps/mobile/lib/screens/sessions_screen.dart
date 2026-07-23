@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import '../utils/responsive.dart';
-import '../utils/catalog_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
@@ -10,6 +9,7 @@ import '../l10n/app_strings.dart';
 import '../models/session_info.dart';
 import '../services/connection_controller.dart';
 import '../services/session_controller.dart';
+import '../services/refresh_scheduler.dart';
 import '../services/app_settings_controller.dart';
 import '../services/session_local_store.dart';
 import '../services/theme_controller.dart';
@@ -29,10 +29,15 @@ import 'terminal_screen.dart';
 import 'workspace_screen.dart';
 
 class SessionsScreen extends StatefulWidget {
-  const SessionsScreen({super.key, this.embedded = false});
+  const SessionsScreen({
+    super.key,
+    this.embedded = false,
+    this.initialSessionRef,
+  });
 
   /// When true, hide nested bottom nav (used inside [HomeShell]).
   final bool embedded;
+  final String? initialSessionRef;
 
   @override
   State<SessionsScreen> createState() => _SessionsScreenState();
@@ -43,7 +48,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
   final _titleCtrl = TextEditingController();
   final _searchCtrl = TextEditingController();
   final _scroll = ScrollController();
-  Timer? _timer;
+  late final RefreshScheduler _refreshScheduler;
   bool _wrapLines = false;
   bool _sortAsc = true;
   bool _autoRefresh = false;
@@ -64,26 +69,26 @@ class _SessionsScreenState extends State<SessionsScreen> {
   bool _selectMode = false;
   final Set<String> _selected = {};
   Timer? _searchDebounce;
+  String? _handledInitialSessionRef;
 
   @override
   void initState() {
     super.initState();
-    _loadPins();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
-  }
-
-  void _armTimer() {
-    _timer = CatalogUi.armAutoRefresh(
-      context: context,
-      current: _timer,
-      enabled: _autoRefresh,
-      isBusy: () => false,
-      onTick: () {
+    _refreshScheduler = RefreshScheduler(onTick: () async {
       if (!mounted) return;
       final sessions = _sessions;
       if (sessions == null || sessions.loading) return;
-      sessions.refresh();
-      },
+      await sessions.refresh();
+    });
+    _loadPins();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _configureRefresh());
+  }
+
+  void _configureRefresh() {
+    final seconds = context.read<AppSettingsController>().dashboardRefreshSec;
+    _refreshScheduler.configure(
+      enabled: _autoRefresh,
+      interval: Duration(seconds: seconds),
     );
   }
 
@@ -357,20 +362,37 @@ class _SessionsScreenState extends State<SessionsScreen> {
     final conn = context.watch<ConnectionController>();
     final cfg = conn.saved;
     if (cfg == null) return;
-    if (_sessions == null) {
-      _sessions = SessionController(config: cfg)..refresh();
-    } else {
-      _sessions!.updateConfig(cfg);
+    _sessions = context.watch<SessionController>();
+    _sessions!.updateConfig(cfg);
+    final ref = widget.initialSessionRef?.trim();
+    if (ref != null && ref.isNotEmpty && _handledInitialSessionRef != ref) {
+      _handledInitialSessionRef = ref;
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _openInitialSession(ref));
     }
+  }
+
+  Future<void> _openInitialSession(String reference) async {
+    final controller = _sessions;
+    if (controller == null) return;
+    final session = await controller.locateSession(reference);
+    if (!mounted) return;
+    if (session == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('通知对应的会话不存在或已删除')),
+      );
+      return;
+    }
+    await _openChat(session);
   }
 
   @override
   void dispose() {
+    _refreshScheduler.dispose();
     _scroll.dispose();
     _searchDebounce?.cancel();
     _titleCtrl.dispose();
     _searchCtrl.dispose();
-    _sessions?.dispose();
     super.dispose();
   }
 
@@ -452,16 +474,16 @@ class _SessionsScreenState extends State<SessionsScreen> {
         case 'title':
           return dir(
             a.displayTitle.toLowerCase().compareTo(
-              b.displayTitle.toLowerCase(),
-            ),
+                  b.displayTitle.toLowerCase(),
+                ),
           );
         case 'project':
           final pc = a.project.toLowerCase().compareTo(b.project.toLowerCase());
           if (pc != 0) return dir(pc);
           return dir(
             a.displayTitle.toLowerCase().compareTo(
-              b.displayTitle.toLowerCase(),
-            ),
+                  b.displayTitle.toLowerCase(),
+                ),
           );
         case 'created':
           return dir(
@@ -471,79 +493,79 @@ class _SessionsScreenState extends State<SessionsScreen> {
           );
         case 'model':
           final mc = (a.model ?? '').toLowerCase().compareTo(
-            (b.model ?? '').toLowerCase(),
-          );
+                (b.model ?? '').toLowerCase(),
+              );
           if (mc != 0) return dir(mc);
           return dir(
             a.displayTitle.toLowerCase().compareTo(
-              b.displayTitle.toLowerCase(),
-            ),
+                  b.displayTitle.toLowerCase(),
+                ),
           );
         case 'key':
           final kc = a.sessionKey.toLowerCase().compareTo(
-            b.sessionKey.toLowerCase(),
-          );
+                b.sessionKey.toLowerCase(),
+              );
           if (kc != 0) return dir(kc);
           return dir(
             a.displayTitle.toLowerCase().compareTo(
-              b.displayTitle.toLowerCase(),
-            ),
+                  b.displayTitle.toLowerCase(),
+                ),
           );
         case 'platform':
           final pc = (a.platform ?? '').toLowerCase().compareTo(
-            (b.platform ?? '').toLowerCase(),
-          );
+                (b.platform ?? '').toLowerCase(),
+              );
           if (pc != 0) return dir(pc);
           return dir(
             a.displayTitle.toLowerCase().compareTo(
-              b.displayTitle.toLowerCase(),
-            ),
+                  b.displayTitle.toLowerCase(),
+                ),
           );
         case 'agent':
           final ac = (a.agentType ?? '').toLowerCase().compareTo(
-            (b.agentType ?? '').toLowerCase(),
-          );
+                (b.agentType ?? '').toLowerCase(),
+              );
           if (ac != 0) return dir(ac);
           return dir(
             a.displayTitle.toLowerCase().compareTo(
-              b.displayTitle.toLowerCase(),
-            ),
+                  b.displayTitle.toLowerCase(),
+                ),
           );
         case 'mode':
           final mc = (a.mode ?? '').toLowerCase().compareTo(
-            (b.mode ?? '').toLowerCase(),
-          );
+                (b.mode ?? '').toLowerCase(),
+              );
           if (mc != 0) return dir(mc);
           return dir(
             a.displayTitle.toLowerCase().compareTo(
-              b.displayTitle.toLowerCase(),
-            ),
+                  b.displayTitle.toLowerCase(),
+                ),
           );
         case 'workdir':
           final wc = (a.workdir ?? '').toLowerCase().compareTo(
-            (b.workdir ?? '').toLowerCase(),
-          );
+                (b.workdir ?? '').toLowerCase(),
+              );
           if (wc != 0) return dir(wc);
           return dir(
             a.displayTitle.toLowerCase().compareTo(
-              b.displayTitle.toLowerCase(),
-            ),
+                  b.displayTitle.toLowerCase(),
+                ),
           );
         case 'running':
           final rc = (a.running ? 1 : 0).compareTo(b.running ? 1 : 0);
           if (rc != 0) return dir(-rc); // running first in default dir
           return dir(
             a.displayTitle.toLowerCase().compareTo(
-              b.displayTitle.toLowerCase(),
-            ),
+                  b.displayTitle.toLowerCase(),
+                ),
           );
         case 'live':
           final lc = (a.live ? 1 : 0).compareTo(b.live ? 1 : 0);
           if (lc != 0) return dir(-lc); // live first
           return dir(
             a.displayTitle.toLowerCase().compareTo(
-              b.displayTitle.toLowerCase(),
-            ),
+                  b.displayTitle.toLowerCase(),
+                ),
           );
         case 'last':
           final la = (a.lastUser ?? '').toLowerCase();
@@ -552,8 +574,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
           if (lsc != 0) return dir(lsc);
           return dir(
             a.displayTitle.toLowerCase().compareTo(
-              b.displayTitle.toLowerCase(),
-            ),
+                  b.displayTitle.toLowerCase(),
+                ),
           );
         case 'pinned':
           final pa = _pinned.contains(a.sessionKey) ? 1 : 0;
@@ -562,8 +584,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
           if (pc != 0) return dir(-pc); // pinned first by default dir
           return dir(
             a.displayTitle.toLowerCase().compareTo(
-              b.displayTitle.toLowerCase(),
-            ),
+                  b.displayTitle.toLowerCase(),
+                ),
           );
         case 'note':
           final na = (_noteMap[a.sessionKey] ?? '').toLowerCase();
@@ -572,8 +594,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
           if (nc != 0) return dir(nc);
           return dir(
             a.displayTitle.toLowerCase().compareTo(
-              b.displayTitle.toLowerCase(),
-            ),
+                  b.displayTitle.toLowerCase(),
+                ),
           );
         case 'archived':
           final aa = _archived.contains(a.sessionKey) ? 1 : 0;
@@ -582,8 +604,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
           if (ac != 0) return dir(-ac); // archived first by default dir
           return dir(
             a.displayTitle.toLowerCase().compareTo(
-              b.displayTitle.toLowerCase(),
-            ),
+                  b.displayTitle.toLowerCase(),
+                ),
           );
         case 'recent':
           final ar = _recentRank[a.sessionKey];
@@ -624,6 +646,17 @@ class _SessionsScreenState extends State<SessionsScreen> {
     final conn = context.read<ConnectionController>();
     final cfg = conn.saved;
     if (cfg == null) return;
+    final project = _sessions?.projects
+        .where((item) => item.name == session.project)
+        .firstOrNull;
+    if (project != null && !project.hasCapability('terminal')) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('当前 Agent 未提供终端能力')),
+        );
+      }
+      return;
+    }
     await _local.touchRecent(session.sessionKey);
     await _loadPins();
     await Navigator.of(context).push(
@@ -656,8 +689,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
     if (cfg == null) return;
     await _local.touchRecent(session.sessionKey);
     await _loadPins();
-    final caps =
-        _sessions?.projects
+    final caps = _sessions?.projects
             .where((p) => p.name == session.project)
             .map((p) => p.capabilities)
             .firstWhere((_) => true, orElse: () => const <String>[]) ??
@@ -680,21 +712,21 @@ class _SessionsScreenState extends State<SessionsScreen> {
     final sessions = _sessions;
     if (sessions == null) {
       return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(strokeWidth: 2.4),
-            ),
-            SizedBox(height: 12),
-            Text('加载会话…', style: TextStyle(fontSize: 13)),
-          ],
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(strokeWidth: 2.4),
+              ),
+              SizedBox(height: 12),
+              Text('加载会话…', style: TextStyle(fontSize: 13)),
+            ],
+          ),
         ),
-      ),
-    );
+      );
     }
 
     return AnimatedBuilder(
@@ -812,7 +844,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                         return;
                       case 'auto':
                         setState(() => _autoRefresh = !_autoRefresh);
-                        _armTimer();
+                        _configureRefresh();
                         return;
                       case 'top':
                         if (_scroll.hasClients) {
@@ -865,7 +897,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
                             page = const HostDashboardScreen();
                             break;
                           case 'agents':
-                            page = AgentsScreen(config: cfg);
+                            page = AgentsScreen(
+                                config: cfg, project: sessions.selectedProject);
                             break;
                           case 'logs':
                             page = LogsScreen(config: cfg);
@@ -880,7 +913,10 @@ class _SessionsScreenState extends State<SessionsScreen> {
                             page = DiffScreen(config: cfg);
                             break;
                           case 'memory':
-                            page = MemoryScreen(config: cfg);
+                            page = MemoryScreen(
+                              config: cfg,
+                              project: sessions.selectedProject,
+                            );
                             break;
                           case 'activity':
                             page = ActivityScreen(
@@ -892,10 +928,12 @@ class _SessionsScreenState extends State<SessionsScreen> {
                             page = CronScreen(config: cfg);
                             break;
                           case 'skills':
-                            page = SkillsScreen(config: cfg);
+                            page = SkillsScreen(
+                                config: cfg, project: sessions.selectedProject);
                             break;
                           case 'mcp':
-                            page = McpScreen(config: cfg);
+                            page = McpScreen(
+                                config: cfg, project: sessions.selectedProject);
                             break;
                           case 'pairing':
                             page = PairingScreen(config: cfg);
@@ -1138,10 +1176,11 @@ class _SessionsScreenState extends State<SessionsScreen> {
                             final success = await conn.switchAndConnect(id);
                             if (!context.mounted) return;
                             if (success) {
-                              _sessions?.dispose();
-                              _sessions = SessionController(config: conn.saved!)
-                                ..refresh();
-                              setState(() {});
+                              final shared = context.read<SessionController>();
+                              shared.updateConfig(conn.saved!);
+                              await shared.refresh();
+                              _sessions = shared;
+                              if (mounted) setState(() {});
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('已切换主机配置'),
@@ -1185,7 +1224,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
               // Quick action cards
               if (conn.saved != null)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
@@ -1196,7 +1236,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
                           color: const Color(0xFF4A90E2),
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => WorkspaceScreen(config: conn.saved!),
+                              builder: (_) =>
+                                  WorkspaceScreen(config: conn.saved!),
                             ),
                           ),
                         ),
@@ -1225,7 +1266,9 @@ class _SessionsScreenState extends State<SessionsScreen> {
                           color: const Color(0xFFFF8A65),
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => SkillsScreen(config: conn.saved!),
+                              builder: (_) => SkillsScreen(
+                                  config: conn.saved!,
+                                  project: sessions.selectedProject),
                             ),
                           ),
                         ),
@@ -1247,7 +1290,9 @@ class _SessionsScreenState extends State<SessionsScreen> {
                           color: const Color(0xFF26A69A),
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => McpScreen(config: conn.saved!),
+                              builder: (_) => McpScreen(
+                                  config: conn.saved!,
+                                  project: sessions.selectedProject),
                             ),
                           ),
                         ),
@@ -1277,9 +1322,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                           : Colors.green.shade700,
                     ),
                     title: Text(
-                      conn.healthDegraded
-                          ? '主机健康降级'
-                          : '主机健康正常',
+                      conn.healthDegraded ? '主机健康降级' : '主机健康正常',
                       style: const TextStyle(fontSize: 13),
                     ),
                     subtitle: Text(
@@ -1296,9 +1339,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       style: const TextStyle(fontSize: 11),
                     ),
                     trailing: TextButton(
-                      onPressed: conn.healthChecking
-                          ? null
-                          : () => conn.probeHealth(),
+                      onPressed:
+                          conn.healthChecking ? null : () => conn.probeHealth(),
                       child: Text(conn.healthChecking ? '…' : 'Check'),
                     ),
                   ),
@@ -1310,10 +1352,9 @@ class _SessionsScreenState extends State<SessionsScreen> {
                     vertical: 4,
                   ),
                   child: DropdownButtonFormField<String>(
-                    value:
-                        sessions.projects.any(
-                          (p) => p.name == sessions.selectedProject,
-                        )
+                    value: sessions.projects.any(
+                      (p) => p.name == sessions.selectedProject,
+                    )
                         ? sessions.selectedProject
                         : null,
                     decoration: const InputDecoration(
@@ -1339,21 +1380,21 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   decoration: InputDecoration(
                     hintText: _queryRegex
                         ? (_queryCase
-                              ? 'Search (regex · case)'
-                              : 'Search (regex)')
+                            ? 'Search (regex · case)'
+                            : 'Search (regex)')
                         : (_queryCase
-                              ? 'Search (case-sensitive)'
-                              : '搜索会话 / 备注'),
+                            ? 'Search (case-sensitive)'
+                            : '搜索会话 / 备注'),
                     border: const OutlineInputBorder(),
                     isDense: true,
                     prefixIcon: IconButton(
                       tooltip: _queryRegex
                           ? (_queryCase
-                                ? 'Regex · case on (long-press: plain search)'
-                                : 'Regex · case off (long-press: plain search)')
+                              ? 'Regex · case on (long-press: plain search)'
+                              : 'Regex · case off (long-press: plain search)')
                           : (_queryCase
-                                ? 'Case-sensitive (long-press: regex)'
-                                : 'Case-insensitive (long-press: regex)'),
+                              ? 'Case-sensitive (long-press: regex)'
+                              : 'Case-insensitive (long-press: regex)'),
                       icon: Icon(
                         _queryRegex
                             ? Icons.code
@@ -1418,7 +1459,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       visualDensity: VisualDensity.compact,
                     ),
                     FilterChip(
-                      label: const Text(AppStrings.wrap, style: TextStyle(fontSize: 11)),
+                      label: const Text(AppStrings.wrap,
+                          style: TextStyle(fontSize: 11)),
                       selected: _wrapLines,
                       onSelected: (v) => setState(() => _wrapLines = v),
                       visualDensity: VisualDensity.compact,
@@ -1433,17 +1475,19 @@ class _SessionsScreenState extends State<SessionsScreen> {
                       visualDensity: VisualDensity.compact,
                     ),
                     FilterChip(
-                      label: const Text(AppStrings.matchCase, style: TextStyle(fontSize: 11)),
+                      label: const Text(AppStrings.matchCase,
+                          style: TextStyle(fontSize: 11)),
                       selected: _queryCase,
                       onSelected: (v) => setState(() => _queryCase = v),
                       visualDensity: VisualDensity.compact,
                     ),
                     FilterChip(
-                      label: const Text(AppStrings.autoRefresh, style: TextStyle(fontSize: 11)),
+                      label: const Text(AppStrings.autoRefresh,
+                          style: TextStyle(fontSize: 11)),
                       selected: _autoRefresh,
                       onSelected: (v) {
                         setState(() => _autoRefresh = v);
-                        _armTimer();
+                        _configureRefresh();
                       },
                       visualDensity: VisualDensity.compact,
                     ),
@@ -1674,9 +1718,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                       const SizedBox(height: 16),
                                       Center(
                                         child: FilledButton.icon(
-                                          onPressed: sessions.loading
-                                              ? null
-                                              : _create,
+                                          onPressed:
+                                              sessions.loading ? null : _create,
                                           icon: const Icon(Icons.add),
                                           label: const Text(
                                             '创建第一个会话',
@@ -1705,481 +1748,514 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                     ],
                                   )
                                 : visible.isEmpty
-                                ? ListView(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      24,
-                                      48,
-                                      24,
-                                      24,
-                                    ),
-                                    children: [
-                                      Icon(
-                                        Icons.filter_alt_off_outlined,
-                                        size: 40,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.outline,
-                                      ),
-                                      const SizedBox(height: 12),
-                                      const Center(
-                                        child: Text(
-                                          '没有匹配的会话',
+                                    ? ListView(
+                                        padding: const EdgeInsets.fromLTRB(
+                                          24,
+                                          48,
+                                          24,
+                                          24,
                                         ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        _filter == 'archived'
-                                            ? 'Nothing archived on this device, or search hides them.'
-                                            : '请尝试清除筛选条件或创建新会话',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onSurfaceVariant,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 12),
-                                      Center(
-                                        child: TextButton(
-                                          onPressed: () => setState(() {
-                                            _filter = 'all';
-                                            _query = '';
-                                            _searchCtrl.clear();
-                                          }),
-                                          child: const Text('重置筛选'),
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : ListView.separated(
-                                    controller: _scroll,
-                                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
-                                    itemCount: _visibleRows(visible).length,
-                                    separatorBuilder: (_, __) =>
-                                        const SizedBox(height: 8),
-                                    itemBuilder: (context, i) {
-                                      final row = _visibleRows(visible)[i];
-                                      if (row is String) {
-                                        final count = visible
-                                            .where((s) =>
-                                                (s.project.isEmpty
-                                                    ? '（无项目）'
-                                                    : s.project) ==
-                                                row)
-                                            .length;
-                                        final cs = Theme.of(context).colorScheme;
-                                        final isDark = Theme.of(context)
-                                                .brightness ==
-                                            Brightness.dark;
-                                        return Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 10,
+                                        children: [
+                                          Icon(
+                                            Icons.filter_alt_off_outlined,
+                                            size: 40,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.outline,
                                           ),
-                                          decoration: BoxDecoration(
-                                            color: isDark
-                                                ? Colors.white.withOpacity(0.03)
-                                                : cs.surfaceContainerHighest
-                                                    .withOpacity(0.65),
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            border: Border.all(
-                                              color: isDark
-                                                  ? Colors.white
-                                                      .withOpacity(0.06)
-                                                  : cs.outlineVariant
-                                                      .withOpacity(0.6),
+                                          const SizedBox(height: 12),
+                                          const Center(
+                                            child: Text(
+                                              '没有匹配的会话',
                                             ),
                                           ),
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.folder_outlined,
-                                                size: 18,
-                                                color: cs.primary,
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            _filter == 'archived'
+                                                ? 'Nothing archived on this device, or search hides them.'
+                                                : '请尝试清除筛选条件或创建新会话',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Center(
+                                            child: TextButton(
+                                              onPressed: () => setState(() {
+                                                _filter = 'all';
+                                                _query = '';
+                                                _searchCtrl.clear();
+                                              }),
+                                              child: const Text('重置筛选'),
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : ListView.separated(
+                                        controller: _scroll,
+                                        padding: const EdgeInsets.fromLTRB(
+                                            12, 8, 12, 24),
+                                        itemCount: _visibleRows(visible).length,
+                                        separatorBuilder: (_, __) =>
+                                            const SizedBox(height: 8),
+                                        itemBuilder: (context, i) {
+                                          final row = _visibleRows(visible)[i];
+                                          if (row is String) {
+                                            final count = visible
+                                                .where((s) =>
+                                                    (s.project.isEmpty
+                                                        ? '（无项目）'
+                                                        : s.project) ==
+                                                    row)
+                                                .length;
+                                            final cs =
+                                                Theme.of(context).colorScheme;
+                                            final isDark =
+                                                Theme.of(context).brightness ==
+                                                    Brightness.dark;
+                                            return Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 12,
+                                                vertical: 10,
                                               ),
-                                              const SizedBox(width: 10),
-                                              Expanded(
-                                                child: Text(
-                                                  row,
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.w700,
-                                                    fontSize: 13,
-                                                    letterSpacing: -0.1,
+                                              decoration: BoxDecoration(
+                                                color: isDark
+                                                    ? Colors.white
+                                                        .withOpacity(0.03)
+                                                    : cs.surfaceContainerHighest
+                                                        .withOpacity(0.65),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color: isDark
+                                                      ? Colors.white
+                                                          .withOpacity(0.06)
+                                                      : cs.outlineVariant
+                                                          .withOpacity(0.6),
+                                                ),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.folder_outlined,
+                                                    size: 18,
+                                                    color: cs.primary,
                                                   ),
-                                                ),
+                                                  const SizedBox(width: 10),
+                                                  Expanded(
+                                                    child: Text(
+                                                      row,
+                                                      style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        fontSize: 13,
+                                                        letterSpacing: -0.1,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    '$count 个会话',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color:
+                                                          cs.onSurfaceVariant,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                              Text(
-                                                '$count 个会话',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: cs.onSurfaceVariant,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      }
-                                      final s = row as SessionInfo;
-                                      final pinned = _pinned.contains(
-                                        s.sessionKey,
-                                      );
-                                      final note = _noteMap[s.sessionKey];
-                                      final compact = context
-                                          .watch<AppSettingsController>()
-                                          .compactMode;
-                                      final selected = _selected.contains(
-                                        s.sessionKey,
-                                      );
-                                      final projCaps = sessions.projects
-                                          .where((p) => p.name == s.project)
-                                          .map((p) => p.capabilities)
-                                          .firstWhere(
-                                            (_) => true,
-                                            orElse: () => const <String>[],
+                                            );
+                                          }
+                                          final s = row as SessionInfo;
+                                          final pinned = _pinned.contains(
+                                            s.sessionKey,
                                           );
-                                      final cs = Theme.of(context).colorScheme;
-                                      final isDark = Theme.of(context)
-                                              .brightness ==
-                                          Brightness.dark;
-                                      final tile = ListTile(
-                                        selected: selected,
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 6,
-                                        ),
-                                        visualDensity: compact
-                                            ? VisualDensity.compact
-                                            : const VisualDensity(
-                                                horizontal: 0,
-                                                vertical: 1,
-                                              ),
-                                        title: Text(
-                                          s.displayTitle,
-                                          maxLines: _wrapLines ? 4 : 2,
-                                          overflow: TextOverflow.ellipsis,
-                                          softWrap: true,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            letterSpacing: -0.15,
-                                          ),
-                                        ),
-                                        subtitle: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              [
-                                                '${s.project} · ${s.model ?? "未知模型"}',
-                                                s.sessionKey,
-                                                if (note != null &&
-                                                    note.isNotEmpty)
-                                                  '📝 $note',
-                                              ].join('\n'),
-                                              maxLines: _wrapLines ? 8 : 3,
+                                          final note = _noteMap[s.sessionKey];
+                                          final compact = context
+                                              .watch<AppSettingsController>()
+                                              .compactMode;
+                                          final selected = _selected.contains(
+                                            s.sessionKey,
+                                          );
+                                          final projCaps = sessions.projects
+                                              .where((p) => p.name == s.project)
+                                              .map((p) => p.capabilities)
+                                              .firstWhere(
+                                                (_) => true,
+                                                orElse: () => const <String>[],
+                                              );
+                                          final cs =
+                                              Theme.of(context).colorScheme;
+                                          final isDark =
+                                              Theme.of(context).brightness ==
+                                                  Brightness.dark;
+                                          final tile = ListTile(
+                                            selected: selected,
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
+                                            visualDensity: compact
+                                                ? VisualDensity.compact
+                                                : const VisualDensity(
+                                                    horizontal: 0,
+                                                    vertical: 1,
+                                                  ),
+                                            title: Text(
+                                              s.displayTitle,
+                                              maxLines: _wrapLines ? 4 : 2,
                                               overflow: TextOverflow.ellipsis,
                                               softWrap: true,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                letterSpacing: -0.15,
+                                              ),
                                             ),
-                                            if (projCaps.isNotEmpty &&
-                                                !_selectMode) ...[
-                                              const SizedBox(height: 4),
-                                              Wrap(
-                                                spacing: 4,
-                                                runSpacing: 2,
-                                                children: [
-                                                  for (final c in projCaps.take(
-                                                    4,
-                                                  ))
-                                                    Container(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
+                                            subtitle: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  [
+                                                    '${s.project} · ${s.model ?? "未知模型"}',
+                                                    s.sessionKey,
+                                                    if (note != null &&
+                                                        note.isNotEmpty)
+                                                      '📝 $note',
+                                                  ].join('\n'),
+                                                  maxLines: _wrapLines ? 8 : 3,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  softWrap: true,
+                                                ),
+                                                if (projCaps.isNotEmpty &&
+                                                    !_selectMode) ...[
+                                                  const SizedBox(height: 4),
+                                                  Wrap(
+                                                    spacing: 4,
+                                                    runSpacing: 2,
+                                                    children: [
+                                                      for (final c
+                                                          in projCaps.take(
+                                                        4,
+                                                      ))
+                                                        Container(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
                                                             horizontal: 6,
                                                             vertical: 1,
                                                           ),
-                                                      decoration: BoxDecoration(
-                                                        borderRadius:
-                                                            BorderRadius.circular(
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
                                                               8,
                                                             ),
-                                                        color: Theme.of(context)
-                                                            .colorScheme
-                                                            .secondaryContainer
-                                                            .withOpacity(0.7),
-                                                      ),
-                                                      child: Text(
-                                                        c.toString(),
-                                                        style: TextStyle(
-                                                          fontSize: 10,
-                                                          color: Theme.of(context)
-                                                              .colorScheme
-                                                              .onSecondaryContainer,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  if (projCaps.length > 4)
-                                                    Text(
-                                                      '+${projCaps.length - 4}',
-                                                      style: const TextStyle(
-                                                        fontSize: 10,
-                                                      ),
-                                                    ),
-                                                ],
-                                              ),
-                                            ],
-                                          ],
-                                        ),
-                                        isThreeLine: true,
-                                        leading: _selectMode
-                                            ? Checkbox(
-                                                value: selected,
-                                                onChanged: (_) =>
-                                                    _toggleSelected(s),
-                                              )
-                                            : Container(
-                                                width: 42,
-                                                height: 42,
-                                                decoration: BoxDecoration(
-                                                  color: pinned
-                                                      ? const Color(0xFFF59E0B)
-                                                          .withOpacity(0.14)
-                                                      : s.running
-                                                          ? const Color(
-                                                                  0xFF5E6AD2)
-                                                              .withOpacity(0.14)
-                                                          : (isDark
-                                                              ? Colors.white
-                                                                  .withOpacity(
-                                                                      0.05)
-                                                              : cs
-                                                                  .surfaceContainerHighest),
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                  border: Border.all(
-                                                    color: pinned
-                                                        ? const Color(
-                                                                0xFFF59E0B)
-                                                            .withOpacity(0.35)
-                                                        : s.running
-                                                            ? const Color(
-                                                                    0xFF5E6AD2)
+                                                            color: Theme.of(
+                                                                    context)
+                                                                .colorScheme
+                                                                .secondaryContainer
                                                                 .withOpacity(
-                                                                    0.3)
-                                                            : (isDark
-                                                                ? Colors.white
-                                                                    .withOpacity(
-                                                                        0.08)
-                                                                : cs
-                                                                    .outlineVariant
-                                                                    .withOpacity(
-                                                                        0.7)),
-                                                  ),
-                                                ),
-                                                child: Icon(
-                                                  pinned
-                                                      ? Icons.push_pin
-                                                      : s.running
-                                                          ? Icons
-                                                              .play_circle_fill
-                                                          : Icons
-                                                              .chat_bubble_outline,
-                                                  size: 20,
-                                                  color: pinned
-                                                      ? const Color(0xFFF59E0B)
-                                                      : s.running
-                                                          ? const Color(
-                                                              0xFF5E6AD2)
-                                                          : cs.onSurfaceVariant,
-                                                ),
-                                              ),
-                                        onTap: () {
-                                          if (_selectMode) {
-                                            _toggleSelected(s);
-                                          } else {
-                                            _openChat(s);
-                                          }
-                                        },
-                                        onLongPress: () {
-                                          if (_selectMode) {
-                                            _toggleSelected(s);
-                                          } else {
-                                            _enterSelectMode(s);
-                                          }
-                                        },
-                                        trailing: _selectMode
-                                            ? null
-                                            : PopupMenuButton<String>(
-                                                tooltip: '会话操作',
-                                                onSelected: (v) async {
-                                                  switch (v) {
-                                                    case 'export':
-                                                      _exportSessionMeta(s);
-                                                    case 'rename':
-                                                      await _renameSession(
-                                                        sessions,
-                                                        s,
-                                                      );
-                                                    case 'archive':
-                                                      await _toggleArchive(s);
-                                                    case 'note':
-                                                      await _editNote(s);
-                                                    case 'pin':
-                                                      await _togglePin(s);
-                                                    case 'copy_key':
-                                                      final text = [
-                                                        s.displayTitle,
-                                                        'id: ${s.id}',
-                                                        'session_key: ${s.sessionKey}',
-                                                        'project: ${s.project}',
-                                                      ].join('\n');
-                                                      await Clipboard.setData(
-                                                        ClipboardData(
-                                                          text: text,
-                                                        ),
-                                                      );
-                                                      if (mounted) {
-                                                        ScaffoldMessenger.of(
-                                                          context,
-                                                        ).showSnackBar(
-                                                          const SnackBar(
-                                                            content: Text(
-                                                              '会话 ID 已复制',
-                                                            ),
-                                                            duration: Duration(
-                                                              seconds: 1,
+                                                                    0.7),
+                                                          ),
+                                                          child: Text(
+                                                            c.toString(),
+                                                            style: TextStyle(
+                                                              fontSize: 10,
+                                                              color: Theme.of(
+                                                                      context)
+                                                                  .colorScheme
+                                                                  .onSecondaryContainer,
                                                             ),
                                                           ),
-                                                        );
-                                                      }
-                                                    case 'term':
-                                                      await _openTerminal(s);
-                                                    case 'delete':
-                                                      await sessions
-                                                          .deleteSession(s);
-                                                  }
-                                                },
-                                                itemBuilder: (ctx) => [
-                                                  PopupMenuItem(
-                                                    value: 'pin',
-                                                    child: Text(
-                                                      pinned ? '取消置顶' : '置顶',
-                                                    ),
-                                                  ),
-                                                  const PopupMenuItem(
-                                                    value: 'copy_key',
-                                                    child: Text('复制 ID'),
-                                                  ),
-                                                  PopupMenuItem(
-                                                    value: 'archive',
-                                                    child: Text(
-                                                      _archived.contains(
-                                                            s.sessionKey,
-                                                          )
-                                                          ? '取消归档'
-                                                          : '归档',
-                                                    ),
-                                                  ),
-                                                  const PopupMenuItem(
-                                                    value: 'note',
-                                                    child: Text(AppStrings.note),
-                                                  ),
-                                                  const PopupMenuItem(
-                                                    value: 'rename',
-                                                    child: Text(AppStrings.rename),
-                                                  ),
-                                                  const PopupMenuItem(
-                                                    value: 'export',
-                                                    child: Text('导出元数据'),
-                                                  ),
-                                                  const PopupMenuItem(
-                                                    value: 'term',
-                                                    child: Text('终端'),
-                                                  ),
-                                                  const PopupMenuItem(
-                                                    value: 'delete',
-                                                    child: Text(AppStrings.delete),
+                                                        ),
+                                                      if (projCaps.length > 4)
+                                                        Text(
+                                                          '+${projCaps.length - 4}',
+                                                          style:
+                                                              const TextStyle(
+                                                            fontSize: 10,
+                                                          ),
+                                                        ),
+                                                    ],
                                                   ),
                                                 ],
-                                              ),
-                                      );
-                                      Widget cardWrap(Widget child) {
-                                        return Container(
-                                          decoration: BoxDecoration(
-                                            color: selected
-                                                ? cs.primaryContainer
-                                                    .withOpacity(
-                                                        isDark ? 0.28 : 0.45)
-                                                : (isDark
-                                                    ? Colors.white
-                                                        .withOpacity(0.03)
-                                                    : cs.surfaceContainer),
-                                            borderRadius:
-                                                BorderRadius.circular(14),
-                                            border: Border.all(
-                                              color: selected
-                                                  ? cs.primary.withOpacity(0.45)
-                                                  : (isDark
-                                                      ? Colors.white
-                                                          .withOpacity(0.08)
-                                                      : cs.outlineVariant
-                                                          .withOpacity(0.7)),
+                                              ],
                                             ),
-                                          ),
-                                          clipBehavior: Clip.antiAlias,
-                                          child: child,
-                                        );
-                                      }
-
-                                      if (_selectMode) {
-                                        return cardWrap(tile);
-                                      }
-                                      return Dismissible(
-                                        key: ValueKey('sess-${s.sessionKey}'),
-                                        background: Container(
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFF59E0B),
-                                            borderRadius:
-                                                BorderRadius.circular(14),
-                                          ),
-                                          alignment: Alignment.centerLeft,
-                                          padding: const EdgeInsets.only(
-                                            left: 20,
-                                          ),
-                                          child: const Icon(
-                                            Icons.push_pin,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        secondaryBackground: Container(
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF64748B),
-                                            borderRadius:
-                                                BorderRadius.circular(14),
-                                          ),
-                                          alignment: Alignment.centerRight,
-                                          padding: const EdgeInsets.only(
-                                            right: 20,
-                                          ),
-                                          child: Icon(
-                                            _archived.contains(s.sessionKey)
-                                                ? Icons.unarchive
-                                                : Icons.archive,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        confirmDismiss: (dir) async {
-                                          if (dir ==
-                                              DismissDirection.startToEnd) {
-                                            await _togglePin(s);
-                                          } else {
-                                            await _toggleArchive(s);
+                                            isThreeLine: true,
+                                            leading: _selectMode
+                                                ? Checkbox(
+                                                    value: selected,
+                                                    onChanged: (_) =>
+                                                        _toggleSelected(s),
+                                                  )
+                                                : Container(
+                                                    width: 42,
+                                                    height: 42,
+                                                    decoration: BoxDecoration(
+                                                      color: pinned
+                                                          ? const Color(
+                                                                  0xFFF59E0B)
+                                                              .withOpacity(0.14)
+                                                          : s.running
+                                                              ? const Color(
+                                                                      0xFF5E6AD2)
+                                                                  .withOpacity(
+                                                                      0.14)
+                                                              : (isDark
+                                                                  ? Colors.white
+                                                                      .withOpacity(
+                                                                          0.05)
+                                                                  : cs.surfaceContainerHighest),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              12),
+                                                      border: Border.all(
+                                                        color: pinned
+                                                            ? const Color(0xFFF59E0B)
+                                                                .withOpacity(
+                                                                    0.35)
+                                                            : s.running
+                                                                ? const Color(
+                                                                        0xFF5E6AD2)
+                                                                    .withOpacity(
+                                                                        0.3)
+                                                                : (isDark
+                                                                    ? Colors
+                                                                        .white
+                                                                        .withOpacity(
+                                                                            0.08)
+                                                                    : cs.outlineVariant
+                                                                        .withOpacity(
+                                                                            0.7)),
+                                                      ),
+                                                    ),
+                                                    child: Icon(
+                                                      pinned
+                                                          ? Icons.push_pin
+                                                          : s.running
+                                                              ? Icons
+                                                                  .play_circle_fill
+                                                              : Icons
+                                                                  .chat_bubble_outline,
+                                                      size: 20,
+                                                      color: pinned
+                                                          ? const Color(
+                                                              0xFFF59E0B)
+                                                          : s.running
+                                                              ? const Color(
+                                                                  0xFF5E6AD2)
+                                                              : cs.onSurfaceVariant,
+                                                    ),
+                                                  ),
+                                            onTap: () {
+                                              if (_selectMode) {
+                                                _toggleSelected(s);
+                                              } else {
+                                                _openChat(s);
+                                              }
+                                            },
+                                            onLongPress: () {
+                                              if (_selectMode) {
+                                                _toggleSelected(s);
+                                              } else {
+                                                _enterSelectMode(s);
+                                              }
+                                            },
+                                            trailing: _selectMode
+                                                ? null
+                                                : PopupMenuButton<String>(
+                                                    tooltip: '会话操作',
+                                                    onSelected: (v) async {
+                                                      switch (v) {
+                                                        case 'export':
+                                                          _exportSessionMeta(s);
+                                                        case 'rename':
+                                                          await _renameSession(
+                                                            sessions,
+                                                            s,
+                                                          );
+                                                        case 'archive':
+                                                          await _toggleArchive(
+                                                              s);
+                                                        case 'note':
+                                                          await _editNote(s);
+                                                        case 'pin':
+                                                          await _togglePin(s);
+                                                        case 'copy_key':
+                                                          final text = [
+                                                            s.displayTitle,
+                                                            'id: ${s.id}',
+                                                            'session_key: ${s.sessionKey}',
+                                                            'project: ${s.project}',
+                                                          ].join('\n');
+                                                          await Clipboard
+                                                              .setData(
+                                                            ClipboardData(
+                                                              text: text,
+                                                            ),
+                                                          );
+                                                          if (mounted) {
+                                                            ScaffoldMessenger
+                                                                .of(
+                                                              context,
+                                                            ).showSnackBar(
+                                                              const SnackBar(
+                                                                content: Text(
+                                                                  '会话 ID 已复制',
+                                                                ),
+                                                                duration:
+                                                                    Duration(
+                                                                  seconds: 1,
+                                                                ),
+                                                              ),
+                                                            );
+                                                          }
+                                                        case 'term':
+                                                          await _openTerminal(
+                                                              s);
+                                                        case 'delete':
+                                                          await sessions
+                                                              .deleteSession(s);
+                                                      }
+                                                    },
+                                                    itemBuilder: (ctx) => [
+                                                      PopupMenuItem(
+                                                        value: 'pin',
+                                                        child: Text(
+                                                          pinned
+                                                              ? '取消置顶'
+                                                              : '置顶',
+                                                        ),
+                                                      ),
+                                                      const PopupMenuItem(
+                                                        value: 'copy_key',
+                                                        child: Text('复制 ID'),
+                                                      ),
+                                                      PopupMenuItem(
+                                                        value: 'archive',
+                                                        child: Text(
+                                                          _archived.contains(
+                                                            s.sessionKey,
+                                                          )
+                                                              ? '取消归档'
+                                                              : '归档',
+                                                        ),
+                                                      ),
+                                                      const PopupMenuItem(
+                                                        value: 'note',
+                                                        child: Text(
+                                                            AppStrings.note),
+                                                      ),
+                                                      const PopupMenuItem(
+                                                        value: 'rename',
+                                                        child: Text(
+                                                            AppStrings.rename),
+                                                      ),
+                                                      const PopupMenuItem(
+                                                        value: 'export',
+                                                        child: Text('导出元数据'),
+                                                      ),
+                                                      const PopupMenuItem(
+                                                        value: 'term',
+                                                        child: Text('终端'),
+                                                      ),
+                                                      const PopupMenuItem(
+                                                        value: 'delete',
+                                                        child: Text(
+                                                            AppStrings.delete),
+                                                      ),
+                                                    ],
+                                                  ),
+                                          );
+                                          Widget cardWrap(Widget child) {
+                                            return Container(
+                                              decoration: BoxDecoration(
+                                                color: selected
+                                                    ? cs.primaryContainer
+                                                        .withOpacity(isDark
+                                                            ? 0.28
+                                                            : 0.45)
+                                                    : (isDark
+                                                        ? Colors.white
+                                                            .withOpacity(0.03)
+                                                        : cs.surfaceContainer),
+                                                borderRadius:
+                                                    BorderRadius.circular(14),
+                                                border: Border.all(
+                                                  color: selected
+                                                      ? cs.primary
+                                                          .withOpacity(0.45)
+                                                      : (isDark
+                                                          ? Colors.white
+                                                              .withOpacity(0.08)
+                                                          : cs.outlineVariant
+                                                              .withOpacity(
+                                                                  0.7)),
+                                                ),
+                                              ),
+                                              clipBehavior: Clip.antiAlias,
+                                              child: child,
+                                            );
                                           }
-                                          return false; // keep tile; state updates list
+
+                                          if (_selectMode) {
+                                            return cardWrap(tile);
+                                          }
+                                          return Dismissible(
+                                            key: ValueKey(
+                                                'sess-${s.sessionKey}'),
+                                            background: Container(
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFF59E0B),
+                                                borderRadius:
+                                                    BorderRadius.circular(14),
+                                              ),
+                                              alignment: Alignment.centerLeft,
+                                              padding: const EdgeInsets.only(
+                                                left: 20,
+                                              ),
+                                              child: const Icon(
+                                                Icons.push_pin,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            secondaryBackground: Container(
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF64748B),
+                                                borderRadius:
+                                                    BorderRadius.circular(14),
+                                              ),
+                                              alignment: Alignment.centerRight,
+                                              padding: const EdgeInsets.only(
+                                                right: 20,
+                                              ),
+                                              child: Icon(
+                                                _archived.contains(s.sessionKey)
+                                                    ? Icons.unarchive
+                                                    : Icons.archive,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            confirmDismiss: (dir) async {
+                                              if (dir ==
+                                                  DismissDirection.startToEnd) {
+                                                await _togglePin(s);
+                                              } else {
+                                                await _toggleArchive(s);
+                                              }
+                                              return false; // keep tile; state updates list
+                                            },
+                                            child: cardWrap(tile),
+                                          );
                                         },
-                                        child: cardWrap(tile),
-                                      );
-                                    },
-                                  ),
+                                      ),
                           );
                   },
                 ),

@@ -1,18 +1,13 @@
 import 'dart:async';
 
 import 'dart:convert';
-import 'dart:io';
-import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:flutter/material.dart';
 import '../l10n/app_strings.dart';
-import '../utils/responsive.dart';
 import 'permissions_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../utils/catalog_ui.dart';
-import '../utils/query_match.dart';
 
 import '../models/connection_config.dart';
 import '../models/session_info.dart';
@@ -20,6 +15,8 @@ import '../models/transcript.dart';
 import '../services/app_settings_controller.dart';
 import '../services/chat_controller.dart';
 import '../services/chat_draft_store.dart';
+import '../services/file_picker_service.dart';
+import '../services/mgmt_client.dart';
 import '../widgets/markdown_lite.dart';
 import 'audit_screen.dart';
 import 'terminal_screen.dart';
@@ -72,12 +69,24 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   String? _quoteRole;
   final _drafts = ChatDraftStore();
   Timer? _draftTimer;
+  List<String> _modelOptions = const [];
+  List<String> _channelOptions = const [];
+  int _catalogGeneration = 0;
+
+  int get _pendingAttachmentBytes => [
+        ..._pendingImages,
+        ..._pendingFiles,
+      ].fold(0, (sum, item) => sum + AttachmentPolicy.bytesIn(item));
+
+  int get _pendingAttachmentCount =>
+      _pendingImages.length + _pendingFiles.length;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _chat = ChatController(config: widget.config, session: widget.session);
+    _loadProjectCatalog();
     try {
       _showTools = context.read<AppSettingsController>().showToolsDefault;
     } catch (_) {
@@ -155,6 +164,27 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     setState(() {
       _showJumpTop = false;
     });
+  }
+
+  Future<void> _loadProjectCatalog() async {
+    final generation = ++_catalogGeneration;
+    try {
+      final data = await MgmtClient(config: widget.config)
+          .projectDetail(widget.session.project);
+      if (!mounted || generation != _catalogGeneration) return;
+      final project = ProjectInfo.fromJson(data);
+      setState(() {
+        _modelOptions = project.models;
+        _channelOptions = project.channels;
+        if (_modelOptions.isNotEmpty &&
+            !_modelOptions.contains(_chat.model) &&
+            widget.session.model == null) {
+          _chat.model = _modelOptions.first;
+        }
+      });
+    } catch (_) {
+      // Older Hosts may not expose project catalogs; capability defaults remain usable.
+    }
   }
 
   Future<void> _bootstrap() async {
@@ -246,6 +276,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
     final images = List<Map<String, dynamic>>.from(_pendingImages);
     final files = List<Map<String, dynamic>>.from(_pendingFiles);
+    context.read<AppSettingsController>().buzzLight();
+    final sent = await _chat.send(text, images: images, files: files);
+    if (!sent || !mounted) return;
     _input.clear();
     _pendingImages.clear();
     _pendingFiles.clear();
@@ -254,8 +287,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       _quoteRole = null;
     });
     await _drafts.clear(widget.session.sessionKey);
-    context.read<AppSettingsController>().buzzLight();
-    await _chat.send(text, images: images, files: files);
   }
 
   Future<void> _attachDemo() async {
@@ -266,7 +297,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           mainAxisSize: MainAxisSize.min,
           children: [
             const ListTile(
-                title: Text(AppStrings.attach), subtitle: Text('选择来源')),
+              title: Text(AppStrings.attach),
+              subtitle: Text('选择来源'),
+            ),
             ListTile(
               leading: const Icon(Icons.folder_open),
               title: const Text('选择文件'),
@@ -297,112 +330,120 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     );
     if (action == null) return;
 
-    if (action == 'file') {
-      final result = await FilePicker.platform.pickFiles(withData: true);
-      if (result == null || result.files.isEmpty) return;
-      final f = result.files.first;
-      final bytes = f.bytes;
-      if (bytes == null) return;
-      final b64 = base64Encode(bytes);
-      final name = f.name;
-      final lower = name.toLowerCase();
-      final mime = lower.endsWith('.json')
-          ? 'application/json'
-          : lower.endsWith('.md')
-              ? 'text/markdown'
-              : lower.endsWith('.png') ||
-                      lower.endsWith('.jpg') ||
-                      lower.endsWith('.jpeg')
-                  ? 'image/${lower.split('.').last}'
-                  : 'application/octet-stream';
-      setState(() {
-        if (mime.startsWith('image/')) {
-          _pendingImages.add({'name': name, 'mime': mime, 'data_base64': b64});
-        } else {
-          _pendingFiles.add({'name': name, 'mime': mime, 'data_base64': b64});
-        }
-      });
-    } else if (action == 'image_gallery') {
-      final picker = ImagePicker();
-      final img =
-          await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
-      if (img == null) return;
-      final bytes = await img.readAsBytes();
-      final b64 = base64Encode(bytes);
-      final name = img.name;
-      setState(() {
-        _pendingImages
-            .add({'name': name, 'mime': 'image/jpeg', 'data_base64': b64});
-      });
-    } else if (action == 'image_camera') {
-      final picker = ImagePicker();
-      final img =
-          await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
-      if (img == null) return;
-      final bytes = await img.readAsBytes();
-      final b64 = base64Encode(bytes);
-      final name = img.name;
-      setState(() {
-        _pendingImages
-            .add({'name': name, 'mime': 'image/jpeg', 'data_base64': b64});
-      });
-    } else if (action == 'demo') {
-      final nameCtrl = TextEditingController(text: 'note.txt');
-      final bodyCtrl =
-          TextEditingController(text: 'hello from HuanHermes attach demo');
-      final kind = await showDialog<String>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('演示附件'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
+    try {
+      if (action == 'demo') {
+        final nameCtrl = TextEditingController(text: 'note.txt');
+        final bodyCtrl = TextEditingController(
+          text: 'hello from HuanHermes attach demo',
+        );
+        final kind = await showDialog<String>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('演示附件'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
                     controller: nameCtrl,
-                    decoration: const InputDecoration(labelText: 'filename')),
-                TextField(
+                    decoration: const InputDecoration(labelText: '文件名'),
+                  ),
+                  TextField(
                     controller: bodyCtrl,
-                    decoration:
-                        const InputDecoration(labelText: '文本内容'),
-                    maxLines: 3),
-              ],
+                    decoration: const InputDecoration(labelText: '文本内容'),
+                    maxLines: 3,
+                  ),
+                ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
+            actions: [
+              TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('取消')),
-            TextButton(
+                child: const Text('取消'),
+              ),
+              TextButton(
                 onPressed: () => Navigator.pop(ctx, 'image'),
-                child: const Text('作为图片')),
-            FilledButton(
+                child: const Text('作为图片'),
+              ),
+              FilledButton(
                 onPressed: () => Navigator.pop(ctx, 'file'),
-                child: const Text('作为文件')),
-          ],
-        ),
-      );
-      if (kind == null) return;
-      final name =
-          nameCtrl.text.trim().isEmpty ? 'attach.bin' : nameCtrl.text.trim();
-      final b64 = base64Encode(utf8.encode(bodyCtrl.text));
+                child: const Text('作为文件'),
+              ),
+            ],
+          ),
+        );
+        final rawName = nameCtrl.text.trim();
+        final text = bodyCtrl.text;
+        nameCtrl.dispose();
+        bodyCtrl.dispose();
+        if (kind == null) return;
+        final bytes = utf8.encode(text);
+        AttachmentPolicy.validateItem(
+          bytes: bytes.length,
+          currentBytes: _pendingAttachmentBytes,
+          currentItems: _pendingAttachmentCount,
+        );
+        final name = rawName.isEmpty ? 'attach.bin' : rawName;
+        final attachment = PickedAttachment(
+          name: kind == 'image' && !name.endsWith('.png') ? '$name.png' : name,
+          mime: kind == 'image'
+              ? 'image/png'
+              : name.toLowerCase().endsWith('.json')
+                  ? 'application/json'
+                  : name.toLowerCase().endsWith('.md')
+                      ? 'text/markdown'
+                      : 'text/plain',
+          bytes: bytes,
+        );
+        if (!mounted) return;
+        setState(() {
+          if (attachment.isImage) {
+            _pendingImages.add(attachment.toWire());
+          } else {
+            _pendingFiles.add(attachment.toWire());
+          }
+        });
+        return;
+      }
+
+      final picker = FilePickerService.instance;
+      final PickedAttachment? attachment;
+      if (action == 'file') {
+        attachment = await picker.pickFile(
+          currentBytes: _pendingAttachmentBytes,
+          currentItems: _pendingAttachmentCount,
+        );
+      } else {
+        attachment = await picker.pickImage(
+          source: action == 'image_gallery'
+              ? ImageSource.gallery
+              : ImageSource.camera,
+          currentBytes: _pendingAttachmentBytes,
+          currentItems: _pendingAttachmentCount,
+        );
+      }
+      if (attachment == null || !mounted) return;
+      final payload = attachment.toWire();
+      final isImage = attachment.isImage;
       setState(() {
-        if (kind == 'image') {
-          _pendingImages.add({
-            'name': name.endsWith('.png') ? name : '$name.png',
-            'mime': 'image/png',
-            'data_base64': b64
-          });
+        if (isImage) {
+          _pendingImages.add(payload);
         } else {
-          final lower = name.toLowerCase();
-          final mime = lower.endsWith('.json')
-              ? 'application/json'
-              : lower.endsWith('.md')
-                  ? 'text/markdown'
-                  : 'text/plain';
-          _pendingFiles.add({'name': name, 'mime': mime, 'data_base64': b64});
+          _pendingFiles.add(payload);
         }
       });
+    } on AttachmentLimitException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('附件读取失败：$e')),
+        );
+      }
     }
   }
 
@@ -435,16 +476,23 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   Future<void> _pickModel() async {
     if (!_chat.hasCap('model')) return;
-    final options = widget.session.project == 'hermes'
-        ? const ['mock-hermes', 'hermes-default']
-        : const ['mock-sonnet', 'mock-codex', 'mock-hermes'];
+    final options = _modelOptions.isNotEmpty
+        ? _modelOptions
+        : (widget.session.model != null
+            ? [widget.session.model!]
+            : const ['mock-sonnet']);
     final selected = await showModalBottomSheet<String>(
       context: context,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const ListTile(title: Text('模型')),
+            ListTile(
+              title: const Text('模型'),
+              subtitle: _channelOptions.isEmpty
+                  ? null
+                  : Text('渠道：${_channelOptions.join('、')}'),
+            ),
             ...options.map(
               (m) => ListTile(
                 title: Text(m),
@@ -577,8 +625,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         padding: const EdgeInsets.fromLTRB(8, 0, 8, 24),
                         children: [
                           if (fFavs.isNotEmpty) ...[
-                            const ListTile(
-                                dense: true, title: Text('收藏')),
+                            const ListTile(dense: true, title: Text('收藏')),
                             for (final t in fFavs)
                               _promptTile(
                                 ctx: ctx,
@@ -678,8 +725,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       leading: Icon(fav ? Icons.star : Icons.history,
           color: fav ? Colors.amber : null),
       title: Text(text, maxLines: 3, overflow: TextOverflow.ellipsis),
-      subtitle: const Text('点按替换 · 长按追加',
-          style: TextStyle(fontSize: 11)),
+      subtitle: const Text('点按替换 · 长按追加', style: TextStyle(fontSize: 11)),
       trailing: Wrap(
         spacing: 0,
         children: [
@@ -727,8 +773,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           shrinkWrap: true,
           children: [
             ListTile(
-              title: Text('斜杠命令',
-                  style: Theme.of(ctx).textTheme.titleMedium),
+              title: Text('斜杠命令', style: Theme.of(ctx).textTheme.titleMedium),
               subtitle: const Text('填入输入框 — 检查后发送'),
             ),
             for (final it in items)
@@ -855,8 +900,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('本机对话视图已清除'),
-            duration: Duration(seconds: 1)),
+            content: Text('本机对话视图已清除'), duration: Duration(seconds: 1)),
       );
     }
   }
@@ -1014,16 +1058,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   page = WorkspaceScreen(config: cfg);
                   break;
                 case 'skills':
-                  page = SkillsScreen(config: cfg);
+                  page = SkillsScreen(
+                      config: cfg, project: widget.session.project);
                   break;
                 case 'mcp':
-                  page = McpScreen(config: cfg);
+                  page =
+                      McpScreen(config: cfg, project: widget.session.project);
                   break;
                 case 'cron':
                   page = CronScreen(config: cfg);
                   break;
                 case 'memory':
-                  page = MemoryScreen(config: cfg);
+                  page = MemoryScreen(
+                      config: cfg, project: widget.session.project);
                   break;
                 case 'audit':
                   page = AuditScreen(audit: _chat.audit);
@@ -1048,14 +1095,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               }
             },
             itemBuilder: (ctx) => [
-              const PopupMenuItem(
-                value: 'terminal',
-                child: ListTile(
-                  leading: Icon(Icons.terminal),
-                  title: Text(AppStrings.toolTerminal),
-                  dense: true,
+              if (_chat.hasCap('terminal'))
+                const PopupMenuItem(
+                  value: 'terminal',
+                  child: ListTile(
+                    leading: Icon(Icons.terminal),
+                    title: Text(AppStrings.toolTerminal),
+                    dense: true,
+                  ),
                 ),
-              ),
               const PopupMenuItem(
                 value: 'workspace',
                 child: ListTile(
@@ -1175,11 +1223,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                          '${_chat.offlineQueue.length} 条消息等待发送'),
+                      Text('${_chat.offlineQueue.length} 条消息等待发送'),
                       const SizedBox(height: 8),
-                      const Text(
-                          AppStrings.offlineQueueHint,
+                      const Text(AppStrings.offlineQueueHint,
                           style: TextStyle(fontSize: 12)),
                     ],
                   ),
@@ -1289,7 +1335,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     padding: const EdgeInsets.only(right: 6),
                     child: FilterChip(
                       visualDensity: VisualDensity.compact,
-                      label: const Text(AppStrings.wrap, style: TextStyle(fontSize: 11)),
+                      label: const Text(AppStrings.wrap,
+                          style: TextStyle(fontSize: 11)),
                       selected: _wrapLines,
                       onSelected: (v) => setState(() => _wrapLines = v),
                     ),
@@ -1298,8 +1345,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     padding: const EdgeInsets.only(right: 6),
                     child: FilterChip(
                       visualDensity: VisualDensity.compact,
-                      label:
-                          const Text(AppStrings.regex, style: TextStyle(fontSize: 11)),
+                      label: const Text(AppStrings.regex,
+                          style: TextStyle(fontSize: 11)),
                       selected: _searchRegex,
                       onSelected: (v) => setState(() => _searchRegex = v),
                     ),
@@ -1308,7 +1355,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     padding: const EdgeInsets.only(right: 6),
                     child: FilterChip(
                       visualDensity: VisualDensity.compact,
-                      label: const Text(AppStrings.matchCase, style: TextStyle(fontSize: 11)),
+                      label: const Text(AppStrings.matchCase,
+                          style: TextStyle(fontSize: 11)),
                       selected: _searchCase,
                       onSelected: (v) => setState(() => _searchCase = v),
                     ),
@@ -1317,8 +1365,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     padding: const EdgeInsets.only(right: 6),
                     child: FilterChip(
                       visualDensity: VisualDensity.compact,
-                      label:
-                          const Text('工具', style: TextStyle(fontSize: 11)),
+                      label: const Text('工具', style: TextStyle(fontSize: 11)),
                       selected: _showTools,
                       onSelected: (v) => setState(() => _showTools = v),
                     ),
@@ -1337,12 +1384,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       controller: _searchCtrl,
                       decoration: InputDecoration(
                         hintText: _searchRegex
-                            ? (_searchCase
-                                ? '正则搜索（区分大小写）'
-                                : '正则搜索对话')
-                            : (_searchCase
-                                ? '搜索（区分大小写）'
-                                : '搜索对话'),
+                            ? (_searchCase ? '正则搜索（区分大小写）' : '正则搜索对话')
+                            : (_searchCase ? '搜索（区分大小写）' : '搜索对话'),
                         isDense: true,
                         border: const OutlineInputBorder(),
                         prefixIcon: IconButton(
@@ -1567,17 +1610,23 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           ),
           Builder(
             builder: (context) {
-              final pending = _chat.messages.where((m) =>
-                  m.role == 'permission' &&
-                  (m.meta['buttons'] as List? ?? []).isNotEmpty).toList();
+              final pending = _chat.messages
+                  .where((m) =>
+                      m.role == 'permission' &&
+                      (m.meta['buttons'] as List? ?? []).isNotEmpty)
+                  .toList();
               if (pending.isEmpty) return const SizedBox.shrink();
               final last = pending.last;
-              final preview = last.content.replaceAll(RegExp(r'\s+'), ' ').trim();
+              final preview =
+                  last.content.replaceAll(RegExp(r'\s+'), ' ').trim();
               final short = preview.length > 80
                   ? '${preview.substring(0, 80)}…'
                   : preview;
               return Material(
-                color: Theme.of(context).colorScheme.tertiaryContainer.withOpacity(0.55),
+                color: Theme.of(context)
+                    .colorScheme
+                    .tertiaryContainer
+                    .withOpacity(0.55),
                 child: ListTile(
                   dense: true,
                   leading: const Icon(Icons.shield_outlined),
@@ -1614,9 +1663,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             top: false,
             child: Container(
               decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xFF0F1011)
-                    : cs.surface,
+                color: isDark ? const Color(0xFF0F1011) : cs.surface,
                 border: Border(
                   top: BorderSide(
                     color: isDark
@@ -1713,9 +1760,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             minLines: 1,
                             maxLines: 5,
                             decoration: InputDecoration(
-                              hintText: _chat.connected
-                                  ? '输入消息…'
-                                  : '正在连接 agent…',
+                              hintText:
+                                  _chat.connected ? '输入消息…' : '正在连接 agent…',
                               hintStyle: TextStyle(
                                 color: cs.onSurfaceVariant.withOpacity(0.65),
                               ),
@@ -1820,7 +1866,8 @@ class _AgentToolbar extends StatelessWidget {
       );
     }
     chips.add(ActionChip(
-        label: const Text(AppStrings.agentStatus), onPressed: connected ? onStatus : null));
+        label: const Text(AppStrings.agentStatus),
+        onPressed: connected ? onStatus : null));
     if (showStop) {
       chips.add(
         ActionChip(
@@ -1896,8 +1943,8 @@ class _EmptyChat extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Icon(Icons.auto_awesome,
-                  size: 34, color: Colors.white),
+              child:
+                  const Icon(Icons.auto_awesome, size: 34, color: Colors.white),
             ),
             const SizedBox(height: 20),
             Text('你好',
@@ -1909,8 +1956,7 @@ class _EmptyChat extends StatelessWidget {
             const SizedBox(height: 8),
             Text(subtitle,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 14, color: cs.onSurfaceVariant)),
+                style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
             if (connected) ...[
               const SizedBox(height: 32),
               // Suggestion cards
@@ -2012,8 +2058,7 @@ class _SuggestionCard extends StatelessWidget {
                 ),
               ),
               Icon(Icons.arrow_forward_ios,
-                  size: 14,
-                  color: color.withOpacity(0.5)),
+                  size: 14, color: color.withOpacity(0.5)),
             ],
           ),
         ),
@@ -2229,8 +2274,9 @@ class _MessageBubbleState extends State<_MessageBubble> {
                     ),
                   if (isTool)
                     ListTile(
-                      leading: Icon(
-                          _toolExpanded ? Icons.unfold_less : Icons.unfold_more),
+                      leading: Icon(_toolExpanded
+                          ? Icons.unfold_less
+                          : Icons.unfold_more),
                       title: Text(_toolExpanded
                           ? AppStrings.collapseTool
                           : AppStrings.expandTool),
@@ -2245,8 +2291,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
             if (context.mounted) {
               ScaffoldMessenger.maybeOf(context)?.showSnackBar(
                 const SnackBar(
-                    content: Text('已复制消息'),
-                    duration: Duration(seconds: 1)),
+                    content: Text('已复制消息'), duration: Duration(seconds: 1)),
               );
             }
           } else if (action == 'quote') {
@@ -2332,9 +2377,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
                           ? AppStrings.collapseTool
                           : AppStrings.expandTool,
                       icon: Icon(
-                        _toolExpanded
-                            ? Icons.expand_less
-                            : Icons.expand_more,
+                        _toolExpanded ? Icons.expand_less : Icons.expand_more,
                         size: 18,
                       ),
                       onPressed: () =>
@@ -2368,8 +2411,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
                         ),
                       ),
                       TextButton(
-                        onPressed: () =>
-                            setState(() => _toolExpanded = true),
+                        onPressed: () => setState(() => _toolExpanded = true),
                         child: const Text(AppStrings.expandTool),
                       ),
                     ],
@@ -2415,8 +2457,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton.icon(
-                    onPressed: () =>
-                        setState(() => _toolExpanded = false),
+                    onPressed: () => setState(() => _toolExpanded = false),
                     icon: const Icon(Icons.expand_less, size: 16),
                     label: const Text(AppStrings.collapseTool),
                   ),
@@ -2436,49 +2477,46 @@ class _MessageBubbleState extends State<_MessageBubble> {
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
-                  children: buttons
-                      .map(
-                        (b) {
-                          final action = b['data']?.toString() ??
-                              b['text']?.toString() ??
-                              '';
-                          final label = b['text']?.toString() ?? '操作';
-                          final isDeny = action.contains('deny');
-                          final isAllowAll = action.contains('allow_all');
-                          final zhLabel = isDeny
-                              ? AppStrings.permissionDeny
-                              : isAllowAll
-                                  ? AppStrings.permissionAllowAll
-                                  : (action.contains('allow')
-                                      ? AppStrings.permissionAllow
-                                      : label);
-                          if (isPermission) {
-                            return isDeny
-                                ? OutlinedButton(
-                                    onPressed: () => onPermission('deny'),
-                                    child: Text(zhLabel),
-                                  )
-                                : FilledButton(
-                                    onPressed: () => onPermission(
-                                        isAllowAll ? 'allow_all' : 'allow'),
-                                    child: Text(zhLabel),
-                                  );
+                  children: buttons.map(
+                    (b) {
+                      final action =
+                          b['data']?.toString() ?? b['text']?.toString() ?? '';
+                      final label = b['text']?.toString() ?? '操作';
+                      final isDeny = action.contains('deny');
+                      final isAllowAll = action.contains('allow_all');
+                      final zhLabel = isDeny
+                          ? AppStrings.permissionDeny
+                          : isAllowAll
+                              ? AppStrings.permissionAllowAll
+                              : (action.contains('allow')
+                                  ? AppStrings.permissionAllow
+                                  : label);
+                      if (isPermission) {
+                        return isDeny
+                            ? OutlinedButton(
+                                onPressed: () => onPermission('deny'),
+                                child: Text(zhLabel),
+                              )
+                            : FilledButton(
+                                onPressed: () => onPermission(
+                                    isAllowAll ? 'allow_all' : 'allow'),
+                                child: Text(zhLabel),
+                              );
+                      }
+                      return FilledButton.tonal(
+                        onPressed: () {
+                          if (isAllowAll) {
+                            onPermission('allow_all');
+                          } else if (isDeny) {
+                            onPermission('deny');
+                          } else {
+                            onPermission('allow');
                           }
-                          return FilledButton.tonal(
-                            onPressed: () {
-                              if (isAllowAll) {
-                                onPermission('allow_all');
-                              } else if (isDeny) {
-                                onPermission('deny');
-                              } else {
-                                onPermission('allow');
-                              }
-                            },
-                            child: Text(zhLabel),
-                          );
                         },
-                      )
-                      .toList(),
+                        child: Text(zhLabel),
+                      );
+                    },
+                  ).toList(),
                 ),
               ],
             ],

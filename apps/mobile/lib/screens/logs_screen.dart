@@ -1,13 +1,10 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 
 import '../models/connection_config.dart';
-import '../services/app_settings_controller.dart';
+import '../services/catalog_state.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
-import '../utils/catalog_ui.dart';
 import '../utils/query_match.dart';
 import '../l10n/app_strings.dart';
 
@@ -22,10 +19,10 @@ class LogsScreen extends StatefulWidget {
 }
 
 class _LogsScreenState extends State<LogsScreen> {
-  late final MgmtClient _mgmt = MgmtClient(config: widget.config);
-  bool _loading = true;
-  String? _error;
-  List<Map<String, dynamic>> _logs = [];
+  late final CatalogState<List<Map<String, dynamic>>> _catalog;
+  bool get _loading => _catalog.loading;
+  String? get _error => _catalog.error;
+  List<Map<String, dynamic>> get _logs => _catalog.value ?? const [];
   String _level = '';
   String _source = '';
   String _logger = ''; // empty=all
@@ -34,7 +31,6 @@ class _LogsScreenState extends State<LogsScreen> {
   bool _queryRegex = false;
   bool _wrapLines = true;
   final _scroll = ScrollController();
-  Timer? _timer;
   bool _newestFirst = true;
   bool _sortByMsg = false;
   bool _sortByLevel = false;
@@ -43,72 +39,64 @@ class _LogsScreenState extends State<LogsScreen> {
   bool _sortById = false;
   bool _sortByTs = false;
   bool _sortAsc = true;
-  bool _autoRefresh = false;
+  bool get _autoRefresh => _catalog.autoRefresh;
   bool _relativeTs = false;
 
   @override
   void initState() {
     super.initState();
+    _catalog = CatalogState(
+      loader: _fetch,
+      errorMapper: (error) => Security.redactText(error.toString()),
+    )..addListener(_onCatalogChanged);
     _load();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
+  }
+
+  @override
+  void didUpdateWidget(covariant LogsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.config != widget.config) {
+      _catalog.updateLoader(_fetch);
+    }
+  }
+
+  void _onCatalogChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _catalog.removeListener(_onCatalogChanged);
+    _catalog.dispose();
     _scroll.dispose();
     super.dispose();
   }
 
-  void _armTimer() {
-    _timer = CatalogUi.armAutoRefresh(
-      context: context,
-      current: _timer,
-      enabled: _autoRefresh,
-      isBusy: () => _loading,
-      onTick: _load,
+  Future<List<Map<String, dynamic>>> _fetch() async {
+    final mgmt = MgmtClient(config: widget.config);
+    final data = await mgmt.logs(
+      limit: 100,
+      level: _level.isEmpty ? null : _level,
+      source: _source.isEmpty ? null : _source,
     );
+    final raw = data['logs'];
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList(growable: false);
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final data = await _mgmt.logs(
-        limit: 100,
-        level: _level.isEmpty ? null : _level,
-        source: _source.isEmpty ? null : _source,
-      );
-      final raw = data['logs'];
-      final list = <Map<String, dynamic>>[];
-      if (raw is List) {
-        for (final e in raw) {
-          if (e is Map) list.add(Map<String, dynamic>.from(e));
-        }
-      }
-      setState(() {
-        _logs = list;
-        _loading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _loading = false;
-        _error = Security.redactText(e.toString());
-      });
-    }
-  }
+  Future<void> _load() => _catalog.refresh();
 
-  String _loggerOf(Map x) =>
-      (x['logger'] ??
-              x['source'] ??
-              x['component'] ??
-              x['module'] ??
-              x['name'] ??
-              '')
-          .toString()
-          .toLowerCase();
+  String _loggerOf(Map x) => (x['logger'] ??
+          x['source'] ??
+          x['component'] ??
+          x['module'] ??
+          x['name'] ??
+          '')
+      .toString()
+      .toLowerCase();
 
   static const _knownLoggers = [
     'mock-host',
@@ -276,8 +264,8 @@ class _LogsScreenState extends State<LogsScreen> {
           final base = _visible.isEmpty
               ? '主机日志'
               : (_visible.length == _logs.length
-                    ? 'Host logs (${_visible.length})'
-                    : 'Host logs (${_visible.length}/${_logs.length})');
+                  ? 'Host logs (${_visible.length})'
+                  : 'Host logs (${_visible.length}/${_logs.length})');
           return _autoRefresh ? '$base · auto' : base;
         }()),
         actions: [
@@ -350,20 +338,16 @@ class _LogsScreenState extends State<LogsScreen> {
             tooltip: _sortByTs
                 ? (_sortAsc ? 'Time old→new' : 'Time new→old')
                 : (_sortById
-                      ? (_sortAsc ? 'ID Z→A' : 'ID A→Z')
-                      : (_sortBySource
-                            ? (_sortAsc ? '来源 Z→A' : '来源 A→Z')
-                            : (_sortByLogger
-                                  ? (_sortAsc ? 'Logger Z→A' : 'Logger A→Z')
-                                  : (_sortByLevel
-                                        ? (_sortAsc
-                                              ? '级别 Z→A'
-                                              : '级别 A→Z')
-                                        : (_sortByMsg
-                                              ? (_sortAsc
-                                                    ? '消息 Z→A'
-                                                    : '消息 A→Z')
-                                              : '按消息 / 级别 / logger / 来源 / id / 时间排序'))))),
+                    ? (_sortAsc ? 'ID Z→A' : 'ID A→Z')
+                    : (_sortBySource
+                        ? (_sortAsc ? '来源 Z→A' : '来源 A→Z')
+                        : (_sortByLogger
+                            ? (_sortAsc ? 'Logger Z→A' : 'Logger A→Z')
+                            : (_sortByLevel
+                                ? (_sortAsc ? '级别 Z→A' : '级别 A→Z')
+                                : (_sortByMsg
+                                    ? (_sortAsc ? '消息 Z→A' : '消息 A→Z')
+                                    : '按消息 / 级别 / logger / 来源 / id / 时间排序'))))),
             onPressed: () {
               setState(() {
                 if (!_sortByMsg &&
@@ -446,19 +430,18 @@ class _LogsScreenState extends State<LogsScreen> {
               _sortByTs
                   ? Icons.schedule
                   : (_sortById
-                        ? Icons.tag
-                        : (_sortBySource
-                              ? Icons.source_outlined
-                              : (_sortByLogger
-                                    ? Icons.account_tree_outlined
-                                    : (_sortByLevel
-                                          ? Icons.low_priority
-                                          : (_sortByMsg
-                                                ? Icons.sort_by_alpha
-                                                : Icons.sort))))),
+                      ? Icons.tag
+                      : (_sortBySource
+                          ? Icons.source_outlined
+                          : (_sortByLogger
+                              ? Icons.account_tree_outlined
+                              : (_sortByLevel
+                                  ? Icons.low_priority
+                                  : (_sortByMsg
+                                      ? Icons.sort_by_alpha
+                                      : Icons.sort))))),
             ),
           ),
-
           IconButton(
             tooltip: '回到顶部',
             onPressed: () {
@@ -486,8 +469,7 @@ class _LogsScreenState extends State<LogsScreen> {
           IconButton(
             tooltip: _autoRefresh ? '暂停刷新' : '自动刷新',
             onPressed: () {
-              setState(() => _autoRefresh = !_autoRefresh);
-              _armTimer();
+              _catalog.setAutoRefresh(!_autoRefresh);
             },
             icon: Icon(
               _autoRefresh
@@ -495,20 +477,17 @@ class _LogsScreenState extends State<LogsScreen> {
                   : Icons.play_circle_outline,
             ),
           ),
-
           IconButton(
             tooltip: _wrapLines ? '不换行' : '换行',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
           ),
           IconButton(
-            tooltip: _relativeTs
-                ? 'Absolute timestamps'
-                : 'Relative timestamps',
+            tooltip:
+                _relativeTs ? 'Absolute timestamps' : 'Relative timestamps',
             onPressed: () => setState(() => _relativeTs = !_relativeTs),
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
-
           IconButton(
             onPressed: _loading ? null : _load,
             icon: const Icon(Icons.refresh),
@@ -610,7 +589,8 @@ class _LogsScreenState extends State<LogsScreen> {
                       visualDensity: VisualDensity.compact,
                     ),
                     FilterChip(
-                      label: const Text(AppStrings.matchCase, style: TextStyle(fontSize: 11)),
+                      label: const Text(AppStrings.matchCase,
+                          style: TextStyle(fontSize: 11)),
                       selected: _queryCase,
                       onSelected: (v) => setState(() => _queryCase = v),
                       visualDensity: VisualDensity.compact,
@@ -618,7 +598,7 @@ class _LogsScreenState extends State<LogsScreen> {
                     FilterChip(
                       label: const Text('自动', style: TextStyle(fontSize: 11)),
                       selected: _autoRefresh,
-                      onSelected: (v) => setState(() => _autoRefresh = v),
+                      onSelected: _catalog.setAutoRefresh,
                       visualDensity: VisualDensity.compact,
                     ),
                     FilterChip(
@@ -641,19 +621,17 @@ class _LogsScreenState extends State<LogsScreen> {
               decoration: InputDecoration(
                 hintText: _queryRegex
                     ? (_queryCase ? '筛选（正则 · 大小写）' : '筛选（正则）')
-                    : (_queryCase
-                          ? '筛选（区分大小写）'
-                          : '筛选消息 / 级别 / 来源'),
+                    : (_queryCase ? '筛选（区分大小写）' : '筛选消息 / 级别 / 来源'),
                 isDense: true,
                 border: const OutlineInputBorder(),
                 prefixIcon: IconButton(
                   tooltip: _queryRegex
                       ? (_queryCase
-                            ? '正则 · 大小写 开（长按恢复普通筛选）'
-                            : '正则 · 大小写 关（长按恢复普通筛选）')
+                          ? '正则 · 大小写 开（长按恢复普通筛选）'
+                          : '正则 · 大小写 关（长按恢复普通筛选）')
                       : (_queryCase
-                            ? 'Case-sensitive (long-press: regex)'
-                            : 'Case-insensitive (long-press: regex)'),
+                          ? 'Case-sensitive (long-press: regex)'
+                          : 'Case-insensitive (long-press: regex)'),
                   icon: Icon(
                     _queryRegex
                         ? Icons.code
@@ -685,97 +663,97 @@ class _LogsScreenState extends State<LogsScreen> {
                     child: Text('暂无日志（主机可能未暴露 /logs）'),
                   )
                 : _visible.isEmpty && !_loading
-                ? const Center(child: Text('没有匹配的日志行'))
-                : RefreshIndicator(
-                    onRefresh: _load,
-                    child: ListView.separated(
-                      controller: _scroll,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(8, 4, 8, 24),
-                      itemCount: _visible.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (context, i) {
-                        final e = _visible[i];
-                        final level = '${e['level'] ?? 'info'}';
-                        final msg = '${e['message'] ?? ''}';
-                        final src =
-                            '${e['source'] ?? e['logger'] ?? e['component'] ?? ''}';
-                        final ts = e['ts'];
-                        final when = _fmtWhen(ts);
-                        final color = _levelColor(level, cs);
-                        return Container(
-                          decoration: BoxDecoration(
-                            border: Border(
-                              left: BorderSide(color: color, width: 3),
-                            ),
-                            color: level.toLowerCase() == 'error'
-                                ? cs.errorContainer.withOpacity(0.25)
-                                : (level.toLowerCase() == 'warn' ||
-                                      level.toLowerCase() == 'warning')
-                                ? Colors.orange.withOpacity(0.08)
-                                : null,
-                          ),
-                          child: ListTile(
-                            dense: true,
-                            leading: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
+                    ? const Center(child: Text('没有匹配的日志行'))
+                    : RefreshIndicator(
+                        onRefresh: _load,
+                        child: ListView.separated(
+                          controller: _scroll,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(8, 4, 8, 24),
+                          itemCount: _visible.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (context, i) {
+                            final e = _visible[i];
+                            final level = '${e['level'] ?? 'info'}';
+                            final msg = '${e['message'] ?? ''}';
+                            final src =
+                                '${e['source'] ?? e['logger'] ?? e['component'] ?? ''}';
+                            final ts = e['ts'];
+                            final when = _fmtWhen(ts);
+                            final color = _levelColor(level, cs);
+                            return Container(
                               decoration: BoxDecoration(
-                                color: color.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: color.withOpacity(0.5),
+                                border: Border(
+                                  left: BorderSide(color: color, width: 3),
                                 ),
+                                color: level.toLowerCase() == 'error'
+                                    ? cs.errorContainer.withOpacity(0.25)
+                                    : (level.toLowerCase() == 'warn' ||
+                                            level.toLowerCase() == 'warning')
+                                        ? Colors.orange.withOpacity(0.08)
+                                        : null,
                               ),
-                              child: Text(
-                                level.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: color,
-                                  fontFamily: 'monospace',
-                                ),
-                              ),
-                            ),
-                            title: Text(
-                              src.isEmpty ? msg : '[$src] $msg',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontFamily: 'monospace',
-                              ),
-                              maxLines: _wrapLines ? null : 1,
-                              overflow: _wrapLines
-                                  ? TextOverflow.visible
-                                  : TextOverflow.ellipsis,
-                              softWrap: _wrapLines,
-                            ),
-                            subtitle: Text(
-                              when,
-                              style: const TextStyle(fontSize: 10),
-                            ),
-                            onLongPress: () async {
-                              await Clipboard.setData(
-                                ClipboardData(
-                                  text:
-                                      '[$level] $when${src.isNotEmpty ? ' $src' : ''} $msg',
-                                ),
-                              );
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('日志行已复制'),
-                                    duration: Duration(seconds: 1),
+                              child: ListTile(
+                                dense: true,
+                                leading: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
                                   ),
-                                );
-                              }
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                                  decoration: BoxDecoration(
+                                    color: color.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(
+                                      color: color.withOpacity(0.5),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    level.toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: color,
+                                      fontFamily: 'monospace',
+                                    ),
+                                  ),
+                                ),
+                                title: Text(
+                                  src.isEmpty ? msg : '[$src] $msg',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontFamily: 'monospace',
+                                  ),
+                                  maxLines: _wrapLines ? null : 1,
+                                  overflow: _wrapLines
+                                      ? TextOverflow.visible
+                                      : TextOverflow.ellipsis,
+                                  softWrap: _wrapLines,
+                                ),
+                                subtitle: Text(
+                                  when,
+                                  style: const TextStyle(fontSize: 10),
+                                ),
+                                onLongPress: () async {
+                                  await Clipboard.setData(
+                                    ClipboardData(
+                                      text:
+                                          '[$level] $when${src.isNotEmpty ? ' $src' : ''} $msg',
+                                    ),
+                                  );
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('日志行已复制'),
+                                        duration: Duration(seconds: 1),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                      ),
           ),
         ],
       ),

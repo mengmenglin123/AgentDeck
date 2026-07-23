@@ -1,4 +1,62 @@
+## 0.1.199
+
+- **Agent 作用域入口**：主壳层新增共享 Agent/项目选择器，切换时同步刷新会话列表和所有项目目录入口。
+- **模型与渠道可见性**：当前 Agent 的模型、渠道和类型显示在全局作用域栏，减少切换后误用旧目录的风险。
+- **终端门控**：会话页和 Chat 快捷菜单遵循项目 `terminal` capability；终端标题显示项目、握手状态和 PTY 尺寸。
+
+ - Session contract fix: preserve explicit URL session keys for project-scoped creation.
+
+## 0.1.198
+
+- **Host Driver seam**：新增 Host-owned `JsonlAgentDriver`，将受控 JSONL stdout 映射到现有 Bridge transcript 事件。
+- **输出安全**：支持半行/UTF-8/大小上限/坏 JSON/未知事件；session key 与 reply context 由 Host 注入，Agent 输出不能覆盖。
+- **验证**：新增 Driver/runtime 回归；Python Server 35 项、协议 17 项、Flutter 44 项全部通过。
+- **生命周期**：已退出 stdout 排空、退出码、cancel/timeout、常驻进程多轮 `reply_ctx` 和唯一 `run_done`。
+- **路由契约**：新增 `AgentBridgeLoop`，锁定 `message/cancel/ping/poll` 与 fail-closed 错误映射。
+- **WebSocket transport**：新增 stdlib handshake、token 鉴权、register 门控、masked frame、poll、连接级 session 回收、ownership 防接管和 shutdown 测试；TLS/部署配置仍待接入。
+- **真 PTY terminal**：新增 `PtyTerminalAdapter`/`TerminalBridgeLoop`，覆盖显式 argv、resize、过期 stream、输出排空、退出和取消。
+- **Workspace 安全**：新增 `WorkspaceAllowlist`，拒绝相对/缺失/NUL/symlink escape 路径，并注入 Agent/PTY Adapter；Server 回归共 54 项。
+- **限制**：尚未绑定 Claude Code、Codex 或 Hermes 的真实 CLI 输出；Android 真机通知集成仍待 Android SDK/CI。
+
+## 0.1.197
+
+- **CatalogState 深 Module**：集中 loader、错误映射、自动刷新、dispose 与过期响应隔离；Skills、MCP、Agents 已迁移。
+- **目录配置修复**：Agents 不再持有初始 Host 的旧 `MgmtClient`，切换主机或项目后使用最新配置。
+- **通知精确深链**：任务完成与权限通知使用稳定 `session_key`；点击通知可跨项目定位会话并直接进入 Chat。
+- **测试**：新增 CatalogState 生命周期、跨项目 session key 定位回归。
+
+## 0.1.196
+
+- **Agent 作用域一致性**：共享 `SessionController`，切换 Claude Code/Codex/Hermes 后会话、Skills、MCP、Agents 与模型目录使用同一项目上下文。
+- **Host 目录契约**：Skills/MCP/Agents 支持 `?project=`；项目详情声明 `models[]` 与 `channels[]`，Chat 模型选择由 Host 目录驱动。
+- **终端会话强化**：新增 `terminal_open/terminal_open_ack`、`terminal_close` 生命周期，支持 resize stream 关联并拒绝过期 stream 事件；真 PTY 仍属于 Host Adapter。
+- **竞态修复**：旧项目刷新请求不能覆盖最新 Agent 选择；新增跨 Agent 回归测试。
+
 # Changelog
+
+## 0.1.195
+
+- **HostCapabilities 深 Module**：
+  - 新增 typed `CapabilitySet` / `HostRuntimeInfo`
+  - `/status` adapter、Hermes process、Host capability 解析集中管理
+  - `ProjectInfo` 与 `ChatController` 共用同一 capability Interface
+  - 新增 Mock、兼容 Host、真 Hermes 和 capability 规范化 fixture
+  - Flutter 33/33、Python 16/16、analyze error/warning 为零
+
+## 0.1.194
+
+- **协议契约与验证闭环**：
+  - Workspace 恢复只读：移除未写入协议且实际 404 的 Git commit/push/pull 入口
+  - 新增只读契约回归，协议测试由 15 个增至 16 个
+  - CI 增加 `flutter analyze`、`flutter test`、`py_compile`、协议测试和 PR 触发
+- **Host 与版本语义**：
+  - 正确读取 `/status.hermes.adapter/process`，不再把任意兼容 Host 标成真 Hermes
+  - App/Bridge/Python/Mock 版本更新并集中 App 版本常量
+- **附件与通知**：
+  - 真文件/相册/相机选择统一经 `FilePickerService`
+  - 限制单项 5 MB、总计 10 MB、最多 4 项；附件失败不写离线队列
+  - 通知点击与冷启动 payload 导航到会话页
+- **Android**：移除旧式外部存储权限；AGP 升级留待独立构建验证
 
 ## 0.1.193
 

@@ -42,7 +42,7 @@ docs/adr/                 # 架构决策
 # 开发机：任意空闲端口（示例 19810/19820）
 HUAN_BRIDGE_PORT=19810 HUAN_MGMT_PORT=19820 HUAN_BRIDGE_TOKEN=dev-bridge-token-change-me HUAN_MGMT_TOKEN=dev-mgmt-token-change-me python3 server/mock-host/mock_host.py
 
-cd apps/mobile && flutter pub get && flutter test && flutter run
+cd apps/mobile && flutter pub get && flutter analyze --no-fatal-infos && flutter test && flutter run
 # 模拟器 Host 填 10.0.2.2，端口与上面一致
 ```
 
@@ -57,6 +57,7 @@ cd apps/mobile && flutter pub get && flutter test && flutter run
 ## 文档
 
 - [任务板](docs/TASKS.md)
+- [完善开发规划](docs/DEVELOPMENT_PLAN.md)
 - [ADR-001 架构](docs/adr/001-architecture.md)
 - [ADR-002 Hermes adapter](docs/adr/002-hermes-adapter.md)
 - [Bridge 协议子集](docs/protocol/bridge-subset.md)

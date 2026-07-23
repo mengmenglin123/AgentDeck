@@ -1,14 +1,10 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 
 import '../models/connection_config.dart';
-import '../services/app_settings_controller.dart';
+import '../services/catalog_state.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
-import '../utils/catalog_ui.dart';
-import '../utils/query_match.dart';
 import '../l10n/app_strings.dart';
 
 /// Readonly unified diff viewer (`GET /workspace/diff`).
@@ -22,13 +18,20 @@ class DiffScreen extends StatefulWidget {
   State<DiffScreen> createState() => _DiffScreenState();
 }
 
+typedef _DiffSnapshot = ({
+  List<Map<String, dynamic>> files,
+  String? path,
+  String diff,
+});
+
 class _DiffScreenState extends State<DiffScreen> {
-  late final MgmtClient _mgmt = MgmtClient(config: widget.config);
-  bool _loading = true;
-  String? _error;
-  List<Map<String, dynamic>> _files = [];
-  String? _path;
-  String _diff = '';
+  late final CatalogState<_DiffSnapshot> _catalog;
+  bool get _loading => _catalog.loading;
+  String? get _error => _catalog.error;
+  List<Map<String, dynamic>> get _files => _catalog.value?.files ?? const [];
+  String? _requestedPath;
+  String? get _path => _catalog.value?.path ?? _requestedPath;
+  String get _diff => _catalog.value?.diff ?? '';
   bool _lineNums = true;
   bool _wrapLines = false;
   bool _sortAsc = true;
@@ -37,8 +40,7 @@ class _DiffScreenState extends State<DiffScreen> {
   bool _sortByDels = false;
   bool _sortByPath = false;
   bool _sortByBasename = false;
-  Timer? _timer;
-  bool _autoRefresh = false;
+  bool get _autoRefresh => _catalog.autoRefresh;
   final _scroll = ScrollController();
   final _diffFindCtrl = TextEditingController();
   String _diffQuery = '';
@@ -54,29 +56,32 @@ class _DiffScreenState extends State<DiffScreen> {
   @override
   void initState() {
     super.initState();
-    _path = widget.initialPath;
+    _requestedPath = widget.initialPath;
+    _catalog = CatalogState(
+      loader: _fetch,
+      errorMapper: (error) => Security.redactText(error.toString()),
+    )..addListener(_onCatalogChanged);
     _loadIndex();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
   }
 
-  void _armTimer() {
-    _timer = CatalogUi.armAutoRefresh(
-      context: context,
-      current: _timer,
-      enabled: _autoRefresh,
-      isBusy: () => _loading,
-      onTick: () {
-        if (_path != null && _path!.isNotEmpty) {
-          _loadPath(_path!);
-        } else {
-          _loadIndex();
-        }
-      },
-    );
+  @override
+  void didUpdateWidget(covariant DiffScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.config != widget.config ||
+        oldWidget.initialPath != widget.initialPath) {
+      _requestedPath = widget.initialPath;
+      _catalog.updateLoader(_fetch);
+    }
+  }
+
+  void _onCatalogChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _catalog.removeListener(_onCatalogChanged);
+    _catalog.dispose();
     _scroll.dispose();
     _fileFilterCtrl.dispose();
     _diffFindCtrl.dispose();
@@ -220,55 +225,32 @@ class _DiffScreenState extends State<DiffScreen> {
     );
   }
 
-  Future<void> _loadIndex() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final data = await _mgmt.workspaceDiff();
-      final raw = data['files'];
-      final list = <Map<String, dynamic>>[];
-      if (raw is List) {
-        for (final e in raw) {
-          if (e is Map) list.add(Map<String, dynamic>.from(e));
-        }
-      }
-      setState(() {
-        _files = list;
-        _loading = false;
-      });
-      final target =
-          _path ?? (list.isNotEmpty ? list.first['path']?.toString() : null);
-      if (target != null && target.isNotEmpty) {
-        await _loadPath(target);
-      }
-    } catch (e) {
-      setState(() {
-        _loading = false;
-        _error = Security.redactText(e.toString());
-      });
+  Future<_DiffSnapshot> _fetch() async {
+    final client = MgmtClient(config: widget.config);
+    final index = await client.workspaceDiff();
+    final raw = index['files'];
+    final files = raw is List
+        ? raw
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList(growable: false)
+        : const <Map<String, dynamic>>[];
+    final target = _requestedPath ??
+        (files.isNotEmpty ? files.first['path']?.toString() : null);
+    var diff = '';
+    if (target != null && target.isNotEmpty) {
+      final detail = await client.workspaceDiff(path: target);
+      diff = (detail['diff'] ?? '').toString();
     }
+    return (files: files, path: target, diff: diff);
   }
 
-  Future<void> _loadPath(String path) async {
-    setState(() {
-      _loading = true;
-      _error = null;
-      _path = path;
-    });
-    try {
-      final data = await _mgmt.workspaceDiff(path: path);
-      setState(() {
-        _diff = (data['diff'] ?? '').toString();
-        _loading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _loading = false;
-        _error = Security.redactText(e.toString());
-      });
-    }
+  Future<void> _loadIndex() => _catalog.refresh();
+
+  Future<void> _loadPath(String path) {
+    setState(() => _requestedPath = path);
+    _catalog.updateLoader(_fetch, refresh: false);
+    return _catalog.refresh();
   }
 
   String get _displayDiff {
@@ -315,9 +297,8 @@ class _DiffScreenState extends State<DiffScreen> {
       appBar: AppBar(
         title: Text(() {
           final s = _diffStats;
-          final stats = (s.adds == 0 && s.dels == 0)
-              ? ''
-              : ' · +${s.adds}/-${s.dels}';
+          final stats =
+              (s.adds == 0 && s.dels == 0) ? '' : ' · +${s.adds}/-${s.dels}';
           if (_path == null) return 'Git 对比$stats';
           if (_diffQuery.trim().isEmpty) return '对比 · $_path$stats';
           return '对比 · $_path（查找）$stats';
@@ -336,20 +317,14 @@ class _DiffScreenState extends State<DiffScreen> {
             tooltip: _sortByBasename
                 ? (_sortAsc ? '文件名 Z→A' : '文件名 A→Z')
                 : (_sortByPath
-                      ? (_sortAsc ? '路径 Z→A' : '路径 A→Z')
-                      : (_sortByDels
-                            ? (_sortAsc ? '删除 多→少' : '删除 少→多')
-                            : (_sortByAdds
-                                  ? (_sortAsc
-                                        ? '新增 多→少'
-                                        : '新增 少→多')
-                                  : (_sortByStatus
-                                        ? (_sortAsc
-                                              ? '状态 Z→A'
-                                              : '状态 A→Z')
-                                        : (_sortAsc
-                                              ? '路径 Z→A'
-                                              : '路径 A→Z'))))),
+                    ? (_sortAsc ? '路径 Z→A' : '路径 A→Z')
+                    : (_sortByDels
+                        ? (_sortAsc ? '删除 多→少' : '删除 少→多')
+                        : (_sortByAdds
+                            ? (_sortAsc ? '新增 多→少' : '新增 少→多')
+                            : (_sortByStatus
+                                ? (_sortAsc ? '状态 Z→A' : '状态 A→Z')
+                                : (_sortAsc ? '路径 Z→A' : '路径 A→Z'))))),
             onPressed: () {
               setState(() {
                 if (!_sortByStatus &&
@@ -423,19 +398,18 @@ class _DiffScreenState extends State<DiffScreen> {
               _sortByBasename
                   ? Icons.insert_drive_file_outlined
                   : (_sortByPath
-                        ? Icons.route
-                        : (_sortByDels
-                              ? Icons.remove_circle_outline
-                              : (_sortByAdds
-                                    ? Icons.add_box_outlined
-                                    : (_sortByStatus
-                                          ? Icons.flag_outlined
-                                          : (_sortAsc
-                                                ? Icons.sort_by_alpha
-                                                : Icons.sort))))),
+                      ? Icons.route
+                      : (_sortByDels
+                          ? Icons.remove_circle_outline
+                          : (_sortByAdds
+                              ? Icons.add_box_outlined
+                              : (_sortByStatus
+                                  ? Icons.flag_outlined
+                                  : (_sortAsc
+                                      ? Icons.sort_by_alpha
+                                      : Icons.sort))))),
             ),
           ),
-
           IconButton(
             tooltip: _wrapLines ? '不换行' : '换行',
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
@@ -507,8 +481,7 @@ class _DiffScreenState extends State<DiffScreen> {
           IconButton(
             tooltip: _autoRefresh ? '暂停刷新' : '自动刷新',
             onPressed: () {
-              setState(() => _autoRefresh = !_autoRefresh);
-              _armTimer();
+              _catalog.setAutoRefresh(!_autoRefresh);
             },
             icon: Icon(
               _autoRefresh
@@ -516,7 +489,6 @@ class _DiffScreenState extends State<DiffScreen> {
                   : Icons.play_circle_outline,
             ),
           ),
-
           IconButton(
             onPressed: _loading ? null : _loadIndex,
             icon: const Icon(Icons.refresh),
@@ -541,22 +513,18 @@ class _DiffScreenState extends State<DiffScreen> {
                 controller: _fileFilterCtrl,
                 decoration: InputDecoration(
                   hintText: _fileRegex
-                      ? (_fileCase
-                            ? '筛选路径（正则 · 大小写）'
-                            : '筛选路径（正则）')
-                      : (_fileCase
-                            ? '筛选路径（区分大小写）'
-                            : '筛选变更文件'),
+                      ? (_fileCase ? '筛选路径（正则 · 大小写）' : '筛选路径（正则）')
+                      : (_fileCase ? '筛选路径（区分大小写）' : '筛选变更文件'),
                   isDense: true,
                   border: const OutlineInputBorder(),
                   prefixIcon: IconButton(
                     tooltip: _fileRegex
                         ? (_fileCase
-                              ? '正则 · 大小写 开（长按恢复普通筛选）'
-                              : '正则 · 大小写 关（长按恢复普通筛选）')
+                            ? '正则 · 大小写 开（长按恢复普通筛选）'
+                            : '正则 · 大小写 关（长按恢复普通筛选）')
                         : (_fileCase
-                              ? 'Case-sensitive (long-press: regex)'
-                              : 'Case-insensitive (long-press: regex)'),
+                            ? 'Case-sensitive (long-press: regex)'
+                            : 'Case-insensitive (long-press: regex)'),
                     icon: Icon(
                       _fileRegex
                           ? Icons.code
@@ -647,19 +615,22 @@ class _DiffScreenState extends State<DiffScreen> {
                   ),
                   FilterChip(
                     visualDensity: VisualDensity.compact,
-                    label: const Text(AppStrings.regex, style: TextStyle(fontSize: 11)),
+                    label: const Text(AppStrings.regex,
+                        style: TextStyle(fontSize: 11)),
                     selected: _diffRegex,
                     onSelected: (v) => setState(() => _diffRegex = v),
                   ),
                   FilterChip(
                     visualDensity: VisualDensity.compact,
-                    label: const Text(AppStrings.matchCase, style: TextStyle(fontSize: 11)),
+                    label: const Text(AppStrings.matchCase,
+                        style: TextStyle(fontSize: 11)),
                     selected: _diffCase,
                     onSelected: (v) => setState(() => _diffCase = v),
                   ),
                   FilterChip(
                     visualDensity: VisualDensity.compact,
-                    label: const Text(AppStrings.lineNumbers, style: TextStyle(fontSize: 11)),
+                    label: const Text(AppStrings.lineNumbers,
+                        style: TextStyle(fontSize: 11)),
                     selected: _lineNums,
                     onSelected: (v) => setState(() => _lineNums = v),
                   ),
@@ -667,7 +638,7 @@ class _DiffScreenState extends State<DiffScreen> {
                     visualDensity: VisualDensity.compact,
                     label: const Text('自动', style: TextStyle(fontSize: 11)),
                     selected: _autoRefresh,
-                    onSelected: (v) => setState(() => _autoRefresh = v),
+                    onSelected: _catalog.setAutoRefresh,
                   ),
                 ],
               ),
@@ -721,22 +692,18 @@ class _DiffScreenState extends State<DiffScreen> {
                 controller: _diffFindCtrl,
                 decoration: InputDecoration(
                   hintText: _diffRegex
-                      ? (_diffCase
-                            ? 'Diff 内查找（正则 · 大小写）'
-                            : 'Diff 内查找（正则）')
-                      : (_diffCase
-                            ? 'Diff 内查找（区分大小写）'
-                            : 'Diff 内查找（本地）'),
+                      ? (_diffCase ? 'Diff 内查找（正则 · 大小写）' : 'Diff 内查找（正则）')
+                      : (_diffCase ? 'Diff 内查找（区分大小写）' : 'Diff 内查找（本地）'),
                   isDense: true,
                   border: const OutlineInputBorder(),
                   prefixIcon: IconButton(
                     tooltip: _diffRegex
                         ? (_diffCase
-                              ? 'Regex · case on (long-press: plain find)'
-                              : 'Regex · case off (long-press: plain find)')
+                            ? 'Regex · case on (long-press: plain find)'
+                            : 'Regex · case off (long-press: plain find)')
                         : (_diffCase
-                              ? 'Case-sensitive (long-press: regex)'
-                              : 'Case-insensitive (long-press: regex)'),
+                            ? 'Case-sensitive (long-press: regex)'
+                            : 'Case-insensitive (long-press: regex)'),
                     icon: Icon(
                       _diffRegex
                           ? Icons.code
@@ -822,10 +789,10 @@ class _DiffText extends StatelessWidget {
                 color: lines[i].startsWith('+') && !lines[i].startsWith('+++')
                     ? const Color(0xFF81C784)
                     : lines[i].startsWith('-') && !lines[i].startsWith('---')
-                    ? const Color(0xFFE57373)
-                    : lines[i].startsWith('@@')
-                    ? const Color(0xFF64B5F6)
-                    : const Color(0xFFB0BEC5),
+                        ? const Color(0xFFE57373)
+                        : lines[i].startsWith('@@')
+                            ? const Color(0xFF64B5F6)
+                            : const Color(0xFFB0BEC5),
               ),
             ),
         ],

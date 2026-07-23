@@ -1,14 +1,10 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 
 import '../models/connection_config.dart';
-import '../services/app_settings_controller.dart';
+import '../services/catalog_state.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
-import '../utils/catalog_ui.dart';
-import '../utils/query_match.dart';
 import 'diff_screen.dart';
 import '../widgets/markdown_lite.dart';
 import '../l10n/app_strings.dart';
@@ -24,13 +20,18 @@ class WorkspaceScreen extends StatefulWidget {
   State<WorkspaceScreen> createState() => _WorkspaceScreenState();
 }
 
+typedef _WorkspaceSnapshot = ({
+  Map<String, dynamic> node,
+  Map<String, dynamic> git,
+});
+
 class _WorkspaceScreenState extends State<WorkspaceScreen> {
-  late final MgmtClient _client;
+  late final CatalogState<_WorkspaceSnapshot> _catalog;
   String _path = '';
-  Map<String, dynamic>? _node;
-  Map<String, dynamic>? _git;
-  String? _error;
-  bool _loading = true;
+  Map<String, dynamic>? get _node => _catalog.value?.node;
+  Map<String, dynamic>? get _git => _catalog.value?.git;
+  String? get _error => _catalog.error;
+  bool get _loading => _catalog.loading;
   final _filterCtrl = TextEditingController();
   String _filter = '';
   bool _queryCase = false;
@@ -56,20 +57,34 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
   /// empty=all; md|dart|py|json|other
   String _extFilter = '';
   final _scroll = ScrollController();
-  Timer? _timer;
-  bool _autoRefresh = false;
+  bool get _autoRefresh => _catalog.autoRefresh;
 
   @override
   void initState() {
     super.initState();
-    _client = MgmtClient(config: widget.config);
+    _catalog = CatalogState(
+      loader: _fetch,
+      errorMapper: (error) => Security.redactText(error.toString()),
+    )..addListener(_onCatalogChanged);
     _load();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
+  }
+
+  @override
+  void didUpdateWidget(covariant WorkspaceScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.config != widget.config) {
+      _catalog.updateLoader(_fetch);
+    }
+  }
+
+  void _onCatalogChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _catalog.removeListener(_onCatalogChanged);
+    _catalog.dispose();
     _scroll.dispose();
     _filterCtrl.dispose();
     super.dispose();
@@ -253,32 +268,23 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     return chips;
   }
 
-  Future<void> _load({String? path}) async {
-    setState(() {
-      _loading = true;
-      _error = null;
-      if (path != null) {
+  Future<_WorkspaceSnapshot> _fetch() async {
+    final client = MgmtClient(config: widget.config);
+    final node = await client.workspace(path: _path);
+    final git = await client.workspaceGit();
+    return (node: node, git: git);
+  }
+
+  Future<void> _load({String? path}) {
+    if (path != null) {
+      setState(() {
         _path = path;
         _filter = '';
         _filterCtrl.clear();
-      }
-    });
-    try {
-      final node = await _client.workspace(path: _path);
-      final git = await _client.workspaceGit();
-      if (!mounted) return;
-      setState(() {
-        _node = node;
-        _git = git;
-        _loading = false;
       });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-        _error = Security.redactText(e.toString());
-      });
+      _catalog.updateLoader(_fetch, refresh: false);
     }
+    return _catalog.refresh();
   }
 
   void _openEntry(Map entry) {
@@ -329,110 +335,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
       MaterialPageRoute(
         builder: (_) => DiffScreen(config: widget.config, initialPath: path),
       ),
-    );
-  }
-
-  Future<void> _gitCommit() async {
-    final msgCtrl = TextEditingController();
-    final msg = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text(AppStrings.gitCommitTitle),
-        content: TextField(
-          controller: msgCtrl,
-          decoration: const InputDecoration(
-            hintText: '提交说明',
-            border: OutlineInputBorder(),
-          ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, msgCtrl.text.trim()),
-            child: const Text('提交'),
-          ),
-        ],
-      ),
-    );
-    if (msg == null || msg.isEmpty) return;
-    try {
-      final result = await _client.gitCommit(message: msg);
-      if (!mounted) return;
-      final sha = result['data']?['sha'] ?? '?';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('已提交：$sha'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      _load();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('提交失败：$e'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
-  }
-
-  Future<void> _gitPush() async {
-    try {
-      final result = await _client.gitPush();
-      if (!mounted) return;
-      final output = result['data']?['output'] ?? 'Pushed';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('已推送：$output'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('推送失败：$e'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
-  }
-
-  Future<void> _gitPull() async {
-    try {
-      final result = await _client.gitPull();
-      if (!mounted) return;
-      final output = result['data']?['output'] ?? 'Pulled';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('已拉取：$output'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      _load();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('拉取失败：$e'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
-  }
-
-  void _armTimer() {
-    _timer = CatalogUi.armAutoRefresh(
-      context: context,
-      current: _timer,
-      enabled: _autoRefresh,
-      isBusy: () => _loading,
-      onTick: _load,
     );
   }
 
@@ -564,8 +466,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
           IconButton(
             tooltip: _autoRefresh ? '暂停刷新' : '自动刷新',
             onPressed: () {
-              setState(() => _autoRefresh = !_autoRefresh);
-              _armTimer();
+              _catalog.setAutoRefresh(!_autoRefresh);
             },
             icon: Icon(
               _autoRefresh
@@ -847,49 +748,6 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             onPressed: () => _openDiff(isFile ? _path : null),
             icon: const Icon(Icons.difference_outlined),
           ),
-          PopupMenuButton<String>(
-            tooltip: 'Git 操作',
-            icon: const Icon(Icons.commit_outlined),
-            onSelected: (action) async {
-              switch (action) {
-                case 'commit':
-                  await _gitCommit();
-                  break;
-                case 'push':
-                  await _gitPush();
-                  break;
-                case 'pull':
-                  await _gitPull();
-                  break;
-              }
-            },
-            itemBuilder: (_) => [
-              const PopupMenuItem(
-                value: 'commit',
-                child: ListTile(
-                  leading: Icon(Icons.commit),
-                  title: Text(AppStrings.gitCommit),
-                  dense: true,
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'push',
-                child: ListTile(
-                  leading: Icon(Icons.upload),
-                  title: Text(AppStrings.gitPush),
-                  dense: true,
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'pull',
-                child: ListTile(
-                  leading: Icon(Icons.download),
-                  title: Text('拉取'),
-                  dense: true,
-                ),
-              ),
-            ],
-          ),
           IconButton(
             tooltip: AppStrings.refresh,
             onPressed: _loading ? null : () => _load(),
@@ -942,29 +800,32 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text(AppStrings.wrap, style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.wrap,
+                      style: TextStyle(fontSize: 11)),
                   selected: _wrapLines,
                   onSelected: (_) => setState(() => _wrapLines = !_wrapLines),
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text(AppStrings.regex, style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.regex,
+                      style: TextStyle(fontSize: 11)),
                   selected: _queryRegex,
                   onSelected: (_) => setState(() => _queryRegex = !_queryRegex),
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text(AppStrings.matchCase, style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.matchCase,
+                      style: TextStyle(fontSize: 11)),
                   selected: _queryCase,
                   onSelected: (_) => setState(() => _queryCase = !_queryCase),
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text(AppStrings.autoRefresh, style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.autoRefresh,
+                      style: TextStyle(fontSize: 11)),
                   selected: _autoRefresh,
                   onSelected: (_) {
-                    setState(() => _autoRefresh = !_autoRefresh);
-                    _armTimer();
+                    _catalog.setAutoRefresh(!_autoRefresh);
                   },
                   visualDensity: VisualDensity.compact,
                 ),
@@ -1063,9 +924,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                         ? (_queryCase
                             ? '正则 · 大小写 开（长按恢复普通筛选）'
                             : '正则 · 大小写 关（长按恢复普通筛选）')
-                        : (_queryCase
-                            ? '区分大小写（长按切换正则）'
-                            : '不区分大小写（长按切换正则）'),
+                        : (_queryCase ? '区分大小写（长按切换正则）' : '不区分大小写（长按切换正则）'),
                     icon: Icon(
                       _queryRegex
                           ? Icons.code

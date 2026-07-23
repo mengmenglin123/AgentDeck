@@ -1,16 +1,62 @@
+import 'dart:async';
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-/// Service for showing local notifications on the device.
-/// Used to alert the user about important events (task completion, errors, etc.)
-/// when the app is in the background or the screen is off.
+enum NotificationDestination { sessions }
+
+class NotificationIntent {
+  const NotificationIntent({
+    required this.destination,
+    required this.payload,
+    this.sessionRef,
+  });
+
+  final NotificationDestination destination;
+  final String payload;
+  final String? sessionRef;
+
+  static NotificationIntent? tryParse(String? payload) {
+    final value = payload?.trim() ?? '';
+    if (value.isEmpty) return null;
+    for (final prefix in const ['session:', 'permission:']) {
+      if (value.startsWith(prefix)) {
+        final ref = value.substring(prefix.length).trim();
+        return NotificationIntent(
+          destination: NotificationDestination.sessions,
+          payload: value,
+          sessionRef: ref.isEmpty ? null : ref,
+        );
+      }
+    }
+    return null;
+  }
+}
+
 class NotificationService {
   NotificationService._();
   static final instance = NotificationService._();
 
-  final _plugin = FlutterLocalNotificationsPlugin();
-  bool _initialized = false;
+  static String sessionPayload(String sessionKey) {
+    return 'session:${sessionKey.trim()}';
+  }
 
-  /// Initialize the notification service. Call once at app startup.
+  static String permissionPayload(String sessionKey) {
+    return 'permission:${sessionKey.trim()}';
+  }
+
+  final _plugin = FlutterLocalNotificationsPlugin();
+  final _intents = StreamController<NotificationIntent>.broadcast();
+  bool _initialized = false;
+  NotificationIntent? _pendingIntent;
+
+  Stream<NotificationIntent> get intents => _intents.stream;
+
+  NotificationIntent? takePendingIntent() {
+    final intent = _pendingIntent;
+    _pendingIntent = null;
+    return intent;
+  }
+
   Future<void> init() async {
     if (_initialized) return;
 
@@ -24,11 +70,15 @@ class NotificationService {
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
 
-    // Request notification permission on Android 13+
-    final android = _plugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >();
+    final launchDetails = await _plugin.getNotificationAppLaunchDetails();
+    if (launchDetails?.didNotificationLaunchApp == true) {
+      _pendingIntent = NotificationIntent.tryParse(
+        launchDetails?.notificationResponse?.payload,
+      );
+    }
+
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
     if (android != null) {
       await android.requestNotificationsPermission();
     }
@@ -36,8 +86,6 @@ class NotificationService {
     _initialized = true;
   }
 
-  /// Show a notification with the given [title] and [body].
-  /// [id] is used to replace/update existing notifications.
   Future<void> show({
     required int id,
     required String title,
@@ -59,8 +107,8 @@ class NotificationService {
     await _plugin.show(id, title, body, details, payload: payload);
   }
 
-  /// Show a notification for task/session completion.
   Future<void> showTaskComplete({
+    required String sessionKey,
     required String sessionName,
     required String summary,
   }) async {
@@ -68,40 +116,34 @@ class NotificationService {
       id: sessionName.hashCode & 0x7FFFFFFF,
       title: '任务完成：$sessionName',
       body: summary,
-      payload: 'session:$sessionName',
+      payload: sessionPayload(sessionKey),
     );
   }
 
-  /// Show a notification for errors or alerts.
   Future<void> showError({
     required String title,
     required String message,
   }) async {
     await show(
-      id:
-          'error_${DateTime.now().millisecondsSinceEpoch}'.hashCode &
+      id: 'error_${DateTime.now().millisecondsSinceEpoch}'.hashCode &
           0x7FFFFFFF,
       title: title,
       body: message,
     );
   }
 
-  /// Cancel all pending notifications.
   Future<void> cancelAll() async {
     await _plugin.cancelAll();
   }
 
-  /// Cancel a specific notification by [id].
   Future<void> cancel(int id) async {
     await _plugin.cancel(id);
   }
 
   void _onNotificationTapped(NotificationResponse response) {
-    // TODO: Navigate to relevant screen based on payload
-    // For now, just log the tap
-    final payload = response.payload;
-    if (payload != null) {
-      print('Notification tapped: $payload');
+    final intent = NotificationIntent.tryParse(response.payload);
+    if (intent != null) {
+      _intents.add(intent);
     }
   }
 }

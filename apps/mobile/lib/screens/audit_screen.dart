@@ -1,12 +1,8 @@
-import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
-import '../utils/catalog_ui.dart';
 import '../utils/query_match.dart';
 
-import '../services/app_settings_controller.dart';
 import '../services/audit_log.dart';
 import '../l10n/app_strings.dart';
 
@@ -37,29 +33,29 @@ class _AuditScreenState extends State<AuditScreen> {
   bool _wrapLines = false;
   bool _relativeTs = false;
   final _scroll = ScrollController();
-  Timer? _timer;
-  bool _autoRefresh = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _armTimer());
+    widget.audit.addListener(_onAuditChanged);
   }
 
-  void _armTimer() {
-    _timer = CatalogUi.armAutoRefresh(
-      context: context,
-      current: _timer,
-      enabled: _autoRefresh,
-      isBusy: () => false,
-      onTick: () {
-        if (mounted) setState(() {});
-      },
-    );
+  void _onAuditChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void didUpdateWidget(covariant AuditScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.audit != widget.audit) {
+      oldWidget.audit.removeListener(_onAuditChanged);
+      widget.audit.addListener(_onAuditChanged);
+    }
   }
 
   @override
   void dispose() {
+    widget.audit.removeListener(_onAuditChanged);
     _scroll.dispose();
     _q.dispose();
     super.dispose();
@@ -155,7 +151,7 @@ class _AuditScreenState extends State<AuditScreen> {
             : 'Audit (${visible.length}/$total)');
     return Scaffold(
       appBar: AppBar(
-        title: Text(_autoRefresh ? '$title · 自动' : title),
+        title: Text('$title · 实时'),
         actions: [
           IconButton(
             tooltip: '复制全部',
@@ -322,8 +318,7 @@ class _AuditScreenState extends State<AuditScreen> {
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
           ),
           IconButton(
-            tooltip:
-                _relativeTs ? '绝对时间戳' : '相对时间戳',
+            tooltip: _relativeTs ? '绝对时间戳' : '相对时间戳',
             onPressed: () => setState(() => _relativeTs = !_relativeTs),
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
@@ -352,18 +347,6 @@ class _AuditScreenState extends State<AuditScreen> {
             icon: const Icon(Icons.vertical_align_bottom),
           ),
           IconButton(
-            tooltip: _autoRefresh ? '暂停刷新' : '自动刷新',
-            onPressed: () {
-              setState(() => _autoRefresh = !_autoRefresh);
-              _armTimer();
-            },
-            icon: Icon(
-              _autoRefresh
-                  ? Icons.pause_circle_outline
-                  : Icons.play_circle_outline,
-            ),
-          ),
-          IconButton(
             tooltip: '清空',
             onPressed: audit.clear,
             icon: const Icon(Icons.delete_outline),
@@ -379,9 +362,7 @@ class _AuditScreenState extends State<AuditScreen> {
               decoration: InputDecoration(
                 hintText: _queryRegex
                     ? (_queryCase ? '筛选（正则 · 大小写）' : '筛选（正则）')
-                    : (_queryCase
-                        ? '筛选（区分大小写）'
-                        : '筛选动作 / 详情'),
+                    : (_queryCase ? '筛选（区分大小写）' : '筛选动作 / 详情'),
                 isDense: true,
                 border: const OutlineInputBorder(),
                 prefixIcon: IconButton(
@@ -389,9 +370,7 @@ class _AuditScreenState extends State<AuditScreen> {
                       ? (_queryCase
                           ? '正则 · 大小写 开（长按恢复普通筛选）'
                           : '正则 · 大小写 关（长按恢复普通筛选）')
-                      : (_queryCase
-                          ? '区分大小写（长按切换正则）'
-                          : '不区分大小写（长按切换正则）'),
+                      : (_queryCase ? '区分大小写（长按切换正则）' : '不区分大小写（长按切换正则）'),
                   icon: Icon(
                     _queryRegex
                         ? Icons.code
@@ -472,27 +451,24 @@ class _AuditScreenState extends State<AuditScreen> {
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text(AppStrings.regex, style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.regex,
+                      style: TextStyle(fontSize: 11)),
                   selected: _queryRegex,
                   onSelected: (v) => setState(() => _queryRegex = v),
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text(AppStrings.matchCase, style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.matchCase,
+                      style: TextStyle(fontSize: 11)),
                   selected: _queryCase,
                   onSelected: (v) => setState(() => _queryCase = v),
                   visualDensity: VisualDensity.compact,
                 ),
                 FilterChip(
-                  label: const Text(AppStrings.newestFirst, style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.newestFirst,
+                      style: TextStyle(fontSize: 11)),
                   selected: _newestFirst,
                   onSelected: (v) => setState(() => _newestFirst = v),
-                  visualDensity: VisualDensity.compact,
-                ),
-                FilterChip(
-                  label: const Text('自动', style: TextStyle(fontSize: 11)),
-                  selected: _autoRefresh,
-                  onSelected: (v) => setState(() => _autoRefresh = v),
                   visualDensity: VisualDensity.compact,
                 ),
               ],

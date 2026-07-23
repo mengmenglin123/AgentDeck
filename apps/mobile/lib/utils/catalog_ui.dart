@@ -1,11 +1,7 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 
 import '../l10n/app_strings.dart';
-import '../services/app_settings_controller.dart';
 
 /// Shared catalog / host-directory UI helpers.
 class CatalogUi {
@@ -92,27 +88,10 @@ class CatalogUi {
           duration: duration,
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
-  }
-
-  /// Wire periodic refresh from AppSettingsController.dashboardRefreshSec.
-  static Timer? armAutoRefresh({
-    required BuildContext context,
-    required Timer? current,
-    required bool enabled,
-    required bool Function() isBusy,
-    required VoidCallback onTick,
-  }) {
-    current?.cancel();
-    if (!enabled || !context.mounted) return null;
-    final sec = context.read<AppSettingsController>().dashboardRefreshSec;
-    if (sec <= 0) return null;
-    return Timer.periodic(Duration(seconds: sec), (_) {
-      if (!context.mounted || isBusy()) return;
-      onTick();
-    });
   }
 
   static void jumpScroll(ScrollController scroll, {required bool top}) {
@@ -124,7 +103,8 @@ class CatalogUi {
     );
   }
 
-  /// Compact AppBar action: copy-all / csv / jump / wrap / auto / refresh.
+  /// Mobile-friendly AppBar actions: refresh + auto + overflow menu.
+  /// Keeps primary controls visible; secondary copy/jump/wrap go to 更多.
   static List<Widget> commonActions({
     required BuildContext context,
     required ScrollController scroll,
@@ -135,43 +115,18 @@ class CatalogUi {
     required VoidCallback? onRefresh,
     VoidCallback? onCopyAll,
     VoidCallback? onCopyCsv,
-    List<Widget> extra = const [],
+    VoidCallback? onCopyJson,
+    List<PopupMenuEntry<String>> extraMenu = const [],
+    Map<String, VoidCallback>? extraHandlers,
+    List<Widget> leading = const [],
   }) {
     return [
-      if (onCopyAll != null)
-        IconButton(
-          tooltip: copyAll,
-          onPressed: onCopyAll,
-          icon: const Icon(Icons.copy_all_outlined),
-        ),
-      if (onCopyCsv != null)
-        IconButton(
-          tooltip: copyCsv,
-          onPressed: onCopyCsv,
-          icon: const Icon(Icons.table_chart_outlined),
-        ),
-      IconButton(
-        tooltip: wrapLines ? clampDetails : wrapDetails,
-        onPressed: onToggleWrap,
-        icon: Icon(wrapLines ? Icons.wrap_text : Icons.notes),
-      ),
-      IconButton(
-        tooltip: jumpTop,
-        onPressed: () => jumpScroll(scroll, top: true),
-        icon: const Icon(Icons.vertical_align_top),
-      ),
-      IconButton(
-        tooltip: jumpBottom,
-        onPressed: () => jumpScroll(scroll, top: false),
-        icon: const Icon(Icons.vertical_align_bottom),
-      ),
+      ...leading,
       IconButton(
         tooltip: autoRefresh ? pauseRefresh : autoRefreshLabel,
         onPressed: onToggleAuto,
         icon: Icon(
-          autoRefresh
-              ? Icons.pause_circle_outline
-              : Icons.play_circle_outline,
+          autoRefresh ? Icons.pause_circle_outline : Icons.play_circle_outline,
         ),
       ),
       IconButton(
@@ -179,7 +134,53 @@ class CatalogUi {
         onPressed: onRefresh,
         icon: const Icon(Icons.refresh),
       ),
-      ...extra,
+      PopupMenuButton<String>(
+        tooltip: AppStrings.more,
+        onSelected: (v) {
+          switch (v) {
+            case 'copy_all':
+              onCopyAll?.call();
+              return;
+            case 'copy_csv':
+              onCopyCsv?.call();
+              return;
+            case 'copy_json':
+              onCopyJson?.call();
+              return;
+            case 'wrap':
+              onToggleWrap();
+              return;
+            case 'top':
+              jumpScroll(scroll, top: true);
+              return;
+            case 'bottom':
+              jumpScroll(scroll, top: false);
+              return;
+            default:
+              extraHandlers?[v]?.call();
+          }
+        },
+        itemBuilder: (context) => [
+          if (onCopyAll != null)
+            PopupMenuItem(value: 'copy_all', child: Text(copyAll)),
+          if (onCopyCsv != null)
+            PopupMenuItem(value: 'copy_csv', child: Text(copyCsv)),
+          if (onCopyJson != null)
+            PopupMenuItem(value: 'copy_json', child: Text(copyJson)),
+          if (onCopyAll != null || onCopyCsv != null || onCopyJson != null)
+            const PopupMenuDivider(),
+          PopupMenuItem(
+            value: 'wrap',
+            child: Text(wrapLines ? clampDetails : wrapDetails),
+          ),
+          PopupMenuItem(value: 'top', child: Text(jumpTop)),
+          PopupMenuItem(value: 'bottom', child: Text(jumpBottom)),
+          if (extraMenu.isNotEmpty) ...[
+            const PopupMenuDivider(),
+            ...extraMenu,
+          ],
+        ],
+      ),
     ];
   }
 
@@ -214,17 +215,18 @@ class CatalogQueryChips extends StatelessWidget {
   Widget build(BuildContext context) {
     Widget chip(String label, bool selected, ValueChanged<bool> onSel) {
       return FilterChip(
-        label: Text(label, style: const TextStyle(fontSize: 11)),
+        label: Text(label, style: const TextStyle(fontSize: 12)),
         selected: selected,
         onSelected: onSel,
-        visualDensity: VisualDensity.compact,
-        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.standard,
+        materialTapTargetSize: MaterialTapTargetSize.padded,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       );
     }
 
     return Wrap(
-      spacing: 6,
-      runSpacing: 4,
+      spacing: 8,
+      runSpacing: 8,
       children: [
         chip(CatalogUi.wrap, wrapLines, onWrap),
         chip(AppStrings.regex, regex, onRegex),

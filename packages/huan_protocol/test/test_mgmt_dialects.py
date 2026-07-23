@@ -8,6 +8,8 @@ import subprocess
 import sys
 import time
 import unittest
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -131,6 +133,45 @@ class TestMgmtDialects(unittest.TestCase):
         self.assertTrue(servers)
         self.assertTrue(any(s.get("name") for s in servers))
 
+
+    def test_project_scoped_catalogs_are_distinct(self) -> None:
+        c = MgmtClient(self.cfg)
+        claude_from_client = c.skills(project="claude-code")["skills"]
+        codex_from_client = c.skills(project="codex")["skills"]
+        self.assertNotEqual(
+            {item["name"] for item in claude_from_client},
+            {item["name"] for item in codex_from_client},
+        )
+        codex_mcp = c.mcp(project="codex")["servers"]
+        self.assertTrue(codex_mcp)
+        self.assertTrue(all("codex" in item["name"] or "openai" in item["name"] for item in codex_mcp))
+        self.assertEqual(c.agents(project="codex")["agents"][0]["id"], "codex")
+
+        headers = {"Authorization": "Bearer dev-mgmt-token-change-me"}
+        def get(path: str):
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{self.port_m}/api/v1/{path}", headers=headers
+            )
+            with urllib.request.urlopen(request, timeout=2) as response:
+                import json
+                return json.loads(response.read().decode("utf-8"))["data"]
+
+        claude_skills = get("skills?project=claude-code")["skills"]
+        codex_skills = get("skills?project=codex")["skills"]
+        self.assertNotEqual(
+            {item["name"] for item in claude_skills},
+            {item["name"] for item in codex_skills},
+        )
+        claude_mcp = get("mcp?project=claude-code")["servers"]
+        codex_mcp = get("mcp?project=codex")["servers"]
+        self.assertNotEqual(
+            {item["name"] for item in claude_mcp},
+            {item["name"] for item in codex_mcp},
+        )
+        detail = get("projects/codex")
+        self.assertEqual(detail.get("channels"), ["openai"])
+        self.assertIn("gpt-5-codex", detail.get("models") or [])
+
     def test_workspace_readonly(self) -> None:
         c = MgmtClient(self.cfg)
         root = c.workspace()
@@ -147,12 +188,30 @@ class TestMgmtDialects(unittest.TestCase):
         caps = st.get("capabilities") or []
         self.assertIn("workspace_readonly", caps)
 
+    def test_workspace_git_mutations_are_not_exposed(self) -> None:
+        request = urllib.request.Request(
+            f"http://127.0.0.1:{self.port_m}/api/v1/workspace/git/commit",
+            data=b'{"message":"must stay readonly"}',
+            method="POST",
+            headers={
+                "Authorization": "Bearer dev-mgmt-token-change-me",
+                "Content-Type": "application/json",
+            },
+        )
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            urllib.request.urlopen(request, timeout=2)
+        self.assertEqual(caught.exception.code, 404)
+
     def test_memory_cron_diff(self) -> None:
         c = MgmtClient(self.cfg)
         mem = c.memory()
         self.assertTrue(mem.get("memories"))
         mem_q = c.memory(q="language")
         self.assertGreaterEqual(len(mem_q.get("memories") or []), 1)
+        codex_mem = c.memory(project="codex")
+        self.assertFalse(any(item.get("project") == "hermes" for item in codex_mem.get("memories") or []))
+        hermes_mem = c.memory(project="hermes")
+        self.assertTrue(any(item.get("project") == "hermes" for item in hermes_mem.get("memories") or []))
         cron = c.cron()
         self.assertTrue(cron.get("jobs"))
         idx = c.workspace_diff()

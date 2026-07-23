@@ -38,8 +38,12 @@ void main() {
       ),
     );
     expect(find.text('连接服务器'), findsOneWidget);
+    expect(find.text('连接 Host 控制台'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('测试并连接'),
+      500,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('测试并连接'), findsOneWidget);
-    expect(find.text('主机地址'), findsOneWidget);
-    expect(find.text('配置名称'), findsOneWidget);
   });
 }

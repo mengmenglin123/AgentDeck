@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../errors/app_errors.dart';
 import '../models/connection_config.dart';
+import '../models/host_capabilities.dart';
 import '../models/server_profile.dart';
 import 'mgmt_client.dart';
 import 'connection_store.dart';
@@ -14,8 +15,8 @@ class ConnectionController extends ChangeNotifier {
   ConnectionController({
     required ConnectionStore store,
     MgmtClient Function(ConnectionConfig config)? mgmtFactory,
-  }) : _store = store,
-       _mgmtFactory = mgmtFactory ?? ((c) => MgmtClient(config: c));
+  })  : _store = store,
+        _mgmtFactory = mgmtFactory ?? ((c) => MgmtClient(config: c));
 
   final ConnectionStore _store;
   final MgmtClient Function(ConnectionConfig config) _mgmtFactory;
@@ -42,16 +43,11 @@ class ConnectionController extends ChangeNotifier {
 
   bool get isReady => phase == ConnectionPhase.ready && saved != null;
 
-  /// Detected adapter type from host /status response.
-  /// Returns 'mock', 'hermes', 'real', or 'unknown'.
-  String get adapterType {
-    final adapter = lastStatus?['adapter']?.toString() ?? '';
-    if (adapter.isEmpty) return 'unknown';
-    return adapter;
-  }
+  HostRuntimeInfo get hostRuntime => HostRuntimeInfo.fromStatus(lastStatus);
 
-  /// Whether connected to a real Hermes agent (not mock).
-  bool get isRealHermes => adapterType != 'mock' && adapterType != 'unknown';
+  String get adapterType => hostRuntime.adapterType;
+
+  bool get isRealHermes => hostRuntime.isRealHermes;
 
   /// true when last probe failed (or stale success + newer error).
   bool get healthDegraded {

@@ -53,7 +53,8 @@ class MemoryConfigStore implements ConnectionStore {
   Future<void> setActiveProfileId(String id) async => _active = id;
 
   @override
-  Future<void> upsertProfile(ServerProfile profile, {bool setActive = true}) async {
+  Future<void> upsertProfile(ServerProfile profile,
+      {bool setActive = true}) async {
     _profiles[profile.id] = profile;
     _cfg = profile.config;
     if (setActive) _active = profile.id;
@@ -107,6 +108,21 @@ void main() {
     final ok = await controller.testAndSave();
     expect(ok, isFalse);
     expect(controller.phase, ConnectionPhase.error);
+  });
+
+  test('reads nested Mock adapter without calling it real Hermes', () {
+    final controller = ConnectionController(store: MemoryConfigStore());
+    controller.lastStatus = {
+      'hermes': {'adapter': 'mock', 'process': false},
+    };
+    expect(controller.adapterType, 'mock');
+    expect(controller.isRealHermes, isFalse);
+
+    controller.lastStatus = {
+      'hermes': {'adapter': 'hermes', 'process': true},
+    };
+    expect(controller.adapterType, 'hermes');
+    expect(controller.isRealHermes, isTrue);
   });
 
   test('multi profile switch does not auto-ready', () async {

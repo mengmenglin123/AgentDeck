@@ -9,13 +9,14 @@ import '../models/session_info.dart';
 import '../services/app_settings_controller.dart';
 import '../services/bridge_client.dart';
 import '../services/terminal_history_store.dart';
+import '../services/terminal_buffer.dart';
+import '../services/terminal_reconnect_policy.dart';
+import '../services/terminal_output_batcher.dart';
 import '../utils/security.dart';
-import '../utils/catalog_ui.dart';
 import '../l10n/app_strings.dart';
-import '../utils/query_match.dart';
 
-/// Lightweight terminal console over Bridge `terminal_input` / `terminal_out`.
-/// Not a full PTY — Host may map to real shell later; Mock echoes commands.
+/// Terminal console over Bridge `terminal_input` / `terminal_out`.
+/// Production Hosts may back this channel with a real PTY; Mock echoes commands.
 class TerminalScreen extends StatefulWidget {
   const TerminalScreen({
     super.key,
@@ -35,8 +36,14 @@ class _TerminalScreenState extends State<TerminalScreen>
   BridgeClient? _bridge;
   final _input = TextEditingController();
   final _scroll = ScrollController();
-  final _buf = StringBuffer();
-  String _streamId = 'term-ui';
+  final _buf = TerminalBuffer();
+  late final TerminalOutputBatcher _outputBatcher;
+  static const _reconnectPolicy = TerminalReconnectPolicy();
+  Timer? _reconnectTimer;
+  int _reconnectAttempts = 0;
+  late String _streamId;
+  bool _terminalOpen = false;
+  bool _terminalReady = false;
   bool _connecting = true;
   String? _error;
   bool _busy = false;
@@ -56,11 +63,20 @@ class _TerminalScreenState extends State<TerminalScreen>
   bool _findRegex = false;
   int _termCols = 80;
   int _termRows = 24;
+  bool _permissionDialogOpen = false;
 
   @override
   void initState() {
     super.initState();
+    _outputBatcher = TerminalOutputBatcher(
+      onFlush: (output) {
+        if (!mounted) return;
+        setState(() => _buf.write(output));
+        _scrollBottom();
+      },
+    );
     WidgetsBinding.instance.addObserver(this);
+    _streamId = _newStreamId();
     _buf.writeln(
       'HuanHermes 终端通道（会话 ${widget.session.sessionKey}）',
     );
@@ -89,10 +105,18 @@ class _TerminalScreenState extends State<TerminalScreen>
     setState(() => _hist = h);
   }
 
-  Future<void> _connect() async {
+  String _newStreamId() => 'term-${DateTime.now().microsecondsSinceEpoch}';
+
+  Future<void> _connect({bool automatic = false}) async {
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+    if (!automatic) _reconnectAttempts = 0;
+    _streamId = _newStreamId();
     setState(() {
       _connecting = true;
       _error = null;
+      _terminalReady = false;
+      _terminalOpen = false;
     });
     try {
       final b = BridgeClient(
@@ -102,25 +126,40 @@ class _TerminalScreenState extends State<TerminalScreen>
           if (!mounted) return;
           setState(() => _error = Security.redactText(e.toString()));
         },
+        onClose: () {
+          if (!mounted) return;
+          setState(() {
+            _bridge = null;
+            _terminalOpen = false;
+            _terminalReady = false;
+            _busy = false;
+            _error = '终端连接已断开';
+          });
+          _scheduleReconnect();
+        },
       );
       await b.connect();
       if (!mounted) {
         await b.close();
         return;
       }
-      b.terminalResize(
-        sessionKey: widget.session.sessionKey,
-        cols: _termCols,
-        rows: _termRows,
-      );
       setState(() {
         _bridge = b;
         _connecting = false;
       });
+      b.terminalOpen(
+        sessionKey: widget.session.sessionKey,
+        streamId: _streamId,
+        project: widget.session.project,
+        cols: _termCols,
+        rows: _termRows,
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _connecting = false;
+        _terminalOpen = false;
+        _terminalReady = false;
         _error = Security.redactText(e.toString());
       });
     }
@@ -130,8 +169,37 @@ class _TerminalScreenState extends State<TerminalScreen>
     final type = payload['type']?.toString();
     final sk = payload['session_key']?.toString() ?? '';
     if (sk.isNotEmpty && sk != widget.session.sessionKey) return;
+    final eventStream = payload['stream_id']?.toString();
+    if (eventStream != null &&
+        eventStream.isNotEmpty &&
+        eventStream != _streamId) return;
 
+    if (type == 'terminal_permission') {
+      _showTerminalPermission(payload);
+      return;
+    }
+
+    if (type == 'terminal_open_ack') {
+      if (!mounted) return;
+      if (payload['ok'] == true) {
+        setState(() {
+          _terminalOpen = true;
+          _terminalReady = true;
+          _error = null;
+          _reconnectAttempts = 0;
+        });
+      } else {
+        setState(() {
+          _terminalOpen = false;
+          _terminalReady = false;
+          _busy = false;
+          _error = payload['error']?.toString() ?? '终端会话打开失败';
+        });
+      }
+      return;
+    }
     if (type == 'terminal_clear') {
+      _outputBatcher.clear();
       setState(() {
         _buf.clear();
         _busy = false;
@@ -139,24 +207,113 @@ class _TerminalScreenState extends State<TerminalScreen>
       return;
     }
     if (type == 'terminal_exit') {
+      _outputBatcher.flushNow();
       setState(() {
+        _terminalOpen = false;
+        _terminalReady = false;
         _buf.writeln('[session closed by host]');
         _busy = false;
       });
       _scrollBottom();
       return;
     }
-    if (type == 'terminal_out' || type == 'terminal_ack') {
+    if (type == 'terminal_ack') return;
+    if (type == 'terminal_out') {
       final data = payload['data']?.toString() ?? '';
       if (data.isNotEmpty) {
-        setState(() => _buf.write(data));
-        _scrollBottom();
+        _outputBatcher.add(data);
       }
       if (payload['done'] == true) {
         setState(() => _busy = false);
       }
       return;
     }
+  }
+
+  Future<void> _showTerminalPermission(Map<String, dynamic> payload) async {
+    if (!mounted || _permissionDialogOpen) return;
+    _permissionDialogOpen = true;
+    final choices = <Map<String, String>>[];
+    final groups = payload['buttons'] as List? ?? const [];
+    for (final group in groups) {
+      if (group is! List) continue;
+      for (final raw in group) {
+        if (raw is! Map) continue;
+        final action = raw['data']?.toString() ?? '';
+        if (!action.startsWith('perm:')) continue;
+        final suffix = action.split(':').last;
+        final fallback = switch (suffix) {
+          'allow_all' => '始终允许',
+          'allow' => '允许',
+          'deny' => '拒绝',
+          _ => '确认',
+        };
+        choices.add({
+          'action': action,
+          'label': raw['text']?.toString().toLowerCase() == 'allow all'
+              ? '始终允许'
+              : raw['text']?.toString().toLowerCase() == 'allow'
+                  ? '允许'
+                  : raw['text']?.toString().toLowerCase() == 'deny'
+                      ? '拒绝'
+                      : fallback,
+        });
+      }
+    }
+    if (choices.isEmpty) {
+      _permissionDialogOpen = false;
+      if (mounted) {
+        setState(() => _error = '终端权限响应没有有效操作');
+      }
+      return;
+    }
+    final selected = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('终端权限确认'),
+        content: Text(
+          Security.redactText(
+            payload['content']?.toString() ?? 'Host 请求打开当前项目的终端。',
+          ),
+        ),
+        actions: choices
+            .map(
+              (choice) => TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(choice['action']),
+                child: Text(choice['label'] ?? '确认'),
+              ),
+            )
+            .toList(),
+      ),
+    );
+    _permissionDialogOpen = false;
+    if (!mounted || selected == null) return;
+    final bridge = _bridge;
+    if (bridge == null) return;
+    bridge.terminalPermissionAction(
+      sessionKey: widget.session.sessionKey,
+      streamId: _streamId,
+      action: selected,
+      project: widget.session.project,
+    );
+  }
+
+  void _scheduleReconnect() {
+    if (!mounted || _connecting || _reconnectTimer != null) return;
+    if (!_reconnectPolicy.canRetry(_reconnectAttempts)) {
+      setState(() => _error = '终端自动重连已停止，请手动重试');
+      return;
+    }
+    _reconnectAttempts++;
+    final delay = _reconnectPolicy.delayForAttempt(_reconnectAttempts);
+    setState(() => _error = '终端连接已断开，${delay.inSeconds} 秒后自动重连');
+    _reconnectTimer = Timer(delay, () {
+      _reconnectTimer = null;
+      if (mounted && _bridge == null && !_connecting) {
+        _connect(automatic: true);
+      }
+    });
   }
 
   void _pushResize({int? cols, int? rows}) {
@@ -167,12 +324,14 @@ class _TerminalScreenState extends State<TerminalScreen>
     _termCols = c.clamp(20, 240);
     _termRows = r.clamp(5, 120);
     final b = _bridge;
-    if (b == null) return;
+    if (b == null || !_terminalReady) return;
     try {
       b.terminalResize(
         sessionKey: widget.session.sessionKey,
         cols: _termCols,
         rows: _termRows,
+        streamId: _streamId,
+        project: widget.session.project,
       );
     } catch (_) {}
   }
@@ -198,7 +357,7 @@ class _TerminalScreenState extends State<TerminalScreen>
   }
 
   void _sendRaw(String text) {
-    if (_bridge == null || _busy) return;
+    if (_bridge == null || !_terminalReady || _busy) return;
     // Allow Ctrl-C even though trim would keep it; reject empty only.
     if (text.isEmpty) return;
     if (text != '\u0003' && text.trim().isEmpty) return;
@@ -208,6 +367,7 @@ class _TerminalScreenState extends State<TerminalScreen>
         sessionKey: widget.session.sessionKey,
         data: text,
         streamId: _streamId,
+        project: widget.session.project,
       );
     } catch (e) {
       setState(() {
@@ -250,7 +410,9 @@ class _TerminalScreenState extends State<TerminalScreen>
 
   void _send() {
     final text = _input.text;
-    if (text.trim().isEmpty || _bridge == null || _busy) return;
+    if (text.trim().isEmpty || _bridge == null || !_terminalReady || _busy) {
+      return;
+    }
     _history.push(text);
     _hist.removeWhere((e) => e == text.trimRight());
     _hist.insert(0, text.trimRight());
@@ -265,7 +427,7 @@ class _TerminalScreenState extends State<TerminalScreen>
   }
 
   void _quick(String cmd) {
-    if (_bridge == null || _busy || _connecting) return;
+    if (_bridge == null || !_terminalReady || _busy || _connecting) return;
     _sendRaw(cmd);
   }
 
@@ -357,12 +519,13 @@ class _TerminalScreenState extends State<TerminalScreen>
 
   void _interrupt() {
     // Soft interrupt signal over terminal channel (Host may map to Ctrl-C).
-    if (_bridge == null || _connecting) return;
+    if (_bridge == null || !_terminalReady || _connecting) return;
     try {
       _bridge!.terminalInput(
         sessionKey: widget.session.sessionKey,
         data: '\u0003',
         streamId: _streamId,
+        project: widget.session.project,
       );
       setState(() {
         _buf.writeln('^C');
@@ -376,9 +539,20 @@ class _TerminalScreenState extends State<TerminalScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _outputBatcher.dispose();
+    _reconnectTimer?.cancel();
     _input.dispose();
     _findCtrl.dispose();
     _scroll.dispose();
+    if (_terminalOpen) {
+      try {
+        _bridge?.terminalClose(
+          sessionKey: widget.session.sessionKey,
+          streamId: _streamId,
+          project: widget.session.project,
+        );
+      } catch (_) {}
+    }
     unawaited(_bridge?.close() ?? Future.value());
     super.dispose();
   }
@@ -405,7 +579,8 @@ class _TerminalScreenState extends State<TerminalScreen>
             .where((l) => (_findCase ? l : l.toLowerCase()).contains(q))
             .toList();
       }
-      if (lines.isEmpty) return '(${AppStrings.terminalNoMatch}: $_findQuery)\n';
+      if (lines.isEmpty)
+        return '(${AppStrings.terminalNoMatch}: $_findQuery)\n';
     }
     if (_showTs) {
       // Display-only synthetic stamps (not from Host) — local console aid.
@@ -451,14 +626,16 @@ class _TerminalScreenState extends State<TerminalScreen>
                 shape: BoxShape.circle,
                 color: _connecting
                     ? Colors.amber
-                    : _bridge != null
+                    : _terminalReady
                         ? Colors.green
                         : Colors.redAccent,
               ),
             ),
             Expanded(
               child: Text(
-                '${AppStrings.terminalTitle} · ${widget.session.project} · ${_termCols}x$_termRows',
+                '${AppStrings.terminalTitle} · ${widget.session.project} · '
+                '${_terminalReady ? '已握手' : _connecting ? '连接中' : '未就绪'} · '
+                '${_termCols}x$_termRows',
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -488,6 +665,8 @@ class _TerminalScreenState extends State<TerminalScreen>
             onPressed: _connecting
                 ? null
                 : () async {
+                    _reconnectTimer?.cancel();
+                    _reconnectTimer = null;
                     await _bridge?.close();
                     await _connect();
                   },
@@ -501,6 +680,8 @@ class _TerminalScreenState extends State<TerminalScreen>
                   setState(() {
                     _buf.clear();
                     _busy = false;
+                    _terminalReady = false;
+                    _terminalOpen = false;
                   });
                   break;
                 case 'copy':
@@ -649,16 +830,36 @@ class _TerminalScreenState extends State<TerminalScreen>
             child: Row(
               children: [
                 for (final item in <(String, bool, void Function(bool))>[
-                  (AppStrings.terminalWrap, _wrapLines, (v) => setState(() => _wrapLines = v)),
+                  (
+                    AppStrings.terminalWrap,
+                    _wrapLines,
+                    (v) => setState(() => _wrapLines = v)
+                  ),
                   (
                     AppStrings.terminalNewest,
                     _newestFirst,
                     (v) => setState(() => _newestFirst = v),
                   ),
-                  (AppStrings.terminalTimestamps, _showTs, (v) => setState(() => _showTs = v)),
-                  (AppStrings.terminalFindChip, _showFind, (v) => setState(() => _showFind = v)),
-                  (AppStrings.regex, _findRegex, (v) => setState(() => _findRegex = v)),
-                  (AppStrings.matchCase, _findCase, (v) => setState(() => _findCase = v)),
+                  (
+                    AppStrings.terminalTimestamps,
+                    _showTs,
+                    (v) => setState(() => _showTs = v)
+                  ),
+                  (
+                    AppStrings.terminalFindChip,
+                    _showFind,
+                    (v) => setState(() => _showFind = v)
+                  ),
+                  (
+                    AppStrings.regex,
+                    _findRegex,
+                    (v) => setState(() => _findRegex = v)
+                  ),
+                  (
+                    AppStrings.matchCase,
+                    _findCase,
+                    (v) => setState(() => _findCase = v)
+                  ),
                 ])
                   Padding(
                     padding: const EdgeInsets.only(right: 6),
@@ -696,7 +897,7 @@ class _TerminalScreenState extends State<TerminalScreen>
                       padding: const EdgeInsets.only(right: 6),
                       child: ActionChip(
                         label: Text(q.$1, style: const TextStyle(fontSize: 12)),
-                        onPressed: (_connecting || _bridge == null)
+                        onPressed: (_connecting || !_terminalReady)
                             ? null
                             : () {
                                 if (q.$2 == null) {
@@ -719,12 +920,8 @@ class _TerminalScreenState extends State<TerminalScreen>
                 style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
                 decoration: InputDecoration(
                   hintText: _findRegex
-                      ? (_findCase
-                          ? '正则查找（区分大小写，仅客户端）'
-                          : '正则查找（仅客户端）')
-                      : (_findCase
-                          ? '查找（区分大小写，仅客户端）'
-                          : '本地缓冲查找（仅客户端）'),
+                      ? (_findCase ? '正则查找（区分大小写，仅客户端）' : '正则查找（仅客户端）')
+                      : (_findCase ? '查找（区分大小写，仅客户端）' : '本地缓冲查找（仅客户端）'),
                   isDense: true,
                   border: const OutlineInputBorder(),
                   prefixIcon: IconButton(
@@ -732,9 +929,7 @@ class _TerminalScreenState extends State<TerminalScreen>
                         ? (_findCase
                             ? '正则 · 大小写开（长按普通查找）'
                             : '正则 · 大小写关（长按普通查找）')
-                        : (_findCase
-                            ? '区分大小写（长按切换正则）'
-                            : '不区分大小写（长按切换正则）'),
+                        : (_findCase ? '区分大小写（长按切换正则）' : '不区分大小写（长按切换正则）'),
                     icon: Icon(
                       _findRegex
                           ? Icons.code
@@ -816,7 +1011,7 @@ class _TerminalScreenState extends State<TerminalScreen>
                   Expanded(
                     child: TextField(
                       controller: _input,
-                      enabled: !_connecting && _bridge != null,
+                      enabled: !_connecting && _terminalReady,
                       style: const TextStyle(fontFamily: 'monospace'),
                       decoration: InputDecoration(
                         hintText: '$_workdir › 命令…',
@@ -830,7 +1025,7 @@ class _TerminalScreenState extends State<TerminalScreen>
                   ),
                   const SizedBox(width: 8),
                   FilledButton(
-                    onPressed: (_connecting || _bridge == null || _busy)
+                    onPressed: (_connecting || !_terminalReady || _busy)
                         ? null
                         : _send,
                     child: const Text(AppStrings.terminalRun),

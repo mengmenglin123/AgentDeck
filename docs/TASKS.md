@@ -675,16 +675,17 @@
 | ID | 任务 | 状态 |
 |----|------|------|
 | P4-1 | 真远程 PTY（cols/rows + 字号 + mock shell 常用命令加深；真 ioctl/shell 仍远期） | [~] |
-| P4-2 | 相机扫码配对（剪贴板 URI + paste card 已有；真相机仍远期） | [~] |
+| P4-2 | 相机扫码配对（剪贴板 URI + MobileScanner 真相机扫码） | [x] |
 | P4-3 | Host 真 Hermes adapter（Mock workspace/git/diff/memory/MCP/status/activity/agents 已加深；真进程仍远期） | [~] |
-| P4-4 | 通知 / 后台重连（resume/reconnect + permission/reconnected snack 已有；系统通知仍远期） | [~] |
-| P4-5 | 更完整代码高亮 / 真文件选择器（着色+表格/任务/有序/引用/链接/autolink/图alt/callout/details/footnotes/h4/h5/h6/abbr/mark/spoiler/kbd/sup/sub/u/del/ins/s/small/***/cite/q/var/samp/dfn/em/strong/b/code/i/big/tt/HTML mark/br/strike/time/data/bdi/bdo/ruby/rt/font/center/wbr/rp/acronym/nobr/blink/marquee/xmp/listing/plaintext/basefont/dir/menu/isindex/spacer/nextid/keygen/bgsound/multicol/frame/frameset/applet/noembed/noframes/embed/object/param/track/video/audio/picture/canvas/svg/math/area/iframe/portal/dialog/template/slot/meter/progress/figure/删除线/行号/附件 preset 已有；真 file_picker 仍远期） | [~] |
+| P4-4 | 通知 / 后台重连（系统通知 + 点击回会话页已有；精确 Session 深链/后台执行仍远期） | [~] |
+| P4-5 | 更完整代码高亮 / 附件（真 file/image picker 已有并加大小限制；更完整高亮仍远期） | [~] |
 
 ## 验收命令
 
 ```bash
 python3 -m py_compile server/mock-host/mock_host.py packages/huan_protocol/src/*.py
 PYTHONPATH=packages/huan_protocol python3 -m unittest discover -s packages/huan_protocol/test -v
+cd apps/mobile && flutter analyze && flutter test
 ```
 
 ## UI 改进 (0.1.180)
@@ -714,4 +715,23 @@ PYTHONPATH=packages/huan_protocol python3 -m unittest discover -s packages/huan_
 - [x] 中文扫尾：权限/会话排序/状态主机文案（0.1.191）
 - [x] 中文扫尾：主机芯片/Diff/设置排序（0.1.192）
 - [x] Catalog/日志筛选中文扫尾（0.1.193）
+- [x] 协议契约/CI/附件/通知加固（0.1.194）
+- [x] typed HostCapabilities Module + fixtures（0.1.196）
 
+
+- [x] CatalogState Module + Skills/MCP/Agents 迁移（0.1.197）
+- [x] 通知稳定 session_key + 跨项目 Chat 深链（0.1.197）
+- [x] Memory/Cron/Logs/Activity/Pairing 迁移到 CatalogState（0.1.197）
+- [x] AuditLog 改为 ChangeNotifier 实时监听（0.1.197）
+- [x] ToolsHub capability 门控 Skills/MCP/Memory（0.1.197）
+- [x] Workspace 路径快照与 Diff 两阶段快照迁移（0.1.197）
+- [x] Status/HostDashboard/Sessions 迁移 RefreshScheduler（0.1.197）
+- [x] 修复 Sessions Timer 未在 dispose 取消（0.1.197）
+- [x] 删除 CatalogUi.armAutoRefresh 旧 seam（0.1.197）
+- [ ] Android 前台/后台/冷启动通知深链集成验证
+
+- [x] Release APK job 依赖完整 debug 验证 gate（0.1.197）
+
+- [x] AgentAdapter Protocol + ProductionAgentAdapter 进程 seam（0.1.197）
+- [x] 子进程组取消、stdio、并发限制、资源回收测试（0.1.197）
+- [ ] 绑定首个真实 Claude Code 或 Codex 驱动并映射 Bridge 事件

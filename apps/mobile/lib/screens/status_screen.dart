@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,10 +5,10 @@ import 'package:provider/provider.dart';
 
 import '../services/app_settings_controller.dart';
 import '../services/connection_controller.dart';
+import '../services/refresh_scheduler.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 import '../utils/catalog_ui.dart';
-import '../utils/query_match.dart';
 import 'host_dashboard_screen.dart';
 import 'sessions_screen.dart';
 import '../l10n/app_strings.dart';
@@ -26,7 +25,7 @@ class _StatusScreenState extends State<StatusScreen> {
   bool _loading = false;
   String? _error;
   Map<String, dynamic> _status = const {};
-  Timer? _timer;
+  late final RefreshScheduler _refreshScheduler;
   bool _wrapLines = false;
   bool _sortAsc = true;
   bool _sortByValue = false;
@@ -55,9 +54,10 @@ class _StatusScreenState extends State<StatusScreen> {
   @override
   void initState() {
     super.initState();
+    _refreshScheduler = RefreshScheduler(onTick: _refresh);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refresh();
-      _armTimer();
+      _configureRefresh();
     });
   }
 
@@ -65,18 +65,16 @@ class _StatusScreenState extends State<StatusScreen> {
   void dispose() {
     _keyFilterCtrl.dispose();
     _capFilterCtrl.dispose();
-    _timer?.cancel();
+    _refreshScheduler.dispose();
     _scroll.dispose();
     super.dispose();
   }
 
-  void _armTimer() {
-    _timer = CatalogUi.armAutoRefresh(
-      context: context,
-      current: _timer,
+  void _configureRefresh() {
+    final seconds = context.read<AppSettingsController>().dashboardRefreshSec;
+    _refreshScheduler.configure(
       enabled: _autoRefresh,
-      isBusy: () => _loading,
-      onTick: _refresh,
+      interval: Duration(seconds: seconds),
     );
   }
 
@@ -252,58 +250,55 @@ class _StatusScreenState extends State<StatusScreen> {
     final barColor = _loading && status.isEmpty
         ? Colors.amber
         : (_error != null
-              ? cs.error
-              : (c.healthDegraded
-                    ? Colors.orange
-                    : (healthy ? Colors.green : Colors.orange)));
+            ? cs.error
+            : (c.healthDegraded
+                ? Colors.orange
+                : (healthy ? Colors.green : Colors.orange)));
     final barLabel = _loading && status.isEmpty
         ? '探测中…'
         : (_error != null
-              ? '状态错误'
-              : (c.healthDegraded
-                    ? '健康降级'
-                    : (healthy ? '主机健康' : '等待中')));
+            ? '状态错误'
+            : (c.healthDegraded ? '健康降级' : (healthy ? '主机健康' : '等待中')));
 
     return Scaffold(
       appBar: AppBar(
         title: Text(_autoRefresh ? '主机已连接 · 自动' : '主机已连接'),
-        actions: [
-          IconButton(
-            tooltip: '复制摘要',
-            onPressed: () => _copySummary(c),
-            icon: const Icon(Icons.copy_all_outlined),
-          ),
-          IconButton(
-            tooltip: '复制 JSON',
-            onPressed: () => _copyJson(c),
-            icon: const Icon(Icons.data_object_outlined),
-          ),
-          IconButton(
-            tooltip: '复制 CSV',
-            onPressed: () => _copyCsv(c),
-            icon: const Icon(Icons.table_chart_outlined),
-          ),
-          IconButton(
-            tooltip: _wrapLines ? '截断详情' : '换行详情',
-            onPressed: () => setState(() => _wrapLines = !_wrapLines),
-            icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
-          ),
-          IconButton(
-            tooltip: _relativeTs
-                ? '绝对时间戳'
-                : '相对时间戳',
-            onPressed: () => setState(() => _relativeTs = !_relativeTs),
-            icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
-          ),
-          IconButton(
-            tooltip: _sortByKey
-                ? (_sortAsc ? '键 Z→A' : '键 A→Z')
-                : (_sortByType
-                      ? (_sortAsc ? '类型 Z→A' : '类型 A→Z')
-                      : (_sortByValue
-                            ? (_sortAsc ? '值 Z→A' : '值 A→Z')
-                            : (_sortAsc ? '键 Z→A' : '键 A→Z'))),
-            onPressed: () {
+        actions: CatalogUi.commonActions(
+          context: context,
+          scroll: _scroll,
+          wrapLines: _wrapLines,
+          autoRefresh: _autoRefresh,
+          onToggleWrap: () => setState(() => _wrapLines = !_wrapLines),
+          onToggleAuto: () {
+            setState(() => _autoRefresh = !_autoRefresh);
+            _configureRefresh();
+          },
+          onRefresh: _loading ? null : _refresh,
+          onCopyAll: () => _copySummary(c),
+          onCopyCsv: () => _copyCsv(c),
+          onCopyJson: () => _copyJson(c),
+          extraMenu: [
+            PopupMenuItem(
+              value: 'relative',
+              child: Text(_relativeTs ? '绝对时间戳' : '相对时间戳'),
+            ),
+            const PopupMenuItem(
+              value: 'sort_cycle',
+              child: Text('切换排序'),
+            ),
+            const PopupMenuDivider(),
+            const PopupMenuItem(
+              value: 'disconnect',
+              child: Text('断开连接'),
+            ),
+            const PopupMenuItem(
+              value: 'clear',
+              child: Text('清除已保存配置'),
+            ),
+          ],
+          extraHandlers: {
+            'relative': () => setState(() => _relativeTs = !_relativeTs),
+            'sort_cycle': () {
               setState(() {
                 if (!_sortByValue && !_sortByType && !_sortByKey && _sortAsc) {
                   _sortAsc = false;
@@ -339,76 +334,13 @@ class _StatusScreenState extends State<StatusScreen> {
                 }
               });
             },
-            icon: Icon(
-              _sortByKey
-                  ? Icons.vpn_key_outlined
-                  : (_sortByType
-                        ? Icons.category_outlined
-                        : (_sortByValue
-                              ? Icons.text_fields
-                              : (_sortAsc ? Icons.sort_by_alpha : Icons.sort))),
-            ),
-          ),
-
-          IconButton(
-            tooltip: '回到顶部',
-            onPressed: () {
-              if (!_scroll.hasClients) return;
-              _scroll.animateTo(
-                0,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOut,
-              );
-            },
-            icon: const Icon(Icons.vertical_align_top),
-          ),
-          IconButton(
-            tooltip: '跳到底部',
-            onPressed: () {
-              if (!_scroll.hasClients) return;
-              _scroll.animateTo(
-                _scroll.position.maxScrollExtent,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOut,
-              );
-            },
-            icon: const Icon(Icons.vertical_align_bottom),
-          ),
-
-          IconButton(
-            tooltip: '刷新',
-            onPressed: _loading ? null : _refresh,
-            icon: const Icon(Icons.refresh),
-          ),
-          IconButton(
-            tooltip: _autoRefresh
-                ? '暂停刷新'
-                : '恢复自动刷新',
-            onPressed: () {
-              setState(() => _autoRefresh = !_autoRefresh);
-              _armTimer();
-            },
-            icon: Icon(
-              _autoRefresh
-                  ? Icons.pause_circle_outline
-                  : Icons.play_circle_outline,
-            ),
-          ),
-          IconButton(
-            tooltip: '断开连接',
-            onPressed: () => c.disconnect(),
-            icon: const Icon(Icons.link_off),
-          ),
-          IconButton(
-            tooltip: '清除已保存配置',
-            onPressed: () async {
+            'disconnect': () => c.disconnect(),
+            'clear': () async {
               final ok = await showDialog<bool>(
                 context: context,
                 builder: (ctx) => AlertDialog(
                   title: const Text('清除已保存配置？'),
-                  content: const Text(
-                    '将从安全存储中移除主机设置与令牌。',
-                  ),
+                  content: const Text('将从安全存储中移除主机设置与令牌。'),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(ctx, false),
@@ -425,9 +357,8 @@ class _StatusScreenState extends State<StatusScreen> {
                 await c.disconnect(clearStorage: true);
               }
             },
-            icon: const Icon(Icons.delete_outline),
-          ),
-        ],
+          },
+        ),
       ),
       body: RefreshIndicator(
         onRefresh: _refresh,
@@ -480,9 +411,8 @@ class _StatusScreenState extends State<StatusScreen> {
                       c.lastHealthError == null
                           ? Icons.health_and_safety_outlined
                           : Icons.report_gmailerrorred_outlined,
-                      color: c.lastHealthError == null
-                          ? Colors.green
-                          : cs.error,
+                      color:
+                          c.lastHealthError == null ? Colors.green : cs.error,
                     ),
                     title: const Text('上次健康探测'),
                     subtitle: Text(
@@ -522,9 +452,8 @@ class _StatusScreenState extends State<StatusScreen> {
                   ListTile(
                     leading: Icon(
                       Icons.speed,
-                      color: c.lastTestLatencyMs == null
-                          ? cs.outline
-                          : cs.primary,
+                      color:
+                          c.lastTestLatencyMs == null ? cs.outline : cs.primary,
                     ),
                     title: const Text('上次连接测试'),
                     subtitle: Text(
@@ -622,11 +551,9 @@ class _StatusScreenState extends State<StatusScreen> {
                   prefixIcon: IconButton(
                     tooltip: _queryRegex
                         ? (_queryCase
-                              ? '正则 · 大小写 开（长按恢复普通筛选）'
-                              : '正则 · 大小写 关（长按恢复普通筛选）')
-                        : (_queryCase
-                              ? '区分大小写（长按切换正则）'
-                              : '不区分大小写（长按切换正则）'),
+                            ? '正则 · 大小写 开（长按恢复普通筛选）'
+                            : '正则 · 大小写 关（长按恢复普通筛选）')
+                        : (_queryCase ? '区分大小写（长按切换正则）' : '不区分大小写（长按切换正则）'),
                     icon: Icon(
                       _queryRegex
                           ? Icons.code
@@ -638,12 +565,8 @@ class _StatusScreenState extends State<StatusScreen> {
                         setState(() => _queryRegex = !_queryRegex),
                   ),
                   hintText: _queryRegex
-                      ? (_queryCase
-                            ? '筛选（正则 · 大小写）'
-                            : '筛选（正则）')
-                      : (_queryCase
-                            ? '筛选（区分大小写）'
-                            : '筛选能力'),
+                      ? (_queryCase ? '筛选（正则 · 大小写）' : '筛选（正则）')
+                      : (_queryCase ? '筛选（区分大小写）' : '筛选能力'),
                   border: const OutlineInputBorder(),
                   suffixIcon: _capQuery.isEmpty
                       ? null
@@ -698,11 +621,9 @@ class _StatusScreenState extends State<StatusScreen> {
                 prefixIcon: IconButton(
                   tooltip: _queryRegex
                       ? (_queryCase
-                            ? '正则 · 大小写 开（长按恢复普通筛选）'
-                            : '正则 · 大小写 关（长按恢复普通筛选）')
-                      : (_queryCase
-                            ? '区分大小写（长按切换正则）'
-                            : '不区分大小写（长按切换正则）'),
+                          ? '正则 · 大小写 开（长按恢复普通筛选）'
+                          : '正则 · 大小写 关（长按恢复普通筛选）')
+                      : (_queryCase ? '区分大小写（长按切换正则）' : '不区分大小写（长按切换正则）'),
                   icon: Icon(
                     _queryRegex
                         ? Icons.code
@@ -714,9 +635,7 @@ class _StatusScreenState extends State<StatusScreen> {
                 ),
                 hintText: _queryRegex
                     ? (_queryCase ? '筛选（正则 · 大小写）' : '筛选（正则）')
-                    : (_queryCase
-                          ? '筛选（区分大小写）'
-                          : '筛选键 / 值'),
+                    : (_queryCase ? '筛选（区分大小写）' : '筛选键 / 值'),
                 border: const OutlineInputBorder(),
                 suffixIcon: _keyQuery.isEmpty
                     ? null
@@ -743,13 +662,15 @@ class _StatusScreenState extends State<StatusScreen> {
                 ),
                 FilterChip(
                   visualDensity: VisualDensity.compact,
-                  label: const Text(AppStrings.regex, style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.regex,
+                      style: TextStyle(fontSize: 11)),
                   selected: _queryRegex,
                   onSelected: (v) => setState(() => _queryRegex = v),
                 ),
                 FilterChip(
                   visualDensity: VisualDensity.compact,
-                  label: const Text(AppStrings.matchCase, style: TextStyle(fontSize: 11)),
+                  label: const Text(AppStrings.matchCase,
+                      style: TextStyle(fontSize: 11)),
                   selected: _queryCase,
                   onSelected: (v) => setState(() => _queryCase = v),
                 ),
@@ -759,7 +680,7 @@ class _StatusScreenState extends State<StatusScreen> {
                   selected: _autoRefresh,
                   onSelected: (v) {
                     setState(() => _autoRefresh = v);
-                    _armTimer();
+                    _configureRefresh();
                   },
                 ),
                 for (final t in const [
@@ -816,17 +737,16 @@ class _StatusScreenState extends State<StatusScreen> {
                       }
                     }
                     final k = _queryCase ? e.key : e.key.toLowerCase();
-                    final v = _queryCase
-                        ? '${e.value}'
-                        : '${e.value}'.toLowerCase();
+                    final v =
+                        _queryCase ? '${e.value}' : '${e.value}'.toLowerCase();
                     return k.contains(q) || v.contains(q);
                   }).toList();
                 }
                 entries.sort((a, b) {
                   if (_sortByKey) {
                     final c = a.key.toLowerCase().compareTo(
-                      b.key.toLowerCase(),
-                    );
+                          b.key.toLowerCase(),
+                        );
                     if (c != 0) return _sortAsc ? c : -c;
                   } else if (_sortByType) {
                     final c = _valueTypeLabel(
@@ -835,15 +755,16 @@ class _StatusScreenState extends State<StatusScreen> {
                     if (c != 0) return _sortAsc ? c : -c;
                   } else if (_sortByValue) {
                     final c = '${a.value}'.toLowerCase().compareTo(
-                      '${b.value}'.toLowerCase(),
-                    );
+                          '${b.value}'.toLowerCase(),
+                        );
                     if (c != 0) return _sortAsc ? c : -c;
                   }
                   final c = a.key.toLowerCase().compareTo(b.key.toLowerCase());
                   return _sortAsc ? c : -c;
                 });
                 return entries;
-              })().map(
+              })()
+                  .map(
                 (e) => ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,

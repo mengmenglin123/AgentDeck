@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:huanhermes_app/errors/app_errors.dart';
 import 'package:huanhermes_app/models/connection_config.dart';
+import 'package:huanhermes_app/models/session_info.dart';
 import 'package:huanhermes_app/services/mgmt_client.dart';
 
 void main() {
@@ -69,5 +70,47 @@ void main() {
     final s = await client.createSession(project: 'claude-code', title: 'T');
     expect(s.id, 'huan:mock:abc');
     expect(s.project, 'claude-code');
+  });
+  test('agent catalogs are project scoped', () async {
+    final seen = <Uri>[];
+    final client = MgmtClient(
+      config: cfg,
+      sender: (method, url, {headers, body}) async {
+        seen.add(url);
+        final key = url.pathSegments.last;
+        return http.Response(
+            jsonEncode({
+              'ok': true,
+              'data': key == 'skills'
+                  ? {'skills': <dynamic>[]}
+                  : key == 'mcp'
+                      ? {'servers': <dynamic>[]}
+                      : {'agents': <dynamic>[]},
+            }),
+            200);
+      },
+    );
+    await client.listSkills(project: 'codex');
+    await client.listMcp(project: 'claude-code');
+    await client.agents(project: 'hermes');
+    await client.listMemory(project: 'codex');
+    expect(seen.map((uri) => uri.queryParameters['project']).toList(),
+        ['codex', 'claude-code', 'hermes', 'codex']);
+  });
+
+  test('project catalogs parse models and channels', () {
+    final project = ProjectInfo.fromJson({
+      'name': 'codex',
+      'agent_type': 'codex',
+      'models': [
+        {'id': 'gpt-5-codex'},
+        'o4-mini',
+      ],
+      'channels': [
+        {'name': 'openai'},
+      ],
+    });
+    expect(project.models, ['gpt-5-codex', 'o4-mini']);
+    expect(project.channels, ['openai']);
   });
 }
