@@ -17,7 +17,9 @@ mgmt_token = "change-me-mgmt"
 
 [projects.claude-code]
 agent_type = "claudecode"
-command = ["/usr/local/bin/huan-claude-driver"]
+driver = "claude_stream_json"
+command = ["/usr/bin/claude", "-p", "--verbose", "--output-format", "stream-json", "--permission-mode", "dontAsk", "--no-session-persistence"]
+close_stdin_after_send = true
 terminal_command = ["/bin/bash"]
 models = ["claude-sonnet-4"]
 channels = ["anthropic"]

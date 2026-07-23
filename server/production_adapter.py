@@ -32,6 +32,7 @@ class AgentSpec:
         "terminal",
     )
     environment: Mapping[str, str] | None = None
+    close_stdin_after_send: bool = False
 
     def __post_init__(self) -> None:
         if not self.agent_type.strip():
@@ -143,6 +144,8 @@ class ProductionAgentAdapter:
         try:
             record.process.stdin.write(data.encode("utf-8"))
             record.process.stdin.flush()
+            if record.spec.close_stdin_after_send:
+                record.process.stdin.close()
         except (BrokenPipeError, OSError) as exc:
             raise AdapterError("agent stdin is closed") from exc
 

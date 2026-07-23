@@ -44,7 +44,7 @@ class DiscoveredAgent {
     final driver = switch (kind) {
       DiscoveredAgentKind.codex => 'codex_exec_json',
       DiscoveredAgentKind.claudeCode => 'claude_stream_json',
-      DiscoveredAgentKind.hermes => 'hermes_stream_json',
+      DiscoveredAgentKind.hermes => 'hermes_text',
     };
     final capabilities = switch (kind) {
       DiscoveredAgentKind.codex => const ['stream', 'model', 'tools', 'terminal'],

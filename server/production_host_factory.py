@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from agent_session_runtime import AgentSessionRuntime
+from agent_drivers import build_agent_driver
 from bridge_agent_loop import AgentBridgeLoop
 from bridge_websocket import BridgeWebSocketServer, BridgeWebSocketTransport, WebSocketConfig
 from production_adapter import AgentSpec, ProductionAgentAdapter
@@ -53,12 +54,21 @@ def build_production_host(config: ProductionHostConfig) -> ProductionHostCompone
                 agent_type=project.agent_type,
                 command=project.command,
                 capabilities=project.capabilities,
+                close_stdin_after_send=project.close_stdin_after_send,
             ),
             max_sessions=project.max_sessions,
             workdir_validator=workspace.resolve,
         )
         agent_loops[project.name] = AgentBridgeLoop(
-            AgentSessionRuntime(agent_adapter, permission_gate=permission_gate),
+            AgentSessionRuntime(
+                agent_adapter,
+                driver_factory=lambda session_key, reply_ctx, driver=project.driver: build_agent_driver(
+                    driver,
+                    session_key,
+                    reply_ctx,
+                ),
+                permission_gate=permission_gate,
+            ),
             workdir_resolver=workdir_resolver,
         )
         if project.terminal_command is not None:

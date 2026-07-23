@@ -27,6 +27,8 @@ class ProjectRuntimeConfig:
     channels: tuple[str, ...] = ()
     skills: tuple[str, ...] = ()
     mcp_servers: tuple[str, ...] = ()
+    driver: str = "fixture_jsonl"
+    close_stdin_after_send: bool = False
 
 
 @dataclass(frozen=True)
@@ -145,6 +147,8 @@ class ProductionHostConfig:
             channels=cls._text_tuple(raw.get("channels", []), f"projects.{name}.channels", allow_empty=True),
             skills=cls._text_tuple(raw.get("skills", []), f"projects.{name}.skills", allow_empty=True),
             mcp_servers=cls._text_tuple(raw.get("mcp_servers", []), f"projects.{name}.mcp_servers", allow_empty=True),
+            driver=cls._text(raw.get("driver", "fixture_jsonl"), f"projects.{name}.driver"),
+            close_stdin_after_send=raw.get("close_stdin_after_send", False) is True,
         )
 
     @staticmethod

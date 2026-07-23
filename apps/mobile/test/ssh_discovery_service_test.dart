@@ -21,7 +21,7 @@ HH_AGENT\thermes\t/usr/local/bin/hermes\tHermes Agent v0.18.2
     expect(agents[1].kind, DiscoveredAgentKind.claudeCode);
     expect(agents[1].driver, 'claude_stream_json');
     expect(agents[2].kind, DiscoveredAgentKind.hermes);
-    expect(agents[2].driver, 'hermes_stream_json');
+    expect(agents[2].driver, 'hermes_text');
   });
 
   test('ignores unknown, malformed, empty, and duplicate probes', () {
