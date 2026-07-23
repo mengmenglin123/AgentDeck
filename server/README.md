@@ -87,10 +87,24 @@ finally:
     components.close()
 ```
 
-`examples/config.example.toml` 中的 `command` 是 Host-owned driver 的显式 argv，
-不是 Claude Code、Codex 或 Hermes 的真实兼容声明。部署者必须提供对应 adapter，
-并预先创建 `[audit].permission_log_path` 的父目录，让运行用户独占访问；不要把
-客户端输入拼进命令。WebSocket 当前不提供 TLS，公网部署必须放在 TLS 终止层后。
+`examples/config.example.toml` 中的 `command` 是 Host-owned 的显式 argv，
+Codex 和 Claude Code 示例对应当前 CLI 的 stdin/JSON 模式。部署前可运行：
+
+```bash
+python3 server/agent_bootstrap.py --workdir /workspace --workspace-root /workspace
+# Or emit only the reviewed project fragment:
+python3 server/agent_bootstrap.py --format toml --workdir /workspace --workspace-root /workspace
+```
+
+该命令只解析固定白名单中的 `codex`、`claude`、`hermes`，并以 `shell=False`
+执行版本探测；它不会安装软件、读取凭据、写入配置或启动 Agent。输出中的
+`project_suggestions` 仍需人工审核后复制到 Host TOML。Hermes 当前仅公开
+`-q QUERY` 单次调用，可能把提示词暴露在进程参数中，因此 bootstrap 会识别
+Hermes 但默认不生成可启用项目，直到部署经过审核的 stdin-safe wrapper。
+
+同时应预先创建 `[audit].permission_log_path` 的父目录，让运行用户独占访问；
+不要把客户端输入拼进命令。WebSocket 当前不提供 TLS，公网部署必须放在 TLS
+终止层后。
 
 如果 `server.default_project` 没有 `terminal_command`，终端新建请求必须显式携带
 `project`；不会自动回退到其它项目，避免把 PTY 连接发错 Agent。

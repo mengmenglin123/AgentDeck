@@ -14,6 +14,16 @@ class ProductionHostConfigError(ValueError):
     """Raised when production Host configuration is incomplete or unsafe."""
 
 
+SUPPORTED_DRIVERS = frozenset({
+    "fixture_jsonl",
+    "jsonl",
+    "codex_exec_json",
+    "claude_stream_json",
+    "hermes_text",
+    "hermes_oneshot_text",
+})
+
+
 @dataclass(frozen=True)
 class ProjectRuntimeConfig:
     name: str
@@ -147,8 +157,11 @@ class ProductionHostConfig:
             channels=cls._text_tuple(raw.get("channels", []), f"projects.{name}.channels", allow_empty=True),
             skills=cls._text_tuple(raw.get("skills", []), f"projects.{name}.skills", allow_empty=True),
             mcp_servers=cls._text_tuple(raw.get("mcp_servers", []), f"projects.{name}.mcp_servers", allow_empty=True),
-            driver=cls._text(raw.get("driver", "fixture_jsonl"), f"projects.{name}.driver"),
-            close_stdin_after_send=raw.get("close_stdin_after_send", False) is True,
+            driver=cls._driver(raw.get("driver", "fixture_jsonl"), f"projects.{name}.driver"),
+            close_stdin_after_send=cls._boolean(
+                raw.get("close_stdin_after_send", False),
+                f"projects.{name}.close_stdin_after_send",
+            ),
         )
 
     @staticmethod
@@ -163,6 +176,19 @@ class ProductionHostConfig:
         if not isinstance(value, str) or not value.strip() or "\x00" in value:
             raise ProductionHostConfigError(f"{key} must be non-empty text")
         return value
+
+    @staticmethod
+    def _boolean(value: Any, key: str) -> bool:
+        if not isinstance(value, bool):
+            raise ProductionHostConfigError(f"{key} must be boolean")
+        return value
+
+    @classmethod
+    def _driver(cls, value: Any, key: str) -> str:
+        driver = cls._text(value, key).lower()
+        if driver not in SUPPORTED_DRIVERS:
+            raise ProductionHostConfigError(f"{key} is unsupported")
+        return driver
 
     @classmethod
     def _text_tuple(cls, value: Any, key: str, *, allow_empty: bool = False) -> tuple[str, ...]:

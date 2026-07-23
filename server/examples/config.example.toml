@@ -29,7 +29,9 @@ workdir = "/workspace"
 
 [projects.codex]
 agent_type = "codex"
-command = ["/usr/local/bin/huan-codex-driver"]
+driver = "codex_exec_json"
+command = ["/usr/bin/codex", "exec", "--json", "-"]
+close_stdin_after_send = true
 terminal_command = ["/bin/bash"]
 models = ["gpt-5-codex", "o4-mini"]
 channels = ["openai"]
@@ -39,16 +41,21 @@ workdir = "/workspace"
 
 [projects.hermes]
 agent_type = "hermes"
-command = ["/usr/local/bin/huan-hermes-driver"]
+driver = "hermes_text"
+command = ["/usr/bin/hermes", "chat", "-Q"]
+close_stdin_after_send = true
 models = ["hermes-default"]
 channels = ["hermes"]
 skills = ["hermes-agent"]
 mcp_servers = ["hermes-skills"]
 workdir = "/workspace"
-# Host-side adapter maps Bridge sessions → Hermes process (ADR-002)
+# Host-side adapter maps Bridge sessions → Hermes process (ADR-002).
+# Hermes currently requires one-shot prompts through `-q QUERY`; do not enable
+# this project until a reviewed stdin-safe wrapper is deployed. The bootstrap
+# helper reports Hermes but deliberately omits it from project suggestions.
 
-# command and terminal_command are explicit argv arrays. The driver paths above
-# are Host-owned placeholders; configure them to match the deployed CLI adapter.
+# command and terminal_command are explicit argv arrays. Verify executable paths
+# with `python3 server/agent_bootstrap.py` before copying this example.
 # Do not replace them with a shell string or interpolate client-provided input.
 
 # Host process workdir policy: every Agent/PTY workdir must resolve below one

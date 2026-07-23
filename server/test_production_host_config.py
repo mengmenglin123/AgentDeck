@@ -125,6 +125,17 @@ workdir = "{directory}"
             invalid["server"]["default_project"] = "missing"
             with self.assertRaises(ProductionHostConfigError):
                 ProductionHostConfig.from_mapping(invalid)
+    def test_rejects_unknown_driver_and_non_boolean_close_stdin_flag(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            invalid_driver = self.mapping(directory)
+            invalid_driver["projects"]["codex"]["driver"] = "shell"
+            with self.assertRaises(ProductionHostConfigError):
+                ProductionHostConfig.from_mapping(invalid_driver)
+
+            invalid_boolean = self.mapping(directory)
+            invalid_boolean["projects"]["codex"]["close_stdin_after_send"] = "true"
+            with self.assertRaises(ProductionHostConfigError):
+                ProductionHostConfig.from_mapping(invalid_boolean)
 
 
 if __name__ == "__main__":
