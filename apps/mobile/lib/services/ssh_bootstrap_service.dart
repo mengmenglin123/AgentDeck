@@ -38,6 +38,22 @@ class CompanionInstallResult {
   final bool serviceStarted;
 }
 
+class CompanionHostConfig {
+  const CompanionHostConfig({
+    required this.bridgeToken,
+    required this.mgmtToken,
+    required this.bridgePort,
+    required this.mgmtPort,
+    required this.configPath,
+  });
+
+  final String bridgeToken;
+  final String mgmtToken;
+  final int bridgePort;
+  final int mgmtPort;
+  final String configPath;
+}
+
 class SshBootstrapService {
   SshBootstrapService({
     SshSocketConnector? socketConnector,
@@ -52,11 +68,11 @@ class SshBootstrapService {
         _assetLoader = assetLoader ?? _loadAsset,
         _uuid = uuid ?? const Uuid();
 
-  static const releaseVersion = '0.1.201';
+  static const releaseVersion = '0.1.202';
   static const assetPath =
-      'assets/companion/huanhermes-host-0.1.201.tar.gz';
+      'assets/companion/huanhermes-host-0.1.202.tar.gz';
   static const archiveSha256 =
-      'ecc13b066cb6dfb94251c8660d72c6c95adbb84edc2d4d4c6a77b94554d62cf4';
+      'ba3cc5a67da38ae13266baa10c09c21f93d852f82e2eeecc023e8f832dca96d9';
 
   final SshSocketConnector _socketConnector;
   final CompanionAssetLoader _assetLoader;
@@ -173,6 +189,92 @@ mkdir -p -- "\$work"
 tar -xzf "\$archive" -C "\$work" --strip-components=1
 python3 "\$work/server/companion_installer.py" install --source "\$work" --prefix "\$HOME/.local/share/huanhermes" --version '$releaseVersion'
 ''';
+  }
+
+  Future<CompanionHostConfig> configure({
+    required String host,
+    required int port,
+    required String username,
+    String? password,
+    String? privateKeyPem,
+    String? privateKeyPassphrase,
+    required SshHostKeyVerifier verifyHostKey,
+    Duration timeout = const Duration(seconds: 45),
+  }) async {
+    if (host.trim().isEmpty || username.trim().isEmpty) {
+      throw const SshBootstrapException('SSH 主机和用户名不能为空');
+    }
+    SSHSocket? socket;
+    SSHClient? client;
+    SshHostKey? hostKey;
+    try {
+      socket = await _socketConnector(host.trim(), port, timeout).timeout(timeout);
+      client = SSHClient(
+        socket,
+        username: username.trim(),
+        identities: SshDiscoveryService.parsePrivateKey(privateKeyPem, privateKeyPassphrase),
+        onPasswordRequest: () async => password,
+        onVerifyHostKey: (type, fingerprint) async {
+          final key = SshHostKey(
+            type: type,
+            fingerprint: SshDiscoveryService.decodeFingerprint(fingerprint),
+          );
+          hostKey = key;
+          return verifyHostKey(key);
+        },
+        handshakeTimeout: timeout,
+        authTimeout: timeout,
+      );
+      final execution = await client.runWithResult(
+        r'''set -eu
+python3 "$HOME/.local/share/huanhermes/current/server/companion_configurator.py" --prefix "$HOME/.local/share/huanhermes" --workspace "$HOME"''',
+      ).timeout(timeout);
+      if (hostKey == null) {
+        throw const SshBootstrapException('SSH 主机未提供可验证的 Host Key');
+      }
+      if (execution.exitCode != 0) {
+        final error = utf8.decode(execution.stderr, allowMalformed: true).trim();
+        throw SshBootstrapException(error.isEmpty ? 'Host 配置初始化失败' : error);
+      }
+      return parseConfigOutput(utf8.decode(execution.stdout, allowMalformed: true));
+    } on SshBootstrapException {
+      rethrow;
+    } on SSHAuthFailError catch (error) {
+      throw SshBootstrapException('SSH 认证失败：$error');
+    } on TimeoutException {
+      throw const SshBootstrapException('Host 配置初始化超时');
+    } catch (error) {
+      throw SshBootstrapException('Host 配置初始化失败：$error');
+    } finally {
+      client?.close();
+      socket?.close();
+    }
+  }
+
+  static CompanionHostConfig parseConfigOutput(String output) {
+    for (final line in const LineSplitter().convert(output)) {
+      if (!line.startsWith('HH_COMPANION_CONFIG\t')) continue;
+      try {
+        final value = jsonDecode(line.substring('HH_COMPANION_CONFIG\t'.length));
+        if (value is Map<String, dynamic> &&
+            value['bridge_token'] is String &&
+            value['mgmt_token'] is String &&
+            value['bridge_port'] is int &&
+            value['mgmt_port'] is int &&
+            value['config_path'] is String) {
+          return CompanionHostConfig(
+            bridgeToken: value['bridge_token'] as String,
+            mgmtToken: value['mgmt_token'] as String,
+            bridgePort: value['bridge_port'] as int,
+            mgmtPort: value['mgmt_port'] as int,
+            configPath: value['config_path'] as String,
+          );
+        }
+      } on FormatException {
+        continue;
+      }
+    }
+    throw const SshBootstrapException('服务器未返回有效的 Host 配置');
   }
 
   static CompanionInstallResult parseInstallOutput(String output) {

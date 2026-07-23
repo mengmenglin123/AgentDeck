@@ -131,6 +131,10 @@ class _ConnectScreenState extends State<ConnectScreen> {
     if (!mounted || result == null) return;
     setState(() {
       _host.text = result.host;
+      _bridgePort.text = '${result.bridgePort}';
+      _mgmtPort.text = '${result.mgmtPort}';
+      if (result.bridgeToken != null) _bridgeToken.text = result.bridgeToken!;
+      if (result.mgmtToken != null) _mgmtToken.text = result.mgmtToken!;
       if (_name.text.trim().isEmpty || _name.text == 'Default') {
         _name.text = 'SSH ${result.host}';
       }
@@ -141,7 +145,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
         content: Text(
           labels.isEmpty
               ? '已应用 SSH 主机地址；未发现支持的 Agent'
-              : '已发现并映射：$labels。请填写 Host 令牌后连接。',
+              : result.bridgeToken == null
+                  ? '已发现并映射：$labels。请填写 Host 令牌后连接。'
+                  : '已发现并映射：$labels，Host 令牌已安全回填。',
         ),
       ),
     );

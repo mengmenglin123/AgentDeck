@@ -39,6 +39,7 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
   String? _error;
   SshDiscoveryResult? _result;
   CompanionInstallResult? _installResult;
+  CompanionHostConfig? _hostConfig;
 
   SshDiscoveryService get _service =>
       widget.service ?? SshDiscoveryService();
@@ -204,6 +205,33 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _error = Security.redactText(error.toString()));
+    } finally {
+      if (mounted) setState(() => _installBusy = false);
+    }
+  }
+
+  Future<void> _configureCompanion() async {
+    if (_installResult == null) return;
+    setState(() {
+      _installBusy = true;
+      _error = null;
+    });
+    try {
+      final config = await _bootstrapService.configure(
+        host: _host.text,
+        port: int.parse(_port.text.trim()),
+        username: _username.text,
+        password: _usePrivateKey ? null : _password.text,
+        privateKeyPem: _usePrivateKey ? _privateKey.text : null,
+        privateKeyPassphrase:
+            _usePrivateKey && _passphrase.text.isNotEmpty
+                ? _passphrase.text
+                : null,
+        verifyHostKey: _verifyHostKey,
+      );
+      if (mounted) setState(() => _hostConfig = config);
+    } catch (error) {
+      if (mounted) setState(() => _error = Security.redactText(error.toString()));
     } finally {
       if (mounted) setState(() => _installBusy = false);
     }
@@ -386,7 +414,21 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
                   ),
                 ),
               ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: _busy || _installBusy ? null : _configureCompanion,
+                icon: const Icon(Icons.settings_backup_restore_outlined),
+                label: const Text('初始化 Host 配置并生成令牌'),
+              ),
             ],
+            if (_hostConfig != null)
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.key_outlined),
+                  title: const Text('Host 配置已生成'),
+                  subtitle: const Text('令牌仅回填当前 App，不会显示在日志或普通提示中。'),
+                ),
+              ),
             if (result.stderr.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
@@ -396,7 +438,21 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
             ],
             const SizedBox(height: 16),
             OutlinedButton.icon(
-              onPressed: () => Navigator.pop(context, result),
+              onPressed: () => Navigator.pop(
+                context,
+                SshDiscoveryResult(
+                  host: result.host,
+                  remoteVersion: result.remoteVersion,
+                  agents: result.agents,
+                  hostKey: result.hostKey,
+                  stderr: result.stderr,
+                  exitCode: result.exitCode,
+                  bridgeToken: _hostConfig?.bridgeToken,
+                  mgmtToken: _hostConfig?.mgmtToken,
+                  bridgePort: _hostConfig?.bridgePort ?? 9810,
+                  mgmtPort: _hostConfig?.mgmtPort ?? 9820,
+                ),
+              ),
               icon: const Icon(Icons.arrow_back),
               label: const Text('应用主机地址并继续配置 Host'),
             ),

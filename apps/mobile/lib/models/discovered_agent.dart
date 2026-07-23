@@ -77,6 +77,10 @@ class SshDiscoveryResult {
     required this.hostKey,
     this.stderr = '',
     this.exitCode,
+    this.bridgeToken,
+    this.mgmtToken,
+    this.bridgePort = 9810,
+    this.mgmtPort = 9820,
   });
 
   final String host;
@@ -85,4 +89,8 @@ class SshDiscoveryResult {
   final SshHostKey hostKey;
   final String stderr;
   final int? exitCode;
+  final String? bridgeToken;
+  final String? mgmtToken;
+  final int bridgePort;
+  final int mgmtPort;
 }
