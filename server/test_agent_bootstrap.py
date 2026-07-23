@@ -6,7 +6,12 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from agent_bootstrap import build_project_suggestions, discover_installed_agents, render_project_toml
+from agent_bootstrap import (
+    DiscoveredAgentRuntime,
+    build_project_suggestions,
+    discover_installed_agents,
+    render_project_toml,
+)
 
 
 class TestAgentBootstrap(unittest.TestCase):
@@ -37,8 +42,46 @@ class TestAgentBootstrap(unittest.TestCase):
 
     def test_suggestions_validate_workdir_and_skip_unsafe_hermes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            agents = discover_installed_agents(
-                version_runner=lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 0, "ok", ""),
+            agents = (
+                DiscoveredAgentRuntime(
+                    name="codex",
+                    executable="/usr/bin/codex",
+                    version="v1",
+                    agent_type="codex",
+                    driver="codex_exec_json",
+                    command=("/usr/bin/codex", "exec", "--json", "-"),
+                    capabilities=("stream",),
+                    channels=("openai",),
+                    close_stdin_after_send=True,
+                    integration_ready=True,
+                    integration_note="",
+                ),
+                DiscoveredAgentRuntime(
+                    name="claude-code",
+                    executable="/usr/bin/claude",
+                    version="v1",
+                    agent_type="claudecode",
+                    driver="claude_stream_json",
+                    command=("/usr/bin/claude", "-p"),
+                    capabilities=("stream",),
+                    channels=("anthropic",),
+                    close_stdin_after_send=True,
+                    integration_ready=True,
+                    integration_note="",
+                ),
+                DiscoveredAgentRuntime(
+                    name="hermes",
+                    executable="/usr/bin/hermes",
+                    version="v1",
+                    agent_type="hermes",
+                    driver="hermes_text",
+                    command=("/usr/bin/hermes", "chat", "-Q"),
+                    capabilities=("tools",),
+                    channels=("hermes",),
+                    close_stdin_after_send=True,
+                    integration_ready=False,
+                    integration_note="stdin-safe wrapper required",
+                ),
             )
             suggestions = build_project_suggestions(
                 agents,
