@@ -166,7 +166,7 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
             content: const Text(
               '将安装到当前 SSH 用户的 ~/.local/share/huanhermes，\n\n'
               '不会使用 sudo，不会修改 Agent 渠道或密钥，也不会自动启动服务。\n\n'
-              '安装包会先上传并校验 SHA-256，然后原子切换版本；失败不会替换已有版本。',
+              '服务器会优先从公开 HTTPS Release 下载并校验 SHA-256；网络不可用时才通过 SFTP 上传内置包。安装失败不会替换已有版本。',
             ),
             actions: [
               TextButton(
@@ -398,7 +398,7 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
                     )
                   : const Icon(Icons.download_for_offline_outlined),
               label: Text(
-                _installBusy ? '正在上传并安装 Companion…' : '安装服务器 Companion',
+                _installBusy ? '正在下载或上传 Companion…' : '安装服务器 Companion',
               ),
             ),
             if (_installResult != null) ...[

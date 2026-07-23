@@ -114,6 +114,11 @@ Companion 安装完成后仍需人工配置 `config/host.toml` 中的 Token、Wo
 allowlist 和项目命令，再由用户自行启动 systemd user service。升级失败时，
 旧的 `current` 链接保持不变，可重新激活旧版本目录。
 
+默认传输顺序为公开 GitHub Release HTTPS 下载 → SHA-256 校验 → 安装。
+服务器缺少 `curl`/`wget`、无法访问 GitHub 或下载失败时，App 才通过 SFTP
+上传同摘要的内置包。公开 Release 不需要 GitHub Token；摘要不匹配时直接
+失败，不会执行归档内容，也不会降级到未经校验的安装方式。
+
 同时应预先创建 `[audit].permission_log_path` 的父目录，让运行用户独占访问；
 不要把客户端输入拼进命令。WebSocket 当前不提供 TLS，公网部署必须放在 TLS
 终止层后。

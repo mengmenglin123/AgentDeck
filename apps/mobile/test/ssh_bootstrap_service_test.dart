@@ -8,7 +8,7 @@ void main() {
     final command = SshBootstrapService.buildInstallCommand(path);
 
     expect(command, contains(SshBootstrapService.archiveSha256));
-    expect(command, contains('--version \'0.1.202\''));
+    expect(command, contains('--version \'0.1.203\''));
     expect(command, contains(r'--prefix "$HOME/.local/share/huanhermes"'));
     expect(command, isNot(contains('sudo')));
     expect(command, isNot(contains('systemctl')));
@@ -21,14 +21,29 @@ void main() {
     );
   });
 
+  test('builds pinned HTTPS download with no GitHub credential', () {
+    const path =
+        '/tmp/huanhermes-companion-0123456789abcdef0123456789abcdef.tar.gz';
+    final command = SshBootstrapService.buildDownloadCommand(path);
+    expect(command, contains(SshBootstrapService.releaseUrl));
+    expect(command, contains("--proto '=https'"));
+    expect(command, contains('wget --https-only'));
+    expect(command.toLowerCase(), isNot(contains('authorization')));
+    expect(command.toLowerCase(), isNot(contains('github_token')));
+    expect(
+      () => SshBootstrapService.buildDownloadCommand('/tmp/a;id.tar.gz'),
+      throwsA(isA<SshBootstrapException>()),
+    );
+  });
+
   test('parses typed companion install marker', () {
     const output = '''noise
-HH_COMPANION\t{"version":"0.1.202","release_dir":"/home/u/.local/share/huanhermes/releases/0.1.202","service_path":"/home/u/.config/systemd/user/huanhermes-host.service","config_path":"/home/u/.local/share/huanhermes/config/host.toml","activated":true,"service_started":false}
+HH_COMPANION\t{"version":"0.1.203","release_dir":"/home/u/.local/share/huanhermes/releases/0.1.203","service_path":"/home/u/.config/systemd/user/huanhermes-host.service","config_path":"/home/u/.local/share/huanhermes/config/host.toml","activated":true,"service_started":false}
 ''';
 
     final result = SshBootstrapService.parseInstallOutput(output);
 
-    expect(result.version, '0.1.202');
+    expect(result.version, '0.1.203');
     expect(result.activated, isTrue);
     expect(result.serviceStarted, isFalse);
     expect(result.configPath, endsWith('/config/host.toml'));

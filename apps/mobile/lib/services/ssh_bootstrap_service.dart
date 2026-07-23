@@ -68,11 +68,13 @@ class SshBootstrapService {
         _assetLoader = assetLoader ?? _loadAsset,
         _uuid = uuid ?? const Uuid();
 
-  static const releaseVersion = '0.1.202';
+  static const releaseVersion = '0.1.203';
   static const assetPath =
-      'assets/companion/huanhermes-host-0.1.202.tar.gz';
+      'assets/companion/huanhermes-host-0.1.203.tar.gz';
   static const archiveSha256 =
-      'ba3cc5a67da38ae13266baa10c09c21f93d852f82e2eeecc023e8f832dca96d9';
+      'bd755aa0ccf7d0d47b64f37591d535b84e56cf7763effe490eb1aeaf420f7528';
+  static const releaseUrl =
+      'https://github.com/mengmenglin123/huanhermes-companion/releases/download/0.1.203/huanhermes-host-0.1.203.tar.gz';
 
   final SshSocketConnector _socketConnector;
   final CompanionAssetLoader _assetLoader;
@@ -95,10 +97,6 @@ class SshBootstrapService {
     }
     if ((password ?? '').isEmpty && (privateKeyPem ?? '').trim().isEmpty) {
       throw const SshBootstrapException('请输入 SSH 密码或私钥');
-    }
-    final archive = await _assetLoader(assetPath);
-    if (archive.isEmpty) {
-      throw const SshBootstrapException('Companion 安装包为空');
     }
     final suffix = _uuid.v4().replaceAll('-', '');
     if (!RegExp(r'^[a-fA-F0-9]{32}$').hasMatch(suffix)) {
@@ -130,27 +128,41 @@ class SshBootstrapService {
         handshakeTimeout: timeout,
         authTimeout: timeout,
       );
-      final sftp = await client.sftp();
-      final file = await sftp.open(
-        remoteArchive,
-        mode: SftpFileOpenMode.create |
-            SftpFileOpenMode.write |
-            SftpFileOpenMode.truncate,
-      );
-      try {
-        await file.writeBytes(archive);
-      } finally {
-        await file.close();
+      var download = await client.runWithResult(
+        buildDownloadCommand(remoteArchive),
+      ).timeout(timeout);
+      if (download.exitCode != 0) {
+        final archive = await _assetLoader(assetPath);
+        if (archive.isEmpty) {
+          throw const SshBootstrapException('Companion 安装包为空');
+        }
+        final sftp = await client.sftp();
+        final file = await sftp.open(
+          remoteArchive,
+          mode: SftpFileOpenMode.create |
+              SftpFileOpenMode.write |
+              SftpFileOpenMode.truncate,
+        );
+        try {
+          await file.writeBytes(archive);
+        } finally {
+          await file.close();
+        }
+        download = await client.runWithResult(
+          'printf \'HH_COMPANION_TRANSPORT\\tSFTP\\n\'\n${buildInstallCommand(remoteArchive)}',
+        ).timeout(timeout);
+      } else {
+        download = await client.runWithResult(
+          'printf \'HH_COMPANION_TRANSPORT\\tHTTPS\\n\'\n${buildInstallCommand(remoteArchive)}',
+        ).timeout(timeout);
       }
-      final command = buildInstallCommand(remoteArchive);
-      final execution = await client.runWithResult(command).timeout(timeout);
       final key = hostKey;
       if (key == null) {
         throw const SshBootstrapException('SSH 主机未提供可验证的 Host Key');
       }
-      final stdout = utf8.decode(execution.stdout, allowMalformed: true);
-      final stderr = utf8.decode(execution.stderr, allowMalformed: true).trim();
-      if (execution.exitCode != 0) {
+      final stdout = utf8.decode(download.stdout, allowMalformed: true);
+      final stderr = utf8.decode(download.stderr, allowMalformed: true).trim();
+      if (download.exitCode != 0) {
         throw SshBootstrapException(
           stderr.isEmpty ? 'Companion 安装失败' : 'Companion 安装失败：$stderr',
         );
@@ -188,6 +200,25 @@ rm -rf -- "\$work"
 mkdir -p -- "\$work"
 tar -xzf "\$archive" -C "\$work" --strip-components=1
 python3 "\$work/server/companion_installer.py" install --source "\$work" --prefix "\$HOME/.local/share/huanhermes" --version '$releaseVersion'
+''';
+  }
+
+  static String buildDownloadCommand(String remoteArchive) {
+    if (!RegExp(r'^/tmp/huanhermes-companion-[a-fA-F0-9]{32}\.tar\.gz$')
+        .hasMatch(remoteArchive)) {
+      throw const SshBootstrapException('远端安装包路径无效');
+    }
+    return '''set -eu
+umask 077
+archive='$remoteArchive'
+mkdir -p -- "\${archive%/*}"
+if command -v curl >/dev/null 2>&1; then
+  curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 '$releaseUrl' -o "\$archive"
+elif command -v wget >/dev/null 2>&1; then
+  wget --https-only --quiet --output-document="\$archive" '$releaseUrl'
+else
+  exit 42
+fi
 ''';
   }
 

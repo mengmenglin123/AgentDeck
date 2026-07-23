@@ -63,6 +63,8 @@ class TestCompanionInstaller(unittest.TestCase):
 
             plan = build_install_plan(source=str(source), prefix=prefix, version="v1")
             install(plan)
+            self.assertEqual(install(plan), plan)
+            Path(plan.release_dir, "server/bridge.py").unlink()
             with self.assertRaises(CompanionInstallError):
                 install(plan)
 

@@ -66,6 +66,12 @@ def install(plan: CompanionInstallPlan) -> CompanionInstallPlan:
     prefix = Path(plan.prefix)
     release_dir.parent.mkdir(parents=True, exist_ok=True)
     prefix.joinpath("config").mkdir(parents=True, exist_ok=True)
+    if release_dir.exists():
+        if release_dir.is_dir() and all(
+            Path(release_dir, relative).is_file() for relative in plan.files
+        ):
+            return plan
+        raise CompanionInstallError("existing release is incomplete")
     staging = Path(tempfile.mkdtemp(prefix=f".{plan.version}.", dir=str(release_dir.parent)))
     try:
         for relative in plan.files:
@@ -74,8 +80,6 @@ def install(plan: CompanionInstallPlan) -> CompanionInstallPlan:
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
             target.chmod(0o700 if target.name == "production_host.py" else 0o600)
-        if release_dir.exists():
-            raise CompanionInstallError("release version already exists")
         os.replace(staging, release_dir)
     except OSError as exc:
         raise CompanionInstallError("cannot install companion release") from exc
