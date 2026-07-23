@@ -6,6 +6,7 @@ import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 
+import '../models/discovered_agent.dart';
 import 'ssh_discovery_service.dart';
 
 typedef CompanionAssetLoader = Future<Uint8List> Function(String assetPath);
@@ -170,10 +171,7 @@ printf '%s  %s\n' '$archiveSha256' "\$archive" | sha256sum -c -
 rm -rf -- "\$work"
 mkdir -p -- "\$work"
 tar -xzf "\$archive" -C "\$work" --strip-components=1
-python3 "\$work/server/companion_installer.py" install \
-  --source "\$work" \
-  --prefix "\$HOME/.local/share/huanhermes" \
-  --version '$releaseVersion'
+python3 "\$work/server/companion_installer.py" install --source "\$work" --prefix "\$HOME/.local/share/huanhermes" --version '$releaseVersion'
 ''';
   }
 
