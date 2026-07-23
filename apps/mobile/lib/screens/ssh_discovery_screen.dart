@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../models/discovered_agent.dart';
+import '../services/ssh_bootstrap_service.dart';
 import '../services/ssh_discovery_service.dart';
 import '../utils/security.dart';
 
@@ -12,10 +13,12 @@ class SshDiscoveryScreen extends StatefulWidget {
     super.key,
     required this.initialHost,
     this.service,
+    this.bootstrapService,
   });
 
   final String initialHost;
   final SshDiscoveryService? service;
+  final SshBootstrapService? bootstrapService;
 
   @override
   State<SshDiscoveryScreen> createState() => _SshDiscoveryScreenState();
@@ -32,11 +35,16 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
   bool _obscurePassword = true;
   bool _obscurePassphrase = true;
   bool _busy = false;
+  bool _installBusy = false;
   String? _error;
   SshDiscoveryResult? _result;
+  CompanionInstallResult? _installResult;
 
   SshDiscoveryService get _service =>
       widget.service ?? SshDiscoveryService();
+
+  SshBootstrapService get _bootstrapService =>
+      widget.bootstrapService ?? SshBootstrapService();
 
   @override
   void initState() {
@@ -141,6 +149,66 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
     }
   }
 
+  Future<void> _installCompanion() async {
+    final result = _result;
+    if (result == null) return;
+    final port = int.tryParse(_port.text.trim());
+    if (port == null || port < 1 || port > 65535) {
+      setState(() => _error = 'SSH 端口无效');
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('安装服务器 Companion？'),
+            content: const Text(
+              '将安装到当前 SSH 用户的 ~/.local/share/huanhermes，\n\n'
+              '不会使用 sudo，不会修改 Agent 渠道或密钥，也不会自动启动服务。\n\n'
+              '安装包会先上传并校验 SHA-256，然后原子切换版本；失败不会替换已有版本。',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('确认安装'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed || !mounted) return;
+    setState(() {
+      _installBusy = true;
+      _error = null;
+      _installResult = null;
+    });
+    try {
+      final installed = await _bootstrapService.install(
+        host: _host.text,
+        port: port,
+        username: _username.text,
+        password: _usePrivateKey ? null : _password.text,
+        privateKeyPem: _usePrivateKey ? _privateKey.text : null,
+        privateKeyPassphrase:
+            _usePrivateKey && _passphrase.text.isNotEmpty
+                ? _passphrase.text
+                : null,
+        verifyHostKey: _verifyHostKey,
+      );
+      if (!mounted) return;
+      setState(() => _installResult = installed);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _error = Security.redactText(error.toString()));
+    } finally {
+      if (mounted) setState(() => _installBusy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final result = _result;
@@ -155,7 +223,7 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
           const SizedBox(height: 16),
           TextField(
             controller: _host,
-            enabled: !_busy,
+            enabled: !_busy && !_installBusy,
             decoration: const InputDecoration(
               labelText: 'SSH 主机',
               prefixIcon: Icon(Icons.dns_outlined),
@@ -168,7 +236,7 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
                 flex: 2,
                 child: TextField(
                   controller: _username,
-                  enabled: !_busy,
+                  enabled: !_busy && !_installBusy,
                   autocorrect: false,
                   decoration: const InputDecoration(labelText: '用户名'),
                 ),
@@ -177,7 +245,7 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
               Expanded(
                 child: TextField(
                   controller: _port,
-                  enabled: !_busy,
+                  enabled: !_busy && !_installBusy,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(labelText: '端口'),
                 ),
@@ -191,7 +259,7 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
               ButtonSegment(value: true, label: Text('私钥')),
             ],
             selected: {_usePrivateKey},
-            onSelectionChanged: _busy
+            onSelectionChanged: _busy || _installBusy
                 ? null
                 : (selection) =>
                     setState(() => _usePrivateKey = selection.first),
@@ -200,13 +268,16 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
           if (!_usePrivateKey)
             TextField(
               controller: _password,
-              enabled: !_busy,
+              enabled: !_busy && !_installBusy,
               obscureText: _obscurePassword,
               decoration: InputDecoration(
                 labelText: 'SSH 密码（不会保存）',
                 suffixIcon: IconButton(
-                  onPressed: () =>
-                      setState(() => _obscurePassword = !_obscurePassword),
+                  onPressed: _installBusy
+                      ? null
+                      : () => setState(
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
                   icon: Icon(_obscurePassword
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined),
@@ -216,7 +287,7 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
           else ...[
             TextField(
               controller: _privateKey,
-              enabled: !_busy,
+              enabled: !_busy && !_installBusy,
               minLines: 4,
               maxLines: 8,
               autocorrect: false,
@@ -225,7 +296,7 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
                 alignLabelWithHint: true,
                 suffixIcon: IconButton(
                   tooltip: '选择私钥文件',
-                  onPressed: _busy ? null : _pickPrivateKey,
+                  onPressed: _busy || _installBusy ? null : _pickPrivateKey,
                   icon: const Icon(Icons.file_open_outlined),
                 ),
               ),
@@ -233,14 +304,16 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: _passphrase,
-              enabled: !_busy,
+              enabled: !_busy && !_installBusy,
               obscureText: _obscurePassphrase,
               decoration: InputDecoration(
                 labelText: '私钥口令（可选）',
                 suffixIcon: IconButton(
-                  onPressed: () => setState(
-                    () => _obscurePassphrase = !_obscurePassphrase,
-                  ),
+                  onPressed: _installBusy
+                      ? null
+                      : () => setState(
+                            () => _obscurePassphrase = !_obscurePassphrase,
+                          ),
                   icon: Icon(_obscurePassphrase
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined),
@@ -250,7 +323,7 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
           ],
           const SizedBox(height: 16),
           FilledButton.icon(
-            onPressed: _busy ? null : _discover,
+            onPressed: _busy || _installBusy ? null : _discover,
             icon: _busy
                 ? const SizedBox(
                     width: 18,
@@ -286,6 +359,34 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
               )
             else
               ...result.agents.map(_agentCard),
+            const SizedBox(height: 12),
+            FilledButton.tonalIcon(
+              onPressed: _busy || _installBusy ? null : _installCompanion,
+              icon: _installBusy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.download_for_offline_outlined),
+              label: Text(
+                _installBusy ? '正在上传并安装 Companion…' : '安装服务器 Companion',
+              ),
+            ),
+            if (_installResult != null) ...[
+              const SizedBox(height: 8),
+              Card(
+                color: Theme.of(context).colorScheme.secondaryContainer,
+                child: ListTile(
+                  leading: const Icon(Icons.verified_outlined),
+                  title: Text('Companion ${_installResult!.version} 已安装'),
+                  subtitle: Text(
+                    '已原子激活版本。服务尚未自动启动；配置文件：\n'
+                    '${_installResult!.configPath}',
+                  ),
+                ),
+              ),
+            ],
             if (result.stderr.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(

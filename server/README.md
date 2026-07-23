@@ -102,6 +102,18 @@ python3 server/agent_bootstrap.py --format toml --workdir /workspace --workspace
 `-q QUERY` 单次调用，可能把提示词暴露在进程参数中，因此 bootstrap 会识别
 Hermes 但默认不生成可启用项目，直到部署经过审核的 stdin-safe wrapper。
 
+## Host Companion 安装
+
+App 的 SSH 首次配对页可以在用户明确确认后上传固定版本的 Companion 包。
+安装器只复制 `server/` Python 模块到用户目录的版本目录，原子更新
+`~/.local/share/huanhermes/current`，并写入 systemd user unit；它不会使用
+`sudo`、不会启用或启动服务，也不会触碰 Agent 凭据。安装结果通过
+`HH_COMPANION` JSONL 标记返回，App 只接受结构完整的结果。
+
+Companion 安装完成后仍需人工配置 `config/host.toml` 中的 Token、Workspace
+allowlist 和项目命令，再由用户自行启动 systemd user service。升级失败时，
+旧的 `current` 链接保持不变，可重新激活旧版本目录。
+
 同时应预先创建 `[audit].permission_log_path` 的父目录，让运行用户独占访问；
 不要把客户端输入拼进命令。WebSocket 当前不提供 TLS，公网部署必须放在 TLS
 终止层后。

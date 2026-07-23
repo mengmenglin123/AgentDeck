@@ -81,12 +81,12 @@ HH_DISCOVERY''';
       client = SSHClient(
         socket,
         username: cleanUser,
-        identities: _parsePrivateKey(privateKeyPem, privateKeyPassphrase),
+        identities: parsePrivateKey(privateKeyPem, privateKeyPassphrase),
         onPasswordRequest: () async => password,
         onVerifyHostKey: (type, fingerprint) async {
           final key = SshHostKey(
             type: type,
-            fingerprint: _decodeFingerprint(fingerprint),
+            fingerprint: decodeFingerprint(fingerprint),
           );
           hostKey = key;
           return verifyHostKey(key);
@@ -124,7 +124,7 @@ HH_DISCOVERY''';
     }
   }
 
-  static List<SSHKeyPair>? _parsePrivateKey(
+  static List<SSHKeyPair>? parsePrivateKey(
     String? pem,
     String? passphrase,
   ) {
@@ -137,7 +137,7 @@ HH_DISCOVERY''';
     }
   }
 
-  static String _decodeFingerprint(Uint8List bytes) {
+  static String decodeFingerprint(Uint8List bytes) {
     final decoded = utf8.decode(bytes, allowMalformed: true).trim();
     return decoded.isEmpty
         ? base64Url.encode(bytes).replaceAll('=', '')

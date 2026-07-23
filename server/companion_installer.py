@@ -162,8 +162,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     plan = build_install_plan(source=args.source, prefix=args.prefix, version=args.version)
     if args.action == "install":
         install(plan)
-        activate(plan)
         write_user_service(plan)
+        activate(plan)
     print("HH_COMPANION\t" + json.dumps({
         "action": args.action,
         "version": plan.version,
