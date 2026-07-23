@@ -136,3 +136,68 @@ jobs:
           name: huanhermes-release-apk
           path: apps/mobile/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 90
+
+  publish-companion:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout private source
+        uses: actions/checkout@v4
+
+      - name: Resolve and verify Companion asset
+        id: companion
+        shell: bash
+        run: |
+          version="$(awk '/^version:/ {split($2, parts, "+"); print parts[1]}' apps/mobile/pubspec.yaml)"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          asset="apps/mobile/assets/companion/huanhermes-host-$version.tar.gz"
+          test -f "$asset"
+          digest="$(sha256sum "$asset" | awk '{print $1}')"
+          mkdir -p /tmp/companion-audit
+          tar -xzf "$asset" -C /tmp/companion-audit
+          if grep -R -n -E 'BEGIN (RSA|OPENSSH|EC|PRIVATE) KEY|gh[pousr]_[A-Za-z0-9_]{20,}' /tmp/companion-audit; then
+            echo 'Companion asset contains a secret-like value' >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "asset=$asset" >> "$GITHUB_OUTPUT"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+
+      - name: Configure publisher deploy key
+        env:
+          DEPLOY_KEY: ${{ secrets.COMPANION_DEPLOY_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          curl -fsSL https://api.github.com/meta | jq -r '.ssh_keys[] | "github.com " + .' > ~/.ssh/known_hosts
+
+      - name: Sync public release source
+        env:
+          VERSION: ${{ steps.companion.outputs.version }}
+          ASSET: ${{ steps.companion.outputs.asset }}
+          DIGEST: ${{ steps.companion.outputs.digest }}
+        run: |
+          git clone git@github.com:mengmenglin123/huanhermes-companion.git /tmp/companion-public
+          target="/tmp/companion-public/dist/$VERSION"
+          if [[ -f "$target/huanhermes-host-$VERSION.tar.gz" ]]; then
+            cmp --silent "$ASSET" "$target/huanhermes-host-$VERSION.tar.gz" || {
+              echo "Published version $VERSION differs; bump the App/Companion version" >&2
+              exit 1
+            }
+          else
+            mkdir -p "$target"
+            cp "$ASSET" "$target/huanhermes-host-$VERSION.tar.gz"
+            printf '%s  %s\n' "$DIGEST" "huanhermes-host-$VERSION.tar.gz" > "$target/SHA256SUMS"
+            git -C /tmp/companion-public config user.name 'HuanHermes Release Bot'
+            git -C /tmp/companion-public config user.email 'actions@users.noreply.github.com'
+            git -C /tmp/companion-public add "dist/$VERSION"
+            git -C /tmp/companion-public commit -m "release: companion $VERSION"
+            git -C /tmp/companion-public push origin HEAD:master
+          fi
+          if ! git -C /tmp/companion-public ls-remote --exit-code --tags origin "refs/tags/$VERSION" >/dev/null 2>&1; then
+            git -C /tmp/companion-public tag "$VERSION"
+            git -C /tmp/companion-public push origin "$VERSION"
+          fi
