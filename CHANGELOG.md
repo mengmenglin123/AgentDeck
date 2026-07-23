@@ -1,3 +1,10 @@
+## 0.1.200
+
+- **SSH Agent 自动发现**：App 可使用密码或 PEM 私钥登录服务器，并只读识别 Codex、Claude Code 与 Hermes。
+- **Host Key 校验**：首次 SSH 探测必须展示并确认服务器指纹；SSH 凭据仅保留在当前页面内存，不写入配置。
+- **Driver 映射**：发现结果映射为 `codex_exec_json`、`claude_stream_json`、`hermes_stream_json` 及对应能力目录。
+- **安全探测**：远端仅执行固定白名单命令，不使用 sudo、不安装或修改 Agent；长期控制继续通过 Bridge/Mgmt。
+
 ## 0.1.199
 
 - **Agent 作用域入口**：主壳层新增共享 Agent/项目选择器，切换时同步刷新会话列表和所有项目目录入口。

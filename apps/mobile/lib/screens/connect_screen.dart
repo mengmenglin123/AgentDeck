@@ -6,8 +6,10 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 
 import '../models/connection_config.dart';
+import '../models/discovered_agent.dart';
 import '../services/connection_controller.dart';
 import '../utils/security.dart';
+import 'ssh_discovery_screen.dart';
 
 class ConnectScreen extends StatefulWidget {
   const ConnectScreen({super.key});
@@ -118,6 +120,31 @@ class _ConnectScreenState extends State<ConnectScreen> {
         SnackBar(content: Text(err), backgroundColor: Colors.red.shade700),
       );
     }
+  }
+
+  Future<void> _discoverAgentsOverSsh() async {
+    final result = await Navigator.of(context).push<SshDiscoveryResult>(
+      MaterialPageRoute(
+        builder: (_) => SshDiscoveryScreen(initialHost: _host.text.trim()),
+      ),
+    );
+    if (!mounted || result == null) return;
+    setState(() {
+      _host.text = result.host;
+      if (_name.text.trim().isEmpty || _name.text == 'Default') {
+        _name.text = 'SSH ${result.host}';
+      }
+    });
+    final labels = result.agents.map((agent) => agent.label).join('、');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          labels.isEmpty
+              ? '已应用 SSH 主机地址；未发现支持的 Agent'
+              : '已发现并映射：$labels。请填写 Host 令牌后连接。',
+        ),
+      ),
+    );
   }
 
   Future<void> _importPairing() async {
@@ -282,6 +309,11 @@ class _ConnectScreenState extends State<ConnectScreen> {
       appBar: AppBar(
         title: const Text('连接服务器'),
         actions: [
+          IconButton(
+            tooltip: 'SSH 自动发现 Agent',
+            onPressed: busy ? null : _discoverAgentsOverSsh,
+            icon: const Icon(Icons.radar_outlined),
+          ),
           IconButton(
             tooltip: '导入配对 URI',
             onPressed: busy ? null : _importPairing,
@@ -1335,4 +1367,3 @@ class _HeroPill extends StatelessWidget {
     );
   }
 }
-
