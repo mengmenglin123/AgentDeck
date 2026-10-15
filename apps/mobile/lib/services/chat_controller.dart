@@ -21,6 +21,7 @@ class ChatController extends ChangeNotifier {
     BridgeClient Function(ConnectionConfig config)? bridgeFactory,
     MgmtClient Function(ConnectionConfig config)? mgmtFactory,
     AuditLog? audit,
+    this.streamFlushInterval = const Duration(milliseconds: 32),
   })  : _bridgeFactory = bridgeFactory,
         _mgmtFactory = mgmtFactory ?? ((c) => MgmtClient(config: c)),
         audit = audit ?? AuditLog();
@@ -30,6 +31,12 @@ class ChatController extends ChangeNotifier {
   final BridgeClient Function(ConnectionConfig config)? _bridgeFactory;
   final MgmtClient Function(ConnectionConfig config) _mgmtFactory;
   final AuditLog audit;
+
+  /// Streaming deltas (`reply_stream`/`thinking`) are applied to the reducer
+  /// immediately, but listeners are notified at most once per interval so a
+  /// fast token stream does not rebuild the whole chat page per chunk.
+  final Duration streamFlushInterval;
+  Timer? _streamFlushTimer;
   final PromptHistoryStore promptHistory = PromptHistoryStore();
   final OfflineQueue offlineQueue = OfflineQueue();
 
@@ -66,6 +73,27 @@ class ChatController extends ChangeNotifier {
   bool _offlineLoaded = false;
   String? reconnectHint;
 
+  static const hintReconnected = '已重连';
+
+  /// Notifies immediately and drops any pending coalesced stream notification.
+  /// Safe to call after [dispose] (late async work becomes a no-op).
+  @override
+  void notifyListeners() {
+    _streamFlushTimer?.cancel();
+    _streamFlushTimer = null;
+    if (_disposed) return;
+    super.notifyListeners();
+  }
+
+  void _notifyCoalesced() {
+    if (_disposed || _streamFlushTimer != null) return;
+    if (streamFlushInterval <= Duration.zero) {
+      notifyListeners();
+      return;
+    }
+    _streamFlushTimer = Timer(streamFlushInterval, notifyListeners);
+  }
+
   List<TranscriptMessage> get messages => List.unmodifiable(reducer.messages);
   // Avoid copying the transcript just to check emptiness on every rebuild.
   bool get isEmpty => reducer.messages.isEmpty;
@@ -97,11 +125,11 @@ class ChatController extends ChangeNotifier {
       }
       await _flushOfflineQueue();
       reconnectAttempts = 0;
-      reconnectHint = silent ? 'Reconnected' : null;
+      reconnectHint = silent ? hintReconnected : null;
       if (silent) {
         // Clear brief status after a beat so banner does not stick forever.
         Future<void>.delayed(const Duration(seconds: 2), () {
-          if (!_disposed && reconnectHint == 'Reconnected') {
+          if (!_disposed && reconnectHint == hintReconnected) {
             reconnectHint = null;
             notifyListeners();
           }
@@ -113,7 +141,7 @@ class ChatController extends ChangeNotifier {
       connected = false;
       audit.add('bridge.auth_error', detail: e.message, level: 'error');
     } on DisconnectedError catch (e) {
-      error = 'Bridge disconnected: ${e.message}';
+      error = 'Bridge 已断开：${e.message}';
       connected = false;
       audit.add('bridge.disconnected', detail: e.message, level: 'error');
     } on ProtocolError catch (e) {
@@ -356,13 +384,13 @@ class ChatController extends ChangeNotifier {
   void _scheduleReconnect() {
     if (_disposed || connected || connecting) return;
     if (!autoReconnect) {
-      reconnectHint = 'Disconnected · auto-reconnect off';
+      reconnectHint = '已断开 · 自动重连已关闭';
       notifyListeners();
       return;
     }
     final maxA = maxReconnectAttempts.clamp(1, 10);
     if (reconnectAttempts >= maxA) {
-      reconnectHint = 'Reconnect gave up after $maxA attempts';
+      reconnectHint = '已重试 $maxA 次，停止自动重连';
       notifyListeners();
       return;
     }
@@ -372,13 +400,12 @@ class ChatController extends ChangeNotifier {
       'bridge.reconnect_scheduled',
       detail: 'attempt=$reconnectAttempts/$maxA delay=${delay.inSeconds}s',
     );
-    reconnectHint =
-        'Reconnecting in ${delay.inSeconds}s (attempt $reconnectAttempts/$maxA)…';
+    reconnectHint = '${delay.inSeconds} 秒后重连（第 $reconnectAttempts/$maxA 次）…';
     notifyListeners();
     _reconnectTimer?.cancel();
     _reconnectTimer = Timer(delay, () {
       if (!_disposed && !connected) {
-        reconnectHint = 'Reconnecting…';
+        reconnectHint = '重连中…';
         notifyListeners();
         connect(silent: true);
       }
@@ -453,7 +480,14 @@ class ChatController extends ChangeNotifier {
       );
     }
     reducer.applyBridgePayload(payload);
-    notifyListeners();
+    final streamingDelta =
+        (type == 'reply_stream' && payload['done'] != true) ||
+            type == 'thinking';
+    if (streamingDelta) {
+      _notifyCoalesced();
+    } else {
+      notifyListeners();
+    }
   }
 
   void _onBridgeError(Object e) {
@@ -470,11 +504,11 @@ class ChatController extends ChangeNotifier {
     NotificationService.instance.show(
       id: 'disconnect_${session.displayTitle}'.hashCode & 0x7FFFFFFF,
       title: '已断开：${session.displayTitle}',
-      body: 'Bridge connection lost. Attempting to reconnect...',
+      body: 'Bridge 连接已断开，正在尝试重连…',
     );
     typing = false;
     runActive = false;
-    error = error ?? 'Bridge connection closed';
+    error = error ?? 'Bridge 连接已关闭';
     audit.add('bridge.closed', level: 'warn');
     notifyListeners();
     _scheduleReconnect();
@@ -484,6 +518,8 @@ class ChatController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _reconnectTimer?.cancel();
+    _streamFlushTimer?.cancel();
+    _streamFlushTimer = null;
     _bridge?.close();
     super.dispose();
   }
