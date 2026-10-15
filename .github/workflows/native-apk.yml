@@ -1,0 +1,82 @@
+name: Native Android APK
+
+# 原生 Kotlin 版（apps/android）。推送 native-android 分支时构建并上传 artifact；
+# 推 `native-v<版本>-rc<N>` 标签时额外发到本私有仓库的 prerelease。
+on:
+  push:
+    branches: [native-android]
+    paths:
+      - 'apps/android/**'
+      - '.github/workflows/native-apk.yml'
+    tags:
+      - 'native-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Unit tests
+        working-directory: apps/android
+        run: gradle --no-daemon :app:testReleaseUnitTest
+
+      - name: Build release APK
+        working-directory: apps/android
+        run: gradle --no-daemon :app:assembleRelease
+
+      - name: Rename and checksum
+        id: apk
+        shell: bash
+        run: |
+          version="$(sed -n 's/^val nativeVersionName = "\(.*\)"/\1/p' apps/android/app/build.gradle.kts)"
+          name="huanhermes-native-$version.apk"
+          mkdir -p dist
+          cp apps/android/app/build/outputs/apk/release/app-release.apk "dist/$name"
+          (cd dist && sha256sum "$name" > "$name.sha256")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          cat "dist/$name.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: huanhermes-native-${{ steps.apk.outputs.version }}-apk
+          path: dist/*
+          retention-days: 30
+
+      - name: Prerelease
+        if: startsWith(github.ref, 'refs/tags/native-v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.apk.outputs.version }}
+          NAME: ${{ steps.apk.outputs.name }}
+        shell: bash
+        run: |
+          notes="HuanHermes 原生版 $VERSION 预发布（Kotlin + Compose，release 构建，固定预发布签名）。
+          构建提交：${GITHUB_SHA}
+          与 Flutter 版同签名、versionCode 更高，可直接覆盖安装 0.1.205 及以后的版本。
+          校验：见 $NAME.sha256。"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "dist/$NAME" "dist/$NAME.sha256" --clobber
+          else
+            gh release create "$TAG" "dist/$NAME" "dist/$NAME.sha256" \
+              --prerelease --target "$GITHUB_SHA" \
+              --title "HuanHermes 原生版 $VERSION ($TAG)" --notes "$notes"
+          fi
