@@ -33,8 +33,11 @@ def configure(*, prefix: str, workspace: str) -> dict[str, object]:
     mgmt_token = secrets.token_urlsafe(32)
     data = prefix_path / "data"
     config_dir = prefix_path / "config"
-    data.mkdir(parents=True, exist_ok=True)
-    config_dir.mkdir(parents=True, exist_ok=True)
+    data.mkdir(mode=0o700, parents=True, exist_ok=True)
+    config_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+    # Config, session store and permission audit are private to the Host user.
+    data.chmod(0o700)
+    config_dir.chmod(0o700)
     config_path = config_dir / "host.toml"
     content = _render_config(
         projects,
@@ -43,10 +46,7 @@ def configure(*, prefix: str, workspace: str) -> dict[str, object]:
         bridge_token=bridge_token,
         mgmt_token=mgmt_token,
     )
-    temporary = config_path.with_name(".host.toml.tmp")
-    temporary.write_text(content, encoding="utf-8")
-    temporary.chmod(0o600)
-    os.replace(temporary, config_path)
+    _write_private_file(config_path, content)
     return {
         "config_path": str(config_path),
         "bridge_host": "127.0.0.1",
@@ -58,6 +58,33 @@ def configure(*, prefix: str, workspace: str) -> dict[str, object]:
         "projects": list(projects),
         "service_started": False,
     }
+
+
+def _write_private_file(path: Path, content: str) -> None:
+    """Atomically write a secret-bearing file that is never readable by others.
+
+    The temporary file is created with mode 0600 up front (``O_EXCL``), so the
+    tokens are never exposed through a umask-dependent window before chmod.
+    """
+    temporary = path.with_name(f".{path.name}.{secrets.token_hex(8)}.tmp")
+    payload = content.encode("utf-8")
+    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        try:
+            view = memoryview(payload)
+            while view:
+                written = os.write(descriptor, view)
+                view = view[written:]
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+        os.chmod(temporary, 0o600)
+        os.replace(temporary, path)
+    finally:
+        try:
+            temporary.unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
 def _render_config(
@@ -74,7 +101,7 @@ bridge_host = "127.0.0.1"
 bridge_port = 9810
 mgmt_host = "127.0.0.1"
 mgmt_port = 9820
-default_project = "{default_project}"
+default_project = {json.dumps(default_project)}
 
 [auth]
 bridge_token = "{bridge_token}"
