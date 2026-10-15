@@ -25,7 +25,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
       TextSpan(
         text: body,
         style: base.copyWith(
-          color: fontColor ?? base.color?.withOpacity(0.88),
+          color: fontColor ?? base.color?.withValues(alpha: 0.88),
         ),
       ),
     );
@@ -37,7 +37,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: body,
         style: base.copyWith(
           letterSpacing: 0.2,
-          color: base.color?.withOpacity(0.92),
+          color: base.color?.withValues(alpha: 0.92),
         ),
       ),
     );
@@ -75,7 +75,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
           text: ' ($title)',
           style: base.copyWith(
             fontSize: (base.fontSize ?? 14) * 0.8,
-            color: base.color?.withOpacity(0.65),
+            color: base.color?.withValues(alpha: 0.65),
           ),
         ),
       );
@@ -92,7 +92,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
     spans.add(
       TextSpan(
         text: body,
-        style: base.copyWith(color: base.color?.withOpacity(0.55)),
+        style: base.copyWith(color: base.color?.withValues(alpha: 0.55)),
       ),
     );
   } else if (tok.toLowerCase().startsWith('<marquee')) {
@@ -120,7 +120,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         style: base.copyWith(
           fontFamily: 'monospace',
           fontSize: (base.fontSize ?? 14) * 0.92,
-          color: base.color?.withOpacity(0.88),
+          color: base.color?.withValues(alpha: 0.88),
         ),
       ),
     );
@@ -133,7 +133,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         style: base.copyWith(
           fontFamily: 'monospace',
           fontSize: (base.fontSize ?? 14) * 0.92,
-          color: base.color?.withOpacity(0.88),
+          color: base.color?.withValues(alpha: 0.88),
         ),
       ),
     );
@@ -146,7 +146,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: body,
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.9),
+          color: base.color?.withValues(alpha: 0.9),
         ),
       ),
     );
@@ -158,7 +158,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '• $body',
         style: base.copyWith(
           fontSize: (base.fontSize ?? 14) * 0.95,
-          color: base.color?.withOpacity(0.9),
+          color: base.color?.withValues(alpha: 0.9),
         ),
       ),
     );
@@ -170,7 +170,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '• $body',
         style: base.copyWith(
           fontSize: (base.fontSize ?? 14) * 0.95,
-          color: base.color?.withOpacity(0.9),
+          color: base.color?.withValues(alpha: 0.9),
         ),
       ),
     );
@@ -198,7 +198,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
       TextSpan(
         text: '[search]',
         style: base.copyWith(
-          color: base.color?.withOpacity(0.5),
+          color: base.color?.withValues(alpha: 0.5),
           letterSpacing: 0.5,
         ),
       ),
@@ -221,7 +221,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '#id',
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
         ),
       ),
     );
@@ -231,7 +231,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
       TextSpan(
         text: '[key]',
         style: base.copyWith(
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
           letterSpacing: 0.5,
         ),
       ),
@@ -241,7 +241,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
     spans.add(
       TextSpan(
         text: '[♪]',
-        style: base.copyWith(color: base.color?.withOpacity(0.55)),
+        style: base.copyWith(color: base.color?.withValues(alpha: 0.55)),
       ),
     );
   } else if (tok.toLowerCase().startsWith('<multicol')) {
@@ -267,7 +267,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
     spans.add(
       TextSpan(
         text: '[frames]',
-        style: base.copyWith(color: base.color?.withOpacity(0.55)),
+        style: base.copyWith(color: base.color?.withValues(alpha: 0.55)),
       ),
     );
   } else if (tok.toLowerCase().startsWith('<frame')) {
@@ -277,7 +277,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '[frame]',
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
         ),
       ),
     );
@@ -288,7 +288,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '[app]',
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
         ),
       ),
     );
@@ -302,14 +302,14 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
       spans.add(
         TextSpan(
           text: bodyNe.group(1) ?? '',
-          style: base.copyWith(color: base.color?.withOpacity(0.7)),
+          style: base.copyWith(color: base.color?.withValues(alpha: 0.7)),
         ),
       );
     } else {
       spans.add(
         TextSpan(
           text: '[noembed]',
-          style: base.copyWith(color: base.color?.withOpacity(0.7)),
+          style: base.copyWith(color: base.color?.withValues(alpha: 0.7)),
         ),
       );
     }
@@ -323,14 +323,14 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
       spans.add(
         TextSpan(
           text: bodyNf.group(1) ?? '',
-          style: base.copyWith(color: base.color?.withOpacity(0.7)),
+          style: base.copyWith(color: base.color?.withValues(alpha: 0.7)),
         ),
       );
     } else {
       spans.add(
         TextSpan(
           text: '[noframes]',
-          style: base.copyWith(color: base.color?.withOpacity(0.7)),
+          style: base.copyWith(color: base.color?.withValues(alpha: 0.7)),
         ),
       );
     }
@@ -341,7 +341,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '[embed]',
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
         ),
       ),
     );
@@ -352,7 +352,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '[obj]',
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
         ),
       ),
     );
@@ -361,7 +361,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
     spans.add(
       TextSpan(
         text: '[param]',
-        style: base.copyWith(color: base.color?.withOpacity(0.55)),
+        style: base.copyWith(color: base.color?.withValues(alpha: 0.55)),
       ),
     );
   } else if (tok.toLowerCase().startsWith('<video')) {
@@ -371,7 +371,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '[video]',
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
         ),
       ),
     );
@@ -380,7 +380,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
     spans.add(
       TextSpan(
         text: '[track]',
-        style: base.copyWith(color: base.color?.withOpacity(0.55)),
+        style: base.copyWith(color: base.color?.withValues(alpha: 0.55)),
       ),
     );
   } else if (tok.toLowerCase().startsWith('<audio')) {
@@ -390,7 +390,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '[audio]',
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
         ),
       ),
     );
@@ -399,7 +399,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
     spans.add(
       TextSpan(
         text: '[pic]',
-        style: base.copyWith(color: base.color?.withOpacity(0.55)),
+        style: base.copyWith(color: base.color?.withValues(alpha: 0.55)),
       ),
     );
   } else if (tok.toLowerCase().startsWith('<canvas')) {
@@ -409,7 +409,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '[canvas]',
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
         ),
       ),
     );
@@ -418,7 +418,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
     spans.add(
       TextSpan(
         text: '[svg]',
-        style: base.copyWith(color: base.color?.withOpacity(0.55)),
+        style: base.copyWith(color: base.color?.withValues(alpha: 0.55)),
       ),
     );
   } else if (tok.toLowerCase().startsWith('<math')) {
@@ -428,7 +428,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '[math]',
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
         ),
       ),
     );
@@ -437,7 +437,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
     spans.add(
       TextSpan(
         text: '[area]',
-        style: base.copyWith(color: base.color?.withOpacity(0.55)),
+        style: base.copyWith(color: base.color?.withValues(alpha: 0.55)),
       ),
     );
   } else if (tok.toLowerCase().startsWith('<iframe')) {
@@ -447,7 +447,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '[iframe]',
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
         ),
       ),
     );
@@ -456,7 +456,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
     spans.add(
       TextSpan(
         text: '[portal]',
-        style: base.copyWith(color: base.color?.withOpacity(0.55)),
+        style: base.copyWith(color: base.color?.withValues(alpha: 0.55)),
       ),
     );
   } else if (tok.toLowerCase().startsWith('<dialog')) {
@@ -466,7 +466,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '[dialog]',
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
         ),
       ),
     );
@@ -475,7 +475,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
     spans.add(
       TextSpan(
         text: '[tmpl]',
-        style: base.copyWith(color: base.color?.withOpacity(0.55)),
+        style: base.copyWith(color: base.color?.withValues(alpha: 0.55)),
       ),
     );
   } else if (tok.toLowerCase().startsWith('<slot')) {
@@ -485,7 +485,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '[slot]',
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
         ),
       ),
     );
@@ -494,7 +494,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
     spans.add(
       TextSpan(
         text: '[meter]',
-        style: base.copyWith(color: base.color?.withOpacity(0.55)),
+        style: base.copyWith(color: base.color?.withValues(alpha: 0.55)),
       ),
     );
   } else if (tok.toLowerCase().startsWith('<progress')) {
@@ -504,7 +504,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '[progress]',
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
         ),
       ),
     );
@@ -513,7 +513,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
     spans.add(
       TextSpan(
         text: '[figure]',
-        style: base.copyWith(color: base.color?.withOpacity(0.55)),
+        style: base.copyWith(color: base.color?.withValues(alpha: 0.55)),
       ),
     );
   } else if (tok.toLowerCase().startsWith('<figcaption')) {
@@ -521,7 +521,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
     spans.add(
       TextSpan(
         text: '[figcaption]',
-        style: base.copyWith(color: base.color?.withOpacity(0.55)),
+        style: base.copyWith(color: base.color?.withValues(alpha: 0.55)),
       ),
     );
   } else if (tok.toLowerCase().startsWith('<map')) {
@@ -531,7 +531,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '[map]',
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
         ),
       ),
     );
@@ -542,7 +542,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '[main]',
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
         ),
       ),
     );
@@ -553,7 +553,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '[aside]',
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
         ),
       ),
     );
@@ -564,7 +564,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '[nav]',
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
         ),
       ),
     );
@@ -575,7 +575,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '[section]',
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
         ),
       ),
     );
@@ -586,7 +586,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '[article]',
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
         ),
       ),
     );
@@ -597,7 +597,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '[header]',
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
         ),
       ),
     );
@@ -606,7 +606,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
     spans.add(
       TextSpan(
         text: '[footer]',
-        style: base.copyWith(color: base.color?.withOpacity(0.55)),
+        style: base.copyWith(color: base.color?.withValues(alpha: 0.55)),
       ),
     );
   } else if (tok.toLowerCase().startsWith('<hgroup')) {
@@ -616,7 +616,7 @@ bool tryHandleLegacyHtml(String tok, TextStyle base, List<InlineSpan> spans) {
         text: '[hgroup]',
         style: base.copyWith(
           fontFamily: 'monospace',
-          color: base.color?.withOpacity(0.55),
+          color: base.color?.withValues(alpha: 0.55),
         ),
       ),
     );

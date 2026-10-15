@@ -576,8 +576,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
                     border: Border(
                       bottom: BorderSide(
                         color: isDark
-                            ? Colors.white.withOpacity(0.06)
-                            : cs.outlineVariant.withOpacity(0.7),
+                            ? Colors.white.withValues(alpha: 0.06)
+                            : cs.outlineVariant.withValues(alpha: 0.7),
                       ),
                     ),
                   ),
@@ -594,14 +594,14 @@ class _ConnectScreenState extends State<ConnectScreen> {
                               gradient: LinearGradient(
                                 colors: [
                                   cs.primary,
-                                  cs.primary.withOpacity(0.72),
+                                  cs.primary.withValues(alpha: 0.72),
                                 ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: cs.primary.withOpacity(0.28),
+                                  color: cs.primary.withValues(alpha: 0.28),
                                   blurRadius: 18,
                                   offset: const Offset(0, 6),
                                 ),
@@ -647,7 +647,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
                         style: TextStyle(
                           fontSize: 12.5,
                           height: 1.4,
-                          color: cs.onSurfaceVariant.withOpacity(0.9),
+                          color: cs.onSurfaceVariant.withValues(alpha: 0.9),
                         ),
                       ),
                       const SizedBox(height: 14),
@@ -940,13 +940,13 @@ class _ConnectScreenState extends State<ConnectScreen> {
               margin: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white.withOpacity(0.03)
+                    ? Colors.white.withValues(alpha: 0.03)
                     : Theme.of(context).colorScheme.surfaceContainer,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white.withOpacity(0.08)
-                      : Theme.of(context).colorScheme.outlineVariant.withOpacity(0.7),
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.7),
                 ),
               ),
               padding: const EdgeInsets.all(16),
@@ -1110,10 +1110,10 @@ class _ConnectScreenState extends State<ConnectScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF59E0B).withOpacity(0.12),
+                          color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: const Color(0xFFF59E0B).withOpacity(0.35),
+                            color: const Color(0xFFF59E0B).withValues(alpha: 0.35),
                           ),
                         ),
                         child: const Row(
@@ -1276,9 +1276,9 @@ class _ConnectionStatusBanner extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withOpacity(isDark ? 0.12 : 0.10),
+        color: color.withValues(alpha: isDark ? 0.12 : 0.10),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.28)),
+        border: Border.all(color: color.withValues(alpha: 0.28)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1287,7 +1287,7 @@ class _ConnectionStatusBanner extends StatelessWidget {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.16),
+              color: color.withValues(alpha: 0.16),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: color, size: 18),
@@ -1345,13 +1345,13 @@ class _HeroPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: isDark
-            ? Colors.white.withOpacity(0.04)
-            : color.withOpacity(0.08),
+            ? Colors.white.withValues(alpha: 0.04)
+            : color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
           color: isDark
-              ? Colors.white.withOpacity(0.08)
-              : color.withOpacity(0.18),
+              ? Colors.white.withValues(alpha: 0.08)
+              : color.withValues(alpha: 0.18),
         ),
       ),
       child: Row(

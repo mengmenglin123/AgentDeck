@@ -281,13 +281,13 @@ class ConsoleCard extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: isDark
-            ? Colors.white.withOpacity(0.03)
+            ? Colors.white.withValues(alpha: 0.03)
             : cs.surfaceContainer,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isDark
-              ? Colors.white.withOpacity(0.08)
-              : cs.outlineVariant.withOpacity(0.7),
+              ? Colors.white.withValues(alpha: 0.08)
+              : cs.outlineVariant.withValues(alpha: 0.7),
         ),
       ),
       child: child,
@@ -333,13 +333,13 @@ class ConsoleToolTile extends StatelessWidget {
         child: Ink(
           decoration: BoxDecoration(
             color: isDark
-                ? Colors.white.withOpacity(0.03)
+                ? Colors.white.withValues(alpha: 0.03)
                 : cs.surfaceContainer,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isDark
-                  ? Colors.white.withOpacity(0.08)
-                  : cs.outlineVariant.withOpacity(0.7),
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : cs.outlineVariant.withValues(alpha: 0.7),
             ),
           ),
           child: Padding(
@@ -351,9 +351,9 @@ class ConsoleToolTile extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: color.withOpacity(isDark ? 0.16 : 0.12),
+                    color: color.withValues(alpha: isDark ? 0.16 : 0.12),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: color.withOpacity(0.16)),
+                    border: Border.all(color: color.withValues(alpha: 0.16)),
                   ),
                   child: Icon(icon, color: color, size: 21),
                 ),

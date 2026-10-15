@@ -151,7 +151,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                               ? Icons.check_circle_outline
                               : Icons.history,
                           size: 48,
-                          color: cs.onSurfaceVariant.withOpacity(0.5),
+                          color: cs.onSurfaceVariant.withValues(alpha: 0.5),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -252,7 +252,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.2),
+                      color: Colors.orange.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: const Text(

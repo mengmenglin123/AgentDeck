@@ -368,7 +368,7 @@ class _StatusScreenState extends State<StatusScreen> {
           padding: const EdgeInsets.all(20),
           children: [
             Card(
-              color: barColor.withOpacity(0.12),
+              color: barColor.withValues(alpha: 0.12),
               child: ListTile(
                 leading: Icon(
                   healthy && !c.healthDegraded

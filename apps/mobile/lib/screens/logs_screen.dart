@@ -687,10 +687,10 @@ class _LogsScreenState extends State<LogsScreen> {
                                   left: BorderSide(color: color, width: 3),
                                 ),
                                 color: level.toLowerCase() == 'error'
-                                    ? cs.errorContainer.withOpacity(0.25)
+                                    ? cs.errorContainer.withValues(alpha: 0.25)
                                     : (level.toLowerCase() == 'warn' ||
                                             level.toLowerCase() == 'warning')
-                                        ? Colors.orange.withOpacity(0.08)
+                                        ? Colors.orange.withValues(alpha: 0.08)
                                         : null,
                               ),
                               child: ListTile(
@@ -701,10 +701,10 @@ class _LogsScreenState extends State<LogsScreen> {
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: color.withOpacity(0.15),
+                                    color: color.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(4),
                                     border: Border.all(
-                                      color: color.withOpacity(0.5),
+                                      color: color.withValues(alpha: 0.5),
                                     ),
                                   ),
                                   child: Text(

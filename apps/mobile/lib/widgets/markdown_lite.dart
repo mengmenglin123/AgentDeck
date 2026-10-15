@@ -23,7 +23,7 @@ class MarkdownLite extends StatelessWidget {
           fontSize: (base.fontSize ?? 14) * 0.92,
           backgroundColor: Theme.of(
             context,
-          ).colorScheme.surfaceContainerHighest.withOpacity(0.55),
+          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
         );
     final blocks = _splitBlocks(source);
     return Column(
@@ -180,7 +180,7 @@ class MarkdownLite extends StatelessWidget {
                       style: base.copyWith(
                         color: (b.checked == true)
                             ? const Color(0xFF81C784)
-                            : base.color?.withOpacity(0.75),
+                            : base.color?.withValues(alpha: 0.75),
                       ),
                     ),
                     ..._inline(b.text, base).children ??
@@ -221,7 +221,7 @@ class MarkdownLite extends StatelessWidget {
                     border: Border(left: BorderSide(color: edge, width: 3)),
                     color: Theme.of(
                       context,
-                    ).colorScheme.surfaceContainerHighest.withOpacity(0.4),
+                    ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
                   ),
                   child: SelectableText.rich(
                     TextSpan(
@@ -325,7 +325,7 @@ class MarkdownLite extends StatelessWidget {
                 ),
                 color: Theme.of(
                   context,
-                ).colorScheme.surfaceContainerHighest.withOpacity(0.35),
+                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
               ),
               child: SelectableText.rich(
                 _inline(b.text, base.copyWith(fontStyle: FontStyle.italic)),
@@ -336,7 +336,7 @@ class MarkdownLite extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Divider(
                 height: 1,
-                color: Theme.of(context).dividerColor.withOpacity(0.6),
+                color: Theme.of(context).dividerColor.withValues(alpha: 0.6),
               ),
             )
           else if (b.kind == _BlockKind.table)
@@ -546,7 +546,7 @@ class MarkdownLite extends StatelessWidget {
     final cols = parsed
         .map((r) => r.length)
         .fold<int>(0, (a, b) => a > b ? a : b);
-    final border = Theme.of(context).dividerColor.withOpacity(0.45);
+    final border = Theme.of(context).dividerColor.withValues(alpha: 0.45);
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
@@ -565,7 +565,7 @@ class MarkdownLite extends StatelessWidget {
                     ? BoxDecoration(
                         color: Theme.of(
                           context,
-                        ).colorScheme.surfaceContainerHighest.withOpacity(0.55),
+                        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
                       )
                     : null,
                 children: [
@@ -842,7 +842,7 @@ class MarkdownLite extends StatelessWidget {
             text: tok.substring(2, tok.length - 2),
             style: base.copyWith(
               decoration: TextDecoration.lineThrough,
-              color: base.color?.withOpacity(0.65),
+              color: base.color?.withValues(alpha: 0.65),
             ),
           ),
         );
@@ -887,7 +887,7 @@ class MarkdownLite extends StatelessWidget {
             style: base.copyWith(
               fontSize: (base.fontSize ?? 14) * 0.75,
               height: 1.0,
-              color: base.color?.withOpacity(0.9),
+              color: base.color?.withValues(alpha: 0.9),
             ),
           ),
         );
@@ -899,7 +899,7 @@ class MarkdownLite extends StatelessWidget {
             style: base.copyWith(
               fontSize: (base.fontSize ?? 14) * 0.75,
               height: 1.2,
-              color: base.color?.withOpacity(0.85),
+              color: base.color?.withValues(alpha: 0.85),
             ),
           ),
         );
@@ -933,7 +933,7 @@ class MarkdownLite extends StatelessWidget {
             text: body,
             style: base.copyWith(
               decoration: TextDecoration.lineThrough,
-              color: base.color?.withOpacity(0.7),
+              color: base.color?.withValues(alpha: 0.7),
             ),
           ),
         );
@@ -952,7 +952,7 @@ class MarkdownLite extends StatelessWidget {
             text: body,
             style: base.copyWith(
               decoration: deco,
-              color: base.color?.withOpacity(0.95),
+              color: base.color?.withValues(alpha: 0.95),
             ),
           ),
         );
@@ -964,7 +964,7 @@ class MarkdownLite extends StatelessWidget {
             text: body,
             style: base.copyWith(
               decoration: TextDecoration.lineThrough,
-              color: base.color?.withOpacity(0.7),
+              color: base.color?.withValues(alpha: 0.7),
             ),
           ),
         );
@@ -976,7 +976,7 @@ class MarkdownLite extends StatelessWidget {
             text: body,
             style: base.copyWith(
               decoration: TextDecoration.lineThrough,
-              color: base.color?.withOpacity(0.7),
+              color: base.color?.withValues(alpha: 0.7),
             ),
           ),
         );
@@ -993,7 +993,7 @@ class MarkdownLite extends StatelessWidget {
             text: body,
             style: base.copyWith(
               fontSize: (base.fontSize ?? 14) * 0.85,
-              color: base.color?.withOpacity(0.85),
+              color: base.color?.withValues(alpha: 0.85),
             ),
           ),
         );
@@ -1004,7 +1004,7 @@ class MarkdownLite extends StatelessWidget {
             text: body,
             style: base.copyWith(
               fontStyle: FontStyle.italic,
-              color: base.color?.withOpacity(0.85),
+              color: base.color?.withValues(alpha: 0.85),
             ),
           ),
         );
@@ -1025,7 +1025,7 @@ class MarkdownLite extends StatelessWidget {
             style: base.copyWith(
               fontStyle: FontStyle.italic,
               fontFamily: 'monospace',
-              color: base.color?.withOpacity(0.88),
+              color: base.color?.withValues(alpha: 0.88),
             ),
           ),
         );
@@ -1038,7 +1038,7 @@ class MarkdownLite extends StatelessWidget {
             style: base.copyWith(
               fontFamily: 'monospace',
               backgroundColor: base.backgroundColor ?? const Color(0x22000000),
-              color: base.color?.withOpacity(0.9),
+              color: base.color?.withValues(alpha: 0.9),
             ),
           ),
         );
@@ -1128,7 +1128,7 @@ class MarkdownLite extends StatelessWidget {
             text: body,
             style: base.copyWith(
               fontSize: (base.fontSize ?? 14) * 0.92,
-              color: base.color?.withOpacity(0.75),
+              color: base.color?.withValues(alpha: 0.75),
             ),
           ),
         );
@@ -1141,7 +1141,7 @@ class MarkdownLite extends StatelessWidget {
             style: base.copyWith(
               fontFamily: 'monospace',
               letterSpacing: 0.4,
-              color: base.color?.withOpacity(0.9),
+              color: base.color?.withValues(alpha: 0.9),
             ),
           ),
         );
@@ -1169,7 +1169,7 @@ class MarkdownLite extends StatelessWidget {
             text: body,
             style: base.copyWith(
               fontFamily: 'monospace',
-              color: base.color?.withOpacity(0.82),
+              color: base.color?.withValues(alpha: 0.82),
             ),
           ),
         );
@@ -1191,7 +1191,7 @@ class MarkdownLite extends StatelessWidget {
               text: anno,
               style: base.copyWith(
                 fontSize: (base.fontSize ?? 14) * 0.75,
-                color: base.color?.withOpacity(0.7),
+                color: base.color?.withValues(alpha: 0.7),
                 height: 1.0,
               ),
             ),
@@ -1211,7 +1211,7 @@ class MarkdownLite extends StatelessWidget {
             text: body,
             style: base.copyWith(
               fontSize: (base.fontSize ?? 14) * 0.75,
-              color: base.color?.withOpacity(0.7),
+              color: base.color?.withValues(alpha: 0.7),
               height: 1.0,
             ),
           ),
@@ -1224,7 +1224,7 @@ class MarkdownLite extends StatelessWidget {
             text: body,
             style: base.copyWith(
               fontSize: (base.fontSize ?? 14) * 0.85,
-              color: base.color?.withOpacity(0.55),
+              color: base.color?.withValues(alpha: 0.55),
             ),
           ),
         );
@@ -1261,7 +1261,7 @@ class MarkdownLite extends StatelessWidget {
               text: ' ($title)',
               style: base.copyWith(
                 fontSize: (base.fontSize ?? 14) * 0.8,
-                color: base.color?.withOpacity(0.65),
+                color: base.color?.withValues(alpha: 0.65),
               ),
             ),
           );
@@ -1326,7 +1326,7 @@ class MarkdownLite extends StatelessWidget {
             TextSpan(
               text: ' ($url)',
               style: base.copyWith(
-                color: base.color?.withOpacity(0.55),
+                color: base.color?.withValues(alpha: 0.55),
                 fontSize: (base.fontSize ?? 14) * 0.85,
                 fontFamily: 'monospace',
               ),
@@ -1363,7 +1363,7 @@ class MarkdownLite extends StatelessWidget {
             TextSpan(
               text: ' ↗',
               style: base.copyWith(
-                color: Colors.lightBlue.withOpacity(0.7),
+                color: Colors.lightBlue.withValues(alpha: 0.7),
                 fontSize: (base.fontSize ?? 14) * 0.85,
               ),
             ),
@@ -1373,7 +1373,7 @@ class MarkdownLite extends StatelessWidget {
             TextSpan(
               text: ' ($url)',
               style: base.copyWith(
-                color: base.color?.withOpacity(0.55),
+                color: base.color?.withValues(alpha: 0.55),
                 fontSize: (base.fontSize ?? 14) * 0.85,
                 fontFamily: 'monospace',
               ),

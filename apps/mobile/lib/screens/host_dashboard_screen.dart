@@ -491,7 +491,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                                 19,
                               );
                       return Card(
-                        color: barColor.withOpacity(0.12),
+                        color: barColor.withValues(alpha: 0.12),
                         margin: const EdgeInsets.only(bottom: 8),
                         child: ListTile(
                           dense: true,

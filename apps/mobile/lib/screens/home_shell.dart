@@ -102,7 +102,7 @@ class _HomeShellState extends State<HomeShell> {
             Material(
               color: isDark
                   ? const Color(0xFF0F1011)
-                  : cs.surface.withOpacity(0.96),
+                  : cs.surface.withValues(alpha: 0.96),
               child: SafeArea(
                 bottom: false,
                 child: Padding(
@@ -112,13 +112,13 @@ class _HomeShellState extends State<HomeShell> {
                         horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? Colors.white.withOpacity(0.03)
-                          : cs.surfaceContainerHighest.withOpacity(0.55),
+                          ? Colors.white.withValues(alpha: 0.03)
+                          : cs.surfaceContainerHighest.withValues(alpha: 0.55),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
                         color: isDark
-                            ? Colors.white.withOpacity(0.07)
-                            : cs.outlineVariant.withOpacity(0.7),
+                            ? Colors.white.withValues(alpha: 0.07)
+                            : cs.outlineVariant.withValues(alpha: 0.7),
                       ),
                     ),
                     child: Column(
@@ -133,7 +133,7 @@ class _HomeShellState extends State<HomeShell> {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: statusColor.withOpacity(0.45),
+                                color: statusColor.withValues(alpha: 0.45),
                                 blurRadius: 8,
                               ),
                             ],

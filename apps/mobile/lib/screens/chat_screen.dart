@@ -1495,7 +1495,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           ),
           if (_pendingImages.isNotEmpty || _pendingFiles.isNotEmpty)
             Material(
-              color: cs.surfaceContainerHighest.withOpacity(0.5),
+              color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
               child: Column(
                 children: [
                   ListTile(
@@ -1642,7 +1642,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 color: Theme.of(context)
                     .colorScheme
                     .tertiaryContainer
-                    .withOpacity(0.55),
+                    .withValues(alpha: 0.55),
                 child: ListTile(
                   dense: true,
                   leading: const Icon(Icons.shield_outlined),
@@ -1683,8 +1683,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 border: Border(
                   top: BorderSide(
                     color: isDark
-                        ? Colors.white.withOpacity(0.06)
-                        : cs.outlineVariant.withOpacity(0.7),
+                        ? Colors.white.withValues(alpha: 0.06)
+                        : cs.outlineVariant.withValues(alpha: 0.7),
                   ),
                 ),
               ),
@@ -1694,7 +1694,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 children: [
                   if (_quoteText != null && _quoteText!.isNotEmpty)
                     Material(
-                      color: cs.surfaceContainerHighest.withOpacity(0.55),
+                      color: cs.surfaceContainerHighest.withValues(alpha: 0.55),
                       borderRadius: BorderRadius.circular(12),
                       child: ListTile(
                         dense: true,
@@ -1762,13 +1762,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         child: Container(
                           decoration: BoxDecoration(
                             color: isDark
-                                ? Colors.white.withOpacity(0.04)
+                                ? Colors.white.withValues(alpha: 0.04)
                                 : const Color(0xFFF5F7FA),
                             borderRadius: BorderRadius.circular(22),
                             border: Border.all(
                               color: isDark
-                                  ? Colors.white.withOpacity(0.08)
-                                  : cs.outlineVariant.withOpacity(0.7),
+                                  ? Colors.white.withValues(alpha: 0.08)
+                                  : cs.outlineVariant.withValues(alpha: 0.7),
                             ),
                           ),
                           child: TextField(
@@ -1779,7 +1779,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               hintText:
                                   _chat.connected ? '输入消息…' : '正在连接 agent…',
                               hintStyle: TextStyle(
-                                color: cs.onSurfaceVariant.withOpacity(0.65),
+                                color: cs.onSurfaceVariant.withValues(alpha: 0.65),
                               ),
                               border: InputBorder.none,
                               isDense: true,
@@ -1949,13 +1949,13 @@ class _EmptyChat extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
                 gradient: LinearGradient(
-                  colors: [cs.primary, cs.primary.withOpacity(0.72)],
+                  colors: [cs.primary, cs.primary.withValues(alpha: 0.72)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: cs.primary.withOpacity(0.28),
+                    color: cs.primary.withValues(alpha: 0.28),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -2044,7 +2044,7 @@ class _SuggestionCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Material(
-      color: isDark ? Colors.white.withOpacity(0.03) : cs.surfaceContainer,
+      color: isDark ? Colors.white.withValues(alpha: 0.03) : cs.surfaceContainer,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
@@ -2055,8 +2055,8 @@ class _SuggestionCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: isDark
-                  ? Colors.white.withOpacity(0.08)
-                  : cs.outlineVariant.withOpacity(0.75),
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : cs.outlineVariant.withValues(alpha: 0.75),
             ),
           ),
           child: Row(
@@ -2065,9 +2065,9 @@ class _SuggestionCard extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(isDark ? 0.16 : 0.12),
+                  color: color.withValues(alpha: isDark ? 0.16 : 0.12),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: color.withOpacity(0.14)),
+                  border: Border.all(color: color.withValues(alpha: 0.14)),
                 ),
                 child: Icon(icon, size: 20, color: color),
               ),
@@ -2091,7 +2091,7 @@ class _SuggestionCard extends StatelessWidget {
                 ),
               ),
               Icon(Icons.arrow_forward_ios,
-                  size: 14, color: color.withOpacity(0.5)),
+                  size: 14, color: color.withValues(alpha: 0.5)),
             ],
           ),
         ),
@@ -2142,9 +2142,9 @@ class _StatusChip extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: c.withOpacity(0.15),
+            color: c.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: c.withOpacity(0.5)),
+            border: Border.all(color: c.withValues(alpha: 0.5)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

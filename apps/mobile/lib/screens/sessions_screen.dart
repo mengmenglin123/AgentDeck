@@ -1306,10 +1306,10 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   color: conn.healthDegraded
                       ? Theme.of(
                           context,
-                        ).colorScheme.errorContainer.withOpacity(0.55)
+                        ).colorScheme.errorContainer.withValues(alpha: 0.55)
                       : Theme.of(
                           context,
-                        ).colorScheme.surfaceContainerHighest.withOpacity(0.45),
+                        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
                   child: ListTile(
                     dense: true,
                     visualDensity: VisualDensity.compact,
@@ -1821,17 +1821,17 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                               decoration: BoxDecoration(
                                                 color: isDark
                                                     ? Colors.white
-                                                        .withOpacity(0.03)
+                                                        .withValues(alpha: 0.03)
                                                     : cs.surfaceContainerHighest
-                                                        .withOpacity(0.65),
+                                                        .withValues(alpha: 0.65),
                                                 borderRadius:
                                                     BorderRadius.circular(12),
                                                 border: Border.all(
                                                   color: isDark
                                                       ? Colors.white
-                                                          .withOpacity(0.06)
+                                                          .withValues(alpha: 0.06)
                                                       : cs.outlineVariant
-                                                          .withOpacity(0.6),
+                                                          .withValues(alpha: 0.6),
                                                 ),
                                               ),
                                               child: Row(
@@ -1957,7 +1957,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                                     context)
                                                                 .colorScheme
                                                                 .secondaryContainer
-                                                                .withOpacity(
+                                                                .withValues(alpha: 
                                                                     0.7),
                                                           ),
                                                           child: Text(
@@ -1998,15 +1998,15 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                       color: pinned
                                                           ? const Color(
                                                                   0xFFF59E0B)
-                                                              .withOpacity(0.14)
+                                                              .withValues(alpha: 0.14)
                                                           : s.running
                                                               ? const Color(
                                                                       0xFF5E6AD2)
-                                                                  .withOpacity(
+                                                                  .withValues(alpha: 
                                                                       0.14)
                                                               : (isDark
                                                                   ? Colors.white
-                                                                      .withOpacity(
+                                                                      .withValues(alpha: 
                                                                           0.05)
                                                                   : cs.surfaceContainerHighest),
                                                       borderRadius:
@@ -2015,20 +2015,20 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                       border: Border.all(
                                                         color: pinned
                                                             ? const Color(0xFFF59E0B)
-                                                                .withOpacity(
+                                                                .withValues(alpha: 
                                                                     0.35)
                                                             : s.running
                                                                 ? const Color(
                                                                         0xFF5E6AD2)
-                                                                    .withOpacity(
+                                                                    .withValues(alpha: 
                                                                         0.3)
                                                                 : (isDark
                                                                     ? Colors
                                                                         .white
-                                                                        .withOpacity(
+                                                                        .withValues(alpha: 
                                                                             0.08)
                                                                     : cs.outlineVariant
-                                                                        .withOpacity(
+                                                                        .withValues(alpha: 
                                                                             0.7)),
                                                       ),
                                                     ),
@@ -2175,24 +2175,24 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                               decoration: BoxDecoration(
                                                 color: selected
                                                     ? cs.primaryContainer
-                                                        .withOpacity(isDark
+                                                        .withValues(alpha: isDark
                                                             ? 0.28
                                                             : 0.45)
                                                     : (isDark
                                                         ? Colors.white
-                                                            .withOpacity(0.03)
+                                                            .withValues(alpha: 0.03)
                                                         : cs.surfaceContainer),
                                                 borderRadius:
                                                     BorderRadius.circular(14),
                                                 border: Border.all(
                                                   color: selected
                                                       ? cs.primary
-                                                          .withOpacity(0.45)
+                                                          .withValues(alpha: 0.45)
                                                       : (isDark
                                                           ? Colors.white
-                                                              .withOpacity(0.08)
+                                                              .withValues(alpha: 0.08)
                                                           : cs.outlineVariant
-                                                              .withOpacity(
+                                                              .withValues(alpha: 
                                                                   0.7)),
                                                 ),
                                               ),
@@ -2292,7 +2292,7 @@ class _QuickActionCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: color.withOpacity(0.15),
+                color: color.withValues(alpha: 0.15),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -2305,7 +2305,7 @@ class _QuickActionCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, size: 22, color: color),
