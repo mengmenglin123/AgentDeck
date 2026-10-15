@@ -302,7 +302,11 @@ class TranscriptReducer {
         return apply(
           TranscriptEvent(
             kind: EventKind.permission,
-            text: (payload['content'] ?? payload['title'] ?? 'card').toString(),
+            text: (payload['content'] ??
+                    payload['text'] ??
+                    payload['title'] ??
+                    'card')
+                .toString(),
             meta: {
               'buttons': payload['buttons'] ?? [],
               'session_key': payload['session_key'],

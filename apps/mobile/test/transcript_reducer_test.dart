@@ -50,6 +50,16 @@ void main() {
     expect(r.messages.first.meta['buttons'], isNotEmpty);
   });
 
+  test('card uses content, then text, then title', () {
+    final r = TranscriptReducer();
+    r.applyBridgePayload({'type': 'card', 'content': 'from content'});
+    r.applyBridgePayload({'type': 'card', 'text': 'from text'});
+    r.applyBridgePayload({'type': 'card', 'title': 'from title'});
+    expect(r.messages.map((m) => m.content).toList(),
+        ['from content', 'from text', 'from title']);
+    expect(r.messages.every((m) => m.role == 'permission'), isTrue);
+  });
+
   test('thinking tool and run_done', () {
     final r = TranscriptReducer();
     r.applyBridgePayload({'type': 'thinking', 'content': 'plan'});

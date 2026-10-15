@@ -67,7 +67,8 @@ class ChatController extends ChangeNotifier {
   String? reconnectHint;
 
   List<TranscriptMessage> get messages => List.unmodifiable(reducer.messages);
-  bool get isEmpty => messages.isEmpty;
+  // Avoid copying the transcript just to check emptiness on every rebuild.
+  bool get isEmpty => reducer.messages.isEmpty;
   List<String> get capabilities => capabilitySet.toList();
   bool hasCap(String c) => capabilitySet.isEmpty || capabilitySet.supports(c);
 
@@ -385,6 +386,8 @@ class ChatController extends ChangeNotifier {
   }
 
   void _onBridgeMessage(Map<String, dynamic> payload) {
+    // Late frames can arrive after the screen disposed this controller.
+    if (_disposed) return;
     final type = payload['type']?.toString();
     if (type == 'preview_start') {
       final ref = payload['ref_id']?.toString() ?? '';
@@ -427,7 +430,8 @@ class ChatController extends ChangeNotifier {
     }
     if (type == 'card') {
       // Permission request from agent — show notification
-      final text = payload['text']?.toString() ?? 'Agent needs permission';
+      final text = (payload['content'] ?? payload['text'])?.toString() ??
+          'Agent needs permission';
       final buttons = payload['buttons'] as List? ?? [];
       if (buttons.isNotEmpty) {
         NotificationService.instance.show(
@@ -453,12 +457,14 @@ class ChatController extends ChangeNotifier {
   }
 
   void _onBridgeError(Object e) {
+    if (_disposed) return;
     error = e.toString();
     audit.add('bridge.on_error', detail: e.toString(), level: 'error');
     notifyListeners();
   }
 
   void _onBridgeClose() {
+    if (_disposed) return;
     connected = false;
     // Notify user about disconnection
     NotificationService.instance.show(
