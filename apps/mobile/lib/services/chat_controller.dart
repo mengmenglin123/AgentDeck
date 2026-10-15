@@ -447,15 +447,21 @@ class ChatController extends ChangeNotifier {
     if (type == 'run_done') {
       runActive = false;
       typing = false;
-      // Show notification when task completes
-      final summary = payload['summary']?.toString() ?? 'Task completed';
-      NotificationService.instance.showTaskComplete(
-        sessionKey: session.sessionKey,
-        sessionName: session.displayTitle,
-        summary: summary,
-      );
+      final status = payload['status']?.toString() ?? 'completed';
+      // A run the user cancelled (or an idle "nothing to cancel" ack) is not
+      // a finished task — don't announce it as one.
+      if (status != 'cancelled' && status != 'idle') {
+        final summary = payload['summary']?.toString() ??
+            (status == 'failed' || status == 'error' ? '任务失败' : '已完成');
+        NotificationService.instance.showTaskComplete(
+          sessionKey: session.sessionKey,
+          sessionName: session.displayTitle,
+          summary: summary,
+        );
+      }
     }
-    if (type == 'card') {
+    // Hosts send permission requests as `card` or `buttons` frames.
+    if (type == 'card' || type == 'buttons') {
       // Permission request from agent — show notification
       final text = (payload['content'] ?? payload['text'])?.toString() ??
           'Agent needs permission';
@@ -465,15 +471,16 @@ class ChatController extends ChangeNotifier {
           id: 'perm_${session.displayTitle}'.hashCode & 0x7FFFFFFF,
           title: '需要权限：${session.displayTitle}',
           body: text.length > 100 ? '${text.substring(0, 100)}...' : text,
-          payload: 'permission:${session.sessionKey}',
+          payload: NotificationService.permissionPayload(session.sessionKey),
         );
       }
     }
-    if (type == 'error' || (payload['error'] != null)) {
+    if (isErrorFrame(payload)) {
       // Task error — show notification
-      final errorMsg = payload['error']?.toString() ??
-          payload['message']?.toString() ??
-          'Unknown error';
+      final rawErr = payload['error']?.toString() ?? '';
+      final errorMsg = rawErr.isNotEmpty
+          ? rawErr
+          : (payload['message']?.toString() ?? '未知错误');
       NotificationService.instance.showError(
         title: '出错：${session.displayTitle}',
         message: errorMsg,
@@ -488,6 +495,22 @@ class ChatController extends ChangeNotifier {
     } else {
       notifyListeners();
     }
+  }
+
+  /// True for frames that report a failure. Acks such as `register_ack`
+  /// carry `"error": ""` on success and must not raise an error
+  /// notification (0.1.205 showed "出错：" on every connect).
+  @visibleForTesting
+  static bool isErrorFrame(Map<String, dynamic> payload) {
+    final type = payload['type']?.toString();
+    if (type == 'error') return true;
+    if (type == 'register_ack' || type == 'pong') return false;
+    if (payload['ok'] == true) return false;
+    final err = payload['error'];
+    if (err == null || err == false) return false;
+    if (err is String) return err.trim().isNotEmpty;
+    if (err is Map) return err.isNotEmpty;
+    return true;
   }
 
   void _onBridgeError(Object e) {

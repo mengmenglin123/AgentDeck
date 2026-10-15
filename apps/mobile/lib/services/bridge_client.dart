@@ -35,12 +35,18 @@ class BridgeClient {
   Timer? _heartbeat;
   Completer<void>? _registerCompleter;
   bool _closedByUser = false;
+  bool _registered = false;
 
   bool get isConnected => _channel != null;
 
   Future<void> connect({Duration timeout = const Duration(seconds: 12)}) async {
     _closedByUser = false;
-    _registerCompleter = Completer<void>();
+    _registered = false;
+    final registered = Completer<void>();
+    _registerCompleter = registered;
+    void failHandshake(Object e) {
+      if (!registered.isCompleted) registered.completeError(e);
+    }
 
     // Prefer query token (mock + protocol); also send headers when possible.
     final uri = Uri.parse(config.bridgeWsUrl);
@@ -48,13 +54,27 @@ class BridgeClient {
       final channel =
           _connector != null ? _connector(uri) : WebSocketChannel.connect(uri);
       _channel = channel;
+      // A refused upgrade (bad token → HTTP 401, wrong path, proxy) surfaces
+      // on `ready`. Fail the handshake right away instead of leaving an
+      // unhandled future error and waiting for the register_ack timeout.
+      unawaited(channel.ready.then((_) {}, onError: (Object e) {
+        failHandshake(_handshakeError(e));
+      }));
       _sub = channel.stream.listen(
         _onData,
         onError: (Object e, StackTrace st) {
+          if (!_registered) {
+            failHandshake(_handshakeError(e));
+            return;
+          }
           onError?.call(DisconnectedError(e.toString()));
         },
         onDone: () {
           _cleanupTimers();
+          if (!_registered) {
+            failHandshake(DisconnectedError('Bridge 连接在注册前关闭'));
+            return;
+          }
           if (!_closedByUser) {
             onClose?.call();
           }
@@ -65,12 +85,16 @@ class BridgeClient {
       throw DisconnectedError(e.toString());
     }
 
-    register();
     try {
-      await _registerCompleter!.future.timeout(timeout);
+      register();
+      await registered.future.timeout(timeout);
+      _registered = true;
     } on TimeoutException {
       await close();
       throw ProtocolError('register_ack timeout');
+    } catch (_) {
+      await close();
+      rethrow;
     }
 
     _heartbeat = Timer.periodic(const Duration(seconds: 30), (_) {
@@ -240,6 +264,16 @@ class BridgeClient {
       await _channel?.sink.close();
     } catch (_) {}
     _channel = null;
+  }
+
+  static Exception _handshakeError(Object e) {
+    final msg = e.toString();
+    if (msg.contains('not upgraded') ||
+        msg.contains('401') ||
+        msg.contains('403')) {
+      return AuthError('Bridge 握手被拒绝：请检查 Bridge 令牌、端口和路径');
+    }
+    return DisconnectedError(msg);
   }
 
   void _cleanupTimers() {
