@@ -33,7 +33,7 @@
 | 6 | App：`ChatController` dispose 后忽略 Bridge 回调；卡片正文按 `content → text → title` 读取（Reducer 与通知一致）；`isEmpty` 不再复制 transcript | 健壮性/性能 | ✅ 已完成（未经 `flutter analyze` 验证，见下文） |
 | 7 | 测试与 DX：回环测试绕过环境代理；新增 `scripts/check.sh`（与 CI 相同的 py_compile + 协议 + Host 测试，可选 `--flutter`）；修复测试重复字典键 | 测试/DX | ✅ 已完成 |
 | 8 | CI：新增不依赖 Flutter 的 `python-tests` 快速 job；修复 `setup-android@v3` 默认安装已下架 `tools` 包导致的 build 失败（改为只装 `platform-tools`） | DX | ✅ 已完成（附加 job，不改变现有 build/release/publish 流程） |
-| 9 | 流式聊天合并刷新：对 `reply_stream`/`thinking` delta 按帧（~16–33 ms）合并 `notifyListeners()`，并让消息列表按条目局部重建 | 性能 | ⏳ 未做——需要 Flutter 环境跑 widget/controller 测试验证滚动、跳底与搜索高亮行为 |
+| 9 | 流式聊天合并刷新：对 `reply_stream`/`thinking` delta 按 ~32 ms 合并 `notifyListeners()`；底部时自动跟随最新消息 | 性能 | ✅ 已完成（0.1.204，含 controller 单测；按条目局部重建未做——消息模型可变，收益/风险比不高） |
 | 10 | 拆分巨石文件：`mock_host.py` 按 bridge/mgmt/shell-mock 拆模块；`chat_screen.dart`、`sessions_screen.dart` 抽出子组件 | 代码质量 | ⏳ 未做——改动面大，需 Flutter 环境与人工回归 |
 | 11 | Companion 安装包不再随每个版本进 git 历史：改为 Release 产物 / Git LFS，App 端继续以 sha256 固定 | 仓库体积 | ⏳ 未做——涉及发布流程与 `publish-companion` job，需维护者决策 |
 | 12 | 收窄 SSH 自动配置的 workspace（例如 `~/workspace` 或让用户选择），避免整个 `$HOME`（含 `~/.ssh`、Host 配置）成为 Agent workdir 根 | 安全 | ⏳ 未做——改变产品行为，需要先确认 UX |
@@ -48,6 +48,13 @@
 | Flutter `analyze` / `test` | 本地无 Flutter SDK | 本地未运行（Dart 改动经 tree-sitter-dart 语法检查 0 错误）；PR CI 中 `flutter analyze --no-fatal-infos` 与 `flutter test`（含新增 reducer 单测）均通过 |
 
 本地复现：`./scripts/check.sh`（加 `--flutter` 同时跑 Flutter 门禁）。
+
+## 0.1.204 追加（同一 PR）
+
+- Companion 重建为 `huanhermes-host-0.1.204.tar.gz`（sha256 `28baff5f…bbb31a`），用 `scripts/build_companion.sh` 可复现；同步 `pubspec.yaml`、`app_meta.dart`、`ssh_bootstrap_service.dart`、`test_companion_bundle.py`。合并到 main 后由现有 `publish-companion` job 自动发布到公开仓库（本 PR 未手动发布）。
+- UI：主题补全与对比度测试、聊天气泡/连接状态、统一加载/错误状态、中文文案统一、弃用 API 清理。
+- 新增 `prerelease-apk.yml`：`v*-rc*` 标签 → 构建 Release APK（debug 签名）→ 本仓库预发布。
+- 本地验证：在 aarch64 沙箱上用 Flutter 3.44.6（`storage.flutter-io.cn` 镜像）跑通 `flutter analyze --no-fatal-infos`（0 error/warning）与 `flutter test`（72 项）。
 
 ## 发布注意
 

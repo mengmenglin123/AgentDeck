@@ -1,3 +1,14 @@
+## 0.1.204
+
+- **Host 安全修复随 Companion 发布**：重建 `huanhermes-host-0.1.204.tar.gz`（sha256 `28baff5f2df0d371c4aca3770661db913e56c050759fd20ad8271c28c3bbb31a`），包含 token 字节级恒定时间比较、Management `DELETE` 先校验会话归属、`host.toml` 0600 原子写入、启动安全告警与 Mock Host 日志脱敏；App 内 `archiveSha256` 与下载地址同步更新，旧的 0.1.203 包已从资源中移除。
+- **可复现打包**：新增 `scripts/build_companion.sh <版本> [日期]`（GNU tar 排序 + 固定 mtime/属主 + `gzip -n`），相同输入得到相同 sha256。
+- **流式聊天更顺滑**：`reply_stream`/`thinking` 增量按 ~32 ms 合并刷新，不再每个 chunk 整页重建；最终块与其它帧仍立即刷新；停留在底部时自动跟随最新消息，向上翻阅历史时不打扰。
+- **聊天气泡可读性**：气泡颜色改由主题派生（浅色/深色/高对比度一致），行高 1.45、说话方向圆角、平板上最大宽度 720，去掉阴影。
+- **连接状态更清晰**：状态点与状态胶囊统一使用主题成功/警告/危险色，并补充无障碍语义；离线空状态提供「重新连接」按钮；修复“已重连主机”提示从未出现的问题，重连提示全部中文化。
+- **Material 3 主题补全**：补齐 `tertiaryContainer`、`errorContainer` 等配色（新增 WCAG AA 对比度测试）；权限按钮前景色可读；主题模式显示“跟随系统/浅色/深色”。
+- **统一加载/错误状态**：新增 `ConsoleErrorState`、`ConsoleInlineError`，会话、技能、MCP 页面出错时可直接重试；剩余英文标题、提示与排序说明统一为中文；替换已弃用的 `withOpacity`。
+- **预发布 APK**：推送 `v<版本>-rc<N>` 标签时由 CI 构建 arm64 Release APK（debug 签名）并附加到本私有仓库的预发布。
+
 ## 0.1.200
 
 - **SSH Agent 自动发现**：App 可使用密码或 PEM 私钥登录服务器，并只读识别 Codex、Claude Code 与 Hermes。
