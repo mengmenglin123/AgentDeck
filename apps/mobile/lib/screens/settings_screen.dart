@@ -181,7 +181,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Text('外观', style: Theme.of(context).textTheme.titleSmall),
           if (_matchPref('外观', 'theme contrast text size compact'))
             const SizedBox(height: 4),
-          if (_matchPref('主题', theme.label))
+          if (_matchPref('主题 ${theme.label}', 'theme dark light system'))
             ListTile(
               leading: Icon(theme.icon),
               title: const Text('主题'),

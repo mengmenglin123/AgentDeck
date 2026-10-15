@@ -45,8 +45,12 @@ class AppTheme {
       onSecondaryContainer: const Color(0xFF2A2E38),
       tertiary: accentBright,
       onTertiary: Colors.white,
+      tertiaryContainer: const Color(0xFFECEBFF),
+      onTertiaryContainer: const Color(0xFF231F66),
       error: highContrast ? const Color(0xFFB00020) : danger,
       onError: Colors.white,
+      errorContainer: const Color(0xFFFDE7E7),
+      onErrorContainer: const Color(0xFF7A1414),
       surface: lightCanvas,
       onSurface: highContrast ? Colors.black : const Color(0xFF0F1011),
       onSurfaceVariant: const Color(0xFF5B6170),
@@ -78,8 +82,12 @@ class AppTheme {
       onSecondaryContainer: const Color(0xFFD0D6E0),
       tertiary: accentSoft,
       onTertiary: darkCanvas,
+      tertiaryContainer: const Color(0xFF2B2A5E),
+      onTertiaryContainer: const Color(0xFFE2E1FF),
       error: highContrast ? const Color(0xFFFF6B6B) : danger,
       onError: Colors.white,
+      errorContainer: const Color(0xFF3A1517),
+      onErrorContainer: const Color(0xFFFFD9D9),
       surface: highContrast ? Colors.black : darkCanvas,
       onSurface: highContrast ? Colors.white : const Color(0xFFF7F8F8),
       onSurfaceVariant: const Color(0xFF8A8F98),
@@ -101,12 +109,12 @@ class AppTheme {
   static ThemeData _build(ColorScheme scheme, {required bool highContrast}) {
     final isDark = scheme.brightness == Brightness.dark;
     final cardBg = isDark
-        ? scheme.surfaceContainerHigh.withOpacity(0.92)
+        ? scheme.surfaceContainerHigh.withValues(alpha: 0.92)
         : scheme.surfaceContainer;
     final borderColor = highContrast
         ? scheme.outline
         : (isDark
-            ? Colors.white.withOpacity(0.08)
+            ? Colors.white.withValues(alpha: 0.08)
             : scheme.outlineVariant);
     final shapeSm = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(radiusSm),
@@ -152,7 +160,7 @@ class AppTheme {
         side: BorderSide(color: borderColor),
         selectedColor: scheme.primaryContainer,
         backgroundColor: isDark
-            ? Colors.white.withOpacity(0.03)
+            ? Colors.white.withValues(alpha: 0.03)
             : scheme.surfaceContainerHighest,
         labelStyle: TextStyle(
           color: scheme.onSurface,
@@ -167,7 +175,7 @@ class AppTheme {
         elevation: 0,
         backgroundColor: isDark ? darkPanel : scheme.surface,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: scheme.primaryContainer.withOpacity(isDark ? 0.55 : 1),
+        indicatorColor: scheme.primaryContainer.withValues(alpha: isDark ? 0.55 : 1),
         indicatorShape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusSm),
         ),
@@ -194,7 +202,7 @@ class AppTheme {
           tapTargetSize: MaterialTapTargetSize.padded,
         ),
       ),
-            floatingActionButtonTheme: FloatingActionButtonThemeData(
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radius),
         ),
@@ -219,8 +227,8 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: isDark
-            ? Colors.white.withOpacity(0.03)
-            : scheme.surfaceContainerHighest.withOpacity(0.65),
+            ? Colors.white.withValues(alpha: 0.03)
+            : scheme.surfaceContainerHighest.withValues(alpha: 0.65),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         border: OutlineInputBorder(
@@ -247,7 +255,7 @@ class AppTheme {
           fontWeight: FontWeight.w500,
         ),
         hintStyle: TextStyle(
-          color: scheme.onSurfaceVariant.withOpacity(0.75),
+          color: scheme.onSurfaceVariant.withValues(alpha: 0.75),
         ),
       ),
       listTileTheme: ListTileThemeData(
@@ -270,8 +278,8 @@ class AppTheme {
         color: highContrast
             ? scheme.outline
             : (isDark
-                ? Colors.white.withOpacity(0.06)
-                : scheme.outlineVariant.withOpacity(0.8)),
+                ? Colors.white.withValues(alpha: 0.06)
+                : scheme.outlineVariant.withValues(alpha: 0.8)),
         thickness: highContrast ? 1.2 : 1,
         space: 1,
       ),
@@ -279,7 +287,7 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           elevation: 0,
           backgroundColor: isDark
-              ? Colors.white.withOpacity(0.06)
+              ? Colors.white.withValues(alpha: 0.06)
               : scheme.surfaceContainerHighest,
           foregroundColor: scheme.onSurface,
           shape: shapeSm,

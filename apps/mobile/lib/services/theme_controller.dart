@@ -32,11 +32,11 @@ class ThemeController extends ChangeNotifier {
   String get label {
     switch (mode) {
       case ThemeMode.light:
-        return 'Light';
+        return '浅色';
       case ThemeMode.dark:
-        return 'Dark';
+        return '深色';
       case ThemeMode.system:
-        return 'System';
+        return '跟随系统';
     }
   }
 

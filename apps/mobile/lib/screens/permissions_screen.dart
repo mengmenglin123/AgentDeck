@@ -293,6 +293,9 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                     style: FilledButton.styleFrom(
                       backgroundColor:
                           isDeny ? cs.errorContainer : cs.primaryContainer,
+                      foregroundColor: isDeny
+                          ? cs.onErrorContainer
+                          : cs.onPrimaryContainer,
                     ),
                     child: Text(b['text']?.toString() ?? '操作'),
                   );
