@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../theme/app_theme.dart';
+import '../widgets/console_widgets.dart';
 import '../l10n/app_strings.dart';
 import '../services/connection_controller.dart';
 import '../services/session_controller.dart';
@@ -65,13 +67,13 @@ class _HomeShellState extends State<HomeShell> {
     final ready = conn.isReady;
     if (!ready) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: ConsoleLoading(label: AppStrings.connecting),
       );
     }
 
     final sessions = _sessions;
     if (sessions == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: ConsoleLoading(label: AppStrings.loading));
     }
 
     final pages = <Widget>[
@@ -89,8 +91,7 @@ class _HomeShellState extends State<HomeShell> {
     final isDark = theme.brightness == Brightness.dark;
     final host = conn.saved?.host ?? '—';
     final degraded = conn.healthDegraded;
-    final statusColor =
-        degraded ? const Color(0xFFF59E0B) : const Color(0xFF10B981);
+    final statusColor = degraded ? AppTheme.warning : AppTheme.success;
     final statusLabel = degraded ? '心跳降级' : AppStrings.hostOnline;
 
     return ChangeNotifierProvider<SessionController>.value(

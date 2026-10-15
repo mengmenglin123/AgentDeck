@@ -102,9 +102,9 @@ class ConsoleEmptyState extends StatelessWidget {
               width: 76,
               height: 76,
               decoration: BoxDecoration(
-                color: cs.primaryContainer.withOpacity(0.35),
+                color: cs.primaryContainer.withValues(alpha: 0.35),
                 borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: cs.primary.withOpacity(0.12)),
+                border: Border.all(color: cs.primary.withValues(alpha: 0.12)),
               ),
               child: Icon(icon, size: 34, color: cs.primary),
             ),
@@ -154,6 +154,103 @@ class ConsoleLoading extends StatelessWidget {
             const SizedBox(height: 12),
             Text(label!, style: Theme.of(context).textTheme.bodySmall),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Full-page error state with an optional retry action.
+class ConsoleErrorState extends StatelessWidget {
+  const ConsoleErrorState({
+    super.key,
+    required this.message,
+    this.title = '加载失败',
+    this.onRetry,
+  });
+
+  final String title;
+  final String message;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.cloud_off_outlined, size: 40, color: cs.error),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            SelectableText(
+              message,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: cs.onSurfaceVariant),
+              textAlign: TextAlign.center,
+            ),
+            if (onRetry != null) ...[
+              const SizedBox(height: 16),
+              FilledButton.tonalIcon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('重试'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact inline error strip (keeps existing content visible below it).
+class ConsoleInlineError extends StatelessWidget {
+  const ConsoleInlineError({super.key, required this.message, this.onRetry});
+
+  final String message;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+      padding: const EdgeInsets.fromLTRB(12, 6, 4, 6),
+      decoration: BoxDecoration(
+        color: cs.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, size: 18, color: cs.onErrorContainer),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: cs.onErrorContainer, fontSize: 13),
+            ),
+          ),
+          if (onRetry != null)
+            TextButton(
+              onPressed: onRetry,
+              style: TextButton.styleFrom(foregroundColor: cs.onErrorContainer),
+              child: const Text('重试'),
+            ),
         ],
       ),
     );

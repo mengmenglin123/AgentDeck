@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../widgets/console_widgets.dart';
 import '../models/connection_config.dart';
 import '../services/catalog_state.dart';
 import '../services/mgmt_client.dart';
@@ -245,7 +246,6 @@ class _McpScreenState extends State<McpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final items = _filtered;
     return Scaffold(
       appBar: AppBar(
@@ -575,7 +575,7 @@ class _McpScreenState extends State<McpScreen> {
         ],
       ),
       body: loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const ConsoleLoading(label: AppStrings.loading)
           : Column(
               children: [
                 Padding(
@@ -771,10 +771,7 @@ class _McpScreenState extends State<McpScreen> {
                   ),
                 ),
                 if (error != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text(error!, style: TextStyle(color: cs.error)),
-                  ),
+                  ConsoleInlineError(message: error!, onRetry: _load),
                 Expanded(
                   child: servers.isEmpty && error == null
                       ? const Center(child: Text('主机未报告 MCP 服务器'))

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../widgets/console_widgets.dart';
 import '../utils/responsive.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -1659,21 +1660,16 @@ class _SessionsScreenState extends State<SessionsScreen> {
                 ),
               ),
               if (sessions.error != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    sessions.error!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
+                ConsoleInlineError(
+                  message: sessions.error!,
+                  onRetry: sessions.loading ? null : sessions.refresh,
                 ),
               Expanded(
                 child: Builder(
                   builder: (context) {
                     final visible = _filtered(sessions.sessions);
                     return sessions.loading && sessions.sessions.isEmpty
-                        ? const Center(child: CircularProgressIndicator())
+                        ? const ConsoleLoading(label: AppStrings.loading)
                         : RefreshIndicator(
                             onRefresh: sessions.refresh,
                             child: sessions.sessions.isEmpty

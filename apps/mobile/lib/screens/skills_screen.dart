@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../widgets/console_widgets.dart';
 import '../models/connection_config.dart';
 import '../services/catalog_state.dart';
 import '../services/mgmt_client.dart';
@@ -491,9 +492,9 @@ class _SkillsScreenState extends State<SkillsScreen> {
         ],
       ),
       body: loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const ConsoleLoading(label: AppStrings.loading)
           : error != null
-              ? Center(child: Text(error!))
+              ? ConsoleErrorState(message: error!, onRetry: _load)
               : Column(
                   children: [
                     Padding(
