@@ -58,6 +58,9 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # 默认会安装已下架的 'tools' 包，导致新版 runner 上 sdkmanager 失败。
+          packages: 'platform-tools'
 
       - name: Install NDK
         run: sdkmanager "ndk;28.2.13676358"
@@ -128,6 +131,9 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # 默认会安装已下架的 'tools' 包，导致新版 runner 上 sdkmanager 失败。
+          packages: 'platform-tools'
 
       - name: Install NDK
         run: sdkmanager "ndk;28.2.13676358"
