@@ -11,6 +11,9 @@ from production_host_config import ProjectRuntimeConfig
 from production_management import ProductionManagementServer
 from session_store import ProjectSessionStore
 
+# Loopback test servers must never be routed through an ambient HTTP(S)_PROXY.
+_DIRECT = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
 
 class TestProductionManagementServer(unittest.TestCase):
     def setUp(self) -> None:
@@ -73,7 +76,7 @@ class TestProductionManagementServer(unittest.TestCase):
             method=method,
             headers={"Authorization": f"Bearer {token}"},
         )
-        with urllib.request.urlopen(request, timeout=2) as response:
+        with _DIRECT.open(request, timeout=2) as response:
             return json.loads(response.read().decode("utf-8"))
 
     def test_project_switch_changes_models_channels_skills_and_mcp(self) -> None:
