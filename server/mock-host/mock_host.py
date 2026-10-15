@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import hmac
 import json
 import fcntl
 import os
@@ -1191,8 +1192,12 @@ def workspace_diff(path: str = "") -> Dict[str, Any]:
 
 
 
+_LOG_SECRET = re.compile(r"(token=|bearer\s+)[^&\s\"']+", re.IGNORECASE)
+
+
 def log(msg: str) -> None:
-    print(f"[mock-host] {msg}", flush=True)
+    # Request lines may carry ?token=...; never echo secrets to stdout logs.
+    print(f"[mock-host] {_LOG_SECRET.sub(lambda m: m.group(1) + '[redacted]', msg)}", flush=True)
 
 
 def json_bytes(obj: Any) -> bytes:
@@ -1259,6 +1264,16 @@ def ws_send_text(conn: socket.socket, text: str) -> None:
     ws_send_frame(conn, 0x1, text.encode("utf-8"))
 
 
+def token_matches(presented: Optional[str], expected: str) -> bool:
+    """Constant-time compare that also fails closed for non-ASCII input."""
+    if not isinstance(presented, str) or not expected:
+        return False
+    return hmac.compare_digest(
+        presented.encode("utf-8", "surrogatepass"),
+        expected.encode("utf-8", "surrogatepass"),
+    )
+
+
 def extract_token(headers: Dict[str, str], query: Dict[str, List[str]]) -> Optional[str]:
     auth = headers.get("authorization") or headers.get("Authorization")
     if auth and auth.lower().startswith("bearer "):
@@ -1303,7 +1318,7 @@ def handle_bridge_client(conn: socket.socket, addr: Tuple[str, int]) -> None:
             return
 
         token = extract_token(headers, query)
-        if token != BRIDGE_TOKEN:
+        if not token_matches(token, BRIDGE_TOKEN):
             body = b"unauthorized"
             conn.sendall(
                 b"HTTP/1.1 401 Unauthorized\r\nContent-Length: "
@@ -4832,10 +4847,10 @@ class MgmtHandler(BaseHTTPRequestHandler):
 
     def _auth_ok(self) -> bool:
         auth = self.headers.get("Authorization") or ""
-        if auth.startswith("Bearer ") and auth[7:].strip() == MGMT_TOKEN:
+        if auth.startswith("Bearer ") and token_matches(auth[7:].strip(), MGMT_TOKEN):
             return True
         q = parse_qs(urlparse(self.path).query)
-        if q.get("token", [None])[0] == MGMT_TOKEN:
+        if token_matches(q.get("token", [None])[0], MGMT_TOKEN):
             return True
         return False
 
