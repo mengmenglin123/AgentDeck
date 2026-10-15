@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#1F6FEB</color>
+    <!-- Mid-point of the brand gradient (#4F46E5 -> #9333EA); the Android 12+
+         system splash only supports a solid colour. -->
+    <color name="splash_background">#713CE7</color>
 </resources>

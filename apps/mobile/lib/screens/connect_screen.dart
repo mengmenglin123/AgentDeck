@@ -9,6 +9,7 @@ import '../models/connection_config.dart';
 import '../models/discovered_agent.dart';
 import '../services/connection_controller.dart';
 import '../utils/security.dart';
+import '../widgets/app_logo.dart';
 import 'ssh_discovery_screen.dart';
 
 class ConnectScreen extends StatefulWidget {
@@ -313,7 +314,14 @@ class _ConnectScreenState extends State<ConnectScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('连接服务器'),
+        title: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppLogo(size: 28),
+            SizedBox(width: 10),
+            Text('连接服务器'),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: 'SSH 自动发现 Agent',

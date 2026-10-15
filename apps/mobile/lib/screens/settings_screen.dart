@@ -7,6 +7,7 @@ import '../services/app_settings_controller.dart';
 import '../services/theme_controller.dart';
 import '../services/connection_controller.dart';
 import '../l10n/app_strings.dart';
+import '../widgets/app_logo.dart';
 
 /// Device-local console settings (theme, text scale, compact, dashboard refresh).
 class SettingsScreen extends StatefulWidget {
@@ -520,7 +521,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           if (_matchPref('应用版本', 'version'))
             ListTile(
-              leading: const Icon(Icons.tag),
+              leading: const AppLogo(size: 32),
               title: const Text('应用版本'),
               subtitle: _sub(
                 '${AppMeta.version} · ${context.watch<ConnectionController>().hostRuntime.displayLabel} 主机',
