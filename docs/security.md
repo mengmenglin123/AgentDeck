@@ -18,6 +18,11 @@
 
 - 用户自管 Bridge/Mgmt token 轮换
 - 公网务必 TLS 反代
+- Token 比较使用 UTF-8 字节恒定时间比较（`server/token_auth.py`），任意非法/非 ASCII 输入一律 401
+- 启动时对占位或过短（< 24 字符）token、Bridge/Mgmt 共用 token、非回环绑定、配置文件 group/other 可读输出 stderr 告警（不打印密钥值、不阻止启动）
+- Companion 生成的 `host.toml` 从创建起即为 0600，`config/`、`data/` 目录为 0700
+- Management `DELETE` 先校验会话存在与项目归属，再关闭运行中会话
+- Mock Host 日志对 `token=` 与 `Bearer` 值脱敏
 
 
 ## 附件与通知

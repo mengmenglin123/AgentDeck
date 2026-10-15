@@ -44,6 +44,9 @@ HUAN_BRIDGE_PORT=19810 HUAN_MGMT_PORT=19820 HUAN_BRIDGE_TOKEN=dev-bridge-token-c
 
 cd apps/mobile && flutter pub get && flutter analyze --no-fatal-infos && flutter test && flutter run
 # 模拟器 Host 填 10.0.2.2，端口与上面一致
+
+# 一键跑与 CI 相同的 Python 门禁（加 --flutter 同时跑 Flutter analyze/test）
+./scripts/check.sh
 ```
 
 ## 连接你自己的 Host
@@ -67,6 +70,7 @@ cd apps/mobile && flutter pub get && flutter analyze --no-fatal-infos && flutter
 - [内测 / 发布](docs/guides/release.md)
 - [自研 Host 兼容](docs/guides/self-host-compat.md)
 - [安全](docs/security.md)
+- [优化计划 2026-10](docs/OPTIMIZATION_PLAN_2026-10.md)
 
 ## 版本
 

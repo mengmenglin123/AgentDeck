@@ -41,6 +41,15 @@
 
 # Changelog
 
+## Unreleased（optimize/hark-2026-10）
+
+- **鉴权健壮性**：Bridge/Mgmt token 改为字节级恒定时间比较，非 ASCII token 返回 401 而不是让握手线程崩溃；Mock Host 同步改造并在日志中脱敏 token。
+- **会话安全**：Management `DELETE` 先校验会话与项目归属，错误项目的删除请求不再误杀其他项目的运行中会话。
+- **Companion 配置**：`host.toml` 以 0600 创建后原子替换，`config/`、`data/` 收紧为 0700。
+- **部署告警**：生产 Host 启动时提示占位/过短/共用 token、非回环绑定和配置文件权限过宽（仅告警）。
+- **App**：dispose 后忽略迟到的 Bridge 回调；权限卡片正文兼容 `content`/`text`/`title`。
+- **DX/CI**：新增 `scripts/check.sh`；回环测试绕过环境代理；CI 增加快速 `python-tests` job。Python Host 测试 105 → 116 项。
+
 ## 0.1.195
 
 - **HostCapabilities 深 Module**：
