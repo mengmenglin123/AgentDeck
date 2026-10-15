@@ -17,6 +17,7 @@ import '../services/chat_controller.dart';
 import '../services/chat_draft_store.dart';
 import '../services/file_picker_service.dart';
 import '../services/mgmt_client.dart';
+import '../theme/app_theme.dart';
 import '../widgets/markdown_lite.dart';
 import 'audit_screen.dart';
 import 'terminal_screen.dart';
@@ -141,6 +142,21 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
   }
 
+  bool _followScheduled = false;
+
+  /// Keep the newest message in view while streaming, but only when the user
+  /// is already at the bottom (scrolling up to read history is never hijacked).
+  void _followLatest() {
+    if (!_stickToBottom || _followScheduled || !_scroll.hasClients) return;
+    _followScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _followScheduled = false;
+      if (!mounted || !_stickToBottom || !_scroll.hasClients) return;
+      final max = _scroll.position.maxScrollExtent;
+      if (_scroll.position.pixels < max) _scroll.jumpTo(max);
+    });
+  }
+
   void _jumpToBottom() {
     if (!_scroll.hasClients) return;
     _scroll.animateTo(
@@ -199,7 +215,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   void _onChat() {
     if (!mounted) return;
     final hint = _chat.reconnectHint;
-    if (hint == '已重连' && _lastReconnectHintSeen != '已重连') {
+    if (hint == ChatController.hintReconnected &&
+        _lastReconnectHintSeen != ChatController.hintReconnected) {
       final now = DateTime.now();
       final last = _lastReconnectedSnackAt;
       if (last == null || now.difference(last).inSeconds >= 3) {
@@ -214,6 +231,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       }
     }
     _lastReconnectHintSeen = hint;
+    _followLatest();
     final permN = _chat.messages.where((m) => m.role == 'permission').length;
     if (permN > _permMsgCount) {
       _permMsgCount = permN;
@@ -1005,10 +1023,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: _chat.connecting
-                    ? Colors.amber
+                    ? AppTheme.warning
                     : _chat.connected
-                        ? Colors.green
-                        : Colors.redAccent,
+                        ? AppTheme.success
+                        : AppTheme.danger,
               ),
             ),
             Expanded(
@@ -1023,15 +1041,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       _chat.model,
                       '${_chat.messages.length} 条消息',
                       if (_chat.connecting)
-                        '连接中…'
+                        AppStrings.connecting
                       else if (_chat.connected)
                         AppStrings.live
                       else
                         AppStrings.offline,
-                      if (!_showTools) '工具消息已隐藏',
-                      if (_chat.reconnectHint != null &&
-                          _chat.reconnectHint!.isNotEmpty)
-                        _chat.reconnectHint!,
+                      if (!_showTools) AppStrings.toolsHidden,
                     ].join(' · '),
                     style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
                     maxLines: 1,
@@ -1546,6 +1561,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     project: widget.session.project,
                     connected: _chat.connected,
                     connecting: _chat.connecting,
+                    onReconnect: () => _chat.reconnectNow(),
                     onSuggestion: (text) {
                       _input.text = text;
                       _input.selection = TextSelection.fromPosition(
@@ -1903,12 +1919,14 @@ class _EmptyChat extends StatelessWidget {
     required this.connected,
     required this.connecting,
     this.onSuggestion,
+    this.onReconnect,
   });
 
   final String project;
   final bool connected;
   final bool connecting;
   final ValueChanged<String>? onSuggestion;
+  final VoidCallback? onReconnect;
 
   @override
   Widget build(BuildContext context) {
@@ -1917,7 +1935,7 @@ class _EmptyChat extends StatelessWidget {
         ? '正在连接主机…'
         : connected
             ? '有什么我能帮您的吗？'
-            : '离线 — 主机可达时点重试。';
+            : '离线 — 主机可达时点「重新连接」。';
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -1957,6 +1975,21 @@ class _EmptyChat extends StatelessWidget {
             Text(subtitle,
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
+            if (connecting) ...[
+              const SizedBox(height: 20),
+              const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2.4),
+              ),
+            ] else if (!connected && onReconnect != null) ...[
+              const SizedBox(height: 20),
+              FilledButton.tonalIcon(
+                onPressed: onReconnect,
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('重新连接'),
+              ),
+            ],
             if (connected) ...[
               const SizedBox(height: 32),
               // Suggestion cards
@@ -2088,38 +2121,44 @@ class _StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     Color c;
     String label;
+    final cs = Theme.of(context).colorScheme;
     if (connecting) {
-      c = Colors.orange;
-      label = '…';
+      c = AppTheme.warning;
+      label = AppStrings.connecting;
     } else if (connected) {
-      c = typing || runActive ? Colors.blue : Colors.green;
+      c = typing || runActive ? cs.primary : AppTheme.success;
       label = typing ? '输入中' : (runActive ? '运行中' : AppStrings.live);
     } else {
-      c = Colors.red;
-      label = reconnectHint != null ? '重连…' : AppStrings.offline;
+      c = AppTheme.danger;
+      label =
+          reconnectHint != null ? AppStrings.reconnecting : AppStrings.offline;
     }
-    return InkWell(
-      onTap: connected ? null : onReconnect,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: c.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: c.withOpacity(0.5)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
-            const SizedBox(width: 6),
-            Text(label,
-                style: TextStyle(
-                    fontSize: 11, color: c, fontWeight: FontWeight.w600)),
-          ],
+    return Semantics(
+      button: !connected,
+      label: '连接状态：$label',
+      child: InkWell(
+        onTap: connected ? null : onReconnect,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: c.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: c.withOpacity(0.5)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
+              const SizedBox(width: 6),
+              Text(label,
+                  style: TextStyle(
+                      fontSize: 11, color: c, fontWeight: FontWeight.w600)),
+            ],
+          ),
         ),
       ),
     );
@@ -2213,19 +2252,20 @@ class _MessageBubbleState extends State<_MessageBubble> {
       return const SizedBox.shrink();
     }
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Theme-derived surfaces so light/dark/high-contrast stay consistent.
     final bg = isUser
-        ? (isDark ? cs.primaryContainer : const Color(0xFFE3F2FD))
+        ? cs.primaryContainer
         : isSystem
             ? Colors.transparent
             : isPermission
-                ? (isDark
-                    ? cs.tertiaryContainer.withOpacity(0.45)
-                    : const Color(0xFFFFF8E1))
+                ? Color.alphaBlend(
+                    AppTheme.warning.withValues(alpha: isDark ? 0.14 : 0.10),
+                    cs.surfaceContainer,
+                  )
                 : isTool
-                    ? (isDark
-                        ? cs.surfaceContainerHighest
-                        : const Color(0xFFF5F5F5))
-                    : (isDark ? cs.surfaceContainerHigh : Colors.white);
+                    ? cs.surfaceContainerHighest
+                    : (isDark ? cs.surfaceContainerHigh : cs.surfaceContainer);
+    final fg = isUser ? cs.onPrimaryContainer : cs.onSurface;
     final align = isSystem
         ? Alignment.center
         : (isUser ? Alignment.centerRight : Alignment.centerLeft);
@@ -2242,10 +2282,23 @@ class _MessageBubbleState extends State<_MessageBubble> {
     final borderColor = isActiveSearchHit
         ? cs.primary
         : isPermission
-            ? cs.tertiary
+            ? AppTheme.warning
             : hl
                 ? Colors.amber
-                : null;
+                : cs.outlineVariant;
+    // Chat-style corners: the corner nearest the speaker is tighter.
+    const r = Radius.circular(16);
+    const rTight = Radius.circular(4);
+    final radius = isSystem
+        ? BorderRadius.circular(12)
+        : BorderRadius.only(
+            topLeft: isUser ? r : rTight,
+            topRight: isUser ? rTight : r,
+            bottomLeft: r,
+            bottomRight: r,
+          );
+    final maxBubbleWidth =
+        (MediaQuery.sizeOf(context).width * 0.85).clamp(0.0, 720.0);
     final toolCollapsed = isTool && !_toolExpanded;
 
     return Align(
@@ -2301,225 +2354,218 @@ class _MessageBubbleState extends State<_MessageBubble> {
           }
         },
         child: Container(
-          margin: EdgeInsets.symmetric(vertical: compact ? 2 : 4),
-          padding: EdgeInsets.all(compact ? 8 : 14),
-          constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.85),
+          margin: EdgeInsets.symmetric(vertical: compact ? 3 : 5),
+          padding: compact
+              ? const EdgeInsets.symmetric(horizontal: 10, vertical: 8)
+              : const EdgeInsets.fromLTRB(14, 10, 14, 12),
+          constraints: BoxConstraints(maxWidth: maxBubbleWidth),
           decoration: BoxDecoration(
             color: bg,
-            borderRadius: BorderRadius.circular(16),
-            border: isUser
+            borderRadius: radius,
+            border: isUser && !hl && !isActiveSearchHit
                 ? null
                 : Border.all(
-                    color: isActiveSearchHit
-                        ? cs.primary
-                        : isPermission
-                            ? cs.tertiary
-                            : hl
-                                ? Colors.amber
-                                : borderColor ??
-                                    (isDark
-                                        ? cs.outlineVariant
-                                        : const Color(0xFFE5E7EB)),
-                    width: isActiveSearchHit || isPermission ? 2 : 1),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
-                blurRadius: 4,
-                offset: const Offset(0, 1),
-              ),
-            ],
+                    color: borderColor,
+                    width: isActiveSearchHit || isPermission ? 1.6 : 1),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    isUser
-                        ? Icons.person_outline
-                        : isPermission
-                            ? Icons.shield_outlined
-                            : isTool
-                                ? Icons.build_outlined
-                                : isSystem
-                                    ? Icons.info_outline
-                                    : Icons.auto_awesome,
-                    size: 14,
-                    color: cs.onSurfaceVariant.withOpacity(0.7),
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
+          child: DefaultTextStyle.merge(
+            style: TextStyle(color: fg, height: 1.45),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
                       isUser
-                          ? '你'
+                          ? Icons.person_outline
                           : isPermission
-                              ? AppStrings.rolePermission
+                              ? Icons.shield_outlined
                               : isTool
-                                  ? AppStrings.roleTool
+                                  ? Icons.build_outlined
                                   : isSystem
-                                      ? AppStrings.roleSystem
-                                      : '助手${message.streaming ? ' …' : ''}',
-                      style: TextStyle(
-                          fontSize: compact ? 10 : 11,
-                          fontWeight: FontWeight.w500,
-                          fontStyle: isSystem ? FontStyle.italic : null,
-                          color: cs.onSurfaceVariant),
+                                      ? Icons.info_outline
+                                      : Icons.auto_awesome,
+                      size: 14,
+                      color: (isUser ? fg : cs.onSurfaceVariant)
+                          .withValues(alpha: 0.75),
                     ),
-                  ),
-                  if (isTool)
-                    IconButton(
-                      visualDensity: VisualDensity.compact,
-                      padding: EdgeInsets.zero,
-                      constraints:
-                          const BoxConstraints(minWidth: 28, minHeight: 28),
-                      tooltip: _toolExpanded
-                          ? AppStrings.collapseTool
-                          : AppStrings.expandTool,
-                      icon: Icon(
-                        _toolExpanded ? Icons.expand_less : Icons.expand_more,
-                        size: 18,
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        isUser
+                            ? '你'
+                            : isPermission
+                                ? AppStrings.rolePermission
+                                : isTool
+                                    ? AppStrings.roleTool
+                                    : isSystem
+                                        ? AppStrings.roleSystem
+                                        : '助手${message.streaming ? ' …' : ''}',
+                        style: TextStyle(
+                            fontSize: compact ? 10 : 11,
+                            fontWeight: FontWeight.w500,
+                            fontStyle: isSystem ? FontStyle.italic : null,
+                            color: isUser
+                                ? fg.withValues(alpha: 0.75)
+                                : cs.onSurfaceVariant),
                       ),
-                      onPressed: () =>
-                          setState(() => _toolExpanded = !_toolExpanded),
                     ),
-                  Text(
-                    _fmtTime(message.at),
-                    style: TextStyle(
-                        fontSize: 9,
-                        color: cs.onSurfaceVariant.withOpacity(0.8),
-                        fontFamily: 'monospace'),
-                  ),
-                ],
-              ),
-              SizedBox(height: compact ? 2 : 4),
-              if (toolCollapsed)
-                InkWell(
-                  onTap: () => setState(() => _toolExpanded = true),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _toolSummary(message.content),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontFamily: mono ? 'monospace' : null,
-                            fontSize: 12 * fontScale,
-                            color: cs.onSurfaceVariant,
+                    if (isTool)
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints:
+                            const BoxConstraints(minWidth: 28, minHeight: 28),
+                        tooltip: _toolExpanded
+                            ? AppStrings.collapseTool
+                            : AppStrings.expandTool,
+                        icon: Icon(
+                          _toolExpanded ? Icons.expand_less : Icons.expand_more,
+                          size: 18,
+                        ),
+                        onPressed: () =>
+                            setState(() => _toolExpanded = !_toolExpanded),
+                      ),
+                    Text(
+                      _fmtTime(message.at),
+                      style: TextStyle(
+                          fontSize: 10,
+                          color: (isUser ? fg : cs.onSurfaceVariant)
+                              .withValues(alpha: 0.7),
+                          fontFeatures: const [FontFeature.tabularFigures()]),
+                    ),
+                  ],
+                ),
+                SizedBox(height: compact ? 2 : 4),
+                if (toolCollapsed)
+                  InkWell(
+                    onTap: () => setState(() => _toolExpanded = true),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _toolSummary(message.content),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontFamily: mono ? 'monospace' : null,
+                              fontSize: 12 * fontScale,
+                              color: cs.onSurfaceVariant,
+                            ),
                           ),
                         ),
-                      ),
-                      TextButton(
-                        onPressed: () => setState(() => _toolExpanded = true),
-                        child: const Text(AppStrings.expandTool),
-                      ),
-                    ],
-                  ),
-                )
-              else if (useMd)
-                Builder(
-                  builder: (context) {
-                    final contentStyle = TextStyle(
+                        TextButton(
+                          onPressed: () => setState(() => _toolExpanded = true),
+                          child: const Text(AppStrings.expandTool),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (useMd)
+                  Builder(
+                    builder: (context) {
+                      final contentStyle = TextStyle(
+                        fontFamily: mono ? 'monospace' : null,
+                        fontSize: (isTool ? 12 : 14) * fontScale,
+                        fontStyle: isSystem ? FontStyle.italic : null,
+                        color: isSystem ? cs.onSurfaceVariant : null,
+                      );
+                      final child = DefaultTextStyle.merge(
+                        style: contentStyle,
+                        child: MarkdownLite(message.content),
+                      );
+                      if (wrapLines) return child;
+                      return ClipRect(
+                        child: SizedBox(
+                          height: 14 * fontScale * 12 * 1.35,
+                          child: SingleChildScrollView(
+                            physics: const NeverScrollableScrollPhysics(),
+                            child: child,
+                          ),
+                        ),
+                      );
+                    },
+                  )
+                else
+                  SelectableText(
+                    message.content,
+                    style: TextStyle(
                       fontFamily: mono ? 'monospace' : null,
                       fontSize: (isTool ? 12 : 14) * fontScale,
                       fontStyle: isSystem ? FontStyle.italic : null,
                       color: isSystem ? cs.onSurfaceVariant : null,
-                    );
-                    final child = DefaultTextStyle.merge(
-                      style: contentStyle,
-                      child: MarkdownLite(message.content),
-                    );
-                    if (wrapLines) return child;
-                    return ClipRect(
-                      child: SizedBox(
-                        height: 14 * fontScale * 12 * 1.35,
-                        child: SingleChildScrollView(
-                          physics: const NeverScrollableScrollPhysics(),
-                          child: child,
-                        ),
-                      ),
-                    );
-                  },
-                )
-              else
-                SelectableText(
-                  message.content,
-                  style: TextStyle(
-                    fontFamily: mono ? 'monospace' : null,
-                    fontSize: (isTool ? 12 : 14) * fontScale,
-                    fontStyle: isSystem ? FontStyle.italic : null,
-                    color: isSystem ? cs.onSurfaceVariant : null,
+                    ),
+                    maxLines: wrapLines ? null : 12,
                   ),
-                  maxLines: wrapLines ? null : 12,
-                ),
-              if (isTool && _toolExpanded)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: () => setState(() => _toolExpanded = false),
-                    icon: const Icon(Icons.expand_less, size: 16),
-                    label: const Text(AppStrings.collapseTool),
-                  ),
-                ),
-              if (buttons.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                if (isPermission)
-                  Text(
-                    AppStrings.pendingPermission,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: cs.tertiary,
+                if (isTool && _toolExpanded)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () => setState(() => _toolExpanded = false),
+                      icon: const Icon(Icons.expand_less, size: 16),
+                      label: const Text(AppStrings.collapseTool),
                     ),
                   ),
-                if (isPermission) const SizedBox(height: 6),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: buttons.map(
-                    (b) {
-                      final action =
-                          b['data']?.toString() ?? b['text']?.toString() ?? '';
-                      final label = b['text']?.toString() ?? '操作';
-                      final isDeny = action.contains('deny');
-                      final isAllowAll = action.contains('allow_all');
-                      final zhLabel = isDeny
-                          ? AppStrings.permissionDeny
-                          : isAllowAll
-                              ? AppStrings.permissionAllowAll
-                              : (action.contains('allow')
-                                  ? AppStrings.permissionAllow
-                                  : label);
-                      if (isPermission) {
-                        return isDeny
-                            ? OutlinedButton(
-                                onPressed: () => onPermission('deny'),
-                                child: Text(zhLabel),
-                              )
-                            : FilledButton(
-                                onPressed: () => onPermission(
-                                    isAllowAll ? 'allow_all' : 'allow'),
-                                child: Text(zhLabel),
-                              );
-                      }
-                      return FilledButton.tonal(
-                        onPressed: () {
-                          if (isAllowAll) {
-                            onPermission('allow_all');
-                          } else if (isDeny) {
-                            onPermission('deny');
-                          } else {
-                            onPermission('allow');
-                          }
-                        },
-                        child: Text(zhLabel),
-                      );
-                    },
-                  ).toList(),
-                ),
+                if (buttons.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  if (isPermission)
+                    Text(
+                      AppStrings.pendingPermission,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: cs.tertiary,
+                      ),
+                    ),
+                  if (isPermission) const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: buttons.map(
+                      (b) {
+                        final action = b['data']?.toString() ??
+                            b['text']?.toString() ??
+                            '';
+                        final label = b['text']?.toString() ?? '操作';
+                        final isDeny = action.contains('deny');
+                        final isAllowAll = action.contains('allow_all');
+                        final zhLabel = isDeny
+                            ? AppStrings.permissionDeny
+                            : isAllowAll
+                                ? AppStrings.permissionAllowAll
+                                : (action.contains('allow')
+                                    ? AppStrings.permissionAllow
+                                    : label);
+                        if (isPermission) {
+                          return isDeny
+                              ? OutlinedButton(
+                                  onPressed: () => onPermission('deny'),
+                                  child: Text(zhLabel),
+                                )
+                              : FilledButton(
+                                  onPressed: () => onPermission(
+                                      isAllowAll ? 'allow_all' : 'allow'),
+                                  child: Text(zhLabel),
+                                );
+                        }
+                        return FilledButton.tonal(
+                          onPressed: () {
+                            if (isAllowAll) {
+                              onPermission('allow_all');
+                            } else if (isDeny) {
+                              onPermission('deny');
+                            } else {
+                              onPermission('allow');
+                            }
+                          },
+                          child: Text(zhLabel),
+                        );
+                      },
+                    ).toList(),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
