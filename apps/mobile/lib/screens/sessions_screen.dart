@@ -1127,1065 +1127,1143 @@ class _SessionsScreenState extends State<SessionsScreen> {
                     ),
                   ],
                 ),
-          body: Column(
-            children: [
-              // Responsive padding for tablet/desktop
-              if (ResponsiveLayout.isTablet(context) ||
-                  ResponsiveLayout.isDesktop(context))
-                SizedBox(height: ResponsiveLayout.screenPadding(context).top),
-              if (conn.saved != null)
-                ListTile(
-                  dense: true,
-                  leading: const Icon(Icons.dns_outlined, size: 20),
-                  title: Text(
-                    conn.profiles
-                            .where((p) => p.id == conn.activeProfileId)
-                            .map((p) => p.name)
-                            .cast<String?>()
-                            .firstWhere((_) => true, orElse: () => null) ??
-                        conn.draftProfileName,
+          // Header controls scroll inside a capped box so the list keeps
+          // room on short phones / with the keyboard open (no overflow).
+          body: LayoutBuilder(
+            builder: (context, bodyBox) => Column(
+              children: [
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: bodyBox.maxHeight.isFinite
+                        ? bodyBox.maxHeight * 0.55
+                        : double.infinity,
                   ),
-                  subtitle: Text(
-                    '${conn.saved!.host} · ${conn.saved!.mgmtBaseUrl}',
-                  ),
-                  trailing: conn.profiles.length > 1
-                      ? PopupMenuButton<String>(
-                          tooltip: '切换主机配置',
-                          icon: const Icon(Icons.swap_horiz, size: 20),
-                          onSelected: (id) async {
-                            if (id == conn.activeProfileId) return;
-                            final ok = await showDialog<bool>(
-                              context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: const Text('切换主机配置?'),
-                                content: const Text(
-                                  '断开当前主机并测试所选配置。 '
-                                  '会话列表将为新主机重新加载。',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(ctx, false),
-                                    child: const Text('取消'),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Responsive padding for tablet/desktop
+                        if (ResponsiveLayout.isTablet(context) ||
+                            ResponsiveLayout.isDesktop(context))
+                          SizedBox(
+                              height:
+                                  ResponsiveLayout.screenPadding(context).top),
+                        if (conn.saved != null)
+                          ListTile(
+                            dense: true,
+                            leading: const Icon(Icons.dns_outlined, size: 20),
+                            title: Text(
+                              conn.profiles
+                                      .where(
+                                          (p) => p.id == conn.activeProfileId)
+                                      .map((p) => p.name)
+                                      .cast<String?>()
+                                      .firstWhere((_) => true,
+                                          orElse: () => null) ??
+                                  conn.draftProfileName,
+                            ),
+                            subtitle: Text(
+                              '${conn.saved!.host} · ${conn.saved!.mgmtBaseUrl}',
+                            ),
+                            trailing: conn.profiles.length > 1
+                                ? PopupMenuButton<String>(
+                                    tooltip: '切换主机配置',
+                                    icon:
+                                        const Icon(Icons.swap_horiz, size: 20),
+                                    onSelected: (id) async {
+                                      if (id == conn.activeProfileId) return;
+                                      final ok = await showDialog<bool>(
+                                        context: context,
+                                        builder: (ctx) => AlertDialog(
+                                          title: const Text('切换主机配置?'),
+                                          content: const Text(
+                                            '断开当前主机并测试所选配置。 '
+                                            '会话列表将为新主机重新加载。',
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(ctx, false),
+                                              child: const Text('取消'),
+                                            ),
+                                            FilledButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(ctx, true),
+                                              child: const Text('切换'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                      if (ok != true || !context.mounted)
+                                        return;
+                                      final success =
+                                          await conn.switchAndConnect(id);
+                                      if (!context.mounted) return;
+                                      if (success) {
+                                        final shared =
+                                            context.read<SessionController>();
+                                        shared.updateConfig(conn.saved!);
+                                        await shared.refresh();
+                                        _sessions = shared;
+                                        if (mounted) setState(() {});
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text('已切换主机配置'),
+                                          ),
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              conn.lastError ?? '切换失败',
+                                            ),
+                                            backgroundColor:
+                                                Colors.red.shade700,
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    itemBuilder: (ctx) => [
+                                      for (final p in conn.profiles)
+                                        PopupMenuItem(
+                                          value: p.id,
+                                          child: ListTile(
+                                            dense: true,
+                                            contentPadding: EdgeInsets.zero,
+                                            leading: Icon(
+                                              p.id == conn.activeProfileId
+                                                  ? Icons.radio_button_checked
+                                                  : Icons.radio_button_off,
+                                              size: 18,
+                                            ),
+                                            title: Text(p.name),
+                                            subtitle: Text(
+                                              '${p.config.host}:${p.config.mgmtPort}',
+                                              style:
+                                                  const TextStyle(fontSize: 11),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  )
+                                : null,
+                          ),
+                        // Quick action cards
+                        if (conn.saved != null)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  _QuickActionCard(
+                                    icon: Icons.folder_outlined,
+                                    label: '工作区',
+                                    color: const Color(0xFF4A90E2),
+                                    onTap: () => Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => WorkspaceScreen(
+                                            config: conn.saved!),
+                                      ),
+                                    ),
                                   ),
-                                  FilledButton(
-                                    onPressed: () => Navigator.pop(ctx, true),
-                                    child: const Text('切换'),
+                                  const SizedBox(width: 8),
+                                  _QuickActionCard(
+                                    icon: Icons.terminal,
+                                    label: '终端',
+                                    color: const Color(0xFF7CB342),
+                                    onTap: () {
+                                      final s = _sessions;
+                                      if (s == null || s.sessions.isEmpty)
+                                        return;
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => TerminalScreen(
+                                            config: conn.saved!,
+                                            session: s.sessions.first,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _QuickActionCard(
+                                    icon: Icons.extension_outlined,
+                                    label: '技能',
+                                    color: const Color(0xFFFF8A65),
+                                    onTap: () => Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => SkillsScreen(
+                                            config: conn.saved!,
+                                            project: sessions.selectedProject),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _QuickActionCard(
+                                    icon: Icons.schedule,
+                                    label: '定时任务',
+                                    color: const Color(0xFFAB47BC),
+                                    onTap: () => Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            CronScreen(config: conn.saved!),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _QuickActionCard(
+                                    icon: Icons.hub_outlined,
+                                    label: 'MCP',
+                                    color: const Color(0xFF26A69A),
+                                    onTap: () => Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => McpScreen(
+                                            config: conn.saved!,
+                                            project: sessions.selectedProject),
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
-                            );
-                            if (ok != true || !context.mounted) return;
-                            final success = await conn.switchAndConnect(id);
-                            if (!context.mounted) return;
-                            if (success) {
-                              final shared = context.read<SessionController>();
-                              shared.updateConfig(conn.saved!);
-                              await shared.refresh();
-                              _sessions = shared;
-                              if (mounted) setState(() {});
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('已切换主机配置'),
+                            ),
+                          ),
+                        if (conn.saved != null)
+                          Material(
+                            color: conn.healthDegraded
+                                ? Theme.of(
+                                    context,
+                                  )
+                                    .colorScheme
+                                    .errorContainer
+                                    .withValues(alpha: 0.55)
+                                : Theme.of(
+                                    context,
+                                  )
+                                    .colorScheme
+                                    .surfaceContainerHighest
+                                    .withValues(alpha: 0.45),
+                            child: ListTile(
+                              dense: true,
+                              visualDensity: VisualDensity.compact,
+                              leading: Icon(
+                                conn.healthDegraded
+                                    ? Icons.cloud_off
+                                    : Icons.cloud_done_outlined,
+                                size: 18,
+                                color: conn.healthDegraded
+                                    ? Theme.of(context).colorScheme.error
+                                    : Colors.green.shade700,
+                              ),
+                              title: Text(
+                                conn.healthDegraded ? '主机健康降级' : '主机健康正常',
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                              subtitle: Text(
+                                [
+                                  if (conn.lastHealthOkAt != null)
+                                    'Last OK: ${conn.lastHealthOkAt!.toLocal().toIso8601String().substring(11, 19)}',
+                                  if (conn.lastHealthError != null)
+                                    '错误：${conn.lastHealthError}',
+                                  if (conn.lastStatus != null &&
+                                      conn.lastStatus!['version'] != null)
+                                    'version: ${conn.lastStatus!['version']}',
+                                  '连接期间每 30 秒探测',
+                                ]
+                                    .where((e) => e.toString().isNotEmpty)
+                                    .join(' · '),
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                              trailing: TextButton(
+                                onPressed: conn.healthChecking
+                                    ? null
+                                    : () => conn.probeHealth(),
+                                child:
+                                    Text(conn.healthChecking ? '…' : 'Check'),
+                              ),
+                            ),
+                          ),
+                        if (sessions.projects.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            child: DropdownButtonFormField<String>(
+                              isExpanded: true,
+                              value: sessions.projects.any(
+                                (p) => p.name == sessions.selectedProject,
+                              )
+                                  ? sessions.selectedProject
+                                  : null,
+                              decoration: const InputDecoration(
+                                labelText: AppStrings.sortByProject,
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                              items: sessions.projects
+                                  .map(
+                                    (p) => DropdownMenuItem(
+                                      value: p.name,
+                                      child: Text(
+                                        '${p.name} (${p.agentType})',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: sessions.selectProject,
+                            ),
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                          child: TextField(
+                            controller: _searchCtrl,
+                            decoration: InputDecoration(
+                              hintText: _queryRegex
+                                  ? (_queryCase
+                                      ? 'Search (regex · case)'
+                                      : 'Search (regex)')
+                                  : (_queryCase
+                                      ? 'Search (case-sensitive)'
+                                      : '搜索会话 / 备注'),
+                              border: const OutlineInputBorder(),
+                              isDense: true,
+                              prefixIcon: IconButton(
+                                tooltip: _queryRegex
+                                    ? (_queryCase
+                                        ? 'Regex · case on (long-press: plain search)'
+                                        : 'Regex · case off (long-press: plain search)')
+                                    : (_queryCase
+                                        ? 'Case-sensitive (long-press: regex)'
+                                        : 'Case-insensitive (long-press: regex)'),
+                                icon: Icon(
+                                  _queryRegex
+                                      ? Icons.code
+                                      : (_queryCase
+                                          ? Icons.text_fields
+                                          : Icons.search),
+                                  size: 20,
                                 ),
+                                onPressed: () =>
+                                    setState(() => _queryCase = !_queryCase),
+                                onLongPress: () =>
+                                    setState(() => _queryRegex = !_queryRegex),
+                              ),
+                              suffixIcon: _query.isEmpty
+                                  ? null
+                                  : IconButton(
+                                      icon: const Icon(Icons.clear, size: 18),
+                                      onPressed: () {
+                                        _searchCtrl.clear();
+                                        setState(() => _query = '');
+                                      },
+                                    ),
+                            ),
+                            onChanged: (v) {
+                              _searchDebounce?.cancel();
+                              _searchDebounce = Timer(
+                                const Duration(milliseconds: 220),
+                                () {
+                                  if (!mounted) return;
+                                  setState(() => _query = v);
+                                },
                               );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    conn.lastError ?? '切换失败',
-                                  ),
-                                  backgroundColor: Colors.red.shade700,
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                          child: Wrap(
+                            spacing: 8,
+                            children: [
+                              for (final f in const [
+                                ('all', '全部'),
+                                ('pinned', '置顶'),
+                                ('running', '运行中'),
+                                ('notes', '备注'),
+                                ('archived', '已归档'),
+                              ])
+                                FilterChip(
+                                  label: Text(f.$2,
+                                      style: const TextStyle(fontSize: 12)),
+                                  selected: _filter == f.$1,
+                                  onSelected: (_) =>
+                                      setState(() => _filter = f.$1),
+                                  visualDensity: VisualDensity.compact,
                                 ),
-                              );
-                            }
-                          },
-                          itemBuilder: (ctx) => [
-                            for (final p in conn.profiles)
-                              PopupMenuItem(
-                                value: p.id,
-                                child: ListTile(
-                                  dense: true,
-                                  contentPadding: EdgeInsets.zero,
-                                  leading: Icon(
-                                    p.id == conn.activeProfileId
-                                        ? Icons.radio_button_checked
-                                        : Icons.radio_button_off,
-                                    size: 18,
+                              FilterChip(
+                                label: const Text(
+                                  AppStrings.groupBy,
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                                selected: _groupByProject,
+                                avatar: Icon(
+                                  _groupByProject
+                                      ? Icons.folder
+                                      : Icons.folder_outlined,
+                                  size: 16,
+                                ),
+                                onSelected: (v) =>
+                                    setState(() => _groupByProject = v),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              FilterChip(
+                                label: const Text(AppStrings.wrap,
+                                    style: TextStyle(fontSize: 11)),
+                                selected: _wrapLines,
+                                onSelected: (v) =>
+                                    setState(() => _wrapLines = v),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              FilterChip(
+                                label: const Text(
+                                  AppStrings.regex,
+                                  style: TextStyle(fontSize: 11),
+                                ),
+                                selected: _queryRegex,
+                                onSelected: (v) =>
+                                    setState(() => _queryRegex = v),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              FilterChip(
+                                label: const Text(AppStrings.matchCase,
+                                    style: TextStyle(fontSize: 11)),
+                                selected: _queryCase,
+                                onSelected: (v) =>
+                                    setState(() => _queryCase = v),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              FilterChip(
+                                label: const Text(AppStrings.autoRefresh,
+                                    style: TextStyle(fontSize: 11)),
+                                selected: _autoRefresh,
+                                onSelected: (v) {
+                                  setState(() => _autoRefresh = v);
+                                  _configureRefresh();
+                                },
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              for (final f in const [
+                                ('', '任意 Agent'),
+                                ('hermes', 'hermes'),
+                                ('claude', 'claude'),
+                                ('codex', 'codex'),
+                                ('other', '其他'),
+                              ])
+                                FilterChip(
+                                  label: Text(f.$2,
+                                      style: const TextStyle(fontSize: 11)),
+                                  selected: _agent == f.$1,
+                                  onSelected: (_) =>
+                                      setState(() => _agent = f.$1),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              for (final f in const [
+                                ('', '任意平台'),
+                                ('telegram', 'telegram'),
+                                ('discord', 'discord'),
+                                ('slack', 'slack'),
+                                ('feishu', 'feishu'),
+                                ('other', '其他'),
+                              ])
+                                FilterChip(
+                                  label: Text(f.$2,
+                                      style: const TextStyle(fontSize: 11)),
+                                  selected: _platform == f.$1,
+                                  onSelected: (_) =>
+                                      setState(() => _platform = f.$1),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              Builder(
+                                builder: (context) {
+                                  final settings =
+                                      context.watch<AppSettingsController>();
+                                  return PopupMenuButton<String>(
+                                    tooltip: '排序',
+                                    initialValue: settings.sessionSort,
+                                    onSelected: (v) async {
+                                      await settings.setSessionSort(v);
+                                      setState(() {});
+                                    },
+                                    itemBuilder: (ctx) => const [
+                                      PopupMenuItem(
+                                        value: 'updated',
+                                        child: Text('排序：更新时间'),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'recent',
+                                        child: Text('排序：最近'),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'title',
+                                        child: Text('排序：标题'),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'project',
+                                        child: Text('排序：项目'),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'created',
+                                        child: Text('排序：创建时间'),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'model',
+                                        child: Text('排序：模型'),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'key',
+                                        child: Text('排序：键'),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'platform',
+                                        child: Text('排序：平台'),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'agent',
+                                        child: Text('排序：代理'),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'mode',
+                                        child: Text('排序：模式'),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'workdir',
+                                        child: Text('排序：工作目录'),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'running',
+                                        child: Text('排序：运行中'),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'live',
+                                        child: Text('排序：实时'),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'last',
+                                        child: Text('排序：最后消息'),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'pinned',
+                                        child: Text('排序：置顶'),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'note',
+                                        child: Text('排序：备注'),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'archived',
+                                        child: Text('排序：归档'),
+                                      ),
+                                    ],
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 4),
+                                      child: Chip(
+                                        avatar:
+                                            const Icon(Icons.sort, size: 16),
+                                        label: Text(
+                                          {
+                                                'title': AppStrings.sortByTitle,
+                                                'project':
+                                                    AppStrings.sortByProject,
+                                                'created': '创建时间',
+                                                'model': '模型',
+                                                'key': '键',
+                                                'recent': '最近',
+                                                'platform': '平台',
+                                                'agent': '代理',
+                                                'mode': '模式',
+                                                'workdir': '工作目录',
+                                                'running': '运行中',
+                                                'live': '实时',
+                                                'last': '最近消息',
+                                                'pinned': '置顶',
+                                                'note': '备注',
+                                                'archived': '已归档',
+                                              }[settings.sessionSort] ??
+                                              '更新时间',
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
+                                        visualDensity: VisualDensity.compact,
+                                        padding: EdgeInsets.zero,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _titleCtrl,
+                                  decoration: const InputDecoration(
+                                    hintText: '新会话标题（可选）',
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
                                   ),
-                                  title: Text(p.name),
-                                  subtitle: Text(
-                                    '${p.config.host}:${p.config.mgmtPort}',
-                                    style: const TextStyle(fontSize: 11),
-                                  ),
+                                  onSubmitted: (_) => _create(),
                                 ),
                               ),
-                          ],
-                        )
-                      : null,
-                ),
-              // Quick action cards
-              if (conn.saved != null)
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _QuickActionCard(
-                          icon: Icons.folder_outlined,
-                          label: '工作区',
-                          color: const Color(0xFF4A90E2),
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  WorkspaceScreen(config: conn.saved!),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        _QuickActionCard(
-                          icon: Icons.terminal,
-                          label: '终端',
-                          color: const Color(0xFF7CB342),
-                          onTap: () {
-                            final s = _sessions;
-                            if (s == null || s.sessions.isEmpty) return;
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => TerminalScreen(
-                                  config: conn.saved!,
-                                  session: s.sessions.first,
-                                ),
+                              const SizedBox(width: 8),
+                              FilledButton.icon(
+                                onPressed: sessions.loading ? null : _create,
+                                icon: const Icon(Icons.add),
+                                label: const Text(AppStrings.createNew),
                               ),
-                            );
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                        _QuickActionCard(
-                          icon: Icons.extension_outlined,
-                          label: '技能',
-                          color: const Color(0xFFFF8A65),
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => SkillsScreen(
-                                  config: conn.saved!,
-                                  project: sessions.selectedProject),
-                            ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        _QuickActionCard(
-                          icon: Icons.schedule,
-                          label: '定时任务',
-                          color: const Color(0xFFAB47BC),
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => CronScreen(config: conn.saved!),
-                            ),
+                        if (sessions.error != null)
+                          ConsoleInlineError(
+                            message: sessions.error!,
+                            onRetry: sessions.loading ? null : sessions.refresh,
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        _QuickActionCard(
-                          icon: Icons.hub_outlined,
-                          label: 'MCP',
-                          color: const Color(0xFF26A69A),
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => McpScreen(
-                                  config: conn.saved!,
-                                  project: sessions.selectedProject),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
                 ),
-              if (conn.saved != null)
-                Material(
-                  color: conn.healthDegraded
-                      ? Theme.of(
-                          context,
-                        ).colorScheme.errorContainer.withValues(alpha: 0.55)
-                      : Theme.of(
-                          context,
-                        )
-                          .colorScheme
-                          .surfaceContainerHighest
-                          .withValues(alpha: 0.45),
-                  child: ListTile(
-                    dense: true,
-                    visualDensity: VisualDensity.compact,
-                    leading: Icon(
-                      conn.healthDegraded
-                          ? Icons.cloud_off
-                          : Icons.cloud_done_outlined,
-                      size: 18,
-                      color: conn.healthDegraded
-                          ? Theme.of(context).colorScheme.error
-                          : Colors.green.shade700,
-                    ),
-                    title: Text(
-                      conn.healthDegraded ? '主机健康降级' : '主机健康正常',
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                    subtitle: Text(
-                      [
-                        if (conn.lastHealthOkAt != null)
-                          'Last OK: ${conn.lastHealthOkAt!.toLocal().toIso8601String().substring(11, 19)}',
-                        if (conn.lastHealthError != null)
-                          '错误：${conn.lastHealthError}',
-                        if (conn.lastStatus != null &&
-                            conn.lastStatus!['version'] != null)
-                          'version: ${conn.lastStatus!['version']}',
-                        '连接期间每 30 秒探测',
-                      ].where((e) => e.toString().isNotEmpty).join(' · '),
-                      style: const TextStyle(fontSize: 11),
-                    ),
-                    trailing: TextButton(
-                      onPressed:
-                          conn.healthChecking ? null : () => conn.probeHealth(),
-                      child: Text(conn.healthChecking ? '…' : 'Check'),
-                    ),
-                  ),
-                ),
-              if (sessions.projects.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 4,
-                  ),
-                  child: DropdownButtonFormField<String>(
-                    value: sessions.projects.any(
-                      (p) => p.name == sessions.selectedProject,
-                    )
-                        ? sessions.selectedProject
-                        : null,
-                    decoration: const InputDecoration(
-                      labelText: AppStrings.sortByProject,
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: sessions.projects
-                        .map(
-                          (p) => DropdownMenuItem(
-                            value: p.name,
-                            child: Text('${p.name} (${p.agentType})'),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: sessions.selectProject,
-                  ),
-                ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                child: TextField(
-                  controller: _searchCtrl,
-                  decoration: InputDecoration(
-                    hintText: _queryRegex
-                        ? (_queryCase
-                            ? 'Search (regex · case)'
-                            : 'Search (regex)')
-                        : (_queryCase
-                            ? 'Search (case-sensitive)'
-                            : '搜索会话 / 备注'),
-                    border: const OutlineInputBorder(),
-                    isDense: true,
-                    prefixIcon: IconButton(
-                      tooltip: _queryRegex
-                          ? (_queryCase
-                              ? 'Regex · case on (long-press: plain search)'
-                              : 'Regex · case off (long-press: plain search)')
-                          : (_queryCase
-                              ? 'Case-sensitive (long-press: regex)'
-                              : 'Case-insensitive (long-press: regex)'),
-                      icon: Icon(
-                        _queryRegex
-                            ? Icons.code
-                            : (_queryCase ? Icons.text_fields : Icons.search),
-                        size: 20,
-                      ),
-                      onPressed: () => setState(() => _queryCase = !_queryCase),
-                      onLongPress: () =>
-                          setState(() => _queryRegex = !_queryRegex),
-                    ),
-                    suffixIcon: _query.isEmpty
-                        ? null
-                        : IconButton(
-                            icon: const Icon(Icons.clear, size: 18),
-                            onPressed: () {
-                              _searchCtrl.clear();
-                              setState(() => _query = '');
-                            },
-                          ),
-                  ),
-                  onChanged: (v) {
-                    _searchDebounce?.cancel();
-                    _searchDebounce = Timer(
-                      const Duration(milliseconds: 220),
-                      () {
-                        if (!mounted) return;
-                        setState(() => _query = v);
-                      },
-                    );
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
-                child: Wrap(
-                  spacing: 8,
-                  children: [
-                    for (final f in const [
-                      ('all', '全部'),
-                      ('pinned', '置顶'),
-                      ('running', '运行中'),
-                      ('notes', '备注'),
-                      ('archived', '已归档'),
-                    ])
-                      FilterChip(
-                        label: Text(f.$2, style: const TextStyle(fontSize: 12)),
-                        selected: _filter == f.$1,
-                        onSelected: (_) => setState(() => _filter = f.$1),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    FilterChip(
-                      label: const Text(
-                        AppStrings.groupBy,
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      selected: _groupByProject,
-                      avatar: Icon(
-                        _groupByProject ? Icons.folder : Icons.folder_outlined,
-                        size: 16,
-                      ),
-                      onSelected: (v) => setState(() => _groupByProject = v),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    FilterChip(
-                      label: const Text(AppStrings.wrap,
-                          style: TextStyle(fontSize: 11)),
-                      selected: _wrapLines,
-                      onSelected: (v) => setState(() => _wrapLines = v),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    FilterChip(
-                      label: const Text(
-                        AppStrings.regex,
-                        style: TextStyle(fontSize: 11),
-                      ),
-                      selected: _queryRegex,
-                      onSelected: (v) => setState(() => _queryRegex = v),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    FilterChip(
-                      label: const Text(AppStrings.matchCase,
-                          style: TextStyle(fontSize: 11)),
-                      selected: _queryCase,
-                      onSelected: (v) => setState(() => _queryCase = v),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    FilterChip(
-                      label: const Text(AppStrings.autoRefresh,
-                          style: TextStyle(fontSize: 11)),
-                      selected: _autoRefresh,
-                      onSelected: (v) {
-                        setState(() => _autoRefresh = v);
-                        _configureRefresh();
-                      },
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    for (final f in const [
-                      ('', '任意 Agent'),
-                      ('hermes', 'hermes'),
-                      ('claude', 'claude'),
-                      ('codex', 'codex'),
-                      ('other', '其他'),
-                    ])
-                      FilterChip(
-                        label: Text(f.$2, style: const TextStyle(fontSize: 11)),
-                        selected: _agent == f.$1,
-                        onSelected: (_) => setState(() => _agent = f.$1),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    for (final f in const [
-                      ('', '任意平台'),
-                      ('telegram', 'telegram'),
-                      ('discord', 'discord'),
-                      ('slack', 'slack'),
-                      ('feishu', 'feishu'),
-                      ('other', '其他'),
-                    ])
-                      FilterChip(
-                        label: Text(f.$2, style: const TextStyle(fontSize: 11)),
-                        selected: _platform == f.$1,
-                        onSelected: (_) => setState(() => _platform = f.$1),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    Builder(
-                      builder: (context) {
-                        final settings = context.watch<AppSettingsController>();
-                        return PopupMenuButton<String>(
-                          tooltip: '排序',
-                          initialValue: settings.sessionSort,
-                          onSelected: (v) async {
-                            await settings.setSessionSort(v);
-                            setState(() {});
-                          },
-                          itemBuilder: (ctx) => const [
-                            PopupMenuItem(
-                              value: 'updated',
-                              child: Text('排序：更新时间'),
-                            ),
-                            PopupMenuItem(
-                              value: 'recent',
-                              child: Text('排序：最近'),
-                            ),
-                            PopupMenuItem(
-                              value: 'title',
-                              child: Text('排序：标题'),
-                            ),
-                            PopupMenuItem(
-                              value: 'project',
-                              child: Text('排序：项目'),
-                            ),
-                            PopupMenuItem(
-                              value: 'created',
-                              child: Text('排序：创建时间'),
-                            ),
-                            PopupMenuItem(
-                              value: 'model',
-                              child: Text('排序：模型'),
-                            ),
-                            PopupMenuItem(
-                              value: 'key',
-                              child: Text('排序：键'),
-                            ),
-                            PopupMenuItem(
-                              value: 'platform',
-                              child: Text('排序：平台'),
-                            ),
-                            PopupMenuItem(
-                              value: 'agent',
-                              child: Text('排序：代理'),
-                            ),
-                            PopupMenuItem(
-                              value: 'mode',
-                              child: Text('排序：模式'),
-                            ),
-                            PopupMenuItem(
-                              value: 'workdir',
-                              child: Text('排序：工作目录'),
-                            ),
-                            PopupMenuItem(
-                              value: 'running',
-                              child: Text('排序：运行中'),
-                            ),
-                            PopupMenuItem(
-                              value: 'live',
-                              child: Text('排序：实时'),
-                            ),
-                            PopupMenuItem(
-                              value: 'last',
-                              child: Text('排序：最后消息'),
-                            ),
-                            PopupMenuItem(
-                              value: 'pinned',
-                              child: Text('排序：置顶'),
-                            ),
-                            PopupMenuItem(
-                              value: 'note',
-                              child: Text('排序：备注'),
-                            ),
-                            PopupMenuItem(
-                              value: 'archived',
-                              child: Text('排序：归档'),
-                            ),
-                          ],
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: Chip(
-                              avatar: const Icon(Icons.sort, size: 16),
-                              label: Text(
-                                {
-                                      'title': AppStrings.sortByTitle,
-                                      'project': AppStrings.sortByProject,
-                                      'created': '创建时间',
-                                      'model': '模型',
-                                      'key': '键',
-                                      'recent': '最近',
-                                      'platform': '平台',
-                                      'agent': '代理',
-                                      'mode': '模式',
-                                      'workdir': '工作目录',
-                                      'running': '运行中',
-                                      'live': '实时',
-                                      'last': '最近消息',
-                                      'pinned': '置顶',
-                                      'note': '备注',
-                                      'archived': '已归档',
-                                    }[settings.sessionSort] ??
-                                    '更新时间',
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                              visualDensity: VisualDensity.compact,
-                              padding: EdgeInsets.zero,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _titleCtrl,
-                        decoration: const InputDecoration(
-                          hintText: '新会话标题（可选）',
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                        ),
-                        onSubmitted: (_) => _create(),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    FilledButton.icon(
-                      onPressed: sessions.loading ? null : _create,
-                      icon: const Icon(Icons.add),
-                      label: const Text(AppStrings.createNew),
-                    ),
-                  ],
-                ),
-              ),
-              if (sessions.error != null)
-                ConsoleInlineError(
-                  message: sessions.error!,
-                  onRetry: sessions.loading ? null : sessions.refresh,
-                ),
-              Expanded(
-                child: Builder(
-                  builder: (context) {
-                    final visible = _filtered(sessions.sessions);
-                    return sessions.loading && sessions.sessions.isEmpty
-                        ? const ConsoleLoading(label: AppStrings.loading)
-                        : RefreshIndicator(
-                            onRefresh: sessions.refresh,
-                            child: sessions.sessions.isEmpty
-                                ? ListView(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      24,
-                                      32,
-                                      24,
-                                      24,
-                                    ),
-                                    children: [
-                                      Icon(
-                                        Icons.forum_outlined,
-                                        size: 48,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.outline,
+                Expanded(
+                  child: Builder(
+                    builder: (context) {
+                      final visible = _filtered(sessions.sessions);
+                      return sessions.loading && sessions.sessions.isEmpty
+                          ? const ConsoleLoading(label: AppStrings.loading)
+                          : RefreshIndicator(
+                              onRefresh: sessions.refresh,
+                              child: sessions.sessions.isEmpty
+                                  ? ListView(
+                                      padding: const EdgeInsets.fromLTRB(
+                                        24,
+                                        32,
+                                        24,
+                                        24,
                                       ),
-                                      const SizedBox(height: 12),
-                                      Text(
-                                        '还没有会话',
-                                        textAlign: TextAlign.center,
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.titleMedium,
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        '本应用仅为远程控制台 — Agent 在主机上运行。\n'
-                                        '1) Confirm Host health above is OK\n'
-                                        '2) Pick a project if listed\n'
-                                        '3) Tap New to create a session\n'
-                                        '4) 打开会话控制 Claude Code / Codex / Hermes',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
+                                      children: [
+                                        Icon(
+                                          Icons.forum_outlined,
+                                          size: 48,
                                           color: Theme.of(
                                             context,
-                                          ).colorScheme.onSurfaceVariant,
-                                          height: 1.35,
+                                          ).colorScheme.outline,
                                         ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Center(
-                                        child: FilledButton.icon(
-                                          onPressed:
-                                              sessions.loading ? null : _create,
-                                          icon: const Icon(Icons.add),
-                                          label: const Text(
-                                            '创建第一个会话',
-                                          ),
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          '还没有会话',
+                                          textAlign: TextAlign.center,
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.titleMedium,
                                         ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Center(
-                                        child: TextButton.icon(
-                                          onPressed: () {
-                                            Navigator.of(context).push(
-                                              MaterialPageRoute(
-                                                builder: (_) =>
-                                                    const HostDashboardScreen(),
-                                              ),
-                                            );
-                                          },
-                                          icon: const Icon(
-                                            Icons.monitor_heart_outlined,
-                                          ),
-                                          label: const Text(
-                                            '打开主机仪表盘',
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : visible.isEmpty
-                                    ? ListView(
-                                        padding: const EdgeInsets.fromLTRB(
-                                          24,
-                                          48,
-                                          24,
-                                          24,
-                                        ),
-                                        children: [
-                                          Icon(
-                                            Icons.filter_alt_off_outlined,
-                                            size: 40,
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          '本应用仅为远程控制台 — Agent 在主机上运行。\n'
+                                          '1) Confirm Host health above is OK\n'
+                                          '2) Pick a project if listed\n'
+                                          '3) Tap New to create a session\n'
+                                          '4) 打开会话控制 Claude Code / Codex / Hermes',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
                                             color: Theme.of(
                                               context,
-                                            ).colorScheme.outline,
+                                            ).colorScheme.onSurfaceVariant,
+                                            height: 1.35,
                                           ),
-                                          const SizedBox(height: 12),
-                                          const Center(
-                                            child: Text(
-                                              '没有匹配的会话',
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Center(
+                                          child: FilledButton.icon(
+                                            onPressed: sessions.loading
+                                                ? null
+                                                : _create,
+                                            icon: const Icon(Icons.add),
+                                            label: const Text(
+                                              '创建第一个会话',
                                             ),
                                           ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            _filter == 'archived'
-                                                ? '本机暂无归档会话，或已被搜索条件隐藏。'
-                                                : '请尝试清除筛选条件或创建新会话',
-                                            textAlign: TextAlign.center,
-                                            style: TextStyle(
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Center(
+                                          child: TextButton.icon(
+                                            onPressed: () {
+                                              Navigator.of(context).push(
+                                                MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      const HostDashboardScreen(),
+                                                ),
+                                              );
+                                            },
+                                            icon: const Icon(
+                                              Icons.monitor_heart_outlined,
+                                            ),
+                                            label: const Text(
+                                              '打开主机仪表盘',
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : visible.isEmpty
+                                      ? ListView(
+                                          padding: const EdgeInsets.fromLTRB(
+                                            24,
+                                            48,
+                                            24,
+                                            24,
+                                          ),
+                                          children: [
+                                            Icon(
+                                              Icons.filter_alt_off_outlined,
+                                              size: 40,
                                               color: Theme.of(
                                                 context,
-                                              ).colorScheme.onSurfaceVariant,
+                                              ).colorScheme.outline,
                                             ),
-                                          ),
-                                          const SizedBox(height: 12),
-                                          Center(
-                                            child: TextButton(
-                                              onPressed: () => setState(() {
-                                                _filter = 'all';
-                                                _query = '';
-                                                _searchCtrl.clear();
-                                              }),
-                                              child: const Text('重置筛选'),
+                                            const SizedBox(height: 12),
+                                            const Center(
+                                              child: Text(
+                                                '没有匹配的会话',
+                                              ),
                                             ),
-                                          ),
-                                        ],
-                                      )
-                                    : ListView.separated(
-                                        controller: _scroll,
-                                        padding: const EdgeInsets.fromLTRB(
-                                            12, 8, 12, 24),
-                                        itemCount: _visibleRows(visible).length,
-                                        separatorBuilder: (_, __) =>
                                             const SizedBox(height: 8),
-                                        itemBuilder: (context, i) {
-                                          final row = _visibleRows(visible)[i];
-                                          if (row is String) {
-                                            final count = visible
-                                                .where((s) =>
-                                                    (s.project.isEmpty
-                                                        ? '（无项目）'
-                                                        : s.project) ==
-                                                    row)
-                                                .length;
+                                            Text(
+                                              _filter == 'archived'
+                                                  ? '本机暂无归档会话，或已被搜索条件隐藏。'
+                                                  : '请尝试清除筛选条件或创建新会话',
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            Center(
+                                              child: TextButton(
+                                                onPressed: () => setState(() {
+                                                  _filter = 'all';
+                                                  _query = '';
+                                                  _searchCtrl.clear();
+                                                }),
+                                                child: const Text('重置筛选'),
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      : ListView.separated(
+                                          controller: _scroll,
+                                          padding: const EdgeInsets.fromLTRB(
+                                              12, 8, 12, 24),
+                                          itemCount:
+                                              _visibleRows(visible).length,
+                                          separatorBuilder: (_, __) =>
+                                              const SizedBox(height: 8),
+                                          itemBuilder: (context, i) {
+                                            final row =
+                                                _visibleRows(visible)[i];
+                                            if (row is String) {
+                                              final count = visible
+                                                  .where((s) =>
+                                                      (s.project.isEmpty
+                                                          ? '（无项目）'
+                                                          : s.project) ==
+                                                      row)
+                                                  .length;
+                                              final cs =
+                                                  Theme.of(context).colorScheme;
+                                              final isDark = Theme.of(context)
+                                                      .brightness ==
+                                                  Brightness.dark;
+                                              return Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 12,
+                                                  vertical: 10,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: isDark
+                                                      ? Colors.white.withValues(
+                                                          alpha: 0.03)
+                                                      : cs.surfaceContainerHighest
+                                                          .withValues(
+                                                              alpha: 0.65),
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                  border: Border.all(
+                                                    color: isDark
+                                                        ? Colors.white
+                                                            .withValues(
+                                                                alpha: 0.06)
+                                                        : cs.outlineVariant
+                                                            .withValues(
+                                                                alpha: 0.6),
+                                                  ),
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.folder_outlined,
+                                                      size: 18,
+                                                      color: cs.primary,
+                                                    ),
+                                                    const SizedBox(width: 10),
+                                                    Expanded(
+                                                      child: Text(
+                                                        row,
+                                                        style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                          fontSize: 13,
+                                                          letterSpacing: -0.1,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      '$count 个会话',
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color:
+                                                            cs.onSurfaceVariant,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            }
+                                            final s = row as SessionInfo;
+                                            final pinned = _pinned.contains(
+                                              s.sessionKey,
+                                            );
+                                            final note = _noteMap[s.sessionKey];
+                                            final compact = context
+                                                .watch<AppSettingsController>()
+                                                .compactMode;
+                                            final selected = _selected.contains(
+                                              s.sessionKey,
+                                            );
+                                            final projCaps = sessions.projects
+                                                .where(
+                                                    (p) => p.name == s.project)
+                                                .map((p) => p.capabilities)
+                                                .firstWhere(
+                                                  (_) => true,
+                                                  orElse: () =>
+                                                      const <String>[],
+                                                );
                                             final cs =
                                                 Theme.of(context).colorScheme;
                                             final isDark =
                                                 Theme.of(context).brightness ==
                                                     Brightness.dark;
-                                            return Container(
-                                              padding:
+                                            final tile = ListTile(
+                                              selected: selected,
+                                              contentPadding:
                                                   const EdgeInsets.symmetric(
                                                 horizontal: 12,
-                                                vertical: 10,
+                                                vertical: 6,
                                               ),
-                                              decoration: BoxDecoration(
-                                                color: isDark
-                                                    ? Colors.white
-                                                        .withValues(alpha: 0.03)
-                                                    : cs.surfaceContainerHighest
-                                                        .withValues(
-                                                            alpha: 0.65),
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                                border: Border.all(
-                                                  color: isDark
-                                                      ? Colors.white.withValues(
-                                                          alpha: 0.06)
-                                                      : cs.outlineVariant
-                                                          .withValues(
-                                                              alpha: 0.6),
+                                              visualDensity: compact
+                                                  ? VisualDensity.compact
+                                                  : const VisualDensity(
+                                                      horizontal: 0,
+                                                      vertical: 1,
+                                                    ),
+                                              title: Text(
+                                                s.displayTitle,
+                                                maxLines: _wrapLines ? 4 : 2,
+                                                overflow: TextOverflow.ellipsis,
+                                                softWrap: true,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  letterSpacing: -0.15,
                                                 ),
                                               ),
-                                              child: Row(
+                                              subtitle: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
-                                                  Icon(
-                                                    Icons.folder_outlined,
-                                                    size: 18,
-                                                    color: cs.primary,
-                                                  ),
-                                                  const SizedBox(width: 10),
-                                                  Expanded(
-                                                    child: Text(
-                                                      row,
-                                                      style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                        fontSize: 13,
-                                                        letterSpacing: -0.1,
-                                                      ),
-                                                    ),
-                                                  ),
                                                   Text(
-                                                    '$count 个会话',
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      color:
-                                                          cs.onSurfaceVariant,
-                                                    ),
+                                                    [
+                                                      '${s.project} · ${s.model ?? "未知模型"}',
+                                                      s.sessionKey,
+                                                      if (note != null &&
+                                                          note.isNotEmpty)
+                                                        '📝 $note',
+                                                    ].join('\n'),
+                                                    maxLines:
+                                                        _wrapLines ? 8 : 3,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    softWrap: true,
                                                   ),
-                                                ],
-                                              ),
-                                            );
-                                          }
-                                          final s = row as SessionInfo;
-                                          final pinned = _pinned.contains(
-                                            s.sessionKey,
-                                          );
-                                          final note = _noteMap[s.sessionKey];
-                                          final compact = context
-                                              .watch<AppSettingsController>()
-                                              .compactMode;
-                                          final selected = _selected.contains(
-                                            s.sessionKey,
-                                          );
-                                          final projCaps = sessions.projects
-                                              .where((p) => p.name == s.project)
-                                              .map((p) => p.capabilities)
-                                              .firstWhere(
-                                                (_) => true,
-                                                orElse: () => const <String>[],
-                                              );
-                                          final cs =
-                                              Theme.of(context).colorScheme;
-                                          final isDark =
-                                              Theme.of(context).brightness ==
-                                                  Brightness.dark;
-                                          final tile = ListTile(
-                                            selected: selected,
-                                            contentPadding:
-                                                const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 6,
-                                            ),
-                                            visualDensity: compact
-                                                ? VisualDensity.compact
-                                                : const VisualDensity(
-                                                    horizontal: 0,
-                                                    vertical: 1,
-                                                  ),
-                                            title: Text(
-                                              s.displayTitle,
-                                              maxLines: _wrapLines ? 4 : 2,
-                                              overflow: TextOverflow.ellipsis,
-                                              softWrap: true,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w600,
-                                                letterSpacing: -0.15,
-                                              ),
-                                            ),
-                                            subtitle: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  [
-                                                    '${s.project} · ${s.model ?? "未知模型"}',
-                                                    s.sessionKey,
-                                                    if (note != null &&
-                                                        note.isNotEmpty)
-                                                      '📝 $note',
-                                                  ].join('\n'),
-                                                  maxLines: _wrapLines ? 8 : 3,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  softWrap: true,
-                                                ),
-                                                if (projCaps.isNotEmpty &&
-                                                    !_selectMode) ...[
-                                                  const SizedBox(height: 4),
-                                                  Wrap(
-                                                    spacing: 4,
-                                                    runSpacing: 2,
-                                                    children: [
-                                                      for (final c
-                                                          in projCaps.take(
-                                                        4,
-                                                      ))
-                                                        Container(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .symmetric(
-                                                            horizontal: 6,
-                                                            vertical: 1,
-                                                          ),
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                              8,
+                                                  if (projCaps.isNotEmpty &&
+                                                      !_selectMode) ...[
+                                                    const SizedBox(height: 4),
+                                                    Wrap(
+                                                      spacing: 4,
+                                                      runSpacing: 2,
+                                                      children: [
+                                                        for (final c
+                                                            in projCaps.take(
+                                                          4,
+                                                        ))
+                                                          Container(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                              horizontal: 6,
+                                                              vertical: 1,
                                                             ),
-                                                            color: Theme.of(
-                                                                    context)
-                                                                .colorScheme
-                                                                .secondaryContainer
-                                                                .withValues(
-                                                                    alpha: 0.7),
-                                                          ),
-                                                          child: Text(
-                                                            c.toString(),
-                                                            style: TextStyle(
-                                                              fontSize: 10,
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                8,
+                                                              ),
                                                               color: Theme.of(
                                                                       context)
                                                                   .colorScheme
-                                                                  .onSecondaryContainer,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      if (projCaps.length > 4)
-                                                        Text(
-                                                          '+${projCaps.length - 4}',
-                                                          style:
-                                                              const TextStyle(
-                                                            fontSize: 10,
-                                                          ),
-                                                        ),
-                                                    ],
-                                                  ),
-                                                ],
-                                              ],
-                                            ),
-                                            isThreeLine: true,
-                                            leading: _selectMode
-                                                ? Checkbox(
-                                                    value: selected,
-                                                    onChanged: (_) =>
-                                                        _toggleSelected(s),
-                                                  )
-                                                : Container(
-                                                    width: 42,
-                                                    height: 42,
-                                                    decoration: BoxDecoration(
-                                                      color: pinned
-                                                          ? const Color(
-                                                                  0xFFF59E0B)
-                                                              .withValues(
-                                                                  alpha: 0.14)
-                                                          : s.running
-                                                              ? const Color(
-                                                                      0xFF5E6AD2)
+                                                                  .secondaryContainer
                                                                   .withValues(
                                                                       alpha:
-                                                                          0.14)
-                                                              : (isDark
-                                                                  ? Colors.white
-                                                                      .withValues(
-                                                                          alpha:
-                                                                              0.05)
-                                                                  : cs.surfaceContainerHighest),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              12),
-                                                      border: Border.all(
+                                                                          0.7),
+                                                            ),
+                                                            child: Text(
+                                                              c.toString(),
+                                                              style: TextStyle(
+                                                                fontSize: 10,
+                                                                color: Theme.of(
+                                                                        context)
+                                                                    .colorScheme
+                                                                    .onSecondaryContainer,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        if (projCaps.length > 4)
+                                                          Text(
+                                                            '+${projCaps.length - 4}',
+                                                            style:
+                                                                const TextStyle(
+                                                              fontSize: 10,
+                                                            ),
+                                                          ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                              isThreeLine: true,
+                                              leading: _selectMode
+                                                  ? Checkbox(
+                                                      value: selected,
+                                                      onChanged: (_) =>
+                                                          _toggleSelected(s),
+                                                    )
+                                                  : Container(
+                                                      width: 42,
+                                                      height: 42,
+                                                      decoration: BoxDecoration(
                                                         color: pinned
                                                             ? const Color(
                                                                     0xFFF59E0B)
                                                                 .withValues(
-                                                                    alpha: 0.35)
+                                                                    alpha: 0.14)
                                                             : s.running
                                                                 ? const Color(
                                                                         0xFF5E6AD2)
                                                                     .withValues(
                                                                         alpha:
-                                                                            0.3)
+                                                                            0.14)
                                                                 : (isDark
                                                                     ? Colors
                                                                         .white
                                                                         .withValues(
                                                                             alpha:
-                                                                                0.08)
-                                                                    : cs.outlineVariant
-                                                                        .withValues(
-                                                                            alpha:
-                                                                                0.7)),
+                                                                                0.05)
+                                                                    : cs.surfaceContainerHighest),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(12),
+                                                        border: Border.all(
+                                                          color: pinned
+                                                              ? const Color(
+                                                                      0xFFF59E0B)
+                                                                  .withValues(
+                                                                      alpha:
+                                                                          0.35)
+                                                              : s.running
+                                                                  ? const Color(
+                                                                          0xFF5E6AD2)
+                                                                      .withValues(
+                                                                          alpha:
+                                                                              0.3)
+                                                                  : (isDark
+                                                                      ? Colors
+                                                                          .white
+                                                                          .withValues(
+                                                                              alpha:
+                                                                                  0.08)
+                                                                      : cs.outlineVariant
+                                                                          .withValues(
+                                                                              alpha: 0.7)),
+                                                        ),
+                                                      ),
+                                                      child: Icon(
+                                                        pinned
+                                                            ? Icons.push_pin
+                                                            : s.running
+                                                                ? Icons
+                                                                    .play_circle_fill
+                                                                : Icons
+                                                                    .chat_bubble_outline,
+                                                        size: 20,
+                                                        color: pinned
+                                                            ? const Color(
+                                                                0xFFF59E0B)
+                                                            : s.running
+                                                                ? const Color(
+                                                                    0xFF5E6AD2)
+                                                                : cs.onSurfaceVariant,
                                                       ),
                                                     ),
-                                                    child: Icon(
-                                                      pinned
-                                                          ? Icons.push_pin
-                                                          : s.running
-                                                              ? Icons
-                                                                  .play_circle_fill
-                                                              : Icons
-                                                                  .chat_bubble_outline,
-                                                      size: 20,
-                                                      color: pinned
-                                                          ? const Color(
-                                                              0xFFF59E0B)
-                                                          : s.running
-                                                              ? const Color(
-                                                                  0xFF5E6AD2)
-                                                              : cs.onSurfaceVariant,
-                                                    ),
-                                                  ),
-                                            onTap: () {
-                                              if (_selectMode) {
-                                                _toggleSelected(s);
-                                              } else {
-                                                _openChat(s);
-                                              }
-                                            },
-                                            onLongPress: () {
-                                              if (_selectMode) {
-                                                _toggleSelected(s);
-                                              } else {
-                                                _enterSelectMode(s);
-                                              }
-                                            },
-                                            trailing: _selectMode
-                                                ? null
-                                                : PopupMenuButton<String>(
-                                                    tooltip: '会话操作',
-                                                    onSelected: (v) async {
-                                                      switch (v) {
-                                                        case 'export':
-                                                          _exportSessionMeta(s);
-                                                        case 'rename':
-                                                          await _renameSession(
-                                                            sessions,
-                                                            s,
-                                                          );
-                                                        case 'archive':
-                                                          await _toggleArchive(
-                                                              s);
-                                                        case 'note':
-                                                          await _editNote(s);
-                                                        case 'pin':
-                                                          await _togglePin(s);
-                                                        case 'copy_key':
-                                                          final text = [
-                                                            s.displayTitle,
-                                                            'id: ${s.id}',
-                                                            'session_key: ${s.sessionKey}',
-                                                            'project: ${s.project}',
-                                                          ].join('\n');
-                                                          await Clipboard
-                                                              .setData(
-                                                            ClipboardData(
-                                                              text: text,
-                                                            ),
-                                                          );
-                                                          if (mounted) {
-                                                            ScaffoldMessenger
-                                                                .of(
-                                                              context,
-                                                            ).showSnackBar(
-                                                              const SnackBar(
-                                                                content: Text(
-                                                                  '会话 ID 已复制',
-                                                                ),
-                                                                duration:
-                                                                    Duration(
-                                                                  seconds: 1,
-                                                                ),
+                                              onTap: () {
+                                                if (_selectMode) {
+                                                  _toggleSelected(s);
+                                                } else {
+                                                  _openChat(s);
+                                                }
+                                              },
+                                              onLongPress: () {
+                                                if (_selectMode) {
+                                                  _toggleSelected(s);
+                                                } else {
+                                                  _enterSelectMode(s);
+                                                }
+                                              },
+                                              trailing: _selectMode
+                                                  ? null
+                                                  : PopupMenuButton<String>(
+                                                      tooltip: '会话操作',
+                                                      onSelected: (v) async {
+                                                        switch (v) {
+                                                          case 'export':
+                                                            _exportSessionMeta(
+                                                                s);
+                                                          case 'rename':
+                                                            await _renameSession(
+                                                              sessions,
+                                                              s,
+                                                            );
+                                                          case 'archive':
+                                                            await _toggleArchive(
+                                                                s);
+                                                          case 'note':
+                                                            await _editNote(s);
+                                                          case 'pin':
+                                                            await _togglePin(s);
+                                                          case 'copy_key':
+                                                            final text = [
+                                                              s.displayTitle,
+                                                              'id: ${s.id}',
+                                                              'session_key: ${s.sessionKey}',
+                                                              'project: ${s.project}',
+                                                            ].join('\n');
+                                                            await Clipboard
+                                                                .setData(
+                                                              ClipboardData(
+                                                                text: text,
                                                               ),
                                                             );
-                                                          }
-                                                        case 'term':
-                                                          await _openTerminal(
-                                                              s);
-                                                        case 'delete':
-                                                          await sessions
-                                                              .deleteSession(s);
-                                                      }
-                                                    },
-                                                    itemBuilder: (ctx) => [
-                                                      PopupMenuItem(
-                                                        value: 'pin',
-                                                        child: Text(
-                                                          pinned
-                                                              ? '取消置顶'
-                                                              : '置顶',
+                                                            if (mounted) {
+                                                              ScaffoldMessenger
+                                                                  .of(
+                                                                context,
+                                                              ).showSnackBar(
+                                                                const SnackBar(
+                                                                  content: Text(
+                                                                    '会话 ID 已复制',
+                                                                  ),
+                                                                  duration:
+                                                                      Duration(
+                                                                    seconds: 1,
+                                                                  ),
+                                                                ),
+                                                              );
+                                                            }
+                                                          case 'term':
+                                                            await _openTerminal(
+                                                                s);
+                                                          case 'delete':
+                                                            await sessions
+                                                                .deleteSession(
+                                                                    s);
+                                                        }
+                                                      },
+                                                      itemBuilder: (ctx) => [
+                                                        PopupMenuItem(
+                                                          value: 'pin',
+                                                          child: Text(
+                                                            pinned
+                                                                ? '取消置顶'
+                                                                : '置顶',
+                                                          ),
                                                         ),
-                                                      ),
-                                                      const PopupMenuItem(
-                                                        value: 'copy_key',
-                                                        child: Text('复制 ID'),
-                                                      ),
-                                                      PopupMenuItem(
-                                                        value: 'archive',
-                                                        child: Text(
-                                                          _archived.contains(
-                                                            s.sessionKey,
-                                                          )
-                                                              ? '取消归档'
-                                                              : '归档',
+                                                        const PopupMenuItem(
+                                                          value: 'copy_key',
+                                                          child: Text('复制 ID'),
                                                         ),
-                                                      ),
-                                                      const PopupMenuItem(
-                                                        value: 'note',
-                                                        child: Text(
-                                                            AppStrings.note),
-                                                      ),
-                                                      const PopupMenuItem(
-                                                        value: 'rename',
-                                                        child: Text(
-                                                            AppStrings.rename),
-                                                      ),
-                                                      const PopupMenuItem(
-                                                        value: 'export',
-                                                        child: Text('导出元数据'),
-                                                      ),
-                                                      const PopupMenuItem(
-                                                        value: 'term',
-                                                        child: Text('终端'),
-                                                      ),
-                                                      const PopupMenuItem(
-                                                        value: 'delete',
-                                                        child: Text(
-                                                            AppStrings.delete),
-                                                      ),
-                                                    ],
-                                                  ),
-                                          );
-                                          Widget cardWrap(Widget child) {
-                                            return Container(
-                                              decoration: BoxDecoration(
+                                                        PopupMenuItem(
+                                                          value: 'archive',
+                                                          child: Text(
+                                                            _archived.contains(
+                                                              s.sessionKey,
+                                                            )
+                                                                ? '取消归档'
+                                                                : '归档',
+                                                          ),
+                                                        ),
+                                                        const PopupMenuItem(
+                                                          value: 'note',
+                                                          child: Text(
+                                                              AppStrings.note),
+                                                        ),
+                                                        const PopupMenuItem(
+                                                          value: 'rename',
+                                                          child: Text(AppStrings
+                                                              .rename),
+                                                        ),
+                                                        const PopupMenuItem(
+                                                          value: 'export',
+                                                          child: Text('导出元数据'),
+                                                        ),
+                                                        const PopupMenuItem(
+                                                          value: 'term',
+                                                          child: Text('终端'),
+                                                        ),
+                                                        const PopupMenuItem(
+                                                          value: 'delete',
+                                                          child: Text(AppStrings
+                                                              .delete),
+                                                        ),
+                                                      ],
+                                                    ),
+                                            );
+                                            // Material (not a decorated
+                                            // Container) so the ListTile's
+                                            // ink splashes stay visible.
+                                            Widget cardWrap(Widget child) {
+                                              return Material(
                                                 color: selected
                                                     ? cs.primaryContainer
                                                         .withValues(
@@ -2197,82 +2275,90 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                             .withValues(
                                                                 alpha: 0.03)
                                                         : cs.surfaceContainer),
-                                                borderRadius:
-                                                    BorderRadius.circular(14),
-                                                border: Border.all(
-                                                  color: selected
-                                                      ? cs.primary.withValues(
-                                                          alpha: 0.45)
-                                                      : (isDark
-                                                          ? Colors.white
-                                                              .withValues(
-                                                                  alpha: 0.08)
-                                                          : cs.outlineVariant
-                                                              .withValues(
-                                                                  alpha: 0.7)),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(14),
+                                                  side: BorderSide(
+                                                    color: selected
+                                                        ? cs.primary.withValues(
+                                                            alpha: 0.45)
+                                                        : (isDark
+                                                            ? Colors.white
+                                                                .withValues(
+                                                                    alpha: 0.08)
+                                                            : cs.outlineVariant
+                                                                .withValues(
+                                                                    alpha:
+                                                                        0.7)),
+                                                  ),
+                                                ),
+                                                clipBehavior: Clip.antiAlias,
+                                                child: child,
+                                              );
+                                            }
+
+                                            if (_selectMode) {
+                                              return cardWrap(tile);
+                                            }
+                                            return Dismissible(
+                                              key: ValueKey(
+                                                  'sess-${s.sessionKey}'),
+                                              background: Container(
+                                                decoration: BoxDecoration(
+                                                  color:
+                                                      const Color(0xFFF59E0B),
+                                                  borderRadius:
+                                                      BorderRadius.circular(14),
+                                                ),
+                                                alignment: Alignment.centerLeft,
+                                                padding: const EdgeInsets.only(
+                                                  left: 20,
+                                                ),
+                                                child: const Icon(
+                                                  Icons.push_pin,
+                                                  color: Colors.white,
                                                 ),
                                               ),
-                                              clipBehavior: Clip.antiAlias,
-                                              child: child,
+                                              secondaryBackground: Container(
+                                                decoration: BoxDecoration(
+                                                  color:
+                                                      const Color(0xFF64748B),
+                                                  borderRadius:
+                                                      BorderRadius.circular(14),
+                                                ),
+                                                alignment:
+                                                    Alignment.centerRight,
+                                                padding: const EdgeInsets.only(
+                                                  right: 20,
+                                                ),
+                                                child: Icon(
+                                                  _archived.contains(
+                                                          s.sessionKey)
+                                                      ? Icons.unarchive
+                                                      : Icons.archive,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                              confirmDismiss: (dir) async {
+                                                if (dir ==
+                                                    DismissDirection
+                                                        .startToEnd) {
+                                                  await _togglePin(s);
+                                                } else {
+                                                  await _toggleArchive(s);
+                                                }
+                                                return false; // keep tile; state updates list
+                                              },
+                                              child: cardWrap(tile),
                                             );
-                                          }
-
-                                          if (_selectMode) {
-                                            return cardWrap(tile);
-                                          }
-                                          return Dismissible(
-                                            key: ValueKey(
-                                                'sess-${s.sessionKey}'),
-                                            background: Container(
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFF59E0B),
-                                                borderRadius:
-                                                    BorderRadius.circular(14),
-                                              ),
-                                              alignment: Alignment.centerLeft,
-                                              padding: const EdgeInsets.only(
-                                                left: 20,
-                                              ),
-                                              child: const Icon(
-                                                Icons.push_pin,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                            secondaryBackground: Container(
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFF64748B),
-                                                borderRadius:
-                                                    BorderRadius.circular(14),
-                                              ),
-                                              alignment: Alignment.centerRight,
-                                              padding: const EdgeInsets.only(
-                                                right: 20,
-                                              ),
-                                              child: Icon(
-                                                _archived.contains(s.sessionKey)
-                                                    ? Icons.unarchive
-                                                    : Icons.archive,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                            confirmDismiss: (dir) async {
-                                              if (dir ==
-                                                  DismissDirection.startToEnd) {
-                                                await _togglePin(s);
-                                              } else {
-                                                await _toggleArchive(s);
-                                              }
-                                              return false; // keep tile; state updates list
-                                            },
-                                            child: cardWrap(tile),
-                                          );
-                                        },
-                                      ),
-                          );
-                  },
+                                          },
+                                        ),
+                            );
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

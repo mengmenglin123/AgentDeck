@@ -320,7 +320,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
           children: [
             AppLogo(size: 28),
             SizedBox(width: 10),
-            Text('连接服务器'),
+            Flexible(
+              child: Text('连接服务器', overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
         actions: compactAppBarActions([
@@ -937,207 +939,218 @@ class _ConnectScreenState extends State<ConnectScreen> {
               ),
             ],
             const SizedBox(height: 16),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
+            // Material (not a decorated Container) so the TLS SwitchListTile
+            // keeps visible ink.
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Material(
                 color: Theme.of(context).brightness == Brightness.dark
                     ? Colors.white.withValues(alpha: 0.03)
                     : Theme.of(context).colorScheme.surfaceContainer,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : Theme.of(context)
-                          .colorScheme
-                          .outlineVariant
-                          .withValues(alpha: 0.7),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Theme.of(context)
+                            .colorScheme
+                            .outlineVariant
+                            .withValues(alpha: 0.7),
+                  ),
                 ),
-              ),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  // 短路径：名称 + 主机 + 双令牌
-                  TextField(
-                    controller: _name,
-                    decoration: const InputDecoration(
-                      labelText: '配置名称',
-                      hintText: '家庭 / 公司 / 测试',
-                    ),
-                    enabled: !busy,
-                    onChanged: controller.updateDraftProfileName,
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _host,
-                    decoration: const InputDecoration(
-                      labelText: '主机地址',
-                      hintText: 'IP 或域名',
-                      prefixIcon: Icon(Icons.dns_outlined),
-                    ),
-                    textInputAction: TextInputAction.next,
-                    enabled: !busy,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _bridgeToken,
-                    obscureText: _obscureBridge,
-                    decoration: InputDecoration(
-                      labelText: '桥接令牌',
-                      prefixIcon: const Icon(Icons.key_outlined),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscureBridge
-                              ? Icons.visibility
-                              : Icons.visibility_off,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      // 短路径：名称 + 主机 + 双令牌
+                      TextField(
+                        controller: _name,
+                        decoration: const InputDecoration(
+                          labelText: '配置名称',
+                          hintText: '家庭 / 公司 / 测试',
                         ),
-                        onPressed: () => setState(
-                          () => _obscureBridge = !_obscureBridge,
-                        ),
+                        enabled: !busy,
+                        onChanged: controller.updateDraftProfileName,
                       ),
-                    ),
-                    enabled: !busy,
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _mgmtToken,
-                    obscureText: _obscureMgmt,
-                    decoration: InputDecoration(
-                      labelText: '管理令牌',
-                      prefixIcon: const Icon(Icons.vpn_key_outlined),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscureMgmt
-                              ? Icons.visibility
-                              : Icons.visibility_off,
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _host,
+                        decoration: const InputDecoration(
+                          labelText: '主机地址',
+                          hintText: 'IP 或域名',
+                          prefixIcon: Icon(Icons.dns_outlined),
                         ),
-                        onPressed: () =>
-                            setState(() => _obscureMgmt = !_obscureMgmt),
+                        textInputAction: TextInputAction.next,
+                        enabled: !busy,
+                        onChanged: (_) => setState(() {}),
                       ),
-                    ),
-                    enabled: !busy,
-                  ),
-                  const SizedBox(height: 8),
-                  // 高级选项折叠：端口 / TLS
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: busy
-                          ? null
-                          : () => setState(
-                                () => _showAdvanced = !_showAdvanced,
-                              ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: Row(
-                          children: [
-                            Icon(
-                              _showAdvanced
-                                  ? Icons.expand_less
-                                  : Icons.expand_more,
-                              size: 22,
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _bridgeToken,
+                        obscureText: _obscureBridge,
+                        decoration: InputDecoration(
+                          labelText: '桥接令牌',
+                          prefixIcon: const Icon(Icons.key_outlined),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscureBridge
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
                             ),
-                            const SizedBox(width: 6),
-                            Text(
-                              _showAdvanced ? '收起高级选项' : '高级选项（端口 / TLS）',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                              ),
+                            onPressed: () => setState(
+                              () => _obscureBridge = !_obscureBridge,
                             ),
-                            const Spacer(),
-                            Text(
-                              '${_bridgePort.text}:${_mgmtPort.text}${_useTls ? ' · TLS' : ''}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontFamily: 'monospace',
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (_showAdvanced) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _bridgePort,
-                            decoration: const InputDecoration(
-                              labelText: '桥接端口',
-                            ),
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                            enabled: !busy,
-                            onChanged: (_) => setState(() {}),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: _mgmtPort,
-                            decoration: const InputDecoration(
-                              labelText: '管理端口',
+                        enabled: !busy,
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _mgmtToken,
+                        obscureText: _obscureMgmt,
+                        decoration: InputDecoration(
+                          labelText: '管理令牌',
+                          prefixIcon: const Icon(Icons.vpn_key_outlined),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscureMgmt
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
                             ),
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                            enabled: !busy,
-                            onChanged: (_) => setState(() {}),
+                            onPressed: () =>
+                                setState(() => _obscureMgmt = !_obscureMgmt),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('使用 TLS (wss / https)'),
-                      subtitle: const Text('公网环境推荐开启'),
-                      value: _useTls,
-                      onChanged:
-                          busy ? null : (v) => setState(() => _useTls = v),
-                    ),
-                    if (warnTls)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color:
-                              const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                        enabled: !busy,
+                      ),
+                      const SizedBox(height: 8),
+                      // 高级选项折叠：端口 / TLS
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color:
-                                const Color(0xFFF59E0B).withValues(alpha: 0.35),
+                          onTap: busy
+                              ? null
+                              : () => setState(
+                                    () => _showAdvanced = !_showAdvanced,
+                                  ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  _showAdvanced
+                                      ? Icons.expand_less
+                                      : Icons.expand_more,
+                                  size: 22,
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    _showAdvanced ? '收起高级选项' : '高级选项（端口 / TLS）',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '${_bridgePort.text}:${_mgmtPort.text}${_useTls ? ' · TLS' : ''}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontFamily: 'monospace',
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        child: const Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      ),
+                      if (_showAdvanced) ...[
+                        const SizedBox(height: 8),
+                        Row(
                           children: [
-                            Icon(Icons.warning_amber_rounded,
-                                color: Color(0xFFF59E0B), size: 20),
-                            SizedBox(width: 10),
                             Expanded(
-                              child: Text(
-                                '明文连接到非本地主机：流量未加密。建议 TLS 反向代理。',
-                                style: TextStyle(fontSize: 12.5, height: 1.35),
+                              child: TextField(
+                                controller: _bridgePort,
+                                decoration: const InputDecoration(
+                                  labelText: '桥接端口',
+                                ),
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                enabled: !busy,
+                                onChanged: (_) => setState(() {}),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextField(
+                                controller: _mgmtPort,
+                                decoration: const InputDecoration(
+                                  labelText: '管理端口',
+                                ),
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                enabled: !busy,
+                                onChanged: (_) => setState(() {}),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                  ],
-                ],
+                        const SizedBox(height: 4),
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('使用 TLS (wss / https)'),
+                          subtitle: const Text('公网环境推荐开启'),
+                          value: _useTls,
+                          onChanged:
+                              busy ? null : (v) => setState(() => _useTls = v),
+                        ),
+                        if (warnTls)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF59E0B)
+                                  .withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(0xFFF59E0B)
+                                    .withValues(alpha: 0.35),
+                              ),
+                            ),
+                            child: const Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(Icons.warning_amber_rounded,
+                                    color: Color(0xFFF59E0B), size: 20),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    '明文连接到非本地主机：流量未加密。建议 TLS 反向代理。',
+                                    style:
+                                        TextStyle(fontSize: 12.5, height: 1.35),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ],
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 16),

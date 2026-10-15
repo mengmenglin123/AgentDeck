@@ -145,16 +145,20 @@ class ConsoleLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Scrollable so a very short slot (e.g. list area squeezed by the
+    // keyboard on a small phone) never overflows.
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const CircularProgressIndicator(),
-          if (label != null) ...[
-            const SizedBox(height: 12),
-            Text(label!, style: Theme.of(context).textTheme.bodySmall),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            if (label != null) ...[
+              const SizedBox(height: 12),
+              Text(label!, style: Theme.of(context).textTheme.bodySmall),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -280,9 +284,8 @@ class ConsoleCard extends StatelessWidget {
       margin: margin,
       padding: padding,
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.03)
-            : cs.surfaceContainer,
+        color:
+            isDark ? Colors.white.withValues(alpha: 0.03) : cs.surfaceContainer,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isDark

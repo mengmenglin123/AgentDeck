@@ -18,6 +18,7 @@ import 'package:huanhermes_app/screens/activity_screen.dart';
 import 'package:huanhermes_app/screens/agents_screen.dart';
 import 'package:huanhermes_app/screens/audit_screen.dart';
 import 'package:huanhermes_app/screens/chat_screen.dart';
+import 'package:huanhermes_app/screens/connect_screen.dart';
 import 'package:huanhermes_app/screens/cron_screen.dart';
 import 'package:huanhermes_app/screens/diff_screen.dart';
 import 'package:huanhermes_app/screens/host_dashboard_screen.dart';
@@ -192,20 +193,18 @@ void main() {
     expectHealthy(tester, 'Sessions');
     expect(find.text('列表里的会话'), findsWidgets);
     final before = sc.sessions.length;
-    final fab = find.byType(FloatingActionButton);
-    expect(fab, findsWidgets, reason: 'new-session button');
-    await tester.tap(fab.first);
+    // Inline "new session" row: optional title + 新建 button.
+    final titleField = find.widgetWithText(TextField, '新会话标题（可选）');
+    await tester.ensureVisible(titleField);
+    await tester.enterText(titleField, '新建 e2e');
+    final createBtn = find.widgetWithText(FilledButton, '新建');
+    await tester.ensureVisible(createBtn);
+    await tester.pump();
+    await tester.tap(createBtn);
     await settle(tester);
-    // A title dialog may appear; confirm it if so.
-    final dialogField = find.descendant(of: find.byType(AlertDialog), matching: find.byType(TextField));
-    if (dialogField.evaluate().isNotEmpty) {
-      await tester.enterText(dialogField.first, '新建 e2e');
-      final ok = find.descendant(of: find.byType(AlertDialog), matching: find.byType(FilledButton));
-      await tester.tap(ok.evaluate().isNotEmpty
-          ? ok.first
-          : find.descendant(of: find.byType(AlertDialog), matching: find.byType(TextButton)).last);
-      await settle(tester);
-    }
+    await tester.pump(const Duration(seconds: 1)); // chat route opens
+    await settle(tester, rounds: 4);
+    expect(find.byType(ChatScreen), findsOneWidget, reason: 'create opens the chat');
     await tester.runAsync(() => sc.refresh());
     await settle(tester, rounds: 3);
     expect(sc.sessions.length, greaterThan(before));
@@ -325,22 +324,28 @@ void main() {
     final conn = await readyConnection(tester);
     await pumpWithProviders(tester, const ToolsHubScreen(), connection: conn);
     await settle(tester, rounds: 4);
-    final tiles = find.byType(ConsoleToolTile);
-    final n = tiles.evaluate().length;
+    final n = find.byType(ConsoleToolTile).evaluate().length;
     expect(n, greaterThanOrEqualTo(10));
+    final opened = <String>[];
     for (var i = 0; i < n; i++) {
+      // Fresh hub per tool so no exit transition of the previous tool's
+      // route can sit over the grid.
+      await tester.pumpWidget(const SizedBox());
+      await pumpWithProviders(tester, const ToolsHubScreen(), connection: conn);
+      await settle(tester, rounds: 2);
       final tile = find.byType(ConsoleToolTile).at(i);
-      await tester.scrollUntilVisible(tile, 200, scrollable: find.byType(Scrollable).first);
+      await tester.ensureVisible(tile); // whole tile on screen, not just an edge
+      await tester.pump(const Duration(milliseconds: 300));
       final label = (tester.widget<ConsoleToolTile>(tile)).label;
       await tester.tap(tile);
+      await tester.pump(const Duration(seconds: 1)); // push transition
       await settle(tester, rounds: 6);
       expectHealthy(tester, 'Tool "$label"');
       final nav = tester.state<NavigatorState>(find.byType(Navigator).first);
-      if (nav.canPop()) {
-        nav.pop();
-        await settle(tester, rounds: 2);
-      }
+      expect(nav.canPop(), isTrue, reason: 'Tool "$label" opened nothing');
+      opened.add(label);
     }
+    expect(opened.length, n);
     await tester.pumpWidget(const SizedBox());
     await settle(tester, rounds: 1);
   });
@@ -359,4 +364,57 @@ void main() {
     expect(theme.mode, ThemeMode.light);
     await tester.pumpWidget(const SizedBox());
   });
+
+  // Small-phone layout: ~390x844dp (and a 320dp-wide edge case) with the
+  // soft keyboard up. Any RenderFlex overflow is a framework error that
+  // expectHealthy surfaces.
+  for (final size in const [Size(390, 844), Size(320, 640)]) {
+    testWidgets('no overflows at ${size.width.toInt()}dp with keyboard (sessions + connect)', (tester) async {
+      if (skipAll) return;
+      final view = binding.platformDispatcher.views.first;
+      view.devicePixelRatio = 3;
+      view.physicalSize = size * 3;
+      await tester.runAsync(() => MgmtClient(config: host.config()).createSession(
+            project: 'claude-code',
+            title: '一个非常非常长的会话标题用于测试小屏幕上的布局是否会溢出 overflow check',
+          ));
+      final conn = await readyConnection(tester);
+      final sc = SessionController(config: conn.saved!);
+      await tester.runAsync(() => sc.refresh());
+      await pumpWithProviders(tester, const SessionsScreen(), connection: conn, sessions: sc);
+      await settle(tester);
+      expectHealthy(tester, 'Sessions ${size.width}');
+      view.viewInsets = FakeViewPadding(bottom: size.height * 0.45 * 3);
+      await tester.pump();
+      await settle(tester, rounds: 2);
+      expectHealthy(tester, 'Sessions ${size.width} + keyboard');
+      view.resetViewInsets();
+      await tester.pumpWidget(const SizedBox());
+      await settle(tester, rounds: 1);
+
+      final c2 = ConnectionController(store: MemoryConfigStore());
+      c2.bootstrapEmpty();
+      c2.updateDraft(host.config());
+      await tester.pumpWidget(MultiProvider(
+        providers: [
+          ChangeNotifierProvider<ConnectionController>.value(value: c2),
+          ChangeNotifierProvider<ThemeController>(create: (_) => ThemeController()),
+          ChangeNotifierProvider<AppSettingsController>(create: (_) => AppSettingsController()),
+        ],
+        child: const MaterialApp(home: ConnectScreen()),
+      ));
+      await tester.pump();
+      final adv = find.textContaining('高级选项');
+      await tester.ensureVisible(adv.first);
+      await tester.pump();
+      expectHealthy(tester, 'Connect ${size.width}');
+      await tester.tap(adv.first);
+      await tester.pump(const Duration(milliseconds: 300));
+      view.viewInsets = FakeViewPadding(bottom: size.height * 0.45 * 3);
+      await tester.pump();
+      expectHealthy(tester, 'Connect ${size.width} advanced + keyboard');
+      view.resetViewInsets();
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
 }
