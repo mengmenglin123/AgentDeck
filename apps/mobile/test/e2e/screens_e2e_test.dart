@@ -146,6 +146,7 @@ void main() {
     if (skipAll) return;
     final conn = ConnectionController(store: MemoryConfigStore());
     conn.bootstrapEmpty();
+    conn.updateDraft(host.config());
     await tester.pumpWidget(MultiProvider(
       providers: [
         ChangeNotifierProvider<ConnectionController>.value(value: conn),
@@ -156,8 +157,6 @@ void main() {
     ));
     await tester.pump();
     expect(find.text('连接服务器'), findsOneWidget);
-    conn.updateDraft(host.config());
-    await tester.pump();
     await tester.scrollUntilVisible(find.text('测试并连接'), 400,
         scrollable: find.byType(Scrollable).first);
     // Fields mirror the draft; tap the real button.
