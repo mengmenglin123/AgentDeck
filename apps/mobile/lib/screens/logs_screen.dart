@@ -264,9 +264,9 @@ class _LogsScreenState extends State<LogsScreen> {
           final base = _visible.isEmpty
               ? '主机日志'
               : (_visible.length == _logs.length
-                  ? 'Host logs (${_visible.length})'
-                  : 'Host logs (${_visible.length}/${_logs.length})');
-          return _autoRefresh ? '$base · auto' : base;
+                  ? '主机日志（${_visible.length}）'
+                  : '主机日志（${_visible.length}/${_logs.length}）');
+          return _autoRefresh ? '$base · 自动刷新' : base;
         }()),
         actions: [
           IconButton(
@@ -336,7 +336,7 @@ class _LogsScreenState extends State<LogsScreen> {
           ),
           IconButton(
             tooltip: _sortByTs
-                ? (_sortAsc ? 'Time old→new' : 'Time new→old')
+                ? (_sortAsc ? '时间 旧→新' : '时间 新→旧')
                 : (_sortById
                     ? (_sortAsc ? 'ID Z→A' : 'ID A→Z')
                     : (_sortBySource
@@ -484,7 +484,7 @@ class _LogsScreenState extends State<LogsScreen> {
           ),
           IconButton(
             tooltip:
-                _relativeTs ? 'Absolute timestamps' : 'Relative timestamps',
+                _relativeTs ? '显示绝对时间' : '显示相对时间',
             onPressed: () => setState(() => _relativeTs = !_relativeTs),
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),

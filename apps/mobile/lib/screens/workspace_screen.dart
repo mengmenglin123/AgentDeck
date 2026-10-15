@@ -431,7 +431,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                    'Copied listing CSV (${_visibleEntries.length})',
+                    '已复制目录 CSV（${_visibleEntries.length}）',
                   ),
                   duration: const Duration(seconds: 1),
                 ),
@@ -476,13 +476,13 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
           ),
           IconButton(
             tooltip: _sortByChildren
-                ? (_sortAsc ? 'Children many→few' : 'Children few→many')
+                ? (_sortAsc ? '子项 多→少' : '子项 少→多')
                 : (_sortByStatus
                     ? (_sortAsc ? 'Status Z→A' : 'Status A→Z')
                     : (_sortByBranch
                         ? (_sortAsc ? 'Branch Z→A' : 'Branch A→Z')
                         : (_sortByDirty
-                            ? (_sortAsc ? 'Dirty first' : 'Clean first')
+                            ? (_sortAsc ? '有改动优先' : '无改动优先')
                             : (_sortByName
                                 ? (_sortAsc
                                     ? 'Name Z→A (dirs first)'
@@ -497,12 +497,12 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                                             : 'Path A→Z (dirs first)')
                                         : (_sortByMtime
                                             ? (_sortAsc
-                                                ? 'Mtime new→old'
-                                                : 'Mtime old→new')
+                                                ? '修改时间 新→旧'
+                                                : '修改时间 旧→新')
                                             : (_sortBySize
                                                 ? (_sortAsc
-                                                    ? 'Size large→small'
-                                                    : 'Size small→large')
+                                                    ? '大小 大→小'
+                                                    : '大小 小→大')
                                                 : (_sortAsc
                                                     ? 'Sort Z→A (dirs first)'
                                                     : 'Sort A→Z (dirs first)'))))))))),
@@ -792,7 +792,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   ),
                 FilterChip(
                   label: const Text(
-                    'Hide empty',
+                    '隐藏空项',
                     style: TextStyle(fontSize: 12),
                   ),
                   selected: _hideEmpty,
@@ -912,11 +912,11 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                 decoration: InputDecoration(
                   hintText: _queryRegex
                       ? (_queryCase
-                          ? 'Filter (regex · case)'
-                          : 'Filter (regex)')
+                          ? '筛选（正则 · 区分大小写）'
+                          : '筛选（正则）')
                       : (_queryCase
-                          ? 'Filter (case-sensitive)'
-                          : 'Filter files in this folder'),
+                          ? '筛选（区分大小写）'
+                          : '筛选当前目录文件'),
                   isDense: true,
                   border: const OutlineInputBorder(),
                   prefixIcon: IconButton(

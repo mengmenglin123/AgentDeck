@@ -271,8 +271,8 @@ class _MemoryScreenState extends State<MemoryScreen> {
           _visible.isEmpty
               ? '主机记忆'
               : (_visible.length == _items.length
-                  ? 'Host memory (${_visible.length})'
-                  : 'Host memory (${_visible.length}/${_items.length})'),
+                  ? '主机记忆（${_visible.length}）'
+                  : '主机记忆（${_visible.length}/${_items.length}）'),
         ),
         actions: [
           IconButton(
@@ -359,13 +359,13 @@ class _MemoryScreenState extends State<MemoryScreen> {
           ),
           IconButton(
             tooltip:
-                _relativeTs ? 'Absolute timestamps' : 'Relative timestamps',
+                _relativeTs ? '显示绝对时间' : '显示相对时间',
             onPressed: () => setState(() => _relativeTs = !_relativeTs),
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
           IconButton(
             tooltip: _sortByTs
-                ? (_sortAsc ? 'Time old→new' : 'Time new→old')
+                ? (_sortAsc ? '时间 旧→新' : '时间 新→旧')
                 : (_sortByPath
                     ? (_sortAsc ? '路径 Z→A' : '路径 A→Z')
                     : (_sortById
@@ -374,8 +374,8 @@ class _MemoryScreenState extends State<MemoryScreen> {
                             ? (_sortAsc ? 'Scope Z→A' : 'Scope A→Z')
                             : (_sortByConfidence
                                 ? (_sortAsc
-                                    ? 'Confidence high→low'
-                                    : 'Confidence low→high')
+                                    ? '置信度 高→低'
+                                    : '置信度 低→高')
                                 : (_sortByContent
                                     ? (_sortAsc ? 'Content Z→A' : 'Content A→Z')
                                     : (_sortByType

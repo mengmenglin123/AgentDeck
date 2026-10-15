@@ -343,9 +343,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
           final base = items.isEmpty
               ? '主机活动'
               : (_events.isEmpty || items.length == _events.length
-                  ? 'Host activity (${items.length})'
-                  : 'Host activity (${items.length}/${_events.length})');
-          return _autoRefresh ? '$base · auto' : base;
+                  ? '主机活动（${items.length}）'
+                  : '主机活动（${items.length}/${_events.length}）');
+          return _autoRefresh ? '$base · 自动刷新' : base;
         }()),
         actions: [
           IconButton(
@@ -426,11 +426,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
           ),
           IconButton(
             tooltip: _sortByPriority
-                ? (_sortAsc ? 'Priority Z→A' : 'Priority A→Z')
+                ? (_sortAsc ? '优先级 Z→A' : '优先级 A→Z')
                 : (_sortByTs
-                    ? (_sortAsc ? 'Time old→new' : 'Time new→old')
+                    ? (_sortAsc ? '时间 旧→新' : '时间 新→旧')
                     : (_sortByChannel
-                        ? (_sortAsc ? 'Channel Z→A' : 'Channel A→Z')
+                        ? (_sortAsc ? '渠道 Z→A' : '渠道 A→Z')
                         : (_sortByType
                             ? (_sortAsc ? '类型 Z→A' : '类型 A→Z')
                             : (_sortByLevel
@@ -447,9 +447,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
                                                     : '摘要 A→Z')
                                                 : (_sortByKind
                                                     ? (_sortAsc
-                                                        ? 'Kinds Z→A'
-                                                        : 'Kinds A→Z')
-                                                    : 'Sort by kind / summary / session / source / id / level / type / channel / time / priority'))))))))),
+                                                        ? '种类 Z→A'
+                                                        : '种类 A→Z')
+                                                    : '排序：种类 / 摘要 / 会话 / 来源 / ID / 级别 / 类型 / 渠道 / 时间 / 优先级'))))))))),
             onPressed: () {
               setState(() {
                 if (!_sortByKind &&

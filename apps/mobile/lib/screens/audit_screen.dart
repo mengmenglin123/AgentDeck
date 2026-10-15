@@ -246,7 +246,7 @@ class _AuditScreenState extends State<AuditScreen> {
           ),
           IconButton(
             tooltip: _sortByTs
-                ? (_sortAsc ? 'Time old→new' : 'Time new→old')
+                ? (_sortAsc ? '时间 旧→新' : '时间 新→旧')
                 : (_sortByDetail
                     ? (_sortAsc ? 'Details Z→A' : 'Details A→Z')
                     : (_sortByLevel

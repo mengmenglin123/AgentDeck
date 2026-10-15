@@ -481,7 +481,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   builder: (ctx) => AlertDialog(
                     title: const Text('重置控制台偏好?'),
                     content: const Text(
-                      'Restores local console defaults (scale, compact, refresh, haptics, mono chat, etc.). Host profiles and tokens are not touched.',
+                      '恢复本机控制台默认设置（缩放、紧凑模式、刷新、触感、等宽聊天等）。不会改动主机配置与令牌。',
                     ),
                     actions: [
                       TextButton(

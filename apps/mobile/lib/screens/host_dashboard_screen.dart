@@ -602,11 +602,11 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                         ),
                         hintText: _queryRegex
                             ? (_queryCase
-                                ? 'Filter (regex · case)'
-                                : 'Filter (regex)')
+                                ? '筛选（正则 · 区分大小写）'
+                                : '筛选（正则）')
                             : (_queryCase
-                                ? 'Filter (case-sensitive)'
-                                : 'Filter capabilities'),
+                                ? '筛选（区分大小写）'
+                                : '筛选能力项'),
                         border: const OutlineInputBorder(),
                         suffixIcon: _capQuery.isEmpty
                             ? null
@@ -861,10 +861,10 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                             ),
                             hintText: _queryRegex
                                 ? (_queryCase
-                                    ? 'Filter (regex · case)'
-                                    : 'Filter (regex)')
+                                    ? '筛选（正则 · 区分大小写）'
+                                    : '筛选（正则）')
                                 : (_queryCase
-                                    ? 'Filter (case-sensitive)'
+                                    ? '筛选（区分大小写）'
                                     : '筛选键 / 值'),
                             border: const OutlineInputBorder(),
                             suffixIcon: _keyQuery.isEmpty

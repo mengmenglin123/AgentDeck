@@ -264,8 +264,8 @@ class _CronScreenState extends State<CronScreen> {
           items.isEmpty
               ? '主机定时任务'
               : (items.length == _jobs.length
-                  ? 'Host schedules (${items.length})'
-                  : 'Host schedules (${items.length}/${_jobs.length})'),
+                  ? '主机定时任务（${items.length}）'
+                  : '主机定时任务（${items.length}/${_jobs.length}）'),
         ),
         actions: [
           IconButton(
@@ -343,7 +343,7 @@ class _CronScreenState extends State<CronScreen> {
           ),
           IconButton(
             tooltip: _sortByLastRun
-                ? (_sortAsc ? 'Last run old→new' : 'Last run new→old')
+                ? (_sortAsc ? '上次运行 旧→新' : '上次运行 新→旧')
                 : (_sortByDesc
                     ? (_sortAsc ? '描述 Z→A' : '描述 A→Z')
                     : (_sortByName
@@ -354,8 +354,8 @@ class _CronScreenState extends State<CronScreen> {
                                 ? (_sortAsc ? 'ID Z→A' : 'ID A→Z')
                                 : (_sortByNext
                                     ? (_sortAsc
-                                        ? 'Next run late→soon'
-                                        : 'Next run soon→late')
+                                        ? '下次运行 晚→早'
+                                        : '下次运行 早→晚')
                                     : (_sortByLastStatus
                                         ? (_sortAsc ? '上次状态 Z→A' : '上次状态 A→Z')
                                         : (_sortByKind

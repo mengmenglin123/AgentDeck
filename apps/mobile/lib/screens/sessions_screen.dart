@@ -1772,7 +1772,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                           const SizedBox(height: 8),
                                           Text(
                                             _filter == 'archived'
-                                                ? 'Nothing archived on this device, or search hides them.'
+                                                ? '本机暂无归档会话，或已被搜索条件隐藏。'
                                                 : '请尝试清除筛选条件或创建新会话',
                                             textAlign: TextAlign.center,
                                             style: TextStyle(
