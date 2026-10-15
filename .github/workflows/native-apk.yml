@@ -33,13 +33,24 @@ jobs:
         with:
           gradle-version: '8.11.1'
 
-      - name: Unit tests
+      - name: Unit tests and release APK
         working-directory: apps/android
-        run: gradle --no-daemon :app:testReleaseUnitTest
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle --no-daemon :app:testReleaseUnitTest :app:assembleRelease 2>&1 | tee "$RUNNER_TEMP/gradle.log"
 
-      - name: Build release APK
-        working-directory: apps/android
-        run: gradle --no-daemon :app:assembleRelease
+      # The sandbox can't read Actions logs, so failures are pushed to a log branch.
+      - name: Publish failure log
+        if: failure()
+        shell: bash
+        run: |
+          mkdir -p /tmp/logs && cd /tmp/logs
+          git init -q && git checkout -q -b native-ci-logs
+          tail -c 200000 "$RUNNER_TEMP/gradle.log" > gradle.log 2>/dev/null || echo "no gradle log" > gradle.log
+          git add gradle.log
+          git -c user.name=ci -c user.email=ci@local commit -qm "log ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" native-ci-logs
 
       - name: Rename and checksum
         id: apk
