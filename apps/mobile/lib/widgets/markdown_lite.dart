@@ -618,21 +618,27 @@ class MarkdownLite extends StatelessWidget {
     return TextSpan(style: base, children: out);
   }
 
+  /// Tokens tinted inside fenced code: line comments, block comments,
+  /// double/single-quoted strings, numbers and words. Compiled once.
+  ///
+  /// (0.1.205 and earlier had an unbalanced '(' here, so building any fenced
+  /// code block threw `FormatException: Unterminated group`.)
+  @visibleForTesting
+  static final codeTokenPattern = RegExp(
+    r'(//[^\n]*|/\*[\s\S]*?\*/|#[^\n]*|"[^"\\]*(?:\\.[^"\\]*)*"|'
+    r"'[^'\\]*(?:\\.[^'\\]*)*'|"
+    r'\b\d+(?:\.\d+)?\b|\b[A-Za-z_][\w]*\b)',
+    multiLine: true,
+  );
+
   /// Lightweight fenced-code token tint (no external highlighter deps).
   /// Colors comments / strings / keywords for common langs; falls back to plain.
   static TextSpan _highlightCode(String text, String? lang, TextStyle base) {
     if (text.isEmpty) return TextSpan(text: text, style: base);
     final kw = _keywordsFor(lang);
     final spans = <TextSpan>[];
-    // Avoid nested quote hell: match line comments, block comments, strings, numbers, words.
-        final re = RegExp(
-      r'((//[^\n]*|/\*[\s\S]*?\*/|#[^\n]*|"[^"\\]*(?:\\.[^"\\]*)*"|'
-      r"'[^'\\]*(?:\\.[^'\\]*)*'|"
-      r'\b\d+(?:\.\d+)?\b|\b[A-Za-z_][\w]*\b)',
-      multiLine: true,
-    );
     var i = 0;
-    for (final m in re.allMatches(text)) {
+    for (final m in codeTokenPattern.allMatches(text)) {
       if (m.start > i) {
         spans.add(TextSpan(text: text.substring(i, m.start), style: base));
       }
@@ -828,7 +834,7 @@ class MarkdownLite extends StatelessWidget {
   static TextSpan _inline(String text, TextStyle base) {
     final spans = <InlineSpan>[];
     final re = RegExp(
-      r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<mark>[^<]+</mark>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<strike>[^<]+</strike>|<br/>|<br>|<wbr/>|<wbr>|<small>[^<]+</small>|<cite>[^<]+</cite>|<q>[^<]+</q>|<var>[^<]+</var>|<samp>[^<]+</samp>|<dfn>[^<]+</dfn>|<em>[^<]+</em>|<strong>[^<]+</strong>|<b>[^<]+</b>|<code>[^<]+</code>|<i>[^<]+</i>|<big>[^<]+</big>|<tt>[^<]+</tt>|<time>[^<]+</time>|<data>[^<]+</data>|<bdi>[^<]+</bdi>|<bdo[^>]*>[^<]+</bdo>|<ruby>[^<]+<rt>[^<]+</rt></ruby>|<ruby>[^<]+</ruby>|<rt>[^<]+</rt>|<rp>[^<]*</rp>|' + kLegacyHtmlInlinePattern + r'|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+))',
+      r'(~~[^~]+~~|==[^=]+==|\|\|[^|]+\|\||<kbd>[^<]+</kbd>|<sup>[^<]+</sup>|<sub>[^<]+</sub>|<u>[^<]+</u>|<mark>[^<]+</mark>|<del>[^<]+</del>|<ins>[^<]+</ins>|<s>[^<]+</s>|<strike>[^<]+</strike>|<br/>|<br>|<wbr/>|<wbr>|<small>[^<]+</small>|<cite>[^<]+</cite>|<q>[^<]+</q>|<var>[^<]+</var>|<samp>[^<]+</samp>|<dfn>[^<]+</dfn>|<em>[^<]+</em>|<strong>[^<]+</strong>|<b>[^<]+</b>|<code>[^<]+</code>|<i>[^<]+</i>|<big>[^<]+</big>|<tt>[^<]+</tt>|<time>[^<]+</time>|<data>[^<]+</data>|<bdi>[^<]+</bdi>|<bdo[^>]*>[^<]+</bdo>|<ruby>[^<]+<rt>[^<]+</rt></ruby>|<ruby>[^<]+</ruby>|<rt>[^<]+</rt>|<rp>[^<]*</rp>|' + kLegacyHtmlInlinePattern + r'|<abbr[^>]*>[^<]+</abbr>|`[^`]+`|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|__[^_]+__|\*[^*]+\*|_[^_]+_|!\[[^\]]*\]\([^)]+\)|\[\^[^\]]+\]|\[[^\]]+\]\([^)]+\)|https?://[^\s<>\)]+)',
     );
     var i = 0;
     for (final m in re.allMatches(text)) {
