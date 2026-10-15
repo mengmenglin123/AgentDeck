@@ -15,4 +15,19 @@ void main() {
     expect(ChatController.isErrorFrame({'type': 'run_done', 'error': 'agent crashed'}), isTrue);
     expect(ChatController.isErrorFrame({'type': 'x', 'error': {'code': 1}}), isTrue);
   });
+
+  test('short permission decisions resolve to the button data', () {
+    const rows = [
+      [
+        {'text': 'Allow', 'data': 'perm:r1:allow'},
+        {'text': 'Deny', 'data': 'perm:r1:deny'},
+        {'text': 'Allow all', 'data': 'perm:r1:allow_all'},
+      ]
+    ];
+    expect(ChatController.resolvePermissionAction('deny', rows), 'perm:r1:deny');
+    expect(ChatController.resolvePermissionAction('allow', rows), 'perm:r1:allow');
+    expect(ChatController.resolvePermissionAction('allow_all', rows), 'perm:r1:allow_all');
+    expect(ChatController.resolvePermissionAction('perm:x:deny', rows), 'perm:x:deny');
+    expect(ChatController.resolvePermissionAction('deny', const []), 'deny');
+  });
 }

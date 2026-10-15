@@ -360,25 +360,57 @@ class ChatController extends ChangeNotifier {
     }
   }
 
-  Future<void> respondPermission(String action) async {
+  /// Answers a permission card.
+  ///
+  /// [decision] is `allow`, `deny`, `allow_all`, or a full button action
+  /// such as `perm:<request_id>:deny`. The Host only accepts the exact
+  /// button `data` (it carries the request id) together with the card's own
+  /// `reply_ctx`, so a short decision is resolved against [card] — or the
+  /// newest permission card when none is given. (≤0.1.205 sent bare
+  /// `allow`/`deny` with the latest reply_ctx, which the production Host
+  /// rejects and the Mock Host treated "deny" as allow.)
+  Future<void> respondPermission(String decision, {TranscriptMessage? card}) async {
     if (_bridge == null || !connected) return;
-    final replyCtx = lastReplyCtx ?? '';
+    final target = card ??
+        reducer.messages.lastWhere(
+          (m) => m.role == 'permission',
+          orElse: () => TranscriptMessage(role: 'none', content: ''),
+        );
+    final resolved = resolvePermissionAction(decision, target.meta['buttons']);
+    final replyCtx = target.meta['reply_ctx']?.toString() ?? lastReplyCtx ?? '';
+    final label = resolved.endsWith('deny')
+        ? 'deny'
+        : resolved.endsWith('allow_all')
+            ? 'allow_all'
+            : 'allow';
     reducer.apply(
-      TranscriptEvent(kind: EventKind.system, text: 'permission: $action'),
+      TranscriptEvent(kind: EventKind.system, text: 'permission: $label'),
     );
     notifyListeners();
     try {
       _bridge!.sendCardAction(
         sessionKey: session.sessionKey,
-        action: action,
+        action: resolved,
         replyCtx: replyCtx,
         project: session.project,
       );
-      audit.add('permission.action', detail: action);
+      audit.add('permission.action', detail: label);
     } catch (e) {
       error = e.toString();
       notifyListeners();
     }
+  }
+
+  /// Maps a short decision onto the matching button's `data`.
+  @visibleForTesting
+  static String resolvePermissionAction(String decision, dynamic buttons) {
+    final d = decision.trim();
+    if (d.contains(':')) return d;
+    for (final b in flattenButtons(buttons)) {
+      final data = b['data']?.toString() ?? '';
+      if (data == d || data.endsWith(':$d')) return data;
+    }
+    return d;
   }
 
   void _scheduleReconnect() {

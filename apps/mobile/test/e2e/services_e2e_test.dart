@@ -245,7 +245,9 @@ void main() {
         // A permission request must raise a notification so a backgrounded
         // user can come back and answer it.
         expect(notifications.where((c) => c.method == 'show' && '${c.arguments}'.contains('需要权限')), isNotEmpty);
-        await chat.respondPermission('perm:demo:$action');
+        // Short decision (what the buttons pass) must resolve to the
+        // card's full action `perm:<id>:<decision>`.
+        await chat.respondPermission(action, card: card);
         final expected = {'allow': 'allowed: mock ran', 'deny': 'Permission denied', 'allow_all': 'allowed_all'}[action]!;
         await waitFor(() => chat.messages.any((m) => m.role == 'assistant' && m.content.contains(expected)),
             reason: 'permission result');

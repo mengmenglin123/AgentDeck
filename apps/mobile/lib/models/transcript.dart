@@ -53,6 +53,24 @@ class TranscriptMessage {
   }
 }
 
+/// Permission/action buttons arrive either flat (`[{text,data}]`) or as rows
+/// (`[[{text,data}, ...]]`, the Bridge/Telegram shape). Returns them flat.
+List<Map<String, dynamic>> flattenButtons(dynamic raw) {
+  final out = <Map<String, dynamic>>[];
+  if (raw is List) {
+    for (final row in raw) {
+      if (row is List) {
+        for (final b in row) {
+          if (b is Map) out.add(Map<String, dynamic>.from(b));
+        }
+      } else if (row is Map) {
+        out.add(Map<String, dynamic>.from(row));
+      }
+    }
+  }
+  return out;
+}
+
 /// Reduce bridge host events into a list of UI messages.
 class TranscriptReducer {
   final List<TranscriptMessage> messages = <TranscriptMessage>[];

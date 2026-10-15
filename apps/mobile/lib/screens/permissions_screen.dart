@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/transcript.dart';
 import '../services/chat_controller.dart';
 
 /// Screen for managing agent permission requests.
@@ -213,8 +214,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
 
   Widget _buildPermissionCard(dynamic msg, bool isPending, ColorScheme cs) {
     final text = msg.content?.toString() ?? '';
-    final buttons =
-        (msg.meta['buttons'] as List? ?? []) as List<dynamic>? ?? [];
+    final buttons = flattenButtons(msg.meta['buttons']);
     final toolMatch = RegExp(r'tool[=:]\s*(\w+)').firstMatch(text);
     final toolName = toolMatch?.group(1) ?? '未知';
 
@@ -279,7 +279,10 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                   final isDeny = action.contains('deny');
                   return FilledButton.tonal(
                     onPressed: () {
-                      widget.chat.respondPermission(action);
+                      widget.chat.respondPermission(
+                        action,
+                        card: msg is TranscriptMessage ? msg : null,
+                      );
                       setState(() {});
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(

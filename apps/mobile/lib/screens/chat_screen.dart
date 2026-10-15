@@ -1591,7 +1591,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             key: key,
                             child: _MessageBubble(
                               message: m,
-                              onPermission: _chat.respondPermission,
+                              onPermission: (d) =>
+                                  _chat.respondPermission(d, card: m),
                               showTools:
                                   true, // filtering already applied in _visibleMessages
                               highlight: _searchQ.trim(),
@@ -2205,22 +2206,8 @@ class _MessageBubble extends StatefulWidget {
 class _MessageBubbleState extends State<_MessageBubble> {
   bool _toolExpanded = false;
 
-  List<Map<String, dynamic>> get _buttons {
-    final raw = widget.message.meta['buttons'];
-    final out = <Map<String, dynamic>>[];
-    if (raw is List) {
-      for (final row in raw) {
-        if (row is List) {
-          for (final b in row) {
-            if (b is Map) out.add(Map<String, dynamic>.from(b));
-          }
-        } else if (row is Map) {
-          out.add(Map<String, dynamic>.from(row));
-        }
-      }
-    }
-    return out;
-  }
+  List<Map<String, dynamic>> get _buttons =>
+      flattenButtons(widget.message.meta['buttons']);
 
   String _toolSummary(String content) {
     final one = content.replaceAll(RegExp(r'\s+'), ' ').trim();

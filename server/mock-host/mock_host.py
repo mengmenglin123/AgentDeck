@@ -4812,9 +4812,9 @@ def _handle_card_action(conn: socket.socket, msg: Dict[str, Any]) -> None:
     sk = msg.get("session_key") or "huan:unknown"
     ctx = msg.get("reply_ctx") or str(uuid.uuid4())
     st = _session_state(sk)
-    if action.endswith(":deny"):
+    if action == "deny" or action.endswith(":deny"):
         text = "Permission denied (mock)."
-    elif action.endswith(":allow_all"):
+    elif action == "allow_all" or action.endswith(":allow_all"):
         st["allow_all"] = True
         text = "allowed_all: mock will auto-approve subsequent tools in this session."
     else:
