@@ -68,13 +68,13 @@ class SshBootstrapService {
         _assetLoader = assetLoader ?? _loadAsset,
         _uuid = uuid ?? const Uuid();
 
-  static const releaseVersion = '0.1.203';
+  static const releaseVersion = '0.1.204';
   static const assetPath =
-      'assets/companion/huanhermes-host-0.1.203.tar.gz';
+      'assets/companion/huanhermes-host-0.1.204.tar.gz';
   static const archiveSha256 =
-      'bd755aa0ccf7d0d47b64f37591d535b84e56cf7763effe490eb1aeaf420f7528';
+      '28baff5f2df0d371c4aca3770661db913e56c050759fd20ad8271c28c3bbb31a';
   static const releaseUrl =
-      'https://github.com/mengmenglin123/huanhermes-companion/releases/download/0.1.203/huanhermes-host-0.1.203.tar.gz';
+      'https://github.com/mengmenglin123/huanhermes-companion/releases/download/0.1.204/huanhermes-host-0.1.204.tar.gz';
 
   final SshSocketConnector _socketConnector;
   final CompanionAssetLoader _assetLoader;

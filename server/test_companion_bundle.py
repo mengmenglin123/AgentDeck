@@ -10,12 +10,12 @@ class TestCompanionBundle(unittest.TestCase):
     def test_mobile_bundle_is_pinned_and_contains_installer(self) -> None:
         bundle = (
             Path(__file__).resolve().parents[1]
-            / "apps/mobile/assets/companion/huanhermes-host-0.1.203.tar.gz"
+            / "apps/mobile/assets/companion/huanhermes-host-0.1.204.tar.gz"
         )
         digest = hashlib.sha256(bundle.read_bytes()).hexdigest()
         self.assertEqual(
             digest,
-            "bd755aa0ccf7d0d47b64f37591d535b84e56cf7763effe490eb1aeaf420f7528",
+            "28baff5f2df0d371c4aca3770661db913e56c050759fd20ad8271c28c3bbb31a",
         )
         with tarfile.open(bundle, "r:gz") as archive:
             names = archive.getnames()

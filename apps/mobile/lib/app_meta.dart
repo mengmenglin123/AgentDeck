@@ -1,5 +1,5 @@
 class AppMeta {
   const AppMeta._();
 
-  static const version = '0.1.203+203';
+  static const version = '0.1.204+204';
 }
