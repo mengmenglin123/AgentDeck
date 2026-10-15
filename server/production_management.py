@@ -254,6 +254,9 @@ class ProductionManagementServer:
                 record = self.sessions.rename(session_key, title, project=project)
                 self._send(request, 200, {"ok": True, "data": record})
                 return
+            # Verify existence and project ownership before touching a live
+            # Agent session, so a wrong-project DELETE cannot kill it.
+            self.sessions.get(session_key, project=project)
             self._close_session(session_key)
             record = self.sessions.delete(session_key, project=project)
             self._send(request, 200, {"ok": True, "data": {"deleted": record["session_key"]}})

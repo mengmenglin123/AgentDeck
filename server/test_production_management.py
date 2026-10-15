@@ -17,6 +17,7 @@ _DIRECT = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 class TestProductionManagementServer(unittest.TestCase):
     def setUp(self) -> None:
+        self.closed_sessions: list[str] = []
         self.directory = tempfile.TemporaryDirectory()
         self.sessions = ProjectSessionStore(
             str(Path(self.directory.name) / "sessions.json"),
@@ -51,6 +52,7 @@ class TestProductionManagementServer(unittest.TestCase):
             default_project="claude-code",
             token="mgmt-token",
             sessions=self.sessions,
+            close_session=self.closed_sessions.append,
             port=0,
         )
         self.server.start()
@@ -117,6 +119,7 @@ class TestProductionManagementServer(unittest.TestCase):
             method="DELETE",
         )["data"]
         self.assertEqual(deleted["deleted"], "session-codex-1")
+        self.assertEqual(self.closed_sessions, ["session-codex-1"])
         self.assertEqual(self.request("/sessions?project=codex")["data"]["sessions"], [])
 
         with self.assertRaises(urllib.error.HTTPError) as missing:
@@ -137,6 +140,11 @@ class TestProductionManagementServer(unittest.TestCase):
                 method="DELETE",
             )
         self.assertEqual(wrong_project.exception.code, 404)
+        self.assertNotIn("session-codex-2", self.closed_sessions)
+        with self.assertRaises(urllib.error.HTTPError) as unknown:
+            self.request("/sessions/does-not-exist", method="DELETE")
+        self.assertEqual(unknown.exception.code, 404)
+        self.assertNotIn("does-not-exist", self.closed_sessions)
         self.assertEqual(
             self.request("/sessions/session-codex-2")["data"]["project"],
             "codex",
