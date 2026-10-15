@@ -5,6 +5,15 @@ import 'dart:typed_data';
 import 'package:dartssh2/dartssh2.dart';
 
 import '../models/discovered_agent.dart';
+import 'ssh_session.dart';
+
+export 'ssh_session.dart'
+    show
+        SshSocketConnector,
+        SshSessionOpener,
+        SshSession,
+        SshCommandResult,
+        SshConnectRequest;
 
 typedef SshHostKeyVerifier = Future<bool> Function(SshHostKey key);
 
@@ -17,22 +26,13 @@ class SshDiscoveryException implements Exception {
   String toString() => message;
 }
 
-typedef SshSocketConnector = Future<SSHSocket> Function(
-  String host,
-  int port,
-  Duration timeout,
-);
-
 class SshDiscoveryService {
-  SshDiscoveryService({SshSocketConnector? socketConnector})
-      : _socketConnector = socketConnector ??
-            ((host, port, timeout) => SSHSocket.connect(
-                  host,
-                  port,
-                  timeout: timeout,
-                ));
+  SshDiscoveryService({
+    SshSocketConnector? socketConnector,
+    SshSessionOpener? openSession,
+  }) : _openSession = openSession ?? dartSsh2Opener(socketConnector);
 
-  final SshSocketConnector _socketConnector;
+  final SshSessionOpener _openSession;
 
   static const command = r'''LC_ALL=C sh -s <<'HH_DISCOVERY'
 probe() {
@@ -70,41 +70,39 @@ HH_DISCOVERY''';
       throw const SshDiscoveryException('请输入 SSH 密码或私钥');
     }
 
-    SSHSocket? socket;
-    SSHClient? client;
+    final identities = parsePrivateKey(privateKeyPem, privateKeyPassphrase);
+    SshSession? session;
     SshHostKey? hostKey;
     try {
-      socket = await _socketConnector(cleanHost, port, timeout)
-          .timeout(timeout, onTimeout: () {
-        throw const SshDiscoveryException('SSH 连接超时');
-      });
-      client = SSHClient(
-        socket,
-        username: cleanUser,
-        identities: parsePrivateKey(privateKeyPem, privateKeyPassphrase),
-        onPasswordRequest: () async => password,
-        onVerifyHostKey: (type, fingerprint) async {
-          final key = SshHostKey(
-            type: type,
-            fingerprint: decodeFingerprint(fingerprint),
-          );
-          hostKey = key;
-          return verifyHostKey(key);
-        },
-        handshakeTimeout: timeout,
-        authTimeout: timeout,
+      session = await _openSession(
+        SshConnectRequest(
+          host: cleanHost,
+          port: port,
+          username: cleanUser,
+          identities: identities,
+          password: password,
+          timeout: timeout,
+          verifyHostKey: (type, fingerprint) async {
+            final key = SshHostKey(
+              type: type,
+              fingerprint: decodeFingerprint(fingerprint),
+            );
+            hostKey = key;
+            return verifyHostKey(key);
+          },
+        ),
       );
-      final result = await client.runWithResult(command).timeout(timeout);
-      final parsed = parseDiscoveryOutput(
-        utf8.decode(result.stdout, allowMalformed: true),
-      );
+      final result = await session.run(command).timeout(timeout);
       final key = hostKey;
       if (key == null) {
         throw const SshDiscoveryException('SSH 主机未提供可验证的 Host Key');
       }
+      final parsed = parseDiscoveryOutput(
+        utf8.decode(result.stdout, allowMalformed: true),
+      );
       return SshDiscoveryResult(
         host: cleanHost,
-        remoteVersion: client.remoteVersion ?? 'unknown SSH server',
+        remoteVersion: session.remoteVersion ?? 'unknown SSH server',
         agents: parsed,
         hostKey: key,
         stderr: utf8.decode(result.stderr, allowMalformed: true).trim(),
@@ -112,6 +110,8 @@ HH_DISCOVERY''';
       );
     } on SshDiscoveryException {
       rethrow;
+    } on SSHHostkeyError {
+      throw const SshDiscoveryException('SSH 主机指纹未被确认，已中止连接');
     } on SSHAuthFailError catch (error) {
       throw SshDiscoveryException('SSH 认证失败：$error');
     } on TimeoutException {
@@ -119,8 +119,7 @@ HH_DISCOVERY''';
     } catch (error) {
       throw SshDiscoveryException('SSH 探测失败：$error');
     } finally {
-      client?.close();
-      socket?.close();
+      session?.close();
     }
   }
 

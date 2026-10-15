@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 
 import '../models/discovered_agent.dart';
 import 'ssh_discovery_service.dart';
+import 'ssh_session.dart';
 
 typedef CompanionAssetLoader = Future<Uint8List> Function(String assetPath);
 
@@ -57,26 +58,21 @@ class CompanionHostConfig {
 class SshBootstrapService {
   SshBootstrapService({
     SshSocketConnector? socketConnector,
+    SshSessionOpener? openSession,
     CompanionAssetLoader? assetLoader,
     Uuid? uuid,
-  })  : _socketConnector = socketConnector ??
-            ((host, port, timeout) => SSHSocket.connect(
-                  host,
-                  port,
-                  timeout: timeout,
-                )),
+  })  : _openSession = openSession ?? dartSsh2Opener(socketConnector),
         _assetLoader = assetLoader ?? _loadAsset,
         _uuid = uuid ?? const Uuid();
 
   static const releaseVersion = '0.1.204';
-  static const assetPath =
-      'assets/companion/huanhermes-host-0.1.204.tar.gz';
+  static const assetPath = 'assets/companion/huanhermes-host-0.1.204.tar.gz';
   static const archiveSha256 =
       '28baff5f2df0d371c4aca3770661db913e56c050759fd20ad8271c28c3bbb31a';
   static const releaseUrl =
       'https://github.com/mengmenglin123/huanhermes-companion/releases/download/0.1.204/huanhermes-host-0.1.204.tar.gz';
 
-  final SshSocketConnector _socketConnector;
+  final SshSessionOpener _openSession;
   final CompanionAssetLoader _assetLoader;
   final Uuid _uuid;
 
@@ -104,61 +100,53 @@ class SshBootstrapService {
     }
     final remoteArchive = '/tmp/huanhermes-companion-$suffix.tar.gz';
 
-    SSHSocket? socket;
-    SSHClient? client;
+    SshSession? session;
     SshHostKey? hostKey;
     try {
-      socket = await _socketConnector(cleanHost, port, timeout).timeout(timeout);
-      client = SSHClient(
-        socket,
-        username: cleanUser,
-        identities: SshDiscoveryService.parsePrivateKey(
-          privateKeyPem,
-          privateKeyPassphrase,
+      session = await _openSession(
+        SshConnectRequest(
+          host: cleanHost,
+          port: port,
+          username: cleanUser,
+          identities: SshDiscoveryService.parsePrivateKey(
+            privateKeyPem,
+            privateKeyPassphrase,
+          ),
+          password: password,
+          timeout: timeout,
+          verifyHostKey: (type, fingerprint) async {
+            final key = SshHostKey(
+              type: type,
+              fingerprint: SshDiscoveryService.decodeFingerprint(fingerprint),
+            );
+            hostKey = key;
+            return verifyHostKey(key);
+          },
         ),
-        onPasswordRequest: () async => password,
-        onVerifyHostKey: (type, fingerprint) async {
-          final key = SshHostKey(
-            type: type,
-            fingerprint: SshDiscoveryService.decodeFingerprint(fingerprint),
-          );
-          hostKey = key;
-          return verifyHostKey(key);
-        },
-        handshakeTimeout: timeout,
-        authTimeout: timeout,
       );
-      var download = await client.runWithResult(
-        buildDownloadCommand(remoteArchive),
-      ).timeout(timeout);
+      var download = await session
+          .run(buildDownloadCommand(remoteArchive))
+          .timeout(timeout);
+      if (hostKey == null) {
+        throw const SshBootstrapException('SSH 主机未提供可验证的 Host Key');
+      }
       if (download.exitCode != 0) {
         final archive = await _assetLoader(assetPath);
         if (archive.isEmpty) {
           throw const SshBootstrapException('Companion 安装包为空');
         }
-        final sftp = await client.sftp();
-        final file = await sftp.open(
-          remoteArchive,
-          mode: SftpFileOpenMode.create |
-              SftpFileOpenMode.write |
-              SftpFileOpenMode.truncate,
-        );
-        try {
-          await file.writeBytes(archive);
-        } finally {
-          await file.close();
-        }
-        download = await client.runWithResult(
-          'printf \'HH_COMPANION_TRANSPORT\\tSFTP\\n\'\n${buildInstallCommand(remoteArchive)}',
-        ).timeout(timeout);
+        await session.upload(remoteArchive, archive).timeout(timeout);
+        download = await session
+            .run(
+              'printf \'HH_COMPANION_TRANSPORT\\tSFTP\\n\'\n${buildInstallCommand(remoteArchive)}',
+            )
+            .timeout(timeout);
       } else {
-        download = await client.runWithResult(
-          'printf \'HH_COMPANION_TRANSPORT\\tHTTPS\\n\'\n${buildInstallCommand(remoteArchive)}',
-        ).timeout(timeout);
-      }
-      final key = hostKey;
-      if (key == null) {
-        throw const SshBootstrapException('SSH 主机未提供可验证的 Host Key');
+        download = await session
+            .run(
+              'printf \'HH_COMPANION_TRANSPORT\\tHTTPS\\n\'\n${buildInstallCommand(remoteArchive)}',
+            )
+            .timeout(timeout);
       }
       final stdout = utf8.decode(download.stdout, allowMalformed: true);
       final stderr = utf8.decode(download.stderr, allowMalformed: true).trim();
@@ -170,6 +158,8 @@ class SshBootstrapService {
       return parseInstallOutput(stdout);
     } on SshBootstrapException {
       rethrow;
+    } on SSHHostkeyError {
+      throw const SshBootstrapException('SSH 主机指纹未被确认，已中止连接');
     } on SSHAuthFailError catch (error) {
       throw SshBootstrapException('SSH 认证失败：$error');
     } on TimeoutException {
@@ -177,8 +167,7 @@ class SshBootstrapService {
     } catch (error) {
       throw SshBootstrapException('Companion 安装失败：$error');
     } finally {
-      client?.close();
-      socket?.close();
+      session?.close();
     }
   }
 
@@ -235,41 +224,45 @@ fi
     if (host.trim().isEmpty || username.trim().isEmpty) {
       throw const SshBootstrapException('SSH 主机和用户名不能为空');
     }
-    SSHSocket? socket;
-    SSHClient? client;
+    SshSession? session;
     SshHostKey? hostKey;
     try {
-      socket = await _socketConnector(host.trim(), port, timeout).timeout(timeout);
-      client = SSHClient(
-        socket,
-        username: username.trim(),
-        identities: SshDiscoveryService.parsePrivateKey(privateKeyPem, privateKeyPassphrase),
-        onPasswordRequest: () async => password,
-        onVerifyHostKey: (type, fingerprint) async {
-          final key = SshHostKey(
-            type: type,
-            fingerprint: SshDiscoveryService.decodeFingerprint(fingerprint),
-          );
-          hostKey = key;
-          return verifyHostKey(key);
-        },
-        handshakeTimeout: timeout,
-        authTimeout: timeout,
+      session = await _openSession(
+        SshConnectRequest(
+          host: host.trim(),
+          port: port,
+          username: username.trim(),
+          identities: SshDiscoveryService.parsePrivateKey(
+            privateKeyPem,
+            privateKeyPassphrase,
+          ),
+          password: password,
+          timeout: timeout,
+          verifyHostKey: (type, fingerprint) async {
+            final key = SshHostKey(
+              type: type,
+              fingerprint: SshDiscoveryService.decodeFingerprint(fingerprint),
+            );
+            hostKey = key;
+            return verifyHostKey(key);
+          },
+        ),
       );
-      final execution = await client.runWithResult(
-        r'''set -eu
-python3 "$HOME/.local/share/huanhermes/current/server/companion_configurator.py" --prefix "$HOME/.local/share/huanhermes" --workspace "$HOME"''',
-      ).timeout(timeout);
+      final execution = await session.run(configureCommand).timeout(timeout);
       if (hostKey == null) {
         throw const SshBootstrapException('SSH 主机未提供可验证的 Host Key');
       }
       if (execution.exitCode != 0) {
-        final error = utf8.decode(execution.stderr, allowMalformed: true).trim();
+        final error =
+            utf8.decode(execution.stderr, allowMalformed: true).trim();
         throw SshBootstrapException(error.isEmpty ? 'Host 配置初始化失败' : error);
       }
-      return parseConfigOutput(utf8.decode(execution.stdout, allowMalformed: true));
+      return parseConfigOutput(
+          utf8.decode(execution.stdout, allowMalformed: true));
     } on SshBootstrapException {
       rethrow;
+    } on SSHHostkeyError {
+      throw const SshBootstrapException('SSH 主机指纹未被确认，已中止连接');
     } on SSHAuthFailError catch (error) {
       throw SshBootstrapException('SSH 认证失败：$error');
     } on TimeoutException {
@@ -277,16 +270,19 @@ python3 "$HOME/.local/share/huanhermes/current/server/companion_configurator.py"
     } catch (error) {
       throw SshBootstrapException('Host 配置初始化失败：$error');
     } finally {
-      client?.close();
-      socket?.close();
+      session?.close();
     }
   }
+
+  static const configureCommand = r'''set -eu
+python3 "$HOME/.local/share/huanhermes/current/server/companion_configurator.py" --prefix "$HOME/.local/share/huanhermes" --workspace "$HOME"''';
 
   static CompanionHostConfig parseConfigOutput(String output) {
     for (final line in const LineSplitter().convert(output)) {
       if (!line.startsWith('HH_COMPANION_CONFIG\t')) continue;
       try {
-        final value = jsonDecode(line.substring('HH_COMPANION_CONFIG\t'.length));
+        final value =
+            jsonDecode(line.substring('HH_COMPANION_CONFIG\t'.length));
         if (value is Map<String, dynamic> &&
             value['bridge_token'] is String &&
             value['mgmt_token'] is String &&

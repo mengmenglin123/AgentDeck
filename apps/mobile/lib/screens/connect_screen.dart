@@ -8,13 +8,30 @@ import 'package:provider/provider.dart';
 import '../models/connection_config.dart';
 import '../models/discovered_agent.dart';
 import '../services/connection_controller.dart';
+import '../services/ssh_bootstrap_service.dart';
+import '../services/ssh_discovery_service.dart';
 import '../utils/security.dart';
 import '../widgets/app_logo.dart';
 import 'ssh_discovery_screen.dart';
 import '../widgets/app_bar_actions.dart';
 
+/// Opens a QR scanner and returns the scanned text (null when cancelled).
+typedef QrCodeScanner = Future<String?> Function(BuildContext context);
+
 class ConnectScreen extends StatefulWidget {
-  const ConnectScreen({super.key});
+  const ConnectScreen({
+    super.key,
+    this.qrScanner,
+    this.sshDiscoveryService,
+    this.sshBootstrapService,
+  });
+
+  /// Test seam: replaces the camera scanner.
+  final QrCodeScanner? qrScanner;
+
+  /// Test seams for the SSH discovery / companion bootstrap flow.
+  final SshDiscoveryService? sshDiscoveryService;
+  final SshBootstrapService? sshBootstrapService;
 
   @override
   State<ConnectScreen> createState() => _ConnectScreenState();
@@ -127,7 +144,11 @@ class _ConnectScreenState extends State<ConnectScreen> {
   Future<void> _discoverAgentsOverSsh() async {
     final result = await Navigator.of(context).push<SshDiscoveryResult>(
       MaterialPageRoute(
-        builder: (_) => SshDiscoveryScreen(initialHost: _host.text.trim()),
+        builder: (_) => SshDiscoveryScreen(
+          initialHost: _host.text.trim(),
+          service: widget.sshDiscoveryService,
+          bootstrapService: widget.sshBootstrapService,
+        ),
       ),
     );
     if (!mounted || result == null) return;
@@ -156,102 +177,42 @@ class _ConnectScreenState extends State<ConnectScreen> {
   }
 
   Future<void> _importPairing() async {
-    final ctrl = TextEditingController();
+    var initial = '';
     // Prefill from clipboard when it looks like a public pairing URI (no camera).
     try {
       final clip = await Clipboard.getData(Clipboard.kTextPlain);
       final t = clip?.text?.trim() ?? '';
       if (t.contains('huanhermes://') || t.contains('bridge=')) {
-        ctrl.text = t;
+        initial = t;
       }
     } catch (_) {}
-    if (!mounted) {
-      ctrl.dispose();
-      return;
-    }
+    if (!mounted) return;
+    // The dialog owns its TextEditingController, so it stays alive through
+    // the dialog's exit animation (disposing it here crashed the dialog).
     final pasted = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('导入配对 URI'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              '粘贴公开 URI 或扫描二维码。可用时自动预填剪贴板。',
-              style: TextStyle(fontSize: 12),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: ctrl,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                hintText: 'huanhermes://connect?host=…&bridge=…&mgmt=…&tls=0',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton.icon(
-            onPressed: () async {
-              Navigator.pop(ctx); // Close dialog first
-              final scanned = await _scanQrCode();
-              if (scanned != null && scanned.isNotEmpty && mounted) {
-                ctrl.text = scanned;
-                // Re-process
-                final overlay = ConnectionConfig.tryParsePairingUri(scanned);
-                if (overlay != null) {
-                  final controller = context.read<ConnectionController>();
-                  final merged = _readForm(
-                    controller.draft,
-                  ).mergePairing(overlay);
-                  controller.updateDraft(merged);
-                  _syncControllersFrom(controller);
-                  setState(() {});
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('二维码导入成功'),
-                    ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('无法解析二维码')),
-                  );
-                }
-              }
-              ctrl.dispose();
-              return;
-            },
-            icon: const Icon(Icons.qr_code_scanner),
-            label: const Text('扫描二维码'),
-          ),
-          TextButton(
-            onPressed: () async {
-              try {
-                final clip = await Clipboard.getData(Clipboard.kTextPlain);
-                final t = clip?.text?.trim() ?? '';
-                if (t.isNotEmpty) ctrl.text = t;
-              } catch (_) {}
-            },
-            child: const Text('粘贴剪贴板'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-            child: const Text('应用'),
-          ),
-        ],
+      builder: (_) => _PairingImportDialog(
+        initialText: initial,
+        scanSentinel: _scanSentinel,
       ),
     );
-    ctrl.dispose();
     if (pasted == null || pasted.isEmpty || !mounted) return;
-    final overlay = ConnectionConfig.tryParsePairingUri(pasted);
+    if (pasted == _scanSentinel) {
+      final scanned = await (widget.qrScanner ?? _scanQrCode)(context);
+      if (!mounted || scanned == null || scanned.trim().isEmpty) return;
+      _applyPairing(scanned, fromQr: true);
+      return;
+    }
+    _applyPairing(pasted, fromQr: false);
+  }
+
+  static const _scanSentinel = '\u0000scan-qr';
+
+  void _applyPairing(String raw, {required bool fromQr}) {
+    final overlay = ConnectionConfig.tryParsePairingUri(raw);
     if (overlay == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('无法解析配对 URI')),
+        SnackBar(content: Text(fromQr ? '无法解析二维码' : '无法解析配对 URI')),
       );
       return;
     }
@@ -260,13 +221,12 @@ class _ConnectScreenState extends State<ConnectScreen> {
     controller.updateDraft(merged);
     _syncControllersFrom(controller);
     setState(() {});
-    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           overlay.hasTokens
-              ? '主机字段 + 令牌已导入（连接前请检查）'
-              : '主机字段已填写 — 请继续输入令牌，然后测试并连接',
+              ? '${fromQr ? '二维码导入成功：' : ''}主机字段 + 令牌已导入（连接前请检查）'
+              : '${fromQr ? '二维码导入成功：' : ''}主机字段已填写 — 请继续输入令牌，然后测试并连接',
         ),
       ),
     );
@@ -274,7 +234,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
 
   /// Open camera to scan a QR code containing a pairing URI.
   /// Returns the scanned string, or null if cancelled.
-  Future<String?> _scanQrCode() async {
+  Future<String?> _scanQrCode(BuildContext context) async {
     String? result;
     await Navigator.of(context).push(
       MaterialPageRoute(
@@ -290,6 +250,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
           ),
           body: MobileScanner(
             onDetect: (capture) {
+              // onDetect fires for every frame with a code; pop only once or
+              // the extra pops would close the connect screen too.
+              if (result != null) return;
               final barcodes = capture.barcodes;
               if (barcodes.isNotEmpty) {
                 final value = barcodes.first.rawValue;
@@ -1388,6 +1351,82 @@ class _HeroPill extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _PairingImportDialog extends StatefulWidget {
+  const _PairingImportDialog({
+    required this.initialText,
+    required this.scanSentinel,
+  });
+
+  final String initialText;
+  final String scanSentinel;
+
+  @override
+  State<_PairingImportDialog> createState() => _PairingImportDialogState();
+}
+
+class _PairingImportDialogState extends State<_PairingImportDialog> {
+  late final TextEditingController _ctrl =
+      TextEditingController(text: widget.initialText);
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('导入配对 URI'),
+      scrollable: true,
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            '粘贴公开 URI 或扫描二维码。可用时自动预填剪贴板。',
+            style: TextStyle(fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _ctrl,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              hintText: 'huanhermes://connect?host=…&bridge=…&mgmt=…&tls=0',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton.icon(
+          // Close with a sentinel; the screen scans after the dialog is gone.
+          onPressed: () => Navigator.pop(context, widget.scanSentinel),
+          icon: const Icon(Icons.qr_code_scanner),
+          label: const Text('扫描二维码'),
+        ),
+        TextButton(
+          onPressed: () async {
+            try {
+              final clip = await Clipboard.getData(Clipboard.kTextPlain);
+              final t = clip?.text?.trim() ?? '';
+              if (t.isNotEmpty && mounted) _ctrl.text = t;
+            } catch (_) {}
+          },
+          child: const Text('粘贴剪贴板'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _ctrl.text.trim()),
+          child: const Text('应用'),
+        ),
+      ],
     );
   }
 }

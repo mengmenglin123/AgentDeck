@@ -40,9 +40,25 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
   SshDiscoveryResult? _result;
   CompanionInstallResult? _installResult;
   CompanionHostConfig? _hostConfig;
+  // Host key the user confirmed for host:port; later connections in this
+  // flow (install / configure / re-discover) must present the same key.
+  SshHostKey? _trustedHostKey;
+  String? _trustedTarget;
+  bool _hostKeyMismatch = false;
 
-  SshDiscoveryService get _service =>
-      widget.service ?? SshDiscoveryService();
+  static const hostKeyMismatchMessage = 'SSH 主机指纹与之前确认的不一致，已中止连接（可能存在中间人攻击）。';
+
+  String get _target => '${_host.text.trim()}:${_port.text.trim()}';
+
+  String _describeError(Object error) {
+    if (_hostKeyMismatch) {
+      _hostKeyMismatch = false;
+      return hostKeyMismatchMessage;
+    }
+    return Security.redactText(error.toString());
+  }
+
+  SshDiscoveryService get _service => widget.service ?? SshDiscoveryService();
 
   SshBootstrapService get _bootstrapService =>
       widget.bootstrapService ?? SshBootstrapService();
@@ -92,7 +108,15 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
 
   Future<bool> _verifyHostKey(SshHostKey key) async {
     if (!mounted) return false;
-    return await showDialog<bool>(
+    final target = _target;
+    final trusted = _trustedHostKey;
+    if (trusted != null && _trustedTarget == target) {
+      final same =
+          trusted.type == key.type && trusted.fingerprint == key.fingerprint;
+      if (!same) _hostKeyMismatch = true;
+      return same;
+    }
+    final ok = await showDialog<bool>(
           context: context,
           barrierDismissible: false,
           builder: (dialogContext) => AlertDialog(
@@ -114,6 +138,11 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
           ),
         ) ??
         false;
+    if (ok) {
+      _trustedHostKey = key;
+      _trustedTarget = target;
+    }
+    return ok;
   }
 
   Future<void> _discover() async {
@@ -134,17 +163,16 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
         username: _username.text,
         password: _usePrivateKey ? null : _password.text,
         privateKeyPem: _usePrivateKey ? _privateKey.text : null,
-        privateKeyPassphrase:
-            _usePrivateKey && _passphrase.text.isNotEmpty
-                ? _passphrase.text
-                : null,
+        privateKeyPassphrase: _usePrivateKey && _passphrase.text.isNotEmpty
+            ? _passphrase.text
+            : null,
         verifyHostKey: _verifyHostKey,
       );
       if (!mounted) return;
       setState(() => _result = result);
     } catch (error) {
       if (!mounted) return;
-      setState(() => _error = Security.redactText(error.toString()));
+      setState(() => _error = _describeError(error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -194,17 +222,16 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
         username: _username.text,
         password: _usePrivateKey ? null : _password.text,
         privateKeyPem: _usePrivateKey ? _privateKey.text : null,
-        privateKeyPassphrase:
-            _usePrivateKey && _passphrase.text.isNotEmpty
-                ? _passphrase.text
-                : null,
+        privateKeyPassphrase: _usePrivateKey && _passphrase.text.isNotEmpty
+            ? _passphrase.text
+            : null,
         verifyHostKey: _verifyHostKey,
       );
       if (!mounted) return;
       setState(() => _installResult = installed);
     } catch (error) {
       if (!mounted) return;
-      setState(() => _error = Security.redactText(error.toString()));
+      setState(() => _error = _describeError(error));
     } finally {
       if (mounted) setState(() => _installBusy = false);
     }
@@ -223,15 +250,14 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
         username: _username.text,
         password: _usePrivateKey ? null : _password.text,
         privateKeyPem: _usePrivateKey ? _privateKey.text : null,
-        privateKeyPassphrase:
-            _usePrivateKey && _passphrase.text.isNotEmpty
-                ? _passphrase.text
-                : null,
+        privateKeyPassphrase: _usePrivateKey && _passphrase.text.isNotEmpty
+            ? _passphrase.text
+            : null,
         verifyHostKey: _verifyHostKey,
       );
       if (mounted) setState(() => _hostConfig = config);
     } catch (error) {
-      if (mounted) setState(() => _error = Security.redactText(error.toString()));
+      if (mounted) setState(() => _error = _describeError(error));
     } finally {
       if (mounted) setState(() => _installBusy = false);
     }
@@ -363,7 +389,8 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
           ),
           if (_error != null) ...[
             const SizedBox(height: 12),
-            Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            Text(_error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ],
           if (result != null) ...[
             const SizedBox(height: 20),
@@ -409,8 +436,9 @@ class _SshDiscoveryScreenState extends State<SshDiscoveryScreen> {
                   leading: const Icon(Icons.verified_outlined),
                   title: Text('Companion ${_installResult!.version} 已安装'),
                   subtitle: Text(
-                    '已原子激活版本。服务尚未自动启动；配置文件：\n'
-                    '${_installResult!.configPath}',
+                    '已原子激活版本。'
+                    '${_installResult!.serviceStarted ? '服务已启动' : '服务尚未自动启动'}'
+                    '；配置文件：\n${_installResult!.configPath}',
                   ),
                 ),
               ),
