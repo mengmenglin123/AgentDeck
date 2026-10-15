@@ -9,6 +9,7 @@ import sys
 import time
 import unittest
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -73,6 +74,39 @@ class TestMgmtDialects(unittest.TestCase):
             cls.proc.wait(timeout=3)
         except Exception:
             cls.proc.kill()
+
+    def _raw(self, method: str, path: str, body: dict | None = None) -> dict:
+        import json as _json
+
+        data = _json.dumps(body).encode() if body is not None else None
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{self.port_m}{path}",
+            data=data,
+            method=method,
+            headers={
+                "Authorization": "Bearer dev-mgmt-token-change-me",
+                "Content-Type": "application/json",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            return _json.loads(resp.read().decode())
+
+    def test_percent_encoded_session_ids_resolve(self) -> None:
+        # The Flutter app sends Uri.encodeComponent(session_key), so ':' arrives
+        # as %3A. Detail / rename / delete must resolve it (as production does).
+        sk = "huanhermes-app:claude-code:pct123"
+        self._raw("POST", "/api/v1/projects/claude-code/sessions", {"session_key": sk, "title": "pct"})
+        enc = urllib.parse.quote(sk, safe="")
+        self.assertIn("%3A", enc)
+        got = self._raw("GET", f"/api/v1/sessions/{enc}")["data"]
+        self.assertEqual(got["session_key"], sk)
+        got = self._raw("GET", f"/api/v1/projects/claude-code/sessions/{enc}")["data"]
+        self.assertEqual(got["session_key"], sk)
+        ren = self._raw("PATCH", f"/api/v1/sessions/{enc}", {"title": "renamed"})["data"]
+        self.assertEqual(ren["title"], "renamed")
+        self._raw("DELETE", f"/api/v1/projects/claude-code/sessions/{enc}")
+        with self.assertRaises(urllib.error.HTTPError):
+            self._raw("GET", f"/api/v1/sessions/{enc}")
 
     def test_flat_and_project_sessions(self) -> None:
         c = MgmtClient(self.cfg)

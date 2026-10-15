@@ -30,7 +30,7 @@ import traceback
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Callable, Dict, List, Optional, Tuple
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 
 BRIDGE_HOST = os.environ.get("HUAN_BRIDGE_HOST", "0.0.0.0")
@@ -4875,7 +4875,8 @@ class MgmtHandler(BaseHTTPRequestHandler):
             self._send(401, {"ok": False, "error": "unauthorized: missing or invalid token"})
             return
         parsed = urlparse(self.path)
-        path = parsed.path
+        # Clients percent-encode ids (':' → %3A); match production_management.
+        path = unquote(parsed.path)
         project = parse_qs(parsed.query).get("project", [None])[0]
         if path == "/api/v1/status":
             self._send(
@@ -5308,7 +5309,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
         if not self._auth_ok():
             self._send(401, {"ok": False, "error": "unauthorized: missing or invalid token"})
             return
-        path = urlparse(self.path).path
+        path = unquote(urlparse(self.path).path)
         length = int(self.headers.get("Content-Length") or 0)
         raw = self.rfile.read(length) if length else b"{}"
         try:
@@ -5335,7 +5336,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
         if not self._auth_ok():
             self._send(401, {"ok": False, "error": "unauthorized: missing or invalid token"})
             return
-        path = urlparse(self.path).path
+        path = unquote(urlparse(self.path).path)
         length = int(self.headers.get("Content-Length") or 0)
         raw = self.rfile.read(length) if length else b"{}"
         try:
@@ -5377,7 +5378,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
         if not self._auth_ok():
             self._send(401, {"ok": False, "error": "unauthorized: missing or invalid token"})
             return
-        path = urlparse(self.path).path
+        path = unquote(urlparse(self.path).path)
         m = re.match(r"^/api/v1/sessions/(.+)$", path)
         if m:
             sid = m.group(1)
