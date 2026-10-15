@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'apps/mobile/**'
+      - 'scripts/**'
       - 'packages/huan_protocol/**'
       - 'server/**'
       - 'docs/protocol/**'
@@ -14,6 +15,7 @@ on:
     branches: [main]
     paths:
       - 'apps/mobile/**'
+      - 'scripts/**'
       - 'packages/huan_protocol/**'
       - 'server/**'
       - 'docs/protocol/**'
@@ -22,6 +24,17 @@ on:
   workflow_dispatch:
 
 jobs:
+  # 快速 Python 门禁：无需 Flutter/Android SDK，几十秒内反馈 Host/协议回归。
+  python-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python compile and tests
+        run: ./scripts/check.sh
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
