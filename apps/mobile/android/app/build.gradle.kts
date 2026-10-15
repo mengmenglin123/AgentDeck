@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -29,11 +31,40 @@ android {
         multiDexEnabled = true
     }
 
+    // Stable release signing so new builds install over older ones.
+    // Priority: android/key.properties (private production key, git-ignored)
+    // → committed prerelease key (app/signing/huanhermes-prerelease.p12).
+    // Before 0.1.205 release builds used per-run CI debug keys, so 0.1.205
+    // must be installed once after uninstalling an older build.
+    val keyProps = Properties().apply {
+        val f = rootProject.file("key.properties")
+        if (f.exists()) f.inputStream().use { load(it) }
+    }
+    signingConfigs {
+        create("release") {
+            if (keyProps.getProperty("storeFile") != null) {
+                storeFile = file(keyProps.getProperty("storeFile"))
+                storePassword = keyProps.getProperty("storePassword")
+                keyAlias = keyProps.getProperty("keyAlias")
+                keyPassword = keyProps.getProperty("keyPassword")
+                keyProps.getProperty("storeType")?.let { storeType = it }
+            } else {
+                storeFile = file("signing/huanhermes-prerelease.p12")
+                storeType = "pkcs12"
+                storePassword = "huanhermes-prerelease"
+                keyAlias = "huanhermes"
+                keyPassword = "huanhermes-prerelease"
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }

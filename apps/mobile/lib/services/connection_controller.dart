@@ -80,6 +80,22 @@ class ConnectionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Startup fallback when persisted profiles could not be read (e.g. the
+  /// Android Keystore key behind encrypted prefs is gone after a reinstall).
+  /// Leaves the controller usable with an empty profile list.
+  void bootstrapEmpty() {
+    profiles = [];
+    activeProfileId = null;
+    saved = null;
+    draft = ConnectionConfig(
+      bridgeToken: 'dev-bridge-token-change-me',
+      mgmtToken: 'dev-mgmt-token-change-me',
+    );
+    draftProfileName = 'Default';
+    loaded = true;
+    notifyListeners();
+  }
+
   Future<void> refreshProfiles() async {
     profiles = await _store.listProfiles();
     activeProfileId = await _store.activeProfileId();

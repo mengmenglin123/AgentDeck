@@ -1,32 +1,30 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-import 'app.dart';
 import 'services/notification_service.dart';
-import 'services/app_settings_controller.dart';
-import 'services/connection_controller.dart';
 import 'services/secure_config_store.dart';
-import 'services/theme_controller.dart';
+import 'startup/app_bootstrap.dart';
+import 'startup/startup_gate.dart';
 
-Future<void> main() async {
+/// Nothing is awaited before [runApp]: a plugin that throws or hangs during
+/// startup (secure storage, notifications, prefs) must never leave the
+/// Android splash screen up forever. Initialisation runs behind a loading
+/// screen with per-step timeouts — see [AppBootstrap].
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  final store = SecureConfigStore();
-  await store.init();
-  final controller = ConnectionController(store: store);
-  await controller.bootstrap();
-  final theme = ThemeController();
-  await theme.load();
-  final settings = AppSettingsController();
-  await settings.load();
-  await NotificationService.instance.init();
   runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider.value(value: controller),
-        ChangeNotifierProvider.value(value: theme),
-        ChangeNotifierProvider.value(value: settings),
-      ],
-      child: const HuanHermesApp(),
+    StartupGate(
+      bootstrap: () async {
+        // Notifications are optional: initialise in the background, never
+        // block startup on them, and ask for the permission only after the
+        // first real frame (see onReady).
+        unawaited(NotificationService.instance.init());
+        return AppBootstrap(store: SecureConfigStore()).run();
+      },
+      onReady: () {
+        unawaited(NotificationService.instance.requestPermission());
+      },
     ),
   );
 }

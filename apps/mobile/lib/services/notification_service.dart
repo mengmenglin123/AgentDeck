@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 enum NotificationDestination { sessions }
@@ -57,33 +58,69 @@ class NotificationService {
     return intent;
   }
 
-  Future<void> init() async {
-    if (_initialized) return;
+  Future<void>? _initFuture;
 
-    const androidSettings = AndroidInitializationSettings(
-      '@mipmap/ic_launcher',
-    );
-    const initSettings = InitializationSettings(android: androidSettings);
+  /// Small status-bar icon. Must be a monochrome drawable that survives R8
+  /// resource shrinking (kept via res/raw/keep.xml). The old
+  /// '@mipmap/ic_launcher' does not exist in release builds, which made
+  /// initialize() throw `invalid_icon` before runApp (0.1.204 splash hang).
+  static const smallIcon = '@drawable/ic_stat_notify';
 
-    await _plugin.initialize(
-      initSettings,
-      onDidReceiveNotificationResponse: _onNotificationTapped,
-    );
+  /// Initialises the plugin. Never throws and never asks for permissions;
+  /// on failure notifications are simply disabled for this run.
+  Future<void> init() {
+    if (_initialized) return Future.value();
+    return _initFuture ??= _doInit().whenComplete(() {
+      if (!_initialized) _initFuture = null;
+    });
+  }
 
-    final launchDetails = await _plugin.getNotificationAppLaunchDetails();
-    if (launchDetails?.didNotificationLaunchApp == true) {
-      _pendingIntent = NotificationIntent.tryParse(
-        launchDetails?.notificationResponse?.payload,
-      );
+  Future<void> _doInit() async {
+    try {
+      const androidSettings = AndroidInitializationSettings(smallIcon);
+      const initSettings = InitializationSettings(android: androidSettings);
+
+      await _plugin
+          .initialize(
+            initSettings,
+            onDidReceiveNotificationResponse: _onNotificationTapped,
+          )
+          .timeout(const Duration(seconds: 5));
+      _initialized = true;
+
+      final launchDetails = await _plugin
+          .getNotificationAppLaunchDetails()
+          .timeout(const Duration(seconds: 5));
+      if (launchDetails?.didNotificationLaunchApp == true) {
+        final intent = NotificationIntent.tryParse(
+          launchDetails?.notificationResponse?.payload,
+        );
+        if (intent != null) {
+          // The app UI may already be listening (init runs in background).
+          if (_intents.hasListener) {
+            _intents.add(intent);
+          } else {
+            _pendingIntent = intent;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('HuanHermes notifications unavailable: $e');
     }
+  }
 
-    final android = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
-    if (android != null) {
-      await android.requestNotificationsPermission();
+  /// Asks for POST_NOTIFICATIONS (Android 13+). Call only once UI is on
+  /// screen; failures are ignored.
+  Future<void> requestPermission() async {
+    try {
+      await init();
+      if (!_initialized) return;
+      final android = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      await android?.requestNotificationsPermission();
+    } catch (e) {
+      debugPrint('HuanHermes notification permission request failed: $e');
     }
-
-    _initialized = true;
   }
 
   Future<void> show({
@@ -92,7 +129,8 @@ class NotificationService {
     required String body,
     String? payload,
   }) async {
-    if (!_initialized) await init();
+    await init();
+    if (!_initialized) return;
 
     const androidDetails = AndroidNotificationDetails(
       'huanhermes_main',
@@ -104,7 +142,11 @@ class NotificationService {
     );
     const details = NotificationDetails(android: androidDetails);
 
-    await _plugin.show(id, title, body, details, payload: payload);
+    try {
+      await _plugin.show(id, title, body, details, payload: payload);
+    } catch (e) {
+      debugPrint('HuanHermes notification failed: $e');
+    }
   }
 
   Future<void> showTaskComplete({
@@ -133,11 +175,17 @@ class NotificationService {
   }
 
   Future<void> cancelAll() async {
-    await _plugin.cancelAll();
+    if (!_initialized) return;
+    try {
+      await _plugin.cancelAll();
+    } catch (_) {}
   }
 
   Future<void> cancel(int id) async {
-    await _plugin.cancel(id);
+    if (!_initialized) return;
+    try {
+      await _plugin.cancel(id);
+    } catch (_) {}
   }
 
   void _onNotificationTapped(NotificationResponse response) {

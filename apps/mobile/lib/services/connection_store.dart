@@ -17,3 +17,9 @@ abstract class ConnectionStore {
   Future<void> upsertProfile(ServerProfile profile, {bool setActive = true});
   Future<void> deleteProfile(String id);
 }
+
+/// A store that can be wiped without reading it first, for recovering from
+/// unreadable (corrupted / key-less) persisted data at startup.
+abstract class RecoverableConnectionStore {
+  Future<void> resetCorrupted();
+}

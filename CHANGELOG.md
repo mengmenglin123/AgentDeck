@@ -1,3 +1,13 @@
+## 0.1.205
+
+- **修复启动卡在启动页**：0.1.204 Release 包在 `runApp` 之前初始化通知插件，使用的小图标 `@mipmap/ic_launcher` 在 Release 构建中并不存在（只有 `@drawable/ic_launcher`，且资源被 R8 压缩），`initialize()` 抛出 `invalid_icon`，导致应用永远停留在白底蓝图标的启动页。
+- **启动流程改造**：`main()` 立即 `runApp`，先显示主题化的「正在启动…」页面；连接配置、主题、设置等初始化移到界面之后执行，每一步都有 5 秒超时和兜底，任何插件异常或卡住都不会再阻塞启动。
+- **安全存储自愈**：`flutter_secure_storage` 开启 `resetOnError`；若重装后加密配置因系统密钥失效而无法读取，会自动清除并以空配置继续，同时一次性提示「已重置，请重新添加服务器」。
+- **通知更稳**：新增单色通知小图标 `ic_stat_notify`（并通过 `res/raw/keep.xml` 防止被资源压缩移除）；通知初始化在后台进行且不会抛错；通知权限改为首个界面显示后再申请；补充 flutter_local_notifications 的 R8/ProGuard 规则。
+- **禁止备份应用数据**：`allowBackup="false"`、`fullBackupContent="false"`，并通过 `dataExtractionRules` 排除云备份与设备迁移，避免恢复出无法解密的数据。
+- **固定签名**：Release 构建改用仓库内固定的预发布签名（如存在 `android/key.properties` 则优先使用正式密钥），此后的版本可直接覆盖安装。**从 0.1.204 及更早版本升级需先卸载一次**（旧包使用 CI 每次随机生成的 debug 签名）。
+- **测试**：新增启动流程测试，覆盖存储初始化抛错、卡住超时、加密存储无法解密三种情况。
+
 ## 0.1.204
 
 - **Host 安全修复随 Companion 发布**：重建 `huanhermes-host-0.1.204.tar.gz`（sha256 `28baff5f2df0d371c4aca3770661db913e56c050759fd20ad8271c28c3bbb31a`），包含 token 字节级恒定时间比较、Management `DELETE` 先校验会话归属、`host.toml` 0600 原子写入、启动安全告警与 Mock Host 日志脱敏；App 内 `archiveSha256` 与下载地址同步更新，旧的 0.1.203 包已从资源中移除。

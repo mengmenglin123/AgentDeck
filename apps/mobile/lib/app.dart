@@ -12,7 +12,10 @@ import 'services/theme_controller.dart';
 import 'theme/app_theme.dart';
 
 class HuanHermesApp extends StatefulWidget {
-  const HuanHermesApp({super.key});
+  const HuanHermesApp({super.key, this.startupNotice});
+
+  /// One-time message shown after startup (e.g. saved profiles were reset).
+  final String? startupNotice;
 
   @override
   State<HuanHermesApp> createState() => _HuanHermesAppState();
@@ -20,6 +23,7 @@ class HuanHermesApp extends StatefulWidget {
 
 class _HuanHermesAppState extends State<HuanHermesApp> {
   final _navigatorKey = GlobalKey<NavigatorState>();
+  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
   StreamSubscription<NotificationIntent>? _notificationSub;
   NotificationIntent? _deferredIntent;
 
@@ -29,6 +33,17 @@ class _HuanHermesAppState extends State<HuanHermesApp> {
     final notifications = NotificationService.instance;
     _notificationSub = notifications.intents.listen(_openNotification);
     _deferredIntent = notifications.takePendingIntent();
+    final notice = widget.startupNotice;
+    if (notice != null && notice.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _messengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: Text(notice),
+            duration: const Duration(seconds: 8),
+          ),
+        );
+      });
+    }
   }
 
   void _openNotification(NotificationIntent intent) {
@@ -62,6 +77,7 @@ class _HuanHermesAppState extends State<HuanHermesApp> {
       builder: (context, theme, settings, _) {
         return MaterialApp(
           navigatorKey: _navigatorKey,
+          scaffoldMessengerKey: _messengerKey,
           title: 'HuanHermes',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light(highContrast: settings.highContrast),

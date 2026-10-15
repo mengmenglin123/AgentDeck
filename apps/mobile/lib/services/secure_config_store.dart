@@ -12,14 +12,20 @@ import 'connection_store.dart';
 /// - tokens per profile → FlutterSecureStorage
 ///
 /// Migrates legacy single-profile keys on first load.
-class SecureConfigStore implements ConnectionStore {
+class SecureConfigStore implements ConnectionStore, RecoverableConnectionStore {
   SecureConfigStore({
     FlutterSecureStorage? secureStorage,
     SharedPreferences? prefs,
   }) : _secure =
            secureStorage ??
            const FlutterSecureStorage(
-             aOptions: AndroidOptions(encryptedSharedPreferences: true),
+             // resetOnError: if the Keystore key behind the encrypted prefs is
+             // gone (reinstall + restored backup, OEM keystore wipe), the
+             // plugin wipes the unreadable store instead of throwing forever.
+             aOptions: AndroidOptions(
+               encryptedSharedPreferences: true,
+               resetOnError: true,
+             ),
            ),
        _prefsOverride = prefs;
 
@@ -193,6 +199,26 @@ class SecureConfigStore implements ConnectionStore {
     final match = list.where((p) => p.id == activeId);
     if (match.isNotEmpty) return match.first.config;
     return list.first.config;
+  }
+
+  /// Wipes every persisted profile and secret without reading them first.
+  /// Used at startup when the store cannot be read at all.
+  @override
+  Future<void> resetCorrupted() async {
+    try {
+      await _secure.deleteAll();
+    } catch (_) {
+      // Nothing more we can do; resetOnError handles the next access.
+    }
+    final p = _prefs ?? _prefsOverride ?? await SharedPreferences.getInstance();
+    _prefs = p;
+    for (final key in const [
+      _profilesKey,
+      _activeKey,
+      _legacyPrefsKey,
+    ]) {
+      await p.remove(key);
+    }
   }
 
   @override
