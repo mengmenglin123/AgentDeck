@@ -22,14 +22,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+      - id: java
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
+      - id: sdk
+        uses: android-actions/setup-android@v3
 
-      - uses: gradle/actions/setup-gradle@v4
+      - id: gradle
+        uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
 
@@ -47,7 +50,8 @@ jobs:
         run: |
           mkdir -p /tmp/logs && cd /tmp/logs
           git init -q && git checkout -q -b native-ci-logs
-          tail -c 200000 "$RUNNER_TEMP/gradle.log" > gradle.log 2>/dev/null || echo "no gradle log" > gradle.log
+          { echo "java=${{ steps.java.outcome }} sdk=${{ steps.sdk.outcome }} gradle=${{ steps.gradle.outcome }}"; which gradle java; gradle --version; } > gradle.log 2>&1 || true
+          tail -c 200000 "$RUNNER_TEMP/gradle.log" >> gradle.log 2>/dev/null || echo "no gradle log" >> gradle.log
           git add gradle.log
           git -c user.name=ci -c user.email=ci@local commit -qm "log ${GITHUB_SHA}"
           git push -qf "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" native-ci-logs
