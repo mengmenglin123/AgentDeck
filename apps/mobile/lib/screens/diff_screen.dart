@@ -6,6 +6,7 @@ import '../services/catalog_state.dart';
 import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 import '../l10n/app_strings.dart';
+import '../widgets/app_bar_actions.dart';
 
 /// Readonly unified diff viewer (`GET /workspace/diff`).
 class DiffScreen extends StatefulWidget {
@@ -303,7 +304,7 @@ class _DiffScreenState extends State<DiffScreen> {
           if (_diffQuery.trim().isEmpty) return '对比 · $_path$stats';
           return '对比 · $_path（查找）$stats';
         }()),
-        actions: [
+        actions: compactAppBarActions([
           IconButton(
             tooltip: _lineNums ? '隐藏行号' : '显示行号',
             onPressed: () => setState(() => _lineNums = !_lineNums),
@@ -493,7 +494,7 @@ class _DiffScreenState extends State<DiffScreen> {
             onPressed: _loading ? null : _loadIndex,
             icon: const Icon(Icons.refresh),
           ),
-        ],
+        ]),
       ),
       body: Column(
         children: [

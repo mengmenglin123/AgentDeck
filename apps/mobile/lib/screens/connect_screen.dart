@@ -11,6 +11,7 @@ import '../services/connection_controller.dart';
 import '../utils/security.dart';
 import '../widgets/app_logo.dart';
 import 'ssh_discovery_screen.dart';
+import '../widgets/app_bar_actions.dart';
 
 class ConnectScreen extends StatefulWidget {
   const ConnectScreen({super.key});
@@ -280,12 +281,12 @@ class _ConnectScreenState extends State<ConnectScreen> {
         builder: (ctx) => Scaffold(
           appBar: AppBar(
             title: const Text('扫描二维码'),
-            actions: [
+            actions: compactAppBarActions([
               IconButton(
                 icon: const Icon(Icons.close),
                 onPressed: () => Navigator.pop(ctx),
               ),
-            ],
+            ]),
           ),
           body: MobileScanner(
             onDetect: (capture) {
@@ -322,7 +323,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
             Text('连接服务器'),
           ],
         ),
-        actions: [
+        actions: compactAppBarActions([
           IconButton(
             tooltip: 'SSH 自动发现 Agent',
             onPressed: busy ? null : _discoverAgentsOverSsh,
@@ -505,8 +506,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
               if (v == 'copy_csv') {
                 if (controller.profiles.isEmpty) return;
                 final buf = StringBuffer();
-                buf.writeln(
-                    'id,name,host,bridge_port,mgmt_port,use_tls,note');
+                buf.writeln('id,name,host,bridge_port,mgmt_port,use_tls,note');
                 for (final p in controller.profiles) {
                   final id = p.id.replaceAll('"', '""');
                   final name = p.name.replaceAll('"', '""');
@@ -519,8 +519,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(
-                        '已复制配置 CSV (${controller.profiles.length})'),
+                    content: Text('已复制配置 CSV (${controller.profiles.length})'),
                     duration: const Duration(seconds: 1),
                   ),
                 );
@@ -564,7 +563,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
               ),
             ],
           ),
-        ],
+        ]),
       ),
       body: SafeArea(
         child: ListView(
@@ -701,9 +700,9 @@ class _ConnectScreenState extends State<ConnectScreen> {
               child: Text(
                 'HuanHermes 是纯控制台工具 — 代理在服务器运行，密钥保存在本机安全存储。',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  height: 1.4,
-                ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      height: 1.4,
+                    ),
               ),
             ),
             const SizedBox(height: 12),
@@ -766,20 +765,14 @@ class _ConnectScreenState extends State<ConnectScreen> {
                   isDense: true,
                   border: const OutlineInputBorder(),
                   hintText: _queryRegex
-                      ? (_queryCase
-                          ? '搜索配置（正则 · 大小写）'
-                          : '搜索配置（正则）')
-                      : (_queryCase
-                          ? '搜索配置（区分大小写）'
-                          : '搜索配置名称/主机/备注'),
+                      ? (_queryCase ? '搜索配置（正则 · 大小写）' : '搜索配置（正则）')
+                      : (_queryCase ? '搜索配置（区分大小写）' : '搜索配置名称/主机/备注'),
                   prefixIcon: IconButton(
                     tooltip: _queryRegex
                         ? (_queryCase
                             ? '正则 · 大小写开（长按：普通搜索）'
                             : '正则 · 大小写关（长按：普通搜索）')
-                        : (_queryCase
-                            ? '区分大小写（长按：正则）'
-                            : '不区分大小写（长按：正则）'),
+                        : (_queryCase ? '区分大小写（长按：正则）' : '不区分大小写（长按：正则）'),
                     icon: Icon(
                       _queryRegex
                           ? Icons.code
@@ -954,7 +947,10 @@ class _ConnectScreenState extends State<ConnectScreen> {
                 border: Border.all(
                   color: Theme.of(context).brightness == Brightness.dark
                       ? Colors.white.withValues(alpha: 0.08)
-                      : Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.7),
+                      : Theme.of(context)
+                          .colorScheme
+                          .outlineVariant
+                          .withValues(alpha: 0.7),
                 ),
               ),
               padding: const EdgeInsets.all(16),
@@ -1109,19 +1105,20 @@ class _ConnectScreenState extends State<ConnectScreen> {
                       title: const Text('使用 TLS (wss / https)'),
                       subtitle: const Text('公网环境推荐开启'),
                       value: _useTls,
-                      onChanged: busy
-                          ? null
-                          : (v) => setState(() => _useTls = v),
+                      onChanged:
+                          busy ? null : (v) => setState(() => _useTls = v),
                     ),
                     if (warnTls)
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                          color:
+                              const Color(0xFFF59E0B).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: const Color(0xFFF59E0B).withValues(alpha: 0.35),
+                            color:
+                                const Color(0xFFF59E0B).withValues(alpha: 0.35),
                           ),
                         ),
                         child: const Row(
@@ -1218,8 +1215,8 @@ class _ConnectScreenState extends State<ConnectScreen> {
               '参见 docs/guides/connect-real-host.md — 仅在 App 中填写令牌；'
               '不要更改 Host 频道/提供商配置。',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey.shade500,
-              ),
+                    color: Colors.grey.shade500,
+                  ),
             ),
           ],
         ),

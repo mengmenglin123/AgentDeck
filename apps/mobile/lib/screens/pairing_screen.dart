@@ -10,6 +10,7 @@ import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 import '../widgets/connection_fingerprint.dart';
 import '../l10n/app_strings.dart';
+import '../widgets/app_bar_actions.dart';
 
 class PairingScreen extends StatefulWidget {
   const PairingScreen({super.key, required this.config});
@@ -143,7 +144,7 @@ class _PairingScreenState extends State<PairingScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_autoRefresh ? '设备配对 · 自动' : '设备配对'),
-        actions: [
+        actions: compactAppBarActions([
           IconButton(
             tooltip: '复制公开摘要',
             onPressed: () => _copy(cfg.toPublicSummary(), '已复制公开摘要'),
@@ -271,7 +272,7 @@ class _PairingScreenState extends State<PairingScreen> {
             onPressed: loading ? null : _load,
             icon: const Icon(Icons.refresh),
           ),
-        ],
+        ]),
       ),
       body: loading
           ? const Center(child: CircularProgressIndicator())

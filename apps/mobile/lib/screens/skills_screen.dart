@@ -8,6 +8,7 @@ import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 import '../utils/query_match.dart';
 import '../l10n/app_strings.dart';
+import '../widgets/app_bar_actions.dart';
 
 class SkillsScreen extends StatefulWidget {
   const SkillsScreen({super.key, required this.config, this.project});
@@ -232,7 +233,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
                   ? '技能 (${items.length})'
                   : '技能 (${items.length}/${skills.length})'),
         ),
-        actions: [
+        actions: compactAppBarActions([
           IconButton(
             tooltip: '复制全部',
             onPressed: items.isEmpty
@@ -489,7 +490,7 @@ class _SkillsScreenState extends State<SkillsScreen> {
             onPressed: loading ? null : _load,
             icon: const Icon(Icons.refresh),
           ),
-        ],
+        ]),
       ),
       body: loading
           ? const ConsoleLoading(label: AppStrings.loading)

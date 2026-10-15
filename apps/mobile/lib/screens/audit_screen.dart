@@ -5,6 +5,7 @@ import '../utils/query_match.dart';
 
 import '../services/audit_log.dart';
 import '../l10n/app_strings.dart';
+import '../widgets/app_bar_actions.dart';
 
 class AuditScreen extends StatefulWidget {
   const AuditScreen({super.key, required this.audit});
@@ -152,7 +153,7 @@ class _AuditScreenState extends State<AuditScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('$title · 实时'),
-        actions: [
+        actions: compactAppBarActions([
           IconButton(
             tooltip: '复制全部',
             onPressed: () async {
@@ -351,7 +352,7 @@ class _AuditScreenState extends State<AuditScreen> {
             onPressed: audit.clear,
             icon: const Icon(Icons.delete_outline),
           ),
-        ],
+        ]),
       ),
       body: Column(
         children: [

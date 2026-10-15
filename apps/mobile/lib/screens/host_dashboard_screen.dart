@@ -19,6 +19,7 @@ import 'pairing_screen.dart';
 import 'skills_screen.dart';
 import 'workspace_screen.dart';
 import '../l10n/app_strings.dart';
+import '../widgets/app_bar_actions.dart';
 
 /// Live Host status dashboard (refreshable /status + quick links).
 class HostDashboardScreen extends StatefulWidget {
@@ -262,7 +263,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
         title: Text(
           _autoRefresh && refreshSec > 0 ? '主机状态 · 自动 ${refreshSec}s' : '主机状态',
         ),
-        actions: [
+        actions: compactAppBarActions([
           IconButton(
             tooltip: _autoRefresh ? '暂停刷新' : '自动刷新',
             onPressed: () {
@@ -398,7 +399,7 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
               ),
             ],
           ),
-        ],
+        ]),
       ),
       body: cfg == null
           ? const Center(child: Text('未连接'))
@@ -601,12 +602,8 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                               setState(() => _queryRegex = !_queryRegex),
                         ),
                         hintText: _queryRegex
-                            ? (_queryCase
-                                ? '筛选（正则 · 区分大小写）'
-                                : '筛选（正则）')
-                            : (_queryCase
-                                ? '筛选（区分大小写）'
-                                : '筛选能力项'),
+                            ? (_queryCase ? '筛选（正则 · 区分大小写）' : '筛选（正则）')
+                            : (_queryCase ? '筛选（区分大小写）' : '筛选能力项'),
                         border: const OutlineInputBorder(),
                         suffixIcon: _capQuery.isEmpty
                             ? null
@@ -860,12 +857,8 @@ class _HostDashboardScreenState extends State<HostDashboardScreen> {
                                   setState(() => _queryRegex = !_queryRegex),
                             ),
                             hintText: _queryRegex
-                                ? (_queryCase
-                                    ? '筛选（正则 · 区分大小写）'
-                                    : '筛选（正则）')
-                                : (_queryCase
-                                    ? '筛选（区分大小写）'
-                                    : '筛选键 / 值'),
+                                ? (_queryCase ? '筛选（正则 · 区分大小写）' : '筛选（正则）')
+                                : (_queryCase ? '筛选（区分大小写）' : '筛选键 / 值'),
                             border: const OutlineInputBorder(),
                             suffixIcon: _keyQuery.isEmpty
                                 ? null

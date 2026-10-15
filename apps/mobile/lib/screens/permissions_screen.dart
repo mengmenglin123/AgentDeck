@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/transcript.dart';
 import '../services/chat_controller.dart';
+import '../widgets/app_bar_actions.dart';
 
 /// Screen for managing agent permission requests.
 /// Shows pending approvals, history, and auto-approve rules.
@@ -40,7 +41,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('权限'),
-        actions: [
+        actions: compactAppBarActions([
           PopupMenuButton<String>(
             onSelected: (v) => setState(() => _filter = v),
             itemBuilder: (_) => [
@@ -51,7 +52,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
             ],
             icon: const Icon(Icons.filter_list),
           ),
-        ],
+        ]),
       ),
       body: Column(
         children: [
@@ -156,9 +157,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          _filter == 'pending'
-                              ? '暂无待处理权限'
-                              : '暂无权限历史',
+                          _filter == 'pending' ? '暂无待处理权限' : '暂无权限历史',
                           style: TextStyle(color: cs.onSurfaceVariant),
                         ),
                       ],
@@ -296,9 +295,8 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                     style: FilledButton.styleFrom(
                       backgroundColor:
                           isDeny ? cs.errorContainer : cs.primaryContainer,
-                      foregroundColor: isDeny
-                          ? cs.onErrorContainer
-                          : cs.onPrimaryContainer,
+                      foregroundColor:
+                          isDeny ? cs.onErrorContainer : cs.onPrimaryContainer,
                     ),
                     child: Text(b['text']?.toString() ?? '操作'),
                   );

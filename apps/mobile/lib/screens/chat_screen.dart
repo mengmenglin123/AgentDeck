@@ -26,6 +26,7 @@ import 'skills_screen.dart';
 import 'mcp_screen.dart';
 import 'cron_screen.dart';
 import 'memory_screen.dart';
+import '../widgets/app_bar_actions.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({
@@ -1057,7 +1058,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             ),
           ],
         ),
-        actions: [
+        actions: compactAppBarActions([
           // Quick access menu to other features
           PopupMenuButton<String>(
             tooltip: '快捷操作',
@@ -1285,7 +1286,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               ),
             ),
           ),
-        ],
+        ]),
       ),
       body: Column(
         children: [
@@ -1780,7 +1781,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               hintText:
                                   _chat.connected ? '输入消息…' : '正在连接 agent…',
                               hintStyle: TextStyle(
-                                color: cs.onSurfaceVariant.withValues(alpha: 0.65),
+                                color:
+                                    cs.onSurfaceVariant.withValues(alpha: 0.65),
                               ),
                               border: InputBorder.none,
                               isDense: true,
@@ -2045,7 +2047,8 @@ class _SuggestionCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Material(
-      color: isDark ? Colors.white.withValues(alpha: 0.03) : cs.surfaceContainer,
+      color:
+          isDark ? Colors.white.withValues(alpha: 0.03) : cs.surfaceContainer,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,

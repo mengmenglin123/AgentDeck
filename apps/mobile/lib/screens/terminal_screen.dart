@@ -14,6 +14,7 @@ import '../services/terminal_reconnect_policy.dart';
 import '../services/terminal_output_batcher.dart';
 import '../utils/security.dart';
 import '../l10n/app_strings.dart';
+import '../widgets/app_bar_actions.dart';
 
 /// Terminal console over Bridge `terminal_input` / `terminal_out`.
 /// Production Hosts may back this channel with a real PTY; Mock echoes commands.
@@ -280,7 +281,8 @@ class _TerminalScreenState extends State<TerminalScreen>
         actions: choices
             .map(
               (choice) => TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(choice['action']),
+                onPressed: () =>
+                    Navigator.of(dialogContext).pop(choice['action']),
                 child: Text(choice['label'] ?? '确认'),
               ),
             )
@@ -641,7 +643,7 @@ class _TerminalScreenState extends State<TerminalScreen>
             ),
           ],
         ),
-        actions: [
+        actions: compactAppBarActions([
           IconButton(
             tooltip: _showFind ? '隐藏查找' : AppStrings.terminalFind,
             onPressed: () {
@@ -795,7 +797,7 @@ class _TerminalScreenState extends State<TerminalScreen>
               ),
             ],
           ),
-        ],
+        ]),
       ),
       body: Column(
         children: [

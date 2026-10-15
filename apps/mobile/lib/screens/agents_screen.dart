@@ -7,6 +7,7 @@ import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 import '../utils/query_match.dart';
 import '../l10n/app_strings.dart';
+import '../widgets/app_bar_actions.dart';
 
 /// Readonly Host agents / platforms catalog (`GET /agents`).
 class AgentsScreen extends StatefulWidget {
@@ -472,7 +473,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
               ? 'Agents'
               : 'Agents (${agents.length}a · ${projects.length}p)',
         ),
-        actions: [
+        actions: compactAppBarActions([
           IconButton(
             tooltip: '复制全部',
             onPressed: (agents.isEmpty && projects.isEmpty && platforms.isEmpty)
@@ -907,7 +908,7 @@ class _AgentsScreenState extends State<AgentsScreen> {
             onPressed: _loading ? null : _load,
             icon: const Icon(Icons.refresh),
           ),
-        ],
+        ]),
       ),
       body: Column(
         children: [

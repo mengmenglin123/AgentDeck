@@ -9,6 +9,7 @@ import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 import '../utils/query_match.dart';
 import '../l10n/app_strings.dart';
+import '../widgets/app_bar_actions.dart';
 
 /// Readonly MCP server catalog from Host `GET /mcp`.
 class McpScreen extends StatefulWidget {
@@ -256,7 +257,7 @@ class _McpScreenState extends State<McpScreen> {
                   ? 'MCP (${items.length})'
                   : 'MCP (${items.length}/${servers.length})'),
         ),
-        actions: [
+        actions: compactAppBarActions([
           IconButton(
             tooltip: '复制全部',
             onPressed: items.isEmpty
@@ -572,7 +573,7 @@ class _McpScreenState extends State<McpScreen> {
             onPressed: loading ? null : _load,
             icon: const Icon(Icons.refresh),
           ),
-        ],
+        ]),
       ),
       body: loading
           ? const ConsoleLoading(label: AppStrings.loading)

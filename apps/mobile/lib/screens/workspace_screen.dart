@@ -8,6 +8,7 @@ import '../utils/security.dart';
 import 'diff_screen.dart';
 import '../widgets/markdown_lite.dart';
 import '../l10n/app_strings.dart';
+import '../widgets/app_bar_actions.dart';
 
 /// Readonly Host workspace browser (`GET /workspace`, `/workspace/git`).
 /// Console-only — no write/delete; Host is source of truth.
@@ -360,7 +361,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                   return '工作区 (${vis.length}/${entries.length})';
                 })(),
         ),
-        actions: [
+        actions: compactAppBarActions([
           IconButton(
             tooltip: '复制路径',
             onPressed: () async {
@@ -753,7 +754,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
             onPressed: _loading ? null : () => _load(),
             icon: const Icon(Icons.refresh),
           ),
-        ],
+        ]),
       ),
       body: Column(
         children: [
@@ -911,12 +912,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
                 controller: _filterCtrl,
                 decoration: InputDecoration(
                   hintText: _queryRegex
-                      ? (_queryCase
-                          ? '筛选（正则 · 区分大小写）'
-                          : '筛选（正则）')
-                      : (_queryCase
-                          ? '筛选（区分大小写）'
-                          : '筛选当前目录文件'),
+                      ? (_queryCase ? '筛选（正则 · 区分大小写）' : '筛选（正则）')
+                      : (_queryCase ? '筛选（区分大小写）' : '筛选当前目录文件'),
                   isDense: true,
                   border: const OutlineInputBorder(),
                   prefixIcon: IconButton(

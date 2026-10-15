@@ -7,6 +7,7 @@ import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 import '../utils/query_match.dart';
 import '../l10n/app_strings.dart';
+import '../widgets/app_bar_actions.dart';
 
 /// Readonly Host logs feed (`GET /logs`).
 class LogsScreen extends StatefulWidget {
@@ -268,7 +269,7 @@ class _LogsScreenState extends State<LogsScreen> {
                   : '主机日志（${_visible.length}/${_logs.length}）');
           return _autoRefresh ? '$base · 自动刷新' : base;
         }()),
-        actions: [
+        actions: compactAppBarActions([
           IconButton(
             tooltip: '复制全部',
             onPressed: _visible.isEmpty
@@ -483,8 +484,7 @@ class _LogsScreenState extends State<LogsScreen> {
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.horizontal_rule),
           ),
           IconButton(
-            tooltip:
-                _relativeTs ? '显示绝对时间' : '显示相对时间',
+            tooltip: _relativeTs ? '显示绝对时间' : '显示相对时间',
             onPressed: () => setState(() => _relativeTs = !_relativeTs),
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
@@ -492,7 +492,7 @@ class _LogsScreenState extends State<LogsScreen> {
             onPressed: _loading ? null : _load,
             icon: const Icon(Icons.refresh),
           ),
-        ],
+        ]),
       ),
       body: Column(
         children: [
@@ -693,62 +693,67 @@ class _LogsScreenState extends State<LogsScreen> {
                                         ? Colors.orange.withValues(alpha: 0.08)
                                         : null,
                               ),
-                              child: ListTile(
-                                dense: true,
-                                leading: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: color.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(
-                                      color: color.withValues(alpha: 0.5),
+                              // Ink must paint above the tinted row.
+                              child: Material(
+                                type: MaterialType.transparency,
+                                child: ListTile(
+                                  dense: true,
+                                  leading: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: color.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(
+                                        color: color.withValues(alpha: 0.5),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      level.toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        color: color,
+                                        fontFamily: 'monospace',
+                                      ),
                                     ),
                                   ),
-                                  child: Text(
-                                    level.toUpperCase(),
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      color: color,
+                                  title: Text(
+                                    src.isEmpty ? msg : '[$src] $msg',
+                                    style: const TextStyle(
+                                      fontSize: 13,
                                       fontFamily: 'monospace',
                                     ),
+                                    maxLines: _wrapLines ? null : 1,
+                                    overflow: _wrapLines
+                                        ? TextOverflow.visible
+                                        : TextOverflow.ellipsis,
+                                    softWrap: _wrapLines,
                                   ),
-                                ),
-                                title: Text(
-                                  src.isEmpty ? msg : '[$src] $msg',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontFamily: 'monospace',
+                                  subtitle: Text(
+                                    when,
+                                    style: const TextStyle(fontSize: 10),
                                   ),
-                                  maxLines: _wrapLines ? null : 1,
-                                  overflow: _wrapLines
-                                      ? TextOverflow.visible
-                                      : TextOverflow.ellipsis,
-                                  softWrap: _wrapLines,
-                                ),
-                                subtitle: Text(
-                                  when,
-                                  style: const TextStyle(fontSize: 10),
-                                ),
-                                onLongPress: () async {
-                                  await Clipboard.setData(
-                                    ClipboardData(
-                                      text:
-                                          '[$level] $when${src.isNotEmpty ? ' $src' : ''} $msg',
-                                    ),
-                                  );
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('日志行已复制'),
-                                        duration: Duration(seconds: 1),
+                                  onLongPress: () async {
+                                    await Clipboard.setData(
+                                      ClipboardData(
+                                        text:
+                                            '[$level] $when${src.isNotEmpty ? ' $src' : ''} $msg',
                                       ),
                                     );
-                                  }
-                                },
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text('日志行已复制'),
+                                          duration: Duration(seconds: 1),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                ),
                               ),
                             );
                           },

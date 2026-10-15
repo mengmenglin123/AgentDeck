@@ -8,6 +8,7 @@ import '../services/theme_controller.dart';
 import '../services/connection_controller.dart';
 import '../l10n/app_strings.dart';
 import '../widgets/app_logo.dart';
+import '../widgets/app_bar_actions.dart';
 
 /// Device-local console settings (theme, text scale, compact, dashboard refresh).
 class SettingsScreen extends StatefulWidget {
@@ -69,7 +70,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('设置'),
-        actions: [
+        actions: compactAppBarActions([
           IconButton(
             tooltip: '回到顶部',
             onPressed: () {
@@ -99,7 +100,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () => setState(() => _wrapLines = !_wrapLines),
             icon: Icon(_wrapLines ? Icons.wrap_text : Icons.notes),
           ),
-        ],
+        ]),
       ),
       body: ListView(
         controller: _scroll,

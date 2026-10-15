@@ -7,6 +7,7 @@ import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 import '../utils/query_match.dart';
 import '../l10n/app_strings.dart';
+import '../widgets/app_bar_actions.dart';
 
 /// Readonly Host scheduled jobs (`GET /cron`). Console view only.
 class CronScreen extends StatefulWidget {
@@ -267,7 +268,7 @@ class _CronScreenState extends State<CronScreen> {
                   ? '主机定时任务（${items.length}）'
                   : '主机定时任务（${items.length}/${_jobs.length}）'),
         ),
-        actions: [
+        actions: compactAppBarActions([
           IconButton(
             tooltip: '复制全部',
             onPressed: items.isEmpty
@@ -353,9 +354,7 @@ class _CronScreenState extends State<CronScreen> {
                             : (_sortById
                                 ? (_sortAsc ? 'ID Z→A' : 'ID A→Z')
                                 : (_sortByNext
-                                    ? (_sortAsc
-                                        ? '下次运行 晚→早'
-                                        : '下次运行 早→晚')
+                                    ? (_sortAsc ? '下次运行 晚→早' : '下次运行 早→晚')
                                     : (_sortByLastStatus
                                         ? (_sortAsc ? '上次状态 Z→A' : '上次状态 A→Z')
                                         : (_sortByKind
@@ -590,7 +589,7 @@ class _CronScreenState extends State<CronScreen> {
             onPressed: _loading ? null : _load,
             icon: const Icon(Icons.refresh),
           ),
-        ],
+        ]),
       ),
       body: Column(
         children: [

@@ -7,6 +7,7 @@ import '../services/mgmt_client.dart';
 import '../utils/security.dart';
 import '../utils/query_match.dart';
 import '../l10n/app_strings.dart';
+import '../widgets/app_bar_actions.dart';
 
 /// Readonly Host memory catalog (`GET /memory`) — Host is source of truth.
 /// Inspired by remote-console memory browsers; not a local agent memory engine.
@@ -274,7 +275,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
                   ? '主机记忆（${_visible.length}）'
                   : '主机记忆（${_visible.length}/${_items.length}）'),
         ),
-        actions: [
+        actions: compactAppBarActions([
           IconButton(
             tooltip: '复制全部',
             onPressed: _visible.isEmpty
@@ -358,8 +359,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
             ),
           ),
           IconButton(
-            tooltip:
-                _relativeTs ? '显示绝对时间' : '显示相对时间',
+            tooltip: _relativeTs ? '显示绝对时间' : '显示相对时间',
             onPressed: () => setState(() => _relativeTs = !_relativeTs),
             icon: Icon(_relativeTs ? Icons.schedule : Icons.access_time),
           ),
@@ -373,9 +373,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
                         : (_sortByScope
                             ? (_sortAsc ? 'Scope Z→A' : 'Scope A→Z')
                             : (_sortByConfidence
-                                ? (_sortAsc
-                                    ? '置信度 高→低'
-                                    : '置信度 低→高')
+                                ? (_sortAsc ? '置信度 高→低' : '置信度 低→高')
                                 : (_sortByContent
                                     ? (_sortAsc ? 'Content Z→A' : 'Content A→Z')
                                     : (_sortByType
@@ -567,7 +565,7 @@ class _MemoryScreenState extends State<MemoryScreen> {
             onPressed: _loading ? null : _load,
             icon: const Icon(Icons.refresh),
           ),
-        ],
+        ]),
       ),
       body: Column(
         children: [

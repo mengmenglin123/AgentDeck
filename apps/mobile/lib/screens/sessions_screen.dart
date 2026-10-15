@@ -28,6 +28,7 @@ import 'pairing_screen.dart';
 import 'skills_screen.dart';
 import 'terminal_screen.dart';
 import 'workspace_screen.dart';
+import '../widgets/app_bar_actions.dart';
 
 class SessionsScreen extends StatefulWidget {
   const SessionsScreen({
@@ -747,7 +748,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   ? '${AppStrings.selectedN} ${_selected.length}'
                   : AppStrings.tabSessions,
             ),
-            actions: [
+            actions: compactAppBarActions([
               if (_selectMode) ...[
                 IconButton(
                   tooltip: AppStrings.deleteSelected,
@@ -1064,7 +1065,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
                   ],
                 ),
               ], // end non-select actions
-            ],
+            ]),
           ),
           bottomNavigationBar: widget.embedded
               ? null
@@ -1309,7 +1310,10 @@ class _SessionsScreenState extends State<SessionsScreen> {
                         ).colorScheme.errorContainer.withValues(alpha: 0.55)
                       : Theme.of(
                           context,
-                        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+                        )
+                          .colorScheme
+                          .surfaceContainerHighest
+                          .withValues(alpha: 0.45),
                   child: ListTile(
                     dense: true,
                     visualDensity: VisualDensity.compact,
@@ -1823,15 +1827,17 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                     ? Colors.white
                                                         .withValues(alpha: 0.03)
                                                     : cs.surfaceContainerHighest
-                                                        .withValues(alpha: 0.65),
+                                                        .withValues(
+                                                            alpha: 0.65),
                                                 borderRadius:
                                                     BorderRadius.circular(12),
                                                 border: Border.all(
                                                   color: isDark
-                                                      ? Colors.white
-                                                          .withValues(alpha: 0.06)
+                                                      ? Colors.white.withValues(
+                                                          alpha: 0.06)
                                                       : cs.outlineVariant
-                                                          .withValues(alpha: 0.6),
+                                                          .withValues(
+                                                              alpha: 0.6),
                                                 ),
                                               ),
                                               child: Row(
@@ -1957,8 +1963,8 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                                     context)
                                                                 .colorScheme
                                                                 .secondaryContainer
-                                                                .withValues(alpha: 
-                                                                    0.7),
+                                                                .withValues(
+                                                                    alpha: 0.7),
                                                           ),
                                                           child: Text(
                                                             c.toString(),
@@ -1998,38 +2004,45 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                                       color: pinned
                                                           ? const Color(
                                                                   0xFFF59E0B)
-                                                              .withValues(alpha: 0.14)
+                                                              .withValues(
+                                                                  alpha: 0.14)
                                                           : s.running
                                                               ? const Color(
                                                                       0xFF5E6AD2)
-                                                                  .withValues(alpha: 
-                                                                      0.14)
+                                                                  .withValues(
+                                                                      alpha:
+                                                                          0.14)
                                                               : (isDark
                                                                   ? Colors.white
-                                                                      .withValues(alpha: 
-                                                                          0.05)
+                                                                      .withValues(
+                                                                          alpha:
+                                                                              0.05)
                                                                   : cs.surfaceContainerHighest),
                                                       borderRadius:
                                                           BorderRadius.circular(
                                                               12),
                                                       border: Border.all(
                                                         color: pinned
-                                                            ? const Color(0xFFF59E0B)
-                                                                .withValues(alpha: 
-                                                                    0.35)
+                                                            ? const Color(
+                                                                    0xFFF59E0B)
+                                                                .withValues(
+                                                                    alpha: 0.35)
                                                             : s.running
                                                                 ? const Color(
                                                                         0xFF5E6AD2)
-                                                                    .withValues(alpha: 
-                                                                        0.3)
+                                                                    .withValues(
+                                                                        alpha:
+                                                                            0.3)
                                                                 : (isDark
                                                                     ? Colors
                                                                         .white
-                                                                        .withValues(alpha: 
-                                                                            0.08)
+                                                                        .withValues(
+                                                                            alpha:
+                                                                                0.08)
                                                                     : cs.outlineVariant
-                                                                        .withValues(alpha: 
-                                                                            0.7)),
+                                                                        .withValues(
+                                                                            alpha:
+                                                                                0.7)),
                                                       ),
                                                     ),
                                                     child: Icon(
@@ -2175,25 +2188,28 @@ class _SessionsScreenState extends State<SessionsScreen> {
                                               decoration: BoxDecoration(
                                                 color: selected
                                                     ? cs.primaryContainer
-                                                        .withValues(alpha: isDark
-                                                            ? 0.28
-                                                            : 0.45)
+                                                        .withValues(
+                                                            alpha: isDark
+                                                                ? 0.28
+                                                                : 0.45)
                                                     : (isDark
                                                         ? Colors.white
-                                                            .withValues(alpha: 0.03)
+                                                            .withValues(
+                                                                alpha: 0.03)
                                                         : cs.surfaceContainer),
                                                 borderRadius:
                                                     BorderRadius.circular(14),
                                                 border: Border.all(
                                                   color: selected
-                                                      ? cs.primary
-                                                          .withValues(alpha: 0.45)
+                                                      ? cs.primary.withValues(
+                                                          alpha: 0.45)
                                                       : (isDark
                                                           ? Colors.white
-                                                              .withValues(alpha: 0.08)
+                                                              .withValues(
+                                                                  alpha: 0.08)
                                                           : cs.outlineVariant
-                                                              .withValues(alpha: 
-                                                                  0.7)),
+                                                              .withValues(
+                                                                  alpha: 0.7)),
                                                 ),
                                               ),
                                               clipBehavior: Clip.antiAlias,
