@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import hmac
 import json
 import select
 import socket
@@ -16,6 +15,7 @@ from urllib.parse import parse_qs, urlparse
 
 from bridge_agent_loop import AgentBridgeLoop
 from terminal_bridge_loop import TerminalBridgeLoop
+from token_auth import tokens_match
 
 
 class WebSocketProtocolError(ConnectionError):
@@ -227,7 +227,7 @@ class BridgeWebSocketTransport:
             return False
 
         token = self._extract_token(headers, parse_qs(parsed.query))
-        if token is None or not hmac.compare_digest(token, self.config.token):
+        if not tokens_match(token, self.config.token):
             self._send_http_error(connection, 401, "Unauthorized")
             return False
 

@@ -146,6 +146,9 @@ class TestProductionManagementServer(unittest.TestCase):
         with self.assertRaises(urllib.error.HTTPError) as unauthorized:
             self.request("/status", token="wrong")
         self.assertEqual(unauthorized.exception.code, 401)
+        with self.assertRaises(urllib.error.HTTPError) as non_ascii:
+            self.request("/status", token="mgmt-t\u00f6ken")
+        self.assertEqual(non_ascii.exception.code, 401)
         with self.assertRaises(urllib.error.HTTPError) as missing:
             self.request("/skills?project=missing")
         self.assertEqual(missing.exception.code, 404)

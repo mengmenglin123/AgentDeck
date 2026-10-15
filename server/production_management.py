@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hmac
 import json
 import threading
 import time
@@ -12,6 +11,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from production_host_config import ProjectRuntimeConfig
 from session_store import ProjectSessionStore, SessionStoreError
+from token_auth import tokens_match
 
 
 class ProductionManagementServer:
@@ -97,29 +97,27 @@ class ProductionManagementServer:
         class Handler(BaseHTTPRequestHandler):
             server_version = "HuanHermesManagement/1"
 
+            def _authorized_or_401(self) -> bool:
+                if owner._authorized(self.headers.get("Authorization", "")):
+                    return True
+                owner._send(self, 401, {"ok": False, "error": "unauthorized"})
+                return False
+
             def do_GET(self) -> None:  # noqa: N802
-                if not owner._authorized(self.headers.get("Authorization", "")):
-                    owner._send(self, 401, {"ok": False, "error": "unauthorized"})
-                    return
-                owner._handle_get(self)
+                if self._authorized_or_401():
+                    owner._handle_get(self)
 
             def do_POST(self) -> None:  # noqa: N802
-                if not owner._authorized(self.headers.get("Authorization", "")):
-                    owner._send(self, 401, {"ok": False, "error": "unauthorized"})
-                    return
-                owner._handle_mutation(self, "POST")
+                if self._authorized_or_401():
+                    owner._handle_mutation(self, "POST")
 
             def do_PATCH(self) -> None:  # noqa: N802
-                if not owner._authorized(self.headers.get("Authorization", "")):
-                    owner._send(self, 401, {"ok": False, "error": "unauthorized"})
-                    return
-                owner._handle_mutation(self, "PATCH")
+                if self._authorized_or_401():
+                    owner._handle_mutation(self, "PATCH")
 
             def do_DELETE(self) -> None:  # noqa: N802
-                if not owner._authorized(self.headers.get("Authorization", "")):
-                    owner._send(self, 401, {"ok": False, "error": "unauthorized"})
-                    return
-                owner._handle_mutation(self, "DELETE")
+                if self._authorized_or_401():
+                    owner._handle_mutation(self, "DELETE")
 
             def do_OPTIONS(self) -> None:  # noqa: N802
                 self.send_response(204)
@@ -358,7 +356,7 @@ class ProductionManagementServer:
 
     def _authorized(self, value: str) -> bool:
         prefix = "Bearer "
-        return value.startswith(prefix) and hmac.compare_digest(value[len(prefix):], self.token)
+        return isinstance(value, str) and value.startswith(prefix) and tokens_match(value[len(prefix):], self.token)
 
     @staticmethod
     def _send(request: BaseHTTPRequestHandler, status: int, payload: dict[str, Any]) -> None:

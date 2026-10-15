@@ -302,6 +302,12 @@ class TestBridgeWebSocketTransport(unittest.TestCase):
         self.assertIn(b"401 Unauthorized", response)
         client.close()
 
+    def test_non_ascii_token_is_rejected_instead_of_crashing(self) -> None:
+        client = self.run_server(self.transport_for("pass"))
+        response = self.handshake(client, token=None, header="Authorization: Bearer s\u00e9cret\r\n")
+        self.assertIn(b"401 Unauthorized", response)
+        client.close()
+
     def test_bearer_header_authenticates_without_query_token(self) -> None:
         client = self.run_server(self.transport_for("pass"))
         response = self.handshake(client, token=None, header="Authorization: Bearer secret\r\n")
