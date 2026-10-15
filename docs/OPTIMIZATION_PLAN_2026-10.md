@@ -32,7 +32,7 @@
 | 5 | Mock Host：恒定时间 token 比较；日志中 `token=` 与 `Bearer` 值脱敏 | 安全 | ✅ 已完成 |
 | 6 | App：`ChatController` dispose 后忽略 Bridge 回调；卡片正文按 `content → text → title` 读取（Reducer 与通知一致）；`isEmpty` 不再复制 transcript | 健壮性/性能 | ✅ 已完成（未经 `flutter analyze` 验证，见下文） |
 | 7 | 测试与 DX：回环测试绕过环境代理；新增 `scripts/check.sh`（与 CI 相同的 py_compile + 协议 + Host 测试，可选 `--flutter`）；修复测试重复字典键 | 测试/DX | ✅ 已完成 |
-| 8 | CI：新增不依赖 Flutter 的 `python-tests` 快速 job | DX | ✅ 已完成（附加 job，不改变现有 build/release/publish 流程） |
+| 8 | CI：新增不依赖 Flutter 的 `python-tests` 快速 job；修复 `setup-android@v3` 默认安装已下架 `tools` 包导致的 build 失败（改为只装 `platform-tools`） | DX | ✅ 已完成（附加 job，不改变现有 build/release/publish 流程） |
 | 9 | 流式聊天合并刷新：对 `reply_stream`/`thinking` delta 按帧（~16–33 ms）合并 `notifyListeners()`，并让消息列表按条目局部重建 | 性能 | ⏳ 未做——需要 Flutter 环境跑 widget/controller 测试验证滚动、跳底与搜索高亮行为 |
 | 10 | 拆分巨石文件：`mock_host.py` 按 bridge/mgmt/shell-mock 拆模块；`chat_screen.dart`、`sessions_screen.dart` 抽出子组件 | 代码质量 | ⏳ 未做——改动面大，需 Flutter 环境与人工回归 |
 | 11 | Companion 安装包不再随每个版本进 git 历史：改为 Release 产物 / Git LFS，App 端继续以 sha256 固定 | 仓库体积 | ⏳ 未做——涉及发布流程与 `publish-companion` job，需维护者决策 |
@@ -45,7 +45,7 @@
 | 协议测试（`packages/huan_protocol/test`） | 17/17 通过 | 17/17 通过 |
 | Host 测试（`server/test_*.py`，`PYTHONWARNINGS=error::ResourceWarning`） | 105/105 通过（设置代理时 3 项失败） | 116/116 通过（有无代理均通过） |
 | `py_compile` 全部 server / mock / protocol 模块 | 通过 | 通过 |
-| Flutter `analyze` / `test` | 本环境无 Flutter SDK，未运行 | 未运行；Dart 改动已用 tree-sitter-dart 做语法解析检查（0 错误），并新增 1 个 reducer 单测，需由 CI 的 `flutter analyze` / `flutter test` 最终确认 |
+| Flutter `analyze` / `test` | 本地无 Flutter SDK | 本地未运行（Dart 改动经 tree-sitter-dart 语法检查 0 错误）；PR CI 中 `flutter analyze --no-fatal-infos` 与 `flutter test`（含新增 reducer 单测）均通过 |
 
 本地复现：`./scripts/check.sh`（加 `--flutter` 同时跑 Flutter 门禁）。
 
