@@ -19,7 +19,6 @@ class TestProductionHostConfig(unittest.TestCase):
             "print(json.dumps({'type':'done'}), flush=True)"
         )
         return {
-            "server": {"bridge_host": "127.0.0.1", "bridge_port": 0, "default_project": "codex"},
             "auth": {"bridge_token": "test-bridge-token", "mgmt_token": "test-mgmt-token"},
             "server": {"bridge_host": "127.0.0.1", "bridge_port": 0, "mgmt_host": "127.0.0.1", "mgmt_port": 0, "default_project": "codex"},
             "workspace": {"roots": [directory]},
@@ -45,6 +44,29 @@ class TestProductionHostConfig(unittest.TestCase):
                 },
             },
         }
+
+    def test_security_warnings_flag_weak_shared_tokens_and_public_bind(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            mapping = self.mapping(directory)
+            mapping["auth"] = {"bridge_token": "dev-bridge-token-change-me", "mgmt_token": "dev-bridge-token-change-me"}
+            mapping["server"]["mgmt_host"] = "0.0.0.0"
+            warnings = ProductionHostConfig.from_mapping(mapping).security_warnings()
+            text = "\n".join(warnings)
+            self.assertIn("auth.bridge_token is still a placeholder", text)
+            self.assertIn("identical", text)
+            self.assertIn("server.mgmt_host binds a non-loopback address", text)
+            self.assertNotIn("dev-bridge-token-change-me", text)
+            self.assertNotIn("server.bridge_host", text)
+
+    def test_strong_distinct_loopback_config_has_no_security_warnings(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            mapping = self.mapping(directory)
+            mapping["auth"] = {"bridge_token": "b" * 43, "mgmt_token": "m" * 43}
+            self.assertEqual(ProductionHostConfig.from_mapping(mapping).security_warnings(), ())
+            mapping["auth"] = {"bridge_token": "short", "mgmt_token": "m" * 43}
+            warnings = ProductionHostConfig.from_mapping(mapping).security_warnings()
+            self.assertEqual(len(warnings), 1)
+            self.assertIn("auth.bridge_token is shorter than", warnings[0])
 
     def test_builds_project_aware_agent_and_terminal_components(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

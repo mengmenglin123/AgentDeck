@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from production_host import load_components, main
+from production_host import config_file_warnings, load_components, main
 
 
 class TestProductionHostEntryPoint(unittest.TestCase):
@@ -50,6 +50,18 @@ workdir = "{root}"
                 self.assertEqual(components.server.port, 0)
             finally:
                 components.close()
+
+    def test_config_file_warnings_flag_group_or_world_readable_config(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config = Path(directory) / "host.toml"
+            config.write_text("", encoding="utf-8")
+            config.chmod(0o644)
+            warnings = config_file_warnings(str(config))
+            self.assertEqual(len(warnings), 1)
+            self.assertIn("chmod 600", warnings[0])
+            config.chmod(0o600)
+            self.assertEqual(config_file_warnings(str(config)), ())
+            self.assertEqual(config_file_warnings(str(Path(directory) / "missing.toml")), ())
 
     def test_rejects_missing_config_without_traceback(self) -> None:
         stderr = io.StringIO()

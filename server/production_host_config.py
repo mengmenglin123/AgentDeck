@@ -41,6 +41,10 @@ class ProjectRuntimeConfig:
     close_stdin_after_send: bool = False
 
 
+MIN_RECOMMENDED_TOKEN_LENGTH = 24
+LOOPBACK_HOSTS = frozenset({"127.0.0.1", "::1", "localhost"})
+
+
 @dataclass(frozen=True)
 class ProductionHostConfig:
     bridge_host: str
@@ -58,6 +62,25 @@ class ProductionHostConfig:
     backlog: int = 16
     poll_interval: float = 0.05
     max_frame_bytes: int = 1024 * 1024
+
+    def security_warnings(self) -> tuple[str, ...]:
+        """Non-fatal deployment risks; never includes secret values."""
+        warnings: list[str] = []
+        for label, token in (("auth.bridge_token", self.bridge_token), ("auth.mgmt_token", self.mgmt_token)):
+            if "change-me" in token.lower():
+                warnings.append(f"{label} is still a placeholder; generate a random token")
+            elif len(token) < MIN_RECOMMENDED_TOKEN_LENGTH:
+                warnings.append(
+                    f"{label} is shorter than {MIN_RECOMMENDED_TOKEN_LENGTH} characters; use a longer random token"
+                )
+        if self.bridge_token == self.mgmt_token:
+            warnings.append("auth.bridge_token and auth.mgmt_token are identical; use separate tokens")
+        for label, host in (("server.bridge_host", self.bridge_host), ("server.mgmt_host", self.mgmt_host)):
+            if host not in LOOPBACK_HOSTS:
+                warnings.append(
+                    f"{label} binds a non-loopback address; the Host has no TLS, put it behind a TLS proxy"
+                )
+        return tuple(warnings)
 
     @classmethod
     def load(cls, path: str) -> "ProductionHostConfig":
