@@ -28,6 +28,7 @@ import threading
 import time
 import traceback
 import uuid
+import weakref
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.parse import parse_qs, unquote, urlparse
@@ -1246,7 +1247,27 @@ def ws_recv_text(conn: socket.socket) -> str:
     return payload.decode("utf-8")
 
 
+_SEND_LOCKS: "weakref.WeakKeyDictionary[socket.socket, threading.Lock]" = weakref.WeakKeyDictionary()
+_SEND_LOCKS_GUARD = threading.Lock()
+
+
+def _send_lock(conn: socket.socket) -> threading.Lock:
+    with _SEND_LOCKS_GUARD:
+        lock = _SEND_LOCKS.get(conn)
+        if lock is None:
+            lock = threading.Lock()
+            _SEND_LOCKS[conn] = lock
+        return lock
+
+
 def ws_send_frame(conn: socket.socket, opcode: int, payload: bytes) -> None:
+    # Agent runs stream from worker threads (so `cancel` can be read while a
+    # reply is streaming); serialise whole frames per connection.
+    with _send_lock(conn):
+        _ws_send_frame_unlocked(conn, opcode, payload)
+
+
+def _ws_send_frame_unlocked(conn: socket.socket, opcode: int, payload: bytes) -> None:
     header = bytearray([0x80 | opcode])
     ln = len(payload)
     if ln < 126:
@@ -1383,7 +1404,12 @@ def handle_bridge_client(conn: socket.socket, addr: Tuple[str, int]) -> None:
                 continue
 
             if mtype == "message":
-                _handle_message(conn, msg)
+                # Run in a worker so the read loop keeps serving `cancel`,
+                # `card_action` and `ping` while a reply streams (a real Host
+                # runs the agent asynchronously too).
+                threading.Thread(
+                    target=_handle_message_safe, args=(conn, msg), daemon=True
+                ).start()
                 continue
 
             if mtype == "terminal_open":
@@ -4482,6 +4508,15 @@ def _handle_cancel(conn: socket.socket, msg: Dict[str, Any]) -> None:
     if cancelled:
         _set_running(sk, False)
         _stream_reply(conn, sk, ctx or "cancel", text, cancellable=False)
+
+
+def _handle_message_safe(conn: socket.socket, msg: Dict[str, Any]) -> None:
+    try:
+        _handle_message(conn, msg)
+    except (ConnectionError, OSError):
+        pass
+    except Exception:
+        log(f"bridge message error:\n{traceback.format_exc()}")
 
 
 def _handle_message(conn: socket.socket, msg: Dict[str, Any]) -> None:
