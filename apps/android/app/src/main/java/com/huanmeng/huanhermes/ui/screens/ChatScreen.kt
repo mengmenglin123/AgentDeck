@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -67,14 +68,20 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit) {
     val items = state.items
 
     // Follow the conversation while the user is at (or near) the bottom.
+    var jumpedToEnd by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(items.size, (items.lastOrNull() as? ChatItem.Assistant)?.text?.length) {
-        if (items.isNotEmpty()) {
-            val lastVisible = list.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-            if (lastVisible >= items.size - 3) list.animateScrollToItem(items.size - 1)
+        if (items.isEmpty()) return@LaunchedEffect
+        if (!jumpedToEnd) {
+            // Opening a session shows its latest messages, not the top of the history.
+            list.scrollToItem(items.size - 1)
+            jumpedToEnd = true
+            return@LaunchedEffect
         }
+        val lastVisible = list.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+        if (lastVisible >= items.size - 3) list.animateScrollToItem(items.size - 1)
     }
 
-    Column(Modifier.fillMaxSize().imePadding()) {
+    Column(Modifier.fillMaxSize().navigationBarsPadding().imePadding()) {
         TopAppBar(
             title = {
                 Column {

@@ -74,19 +74,20 @@ class SessionsViewModel(private val graph: AppGraph) : ViewModel() {
     fun rename(s: SessionInfo, title: String) = viewModelScope.launch { model.rename(s, title) }
     fun delete(s: SessionInfo) = viewModelScope.launch { model.delete(s) }
 
-    fun remember(s: SessionInfo): String {
-        graph.sessionRefs[s.id] = SessionRef(s.id, s.sessionKey, s.project.ifBlank { null }, s.displayTitle)
-        return s.id
-    }
+    fun remember(s: SessionInfo): SessionRef =
+        SessionRef(s.id, s.sessionKey, s.project.ifBlank { null }, s.displayTitle).also { graph.sessionRefs[s.id] = it }
 
     override fun onCleared() {
         model.close()
     }
 }
 
-class ChatViewModel(private val graph: AppGraph, sessionId: String) : ViewModel() {
-    private val ref: SessionRef? = graph.sessionRefs[sessionId]
+/** [fallback] comes from the nav route, so the chat survives process death (no in-memory map then). */
+class ChatViewModel(private val graph: AppGraph, sessionId: String, fallback: SessionRef?) : ViewModel() {
+    private val ref: SessionRef? = graph.sessionRefs[sessionId] ?: fallback
     private val chat: ChatSession? = run {
+        // After process death the profile store may not be loaded yet.
+        if (!graph.profiles.state.value.loaded) kotlinx.coroutines.runBlocking { graph.profiles.load() }
         val profile = graph.profiles.state.value.active ?: return@run null
         val rt = graph.runtimeFor(profile) ?: return@run null
         val r = ref ?: return@run null

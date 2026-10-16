@@ -1,5 +1,6 @@
 package com.huanmeng.huanhermes.ui
 
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Apps
@@ -24,6 +25,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.huanmeng.huanhermes.HuanHermesApp
+import com.huanmeng.huanhermes.core.chat.SessionRef
 import com.huanmeng.huanhermes.data.AppSettings
 import com.huanmeng.huanhermes.data.SettingsRepository
 import com.huanmeng.huanhermes.ui.screens.ChatScreen
@@ -49,7 +51,9 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
     val current = entry?.destination?.route
     val showBar = Tab.entries.any { it.route == current }
     val sessionsVm: SessionsViewModel = viewModel { SessionsViewModel(graph) }
+    // Each screen handles its own top/bottom insets; the outer Scaffold only reserves the nav bar.
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (showBar) NavigationBar {
                 Tab.entries.forEach { tab ->
@@ -74,7 +78,10 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
                 SessionsScreen(
                     sessionsVm,
                     onOpenHosts = { nav.navigate("hosts") },
-                    onOpenChat = { id -> nav.navigate("chat/${android.net.Uri.encode(id)}") },
+                    onOpenChat = { ref ->
+                        val e = { v: String? -> android.net.Uri.encode(v.orEmpty()) }
+                        nav.navigate("chat/${e(ref.id)}?sk=${e(ref.sessionKey)}&p=${e(ref.project)}&t=${e(ref.title)}")
+                    },
                 )
             }
             composable(Tab.Tools.route) { ToolsScreen() }
@@ -83,9 +90,22 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
                 val vm: HostsViewModel = viewModel { HostsViewModel(graph) }
                 HostsScreen(vm, onBack = { nav.popBackStack() }, onConnected = { nav.popBackStack() })
             }
-            composable("chat/{id}", arguments = listOf(navArgument("id") { type = NavType.StringType })) { backStack ->
-                val id = backStack.arguments?.getString("id").orEmpty()
-                val vm: ChatViewModel = viewModel(key = "chat-$id") { ChatViewModel(graph, id) }
+            composable(
+                "chat/{id}?sk={sk}&p={p}&t={t}",
+                arguments = listOf(
+                    navArgument("id") { type = NavType.StringType },
+                    navArgument("sk") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("p") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("t") { type = NavType.StringType; defaultValue = "" },
+                ),
+            ) { backStack ->
+                val args = backStack.arguments
+                val id = args?.getString("id").orEmpty()
+                val sk = args?.getString("sk").orEmpty()
+                val fallback = if (sk.isEmpty()) null else SessionRef(
+                    id, sk, args?.getString("p")?.ifEmpty { null }, args?.getString("t")?.ifEmpty { null } ?: "会话",
+                )
+                val vm: ChatViewModel = viewModel(key = "chat-$id") { ChatViewModel(graph, id, fallback) }
                 ChatScreen(vm, onBack = { nav.popBackStack() })
             }
         }

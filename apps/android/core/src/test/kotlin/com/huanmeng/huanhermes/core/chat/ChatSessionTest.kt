@@ -57,7 +57,7 @@ class ChatSessionTest {
         val fake = FakeTransport()
         val bridge = BridgeClient(config, fake, backgroundScope, policy = ReconnectPolicy(1_000, 60_000, 0.0), now = { testScheduler.currentTime })
         val mgmt = FakeMgmt()
-        val queue = OfflineQueue(storage)
+        val queue = OfflineQueue(storage, io = kotlinx.coroutines.test.StandardTestDispatcher(testScheduler))
         val chat = ChatSession("host-A", SessionRef("c1", sk, "codex", "t"), bridge, mgmt, queue, backgroundScope, clock = { testScheduler.currentTime })
         return Rig(fake, bridge, mgmt, queue, storage, chat)
     }
@@ -171,6 +171,15 @@ class ChatSessionTest {
         r.fake.last.serverClose()
         runCurrent()
         assertEquals(before, r.chat.state.value)
+    }
+
+    @Test fun emptyHostHistoryDoesNotWipeTheScreenOnResync() = runTest {
+        val r = rig(); r.chat.start(); connect(r)
+        r.fake.last.text("""{"type":"reply","session_key":"$sk","content":"kept"}""")
+        runCurrent()
+        r.fake.last.text("""{"type":"resync_required","session_key":"$sk","last_seq":3}""")
+        runCurrent()
+        assertEquals("kept", (r.chat.state.value.items.single() as ChatItem.Assistant).text)
     }
 
     @Test fun missingHistoryIsNotAnError() = runTest {

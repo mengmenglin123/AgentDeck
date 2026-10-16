@@ -51,7 +51,17 @@ class FileQueueStorage(private val file: File) : QueueStorage {
  * in memory (nothing typed before the load finishes is lost). Text only:
  * attachments are never queued.
  */
-class OfflineQueue(private val storage: QueueStorage, val maxSize: Int = 50) {
+class OfflineQueue(
+    storage: QueueStorage,
+    val maxSize: Int = 50,
+    private val io: kotlinx.coroutines.CoroutineDispatcher = kotlinx.coroutines.Dispatchers.IO,
+) {
+    private val raw = storage
+    /** Disk access never runs on the caller's (often the main) thread. */
+    private val storage = object {
+        suspend fun read() = kotlinx.coroutines.withContext(io) { raw.read() }
+        suspend fun write(items: List<QueuedMessage>) = kotlinx.coroutines.withContext(io) { runCatching { raw.write(items) } }
+    }
     private val mutex = Mutex()
     private val _items = MutableStateFlow<List<QueuedMessage>>(emptyList())
     val items: StateFlow<List<QueuedMessage>> = _items.asStateFlow()
@@ -60,7 +70,7 @@ class OfflineQueue(private val storage: QueueStorage, val maxSize: Int = 50) {
     suspend fun load() = mutex.withLock { loadLocked() }
 
     /** Every mutation merges the stored queue first, so a write never drops entries on disk. */
-    private fun loadLocked() {
+    private suspend fun loadLocked() {
         if (loaded) return
         val merged = (storage.read() + _items.value).distinctBy { it.msgId }.sortedBy { it.queuedAt }
         _items.value = merged

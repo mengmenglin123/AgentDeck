@@ -52,6 +52,12 @@ class AppGraph(private val context: Context) {
 
     @Volatile private var runtime: HostRuntime? = null
 
+    /** App came to the foreground: don't sit out a long backoff wait. */
+    fun onForeground() {
+        val rt = runtime ?: return
+        if (!rt.bridge.isConnected) rt.bridge.reconnectNow()
+    }
+
     @Synchronized
     fun runtimeFor(profile: HostProfile?): HostRuntime? {
         val current = runtime

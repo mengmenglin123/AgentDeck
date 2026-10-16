@@ -12,6 +12,11 @@ import com.huanmeng.huanhermes.ui.HuanHermesRoot
 import com.huanmeng.huanhermes.ui.theme.HuanHermesTheme
 
 class MainActivity : ComponentActivity() {
+    override fun onStart() {
+        super.onStart()
+        (application as HuanHermesApp).graph.onForeground()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         enableEdgeToEdge()

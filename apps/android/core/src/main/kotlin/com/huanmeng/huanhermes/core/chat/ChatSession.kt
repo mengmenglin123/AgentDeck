@@ -233,8 +233,12 @@ class ChatSession(
             val detail = mgmt.sessionDetail(session.id, session.project)
             mutate { st ->
                 val queued = st.items.filterIsInstance<ChatItem.User>().filter { it.queued }
+                // Hosts without stored history (the production Host returns []) must not wipe
+                // what is on screen when a resync falls back to Management.
+                val transcript = if (detail.transcript.isEmpty() && st.items.isNotEmpty()) st.transcript
+                    else Transcript.hydrate(detail.transcript, queued)
                 st.copy(
-                    transcript = Transcript.hydrate(detail.transcript, queued),
+                    transcript = transcript,
                     mode = detail.mode ?: st.mode,
                     model = detail.model ?: st.model,
                     capabilities = detail.capabilities.ifEmpty { st.capabilities },
