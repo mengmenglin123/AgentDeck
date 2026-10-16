@@ -13,4 +13,7 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "HuanHermesNative"
-include(":app")
+// :core is pure Kotlin/JVM (protocol, networking, chat logic) so its tests run
+// anywhere with a JDK: `gradle -PcoreOnly :core:test` skips the Android app.
+include(":core")
+if (!providers.gradleProperty("coreOnly").isPresent) include(":app")
