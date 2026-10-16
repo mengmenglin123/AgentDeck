@@ -22,6 +22,11 @@ android {
         targetSdk = 35
         versionCode = nativeVersionCode
         versionName = nativeVersionName
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Screenshots go through TestStorage and are pulled into build/outputs.
+        testInstrumentationRunnerArguments["useTestStorageService"] = "true"
+        // Host the emulator UI tests talk to (mock-host on the CI runner).
+        testInstrumentationRunnerArguments["hostAddr"] = "10.0.2.2"
     }
 
     // Same signing as the Flutter app: key.properties (private production key,
@@ -100,4 +105,12 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     debugImplementation(libs.compose.ui.tooling)
     testImplementation(libs.junit)
+    androidTestImplementation(platform(libs.compose.bom))
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test:rules:1.6.1")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test.services:storage:1.5.0")
+    androidTestUtil("androidx.test.services:test-services:1.5.0")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
