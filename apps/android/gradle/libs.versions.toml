@@ -1,15 +1,15 @@
 [versions]
-agp = "8.7.3"
-kotlin = "2.1.0"
-coreKtx = "1.15.0"
+agp = "8.10.1"
+kotlin = "2.2.21"
+coreKtx = "1.17.0"
 splash = "1.0.1"
-lifecycle = "2.8.7"
-activityCompose = "1.9.3"
-composeBom = "2024.12.01"
-navigation = "2.8.5"
-datastore = "1.1.1"
-serialization = "1.7.3"
-coroutines = "1.9.0"
+lifecycle = "2.9.4"
+activityCompose = "1.11.0"
+composeBom = "2025.12.01"
+navigation = "2.9.6"
+datastore = "1.1.7"
+serialization = "1.9.0"
+coroutines = "1.10.2"
 junit = "4.13.2"
 okhttp = "4.12.0"
 securityCrypto = "1.1.0-alpha06"
@@ -27,6 +27,7 @@ compose-ui = { module = "androidx.compose.ui:ui" }
 compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 compose-material3 = { module = "androidx.compose.material3:material3" }
+compose-material3-navigation-suite = { module = "androidx.compose.material3:material3-adaptive-navigation-suite" }
 compose-material-icons = { module = "androidx.compose.material:material-icons-extended" }
 navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigation" }
 datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }

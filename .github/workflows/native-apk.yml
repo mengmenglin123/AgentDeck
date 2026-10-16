@@ -33,7 +33,7 @@ jobs:
       - id: sdk
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+          packages: 'platform-tools platforms;android-36 build-tools;35.0.0'
 
       - id: gradle
         uses: gradle/actions/setup-gradle@v4
