@@ -4870,6 +4870,8 @@ def _handle_card_action(conn: socket.socket, msg: Dict[str, Any]) -> None:
     else:
         text = "allowed: mock ran `echo hello` → hello"
     _stream_reply(conn, sk, ctx, text, cancellable=False)
+    # The permission decision resumes the run that asked; it ends here like any other.
+    ws_send_text(conn, json.dumps({"type": "run_done", "session_key": sk, "reply_ctx": ctx, "status": "completed"}))
 
 
 def bridge_server() -> None:

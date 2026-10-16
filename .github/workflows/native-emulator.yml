@@ -8,6 +8,7 @@ on:
     branches: [native-android]
     paths:
       - 'apps/android/**'
+      - 'server/mock-host/**'
       - '.github/workflows/native-emulator.yml'
       - '.github/scripts/emulator-run.sh'
   workflow_dispatch:

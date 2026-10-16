@@ -126,6 +126,8 @@ class EmulatorFlowTest {
         rule.onNodeWithText("拒绝").performClick()
         waitText("Permission denied (mock).", substring = true, ms = 30_000)
         shot("09-permission-denied")
+        // run_done after the decision ends the run: the stop button goes away.
+        rule.waitUntil(15_000) { rule.onAllNodes(hasContentDescription("停止运行")).count() == 0 }
 
         // Configuration change keeps the conversation (ViewModel survives).
         rule.activityRule.scenario.recreate()
