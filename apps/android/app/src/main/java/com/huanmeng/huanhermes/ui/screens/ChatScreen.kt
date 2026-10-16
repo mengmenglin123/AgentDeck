@@ -94,6 +94,17 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit) {
     LaunchedEffect(items.size, items.lastOrNull(), viewport) {
         if (items.isNotEmpty() && stick) list.scrollToItem(items.size - 1, 100_000) // offset is clamped to the end
     }
+    // Rows also grow without the items changing (Markdown parsed off-thread, code
+    // highlighted, cards expanding): follow the bottom edge of the last row too.
+    LaunchedEffect(list) {
+        snapshotFlow {
+            val last = list.layoutInfo.visibleItemsInfo.lastOrNull()
+            if (last == null) 0L else (last.index.toLong() shl 32) + last.offset + last.size
+        }.collect {
+            val n = list.layoutInfo.totalItemsCount
+            if (stick && n > 0 && !list.isScrollInProgress && list.canScrollForward) list.scrollToItem(n - 1, 100_000)
+        }
+    }
 
     Column(Modifier.fillMaxSize().navigationBarsPadding().imePadding()) {
         TopAppBar(
