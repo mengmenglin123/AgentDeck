@@ -114,8 +114,10 @@ class EmulatorFlowTest {
         shot("06-chat-empty")
 
         send("你好，模拟器")
-        waitText("你好，模拟器")
-        waitText("[mock:", substring = true, ms = 30_000)
+        // The long mock reply pushes the user bubble out of the lazy list, so wait on the
+        // reply, which echoes the message.
+        waitText("收到：你好，模拟器", substring = true, ms = 30_000)
+        waitText("— 完成 —", substring = true, ms = 30_000)
         shot("07-chat-reply")
 
         send("/perm")
@@ -146,7 +148,8 @@ class EmulatorFlowTest {
         rule.onNodeWithText("深色").performClick()
         rule.waitForIdle(); shot("14-settings-dark")
         rule.onAllNodesWithText("会话").onFirst().performClick()
-        rule.waitForIdle(); shot("15-sessions-dark")
+        rule.waitUntilAtLeastOneExists(hasContentDescription("新建会话"), 10_000)
+        shot("15-sessions-dark")
         rule.onAllNodesWithText("设置").onFirst().performClick()
         rule.onNodeWithText("跟随系统").performClick()
     }
@@ -173,7 +176,7 @@ class EmulatorFlowTest {
             sh("svc wifi enable"); sh("svc data enable")
         }
         rule.waitUntil(90_000) { rule.onAllNodesWithText("等待发送（离线队列）").count() == 0 }
-        waitText("[mock:", substring = true, ms = 30_000)
+        waitText("收到：离线时发的消息", substring = true, ms = 30_000)
         shot("18-reconnected-flushed")
     }
 }
