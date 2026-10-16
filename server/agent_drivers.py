@@ -106,6 +106,10 @@ class ClaudeStreamAgentDriver(JsonlAgentDriver):
                     if isinstance(block, dict) and block.get("type") == "tool_result":
                         event = self._base("tool_result")
                         event["name"] = str(block.get("tool_use_id") or "tool")
+                        if block.get("tool_use_id"):
+                            event["call_id"] = str(block.get("tool_use_id"))
+                        if block.get("is_error"):
+                            event["is_error"] = True
                         event["output"] = block.get("content", "")
                         return event
             return {"type": "agent_meta", "session_key": self.session_key}
@@ -133,6 +137,9 @@ class ClaudeStreamAgentDriver(JsonlAgentDriver):
         if block_type == "tool_use":
             event = self._base("tool_call")
             event["name"] = str(block.get("name") or "tool")
+            if block.get("id"):
+                # Lets clients pair the result (which only carries tool_use_id) with this call.
+                event["call_id"] = str(block.get("id"))
             event["input"] = block.get("input", {})
             return event
         return {"type": "agent_meta", "session_key": self.session_key}

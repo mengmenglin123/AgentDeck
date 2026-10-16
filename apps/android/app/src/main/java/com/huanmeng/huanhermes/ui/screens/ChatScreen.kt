@@ -57,6 +57,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.runtime.rememberCoroutineScope
+import com.huanmeng.huanhermes.ui.chat.MarkdownView
+import com.huanmeng.huanhermes.ui.chat.MessageActions
+import com.huanmeng.huanhermes.ui.chat.ThinkingRow
+import com.huanmeng.huanhermes.ui.chat.ToolRow
+import kotlinx.coroutines.launch
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.huanmeng.huanhermes.core.chat.ChatItem
 import com.huanmeng.huanhermes.core.chat.ConnectionBanner
@@ -75,6 +84,7 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit) {
     // (keyboard, rotation, activity recreation), so the latest reply never ends up
     // hidden below the fold.
     var stick by rememberSaveable { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
     LaunchedEffect(list) {
         snapshotFlow { list.isScrollInProgress }.collect { scrolling ->
             if (!scrolling) stick = !list.canScrollForward
@@ -102,13 +112,24 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit) {
         vm.safeError(state.error)?.let {
             Text(it, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
-        LazyColumn(
-            state = list,
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            items(items, key = { it.id }) { item -> ChatRow(item, onDecision = { d -> vm.respond(item as ChatItem.Permission, d) }) }
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            LazyColumn(
+                state = list,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                itemsIndexed(items, key = { _, it -> it.id }) { i, item ->
+                    ChatRow(item, live = state.runActive && i == items.lastIndex, onDecision = { d -> vm.respond(item as ChatItem.Permission, d) })
+                }
+            }
+            // Scrolled up to read: one tap back to the newest message.
+            if (!stick && items.isNotEmpty()) {
+                SmallFloatingActionButton(
+                    onClick = { stick = true; scope.launch { list.animateScrollToItem(items.size - 1, 100_000) } },
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp),
+                ) { Icon(Icons.Outlined.KeyboardArrowDown, "回到最新消息") }
+            }
         }
         Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.Bottom) {
             OutlinedTextField(
@@ -146,22 +167,28 @@ private fun Banner(banner: ConnectionBanner, onRetry: () -> Unit) {
 }
 
 @Composable
-private fun ChatRow(item: ChatItem, onDecision: (String) -> Unit) {
+private fun ChatRow(item: ChatItem, live: Boolean, onDecision: (String) -> Unit) {
     when (item) {
-        is ChatItem.User -> Bubble(alignEnd = true, color = MaterialTheme.colorScheme.primaryContainer) {
-            Column {
-                SelectionContainer { Text(item.text) }
-                if (item.queued) Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.Schedule, null, Modifier.padding(end = 4.dp))
-                    Text("等待发送（离线队列）", style = MaterialTheme.typography.labelSmall)
+        is ChatItem.User -> MessageActions(item.text) {
+            Bubble(alignEnd = true, color = MaterialTheme.colorScheme.primaryContainer) {
+                Column {
+                    Text(item.text, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    if (item.queued) Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.Schedule, null, Modifier.padding(end = 4.dp))
+                        Text("等待发送（离线队列）", style = MaterialTheme.typography.labelSmall)
+                    }
                 }
             }
         }
-        is ChatItem.Assistant -> Bubble(alignEnd = false, color = MaterialTheme.colorScheme.surfaceVariant) {
-            SelectionContainer { Text(item.text + if (item.streaming) " ▍" else "") }
+        // Agent replies read like a document (full width, Markdown), not a chat bubble.
+        is ChatItem.Assistant -> MessageActions(item.text) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 2.dp)) {
+                MarkdownView(item.text)
+                if (item.streaming) Text("▍", color = MaterialTheme.colorScheme.primary)
+            }
         }
-        is ChatItem.Thinking -> Muted("思考：" + item.text, maxLines = 3)
-        is ChatItem.Tool -> ToolCard(item)
+        is ChatItem.Thinking -> ThinkingRow(item, live)
+        is ChatItem.Tool -> ToolRow(item)
         is ChatItem.Permission -> PermissionCard(item, onDecision)
         is ChatItem.Notice -> Muted(item.text)
         is ChatItem.Failure -> Text(
@@ -200,46 +227,12 @@ private fun Muted(text: String, maxLines: Int = Int.MAX_VALUE) {
     )
 }
 
-/** Tool calls stay collapsed to one line until tapped (long outputs never flood the chat). */
-@Composable
-private fun ToolCard(item: ChatItem.Tool) {
-    var open by rememberSaveable(item.id) { mutableStateOf(false) }
-    val status = when {
-        !item.finished -> "运行中"
-        item.isError -> "失败"
-        else -> "完成"
-    }
-    ElevatedCard(
-        Modifier.fillMaxWidth().animateContentSize().clickable { open = !open }
-            .semantics { contentDescription = "工具 ${item.name}，$status，点按${if (open) "收起" else "展开"}" },
-    ) {
-        Column(Modifier.padding(10.dp)) {
-            Text(
-                "🔧 ${item.name} · $status" + if (!open && item.input.isNotBlank()) " · ${item.input.lineSequence().first().take(60)}" else "",
-                style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            )
-            if (open) {
-                if (item.input.isNotBlank()) Code("输入", item.input)
-                item.output?.let { Code("输出", it.take(20_000) + if (it.length > 20_000) "\n…（已截断）" else "") }
-            }
-        }
-    }
-}
-
-@Composable
-private fun Code(label: String, text: String) {
-    Text(label, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 6.dp))
-    SelectionContainer {
-        Text(text, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
-    }
-}
-
 @Composable
 private fun PermissionCard(item: ChatItem.Permission, onDecision: (String) -> Unit) {
     ElevatedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("需要权限", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
-            SelectionContainer { Text(item.text) }
+            MarkdownView(item.text, style = MaterialTheme.typography.bodyMedium)
             val decided = item.decision
             if (decided != null) {
                 AssistChip(onClick = {}, label = {

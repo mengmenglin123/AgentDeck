@@ -14,6 +14,7 @@ junit = "4.13.2"
 okhttp = "4.12.0"
 securityCrypto = "1.1.0-alpha06"
 jsonSchema = "1.5.3"
+commonmark = "0.24.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -38,6 +39,12 @@ okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 okhttp-mockwebserver = { module = "com.squareup.okhttp3:mockwebserver", version.ref = "okhttp" }
 androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
 json-schema-validator = { module = "com.networknt:json-schema-validator", version.ref = "jsonSchema" }
+
+commonmark = { module = "org.commonmark:commonmark", version.ref = "commonmark" }
+commonmark-gfm-tables = { module = "org.commonmark:commonmark-ext-gfm-tables", version.ref = "commonmark" }
+commonmark-gfm-strikethrough = { module = "org.commonmark:commonmark-ext-gfm-strikethrough", version.ref = "commonmark" }
+commonmark-task-list = { module = "org.commonmark:commonmark-ext-task-list-items", version.ref = "commonmark" }
+commonmark-autolink = { module = "org.commonmark:commonmark-ext-autolink", version.ref = "commonmark" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

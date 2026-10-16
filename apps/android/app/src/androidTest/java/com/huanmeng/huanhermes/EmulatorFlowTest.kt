@@ -118,6 +118,9 @@ class EmulatorFlowTest {
         // reply, which echoes the message.
         waitText("收到：你好，模拟器", substring = true, ms = 30_000)
         waitText("— 完成 —", substring = true, ms = 30_000)
+        // Markdown: "### Mock markdown" renders as a heading (no hashes) and the fenced block gets a copy button.
+        waitText("Mock markdown")
+        rule.waitUntilAtLeastOneExists(hasContentDescription("复制代码"), 10_000)
         shot("07-chat-reply")
 
         send("/perm")

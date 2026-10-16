@@ -9,6 +9,12 @@ dependencies {
     api(libs.kotlinx.coroutines.core)
     api(libs.kotlinx.serialization.json)
     api(libs.okhttp)
+    // Chat rendering: CommonMark + GFM parsed off the main thread into our own block model.
+    implementation(libs.commonmark)
+    implementation(libs.commonmark.gfm.tables)
+    implementation(libs.commonmark.gfm.strikethrough)
+    implementation(libs.commonmark.task.list)
+    implementation(libs.commonmark.autolink)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
