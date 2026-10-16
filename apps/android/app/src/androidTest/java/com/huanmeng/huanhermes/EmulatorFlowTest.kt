@@ -15,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -37,10 +38,11 @@ import org.junit.runners.MethodSorters
 @RunWith(AndroidJUnit4::class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class EmulatorFlowTest {
-    @get:Rule(order = 0) val shotOnFailure = object : TestWatcher() {
+    @get:Rule(order = 0) val rule = createAndroidComposeRule<MainActivity>()
+    // Inner rule: runs while the activity is still on screen.
+    @get:Rule(order = 1) val shotOnFailure = object : TestWatcher() {
         override fun failed(e: Throwable?, description: Description) = shot("FAILED-${description.methodName}")
     }
-    @get:Rule(order = 1) val rule = createAndroidComposeRule<MainActivity>()
 
     private val host = InstrumentationRegistry.getArguments().getString("hostAddr") ?: "10.0.2.2"
     private val api = android.os.Build.VERSION.SDK_INT
@@ -92,7 +94,10 @@ class EmulatorFlowTest {
 
     private fun send(text: String) {
         rule.onNodeWithTag("chat-input").performTextInput(text)
-        rule.onNodeWithContentDescription("发送").performClick()
+        rule.waitForIdle()
+        // Semantic click, not a touch at fixed coordinates: the IME is still animating
+        // the input row upwards at this point.
+        rule.onNodeWithContentDescription("发送").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
     }
 
     @Test fun a_firstLaunchAddHostAndSessions() {
@@ -147,6 +152,8 @@ class EmulatorFlowTest {
     }
 
     @Test fun d_offlineQueueAndReconnect() {
+        // `cmd connectivity airplane-mode` needs API 30+; older shells can't cut the network.
+        org.junit.Assume.assumeTrue(api >= 30)
         ensureConnected()
         openNewChat("离线测试")
         rule.waitUntil(15_000) { rule.onAllNodesWithText("正在连接 Bridge…").count() == 0 }
