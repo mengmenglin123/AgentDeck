@@ -41,6 +41,23 @@ components:
         model: { type: string }
         workdir: { type: string }
         agent_type: { type: string }
+        # Optional overview — only from Hosts whose /status capabilities include
+        # "session_overview". Older clients ignore these keys.
+        status: { type: string, enum: [running, needs_you, idle] }
+        last_message_preview: { type: string, maxLength: 160 }
+        pending_permissions:
+          type: array
+          items:
+            type: object
+            required: [id]
+            properties:
+              id: { type: string }
+              prompt: { type: string, description: "Redacted, at most 1000 chars" }
+              scope: { type: string }
+              reply_ctx: { type: [string, "null"], description: "Must be echoed in card_action" }
+              buttons:
+                type: array
+                items: { type: array, items: { type: object, properties: { text: { type: string }, data: { type: string } } } }
     SessionDetail:
       allOf:
         - $ref: "#/components/schemas/Session"
