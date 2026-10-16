@@ -1,0 +1,1360 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://huanhermes.local/protocol/bridge.v2.schema.json",
+  "title": "HuanHermes Bridge protocol (v1 + opt-in v2)",
+  "description": "Single source for Bridge frames. Validators pick $defs/host_to_app/<type> or $defs/app_to_host/<type> by `type`; unknown host types are allowed and must render as a placeholder (forward compatibility). All v2 fields are optional and only appear when negotiated via register.capabilities.",
+  "$defs": {
+    "host_to_app": {
+      "register_ack": {
+        "type": "object",
+        "required": [
+          "type",
+          "ok"
+        ],
+        "properties": {
+          "type": {
+            "const": "register_ack"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": "string"
+          },
+          "protocol": {
+            "const": 2
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "epoch": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "pong": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "pong"
+          },
+          "ts": {},
+          "id": {}
+        },
+        "additionalProperties": true
+      },
+      "reply_stream": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key"
+        ],
+        "properties": {
+          "type": {
+            "const": "reply_stream"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reply_ctx": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "v2: per session_key, monotonic; only sent to clients that declared `seq`"
+          },
+          "replayed": {
+            "type": "boolean",
+            "description": "v2: event re-sent by resume"
+          },
+          "turn_id": {
+            "type": "string",
+            "description": "v2 optional"
+          },
+          "delta": {
+            "type": "string"
+          },
+          "full_text": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "done": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": true
+      },
+      "reply": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "reply"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reply_ctx": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "v2: per session_key, monotonic; only sent to clients that declared `seq`"
+          },
+          "replayed": {
+            "type": "boolean",
+            "description": "v2: event re-sent by resume"
+          },
+          "turn_id": {
+            "type": "string",
+            "description": "v2 optional"
+          },
+          "content": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string"
+          },
+          "error": {},
+          "error_code": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "thinking": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key"
+        ],
+        "properties": {
+          "type": {
+            "const": "thinking"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reply_ctx": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "v2: per session_key, monotonic; only sent to clients that declared `seq`"
+          },
+          "replayed": {
+            "type": "boolean",
+            "description": "v2: event re-sent by resume"
+          },
+          "turn_id": {
+            "type": "string",
+            "description": "v2 optional"
+          },
+          "content": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "tool_call": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key"
+        ],
+        "properties": {
+          "type": {
+            "const": "tool_call"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reply_ctx": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "v2: per session_key, monotonic; only sent to clients that declared `seq`"
+          },
+          "replayed": {
+            "type": "boolean",
+            "description": "v2: event re-sent by resume"
+          },
+          "turn_id": {
+            "type": "string",
+            "description": "v2 optional"
+          },
+          "name": {
+            "type": "string"
+          },
+          "input": {},
+          "call_id": {
+            "type": "string",
+            "description": "v2 optional"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "tool_result": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key"
+        ],
+        "properties": {
+          "type": {
+            "const": "tool_result"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reply_ctx": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "v2: per session_key, monotonic; only sent to clients that declared `seq`"
+          },
+          "replayed": {
+            "type": "boolean",
+            "description": "v2: event re-sent by resume"
+          },
+          "turn_id": {
+            "type": "string",
+            "description": "v2 optional"
+          },
+          "name": {
+            "type": "string"
+          },
+          "output": {},
+          "content": {},
+          "call_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "is_error": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": true
+      },
+      "buttons": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key",
+          "buttons"
+        ],
+        "properties": {
+          "type": {
+            "const": "buttons"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reply_ctx": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "v2: per session_key, monotonic; only sent to clients that declared `seq`"
+          },
+          "replayed": {
+            "type": "boolean",
+            "description": "v2: event re-sent by resume"
+          },
+          "turn_id": {
+            "type": "string",
+            "description": "v2 optional"
+          },
+          "content": {
+            "type": "string"
+          },
+          "buttons": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "text",
+                    "data"
+                  ],
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "text",
+                      "data"
+                    ],
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      },
+                      "data": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "permission_id": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "card": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key"
+        ],
+        "properties": {
+          "type": {
+            "const": "card"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reply_ctx": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "v2: per session_key, monotonic; only sent to clients that declared `seq`"
+          },
+          "replayed": {
+            "type": "boolean",
+            "description": "v2: event re-sent by resume"
+          },
+          "turn_id": {
+            "type": "string",
+            "description": "v2 optional"
+          },
+          "content": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "buttons": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "text",
+                    "data"
+                  ],
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "text",
+                      "data"
+                    ],
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      },
+                      "data": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "permission_id": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "run_done": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key",
+          "status"
+        ],
+        "properties": {
+          "type": {
+            "const": "run_done"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reply_ctx": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "v2: per session_key, monotonic; only sent to clients that declared `seq`"
+          },
+          "replayed": {
+            "type": "boolean",
+            "description": "v2: event re-sent by resume"
+          },
+          "turn_id": {
+            "type": "string",
+            "description": "v2 optional"
+          },
+          "status": {
+            "enum": [
+              "completed",
+              "failed",
+              "cancelled",
+              "timeout",
+              "idle",
+              "error"
+            ]
+          },
+          "exit_code": {
+            "type": "integer"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "typing_start": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "typing_start"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reply_ctx": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "v2: per session_key, monotonic; only sent to clients that declared `seq`"
+          },
+          "replayed": {
+            "type": "boolean",
+            "description": "v2: event re-sent by resume"
+          },
+          "turn_id": {
+            "type": "string",
+            "description": "v2 optional"
+          }
+        },
+        "additionalProperties": true
+      },
+      "typing_stop": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "typing_stop"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reply_ctx": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "v2: per session_key, monotonic; only sent to clients that declared `seq`"
+          },
+          "replayed": {
+            "type": "boolean",
+            "description": "v2: event re-sent by resume"
+          },
+          "turn_id": {
+            "type": "string",
+            "description": "v2 optional"
+          }
+        },
+        "additionalProperties": true
+      },
+      "preview_start": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "preview_start"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reply_ctx": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "v2: per session_key, monotonic; only sent to clients that declared `seq`"
+          },
+          "replayed": {
+            "type": "boolean",
+            "description": "v2: event re-sent by resume"
+          },
+          "turn_id": {
+            "type": "string",
+            "description": "v2 optional"
+          },
+          "ref_id": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "update_message": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "update_message"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reply_ctx": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "v2: per session_key, monotonic; only sent to clients that declared `seq`"
+          },
+          "replayed": {
+            "type": "boolean",
+            "description": "v2: event re-sent by resume"
+          },
+          "turn_id": {
+            "type": "string",
+            "description": "v2 optional"
+          },
+          "preview_handle": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "error": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "error"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reply_ctx": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "v2: per session_key, monotonic; only sent to clients that declared `seq`"
+          },
+          "replayed": {
+            "type": "boolean",
+            "description": "v2: event re-sent by resume"
+          },
+          "turn_id": {
+            "type": "string",
+            "description": "v2 optional"
+          },
+          "error": {
+            "type": "string"
+          },
+          "error_code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "resume_ack": {
+        "type": "object",
+        "required": [
+          "type",
+          "ok",
+          "session_key",
+          "last_seq"
+        ],
+        "properties": {
+          "type": {
+            "const": "resume_ack"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "last_seq": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "replayed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "epoch": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true,
+        "description": "v2"
+      },
+      "resync_required": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key",
+          "last_seq"
+        ],
+        "properties": {
+          "type": {
+            "const": "resync_required"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "last_seq": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "epoch": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true,
+        "description": "v2: reload transcript over Management"
+      },
+      "session_status": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key",
+          "last_seq"
+        ],
+        "properties": {
+          "type": {
+            "const": "session_status"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "alive": {
+            "type": "boolean"
+          },
+          "running": {
+            "type": "boolean"
+          },
+          "last_seq": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "epoch": {
+            "type": "string"
+          },
+          "pending_permissions": {
+            "type": "array"
+          }
+        },
+        "additionalProperties": true,
+        "description": "v2"
+      },
+      "terminal_open_ack": {
+        "type": "object",
+        "required": [
+          "type",
+          "ok",
+          "session_key",
+          "stream_id"
+        ],
+        "properties": {
+          "type": {
+            "const": "terminal_open_ack"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stream_id": {
+            "type": "string"
+          },
+          "cols": {
+            "type": "integer"
+          },
+          "rows": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "terminal_out": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key",
+          "stream_id",
+          "data"
+        ],
+        "properties": {
+          "type": {
+            "const": "terminal_out"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stream_id": {
+            "type": "string"
+          },
+          "data": {
+            "type": "string"
+          },
+          "done": {
+            "type": "boolean"
+          },
+          "exit_code": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "terminal_ack": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key"
+        ],
+        "properties": {
+          "type": {
+            "const": "terminal_ack"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stream_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cols": {
+            "type": "integer"
+          },
+          "rows": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "terminal_exit": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key",
+          "stream_id",
+          "exit_code"
+        ],
+        "properties": {
+          "type": {
+            "const": "terminal_exit"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stream_id": {
+            "type": "string"
+          },
+          "exit_code": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": true
+      },
+      "terminal_clear": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key"
+        ],
+        "properties": {
+          "type": {
+            "const": "terminal_clear"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stream_id": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "terminal_permission": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key",
+          "stream_id",
+          "buttons"
+        ],
+        "properties": {
+          "type": {
+            "const": "terminal_permission"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stream_id": {
+            "type": "string"
+          },
+          "permission_id": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "buttons": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "text",
+                    "data"
+                  ],
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "string"
+                    }
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "text",
+                      "data"
+                    ],
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      },
+                      "data": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "app_to_host": {
+      "register": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "register"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "declare seq/resume/session_status to opt into v2"
+          },
+          "metadata": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": true
+      },
+      "message": {
+        "type": "object",
+        "required": [
+          "type",
+          "msg_id",
+          "session_key",
+          "content"
+        ],
+        "properties": {
+          "type": {
+            "const": "message"
+          },
+          "msg_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "project": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "user_name": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "reply_ctx": {
+            "type": "string"
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "mime": {
+                  "type": "string"
+                },
+                "size_bytes": {
+                  "type": "integer"
+                },
+                "data_base64": {
+                  "type": "string"
+                }
+              }
+            },
+            "maxItems": 4
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "mime": {
+                  "type": "string"
+                },
+                "size_bytes": {
+                  "type": "integer"
+                },
+                "data_base64": {
+                  "type": "string"
+                }
+              }
+            },
+            "maxItems": 4
+          },
+          "audio": {}
+        },
+        "additionalProperties": true
+      },
+      "cancel": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key"
+        ],
+        "properties": {
+          "type": {
+            "const": "cancel"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reply_ctx": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "card_action": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key",
+          "action"
+        ],
+        "properties": {
+          "type": {
+            "const": "card_action"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action": {
+            "type": "string",
+            "pattern": "^perm:[^:]+:(allow|allow_all|deny)$|^[^:]+$"
+          },
+          "reply_ctx": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "ping": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "ping"
+          },
+          "ts": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": true
+      },
+      "preview_ack": {
+        "type": "object",
+        "required": [
+          "type",
+          "ref_id"
+        ],
+        "properties": {
+          "type": {
+            "const": "preview_ack"
+          },
+          "ref_id": {
+            "type": "string"
+          },
+          "preview_handle": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "resume": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key",
+          "after_seq"
+        ],
+        "properties": {
+          "type": {
+            "const": "resume"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "after_seq": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "epoch": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true,
+        "description": "v2: requires `resume` capability"
+      },
+      "session_status": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key"
+        ],
+        "properties": {
+          "type": {
+            "const": "session_status"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": true,
+        "description": "v2: requires `session_status` capability"
+      },
+      "terminal_open": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key",
+          "stream_id"
+        ],
+        "properties": {
+          "type": {
+            "const": "terminal_open"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stream_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "project": {
+            "type": "string"
+          },
+          "cols": {
+            "type": "integer"
+          },
+          "rows": {
+            "type": "integer"
+          }
+        },
+        "additionalProperties": true
+      },
+      "terminal_input": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key",
+          "data"
+        ],
+        "properties": {
+          "type": {
+            "const": "terminal_input"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stream_id": {
+            "type": "string"
+          },
+          "data": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "terminal_resize": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key"
+        ],
+        "properties": {
+          "type": {
+            "const": "terminal_resize"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stream_id": {
+            "type": "string"
+          },
+          "cols": {
+            "type": "integer"
+          },
+          "rows": {
+            "type": "integer"
+          },
+          "project": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "terminal_close": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key"
+        ],
+        "properties": {
+          "type": {
+            "const": "terminal_close"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stream_id": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "terminal_permission_action": {
+        "type": "object",
+        "required": [
+          "type",
+          "session_key",
+          "stream_id",
+          "action"
+        ],
+        "properties": {
+          "type": {
+            "const": "terminal_permission_action"
+          },
+          "session_key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stream_id": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  }
+}

@@ -33,6 +33,16 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.parse import parse_qs, unquote, urlparse
 
+import sys as _sys
+
+_sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from session_journal import SessionJournal, handle_resume, negotiate, register_ack  # noqa: E402
+
+# Protocol v2 (opt-in via register.capabilities): seq / resume / session_status.
+JOURNAL = SessionJournal()
+_CONN_CAPS: "weakref.WeakKeyDictionary[socket.socket, tuple]" = weakref.WeakKeyDictionary()
+_JOURNAL_SKIP = {"resume_ack", "resync_required", "session_status", "register_ack", "pong"}
+
 
 BRIDGE_HOST = os.environ.get("HUAN_BRIDGE_HOST", "0.0.0.0")
 BRIDGE_PORT = int(os.environ.get("HUAN_BRIDGE_PORT", "9810"))
@@ -1282,7 +1292,28 @@ def _ws_send_frame_unlocked(conn: socket.socket, opcode: int, payload: bytes) ->
 
 
 def ws_send_text(conn: socket.socket, text: str) -> None:
-    ws_send_frame(conn, 0x1, text.encode("utf-8"))
+    caps = _CONN_CAPS.get(conn, ())
+    try:
+        event = json.loads(text) if text.startswith("{") else None
+    except json.JSONDecodeError:
+        event = None
+    if (
+        isinstance(event, dict)
+        and event.get("session_key")
+        and event.get("type") not in _JOURNAL_SKIP
+        and not str(event.get("type", "")).startswith("terminal_")
+    ):
+        stamped = JOURNAL.record(event)
+        if "seq" in caps:
+            text = json.dumps(stamped)
+    try:
+        ws_send_frame(conn, 0x1, text.encode("utf-8"))
+    except OSError:
+        if "resume" in caps:
+            # v2 client dropped mid-run: keep the run going so its events are
+            # journaled and a later `resume` can replay them.
+            return
+        raise
 
 
 def token_matches(presented: Optional[str], expected: str) -> bool:
@@ -1384,7 +1415,8 @@ def handle_bridge_client(conn: socket.socket, addr: Tuple[str, int]) -> None:
             if mtype == "register":
                 platform = msg.get("platform") or "unknown"
                 registered = True
-                ws_send_text(conn, json.dumps({"type": "register_ack", "ok": True, "error": ""}))
+                _CONN_CAPS[conn] = negotiate(msg.get("capabilities"))
+                ws_send_text(conn, json.dumps(register_ack(msg.get("capabilities"), epoch=JOURNAL.epoch)))
                 log(f"registered platform={platform}")
                 continue
 
@@ -1393,6 +1425,24 @@ def handle_bridge_client(conn: socket.socket, addr: Tuple[str, int]) -> None:
                     conn,
                     json.dumps({"type": "register_ack", "ok": False, "error": "send register first"}),
                 )
+                continue
+
+            if mtype == "resume" and "resume" in _CONN_CAPS.get(conn, ()):
+                for event in handle_resume(JOURNAL, msg):
+                    ws_send_frame(conn, 0x1, json.dumps(event).encode("utf-8"))
+                continue
+
+            if mtype == "session_status" and "session_status" in _CONN_CAPS.get(conn, ()):
+                sk_s = msg.get("session_key") or ""
+                rec = SESSIONS.get(sk_s) or {}
+                ws_send_frame(conn, 0x1, json.dumps({
+                    "type": "session_status",
+                    "session_key": sk_s,
+                    "alive": sk_s in SESSIONS,
+                    "running": bool(rec.get("running")),
+                    "last_seq": JOURNAL.last_seq(sk_s),
+                    "epoch": JOURNAL.epoch,
+                }).encode("utf-8"))
                 continue
 
             if mtype == "card_action":

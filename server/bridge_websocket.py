@@ -9,11 +9,13 @@ import select
 import socket
 import struct
 import threading
+import time
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from bridge_agent_loop import AgentBridgeLoop
+from session_journal import SessionJournal, handle_resume, negotiate, register_ack
 from terminal_bridge_loop import TerminalBridgeLoop
 from token_auth import tokens_match
 
@@ -29,8 +31,13 @@ class WebSocketConfig:
     max_header_bytes: int = 16 * 1024
     max_frame_bytes: int = 1024 * 1024
     poll_interval: float = 0.05
+    # Protocol v2: how long an Agent session outlives a dropped connection when
+    # the client declared ``resume``. Legacy clients keep close-on-disconnect.
+    detach_grace_seconds: float = 120.0
 
     def __post_init__(self) -> None:
+        if self.detach_grace_seconds < 0:
+            raise ValueError("detach_grace_seconds must not be negative")
         if not self.token:
             raise ValueError("token must not be empty")
         if not self.path.startswith("/"):
@@ -52,13 +59,91 @@ class BridgeWebSocketTransport:
         config: WebSocketConfig,
         *,
         terminal_loop: TerminalBridgeLoop | None = None,
+        journal: SessionJournal | None = None,
+        clock=time.monotonic,
     ) -> None:
         self.loop = loop
         self.config = config
         self.terminal_loop = terminal_loop
+        self.journal = journal or SessionJournal()
+        self._clock = clock
+        # session_key -> deadline for Agent sessions whose v2 connection dropped.
+        self._detached: dict[str, float] = {}
+        self._detached_lock = threading.Lock()
+        self._keeper: threading.Thread | None = None
+
+    # -- protocol v2 helpers -------------------------------------------------
+
+    def _emit(self, connection: socket.socket, event: dict[str, Any], caps: tuple[str, ...]) -> None:
+        """Journal an Agent event and send it; only v2 clients see ``seq``."""
+        stamped = self.journal.record(event)
+        self._send_json(connection, stamped if "seq" in caps else event)
+
+    def _claim(self, session_key: Any, owned: set[str]) -> None:
+        if not isinstance(session_key, str):
+            return
+        with self._detached_lock:
+            if self._detached.pop(session_key, None) is not None:
+                owned.add(session_key)
+
+    def _detach(self, session_keys: set[str]) -> None:
+        deadline = self._clock() + self.config.detach_grace_seconds
+        with self._detached_lock:
+            for session_key in session_keys:
+                self._detached[session_key] = deadline
+            if self._keeper is None or not self._keeper.is_alive():
+                self._keeper = threading.Thread(
+                    target=self._keep_detached, name="huanhermes-detached", daemon=True,
+                )
+                self._keeper.start()
+
+    def detached_sessions(self) -> tuple[str, ...]:
+        with self._detached_lock:
+            return tuple(self._detached)
+
+    def _keep_detached(self) -> None:
+        """Journal output of detached sessions so a resume can replay it."""
+        while True:
+            with self._detached_lock:
+                if not self._detached:
+                    self._keeper = None
+                    return
+                items = tuple(self._detached.items())
+            now = self._clock()
+            for session_key, deadline in items:
+                # Hold the lock while polling so a concurrent claim + replay
+                # can never miss an event journaled after the replay.
+                with self._detached_lock:
+                    if self._detached.get(session_key) != deadline:
+                        continue  # claimed (or re-detached) meanwhile
+                    if session_key not in self.loop.active_sessions or now >= deadline:
+                        self._detached.pop(session_key, None)
+                        if session_key in self.loop.active_sessions:
+                            self.loop.close_session(session_key)
+                        continue
+                    for event in self.loop.poll(session_key):
+                        self.journal.record(event)
+            time.sleep(self.config.poll_interval)
+
+    def _session_status(self, message: dict[str, Any]) -> dict[str, Any]:
+        session_key = message.get("session_key")
+        if not isinstance(session_key, str) or not session_key:
+            return {"type": "error", "error": "invalid_session_status", "error_code": "invalid_session_status"}
+        alive = session_key in self.loop.active_sessions
+        has_run = getattr(self.loop, "has_active_run", None)
+        running = bool(has_run(session_key)) if alive and callable(has_run) else alive
+        return {
+            "type": "session_status",
+            "session_key": session_key,
+            "alive": alive,
+            "running": running,
+            "last_seq": self.journal.last_seq(session_key),
+            "epoch": self.journal.epoch,
+        }
 
     def serve_connection(self, connection: socket.socket) -> None:
         registered = False
+        caps: tuple[str, ...] = ()
         owned_sessions: set[str] = set()
         owned_terminal_sessions: set[str] = set()
         try:
@@ -88,9 +173,10 @@ class BridgeWebSocketTransport:
                         message_type = message.get("type")
                         if message_type == "register":
                             registered = True
+                            caps = negotiate(message.get("capabilities"))
                             self._send_json(
                                 connection,
-                                {"type": "register_ack", "ok": True, "error": ""},
+                                register_ack(message.get("capabilities"), epoch=self.journal.epoch),
                             )
                         elif not registered:
                             self._send_json(
@@ -101,8 +187,17 @@ class BridgeWebSocketTransport:
                                     "error": "send register first",
                                 },
                             )
+                        elif message_type == "resume" and "resume" in caps:
+                                self._claim(message.get("session_key"), owned_sessions)
+                                for event in handle_resume(self.journal, message):
+                                    self._send_json(connection, event)
+                        elif message_type == "session_status" and "session_status" in caps:
+                                self._claim(message.get("session_key"), owned_sessions)
+                                self._send_json(connection, self._session_status(message))
                         else:
                             session_key = message.get("session_key")
+                            if message_type in {"message", "card_action", "cancel"} and "resume" in caps:
+                                self._claim(session_key, owned_sessions)
                             if (
                                 self.terminal_loop is not None
                                 and isinstance(message_type, str)
@@ -164,7 +259,7 @@ class BridgeWebSocketTransport:
                                     })
                                     continue
                                 for event in self.loop.handle(message):
-                                    self._send_json(connection, event)
+                                    self._emit(connection, event, caps)
                                 if (
                                     message_type == "message"
                                     and isinstance(session_key, str)
@@ -178,7 +273,7 @@ class BridgeWebSocketTransport:
                             owned_sessions.discard(session_key)
                             continue
                         for event in self.loop.poll(session_key):
-                            self._send_json(connection, event)
+                            self._emit(connection, event, caps)
                         if session_key not in self.loop.active_sessions:
                             owned_sessions.discard(session_key)
                     if self.terminal_loop is not None:
@@ -193,8 +288,12 @@ class BridgeWebSocketTransport:
         except (ConnectionError, OSError, WebSocketProtocolError):
             return
         finally:
-            for session_key in owned_sessions:
-                self.loop.close_session(session_key)
+            live = {key for key in owned_sessions if key in self.loop.active_sessions}
+            if live and "resume" in caps and self.config.detach_grace_seconds > 0:
+                self._detach(live)
+            else:
+                for session_key in owned_sessions:
+                    self.loop.close_session(session_key)
             if self.terminal_loop is not None:
                 for session_key in owned_terminal_sessions:
                     self.terminal_loop.close_session(session_key)

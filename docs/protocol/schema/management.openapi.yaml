@@ -1,0 +1,98 @@
+openapi: 3.1.0
+info:
+  title: HuanHermes Management API (subset)
+  version: "2"
+  description: >
+    Machine-readable companion to docs/protocol/management-subset.md. All
+    responses use the envelope {ok, data} / {ok:false, error}. Errors may also
+    come from proxies as non-JSON bodies (e.g. nginx 502 HTML); clients must
+    decode bytes as UTF-8 and truncate such bodies for display.
+servers:
+  - url: "{scheme}://{host}:{port}/api/v1"
+    variables:
+      scheme: { default: http, enum: [http, https] }
+      host: { default: 127.0.0.1 }
+      port: { default: "9820" }
+security:
+  - bearer: []
+components:
+  securitySchemes:
+    bearer: { type: http, scheme: bearer }
+  schemas:
+    Error:
+      type: object
+      required: [ok, error]
+      properties: { ok: { const: false }, error: { type: string } }
+    Session:
+      type: object
+      properties:
+        id: { type: string }
+        session_key: { type: string }
+        project: { type: string }
+        title: { type: string }
+        name: { type: string }
+        last_user: { type: string }
+        last_message: {}
+        updated_at: { oneOf: [{ type: number }, { type: string }] }
+        created_at: { oneOf: [{ type: number }, { type: string }] }
+        running: { type: boolean }
+        live: { type: boolean }
+        mode: { type: string }
+        model: { type: string }
+        workdir: { type: string }
+        agent_type: { type: string }
+    SessionDetail:
+      allOf:
+        - $ref: "#/components/schemas/Session"
+        - type: object
+          properties:
+            transcript:
+              type: array
+              items:
+                type: object
+                properties: { role: { type: string }, content: { type: string } }
+            capabilities: { type: array, items: { type: string } }
+    Project:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        agent_type: { type: string }
+        sessions_count: { type: integer }
+        capabilities: { type: array, items: { type: string } }
+        models: { type: array, items: {} }
+        channels: { type: array, items: {} }
+paths:
+  /status:
+    get:
+      responses:
+        "200": { description: "{ok, data:{version, uptime, adapter?...}}" }
+        "401": { description: unauthorized, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+  /projects:
+    get:
+      responses: { "200": { description: "{ok, data:{projects: Project[]}}" } }
+  /projects/{name}:
+    get:
+      parameters: [{ name: name, in: path, required: true, schema: { type: string } }]
+      responses: { "200": { description: Project }, "404": { description: unknown project } }
+  /projects/{name}/sessions:
+    parameters: [{ name: name, in: path, required: true, schema: { type: string } }]
+    get: { responses: { "200": { description: "{ok, data:{sessions: Session[]}}" } } }
+    post: { responses: { "200": { description: Session } } }
+  /projects/{name}/sessions/{id}:
+    parameters:
+      - { name: name, in: path, required: true, schema: { type: string } }
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get: { responses: { "200": { description: SessionDetail } } }
+    patch: { responses: { "200": { description: Session } } }
+    delete: { responses: { "200": { description: deleted } } }
+  /sessions:
+    get:
+      parameters: [{ name: project, in: query, schema: { type: string } }]
+      responses: { "200": { description: "{ok, data:{sessions: Session[]}}" } }
+    post: { responses: { "200": { description: Session } } }
+  /sessions/{id}:
+    parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+    get: { responses: { "200": { description: SessionDetail } } }
+    patch: { responses: { "200": { description: Session } } }
+    delete: { responses: { "200": { description: deleted } } }

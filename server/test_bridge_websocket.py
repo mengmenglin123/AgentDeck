@@ -412,6 +412,137 @@ class TestBridgeWebSocketTransport(unittest.TestCase):
         self.assertIn("two", self.adapters[0].active_sessions)
         client_two.close()
 
+    # -- protocol v2 (seq / resume / session_status) -------------------------
+
+    V2_CAPS = ["text", "buttons", "typing", "preview", "terminal", "seq", "resume", "session_status"]
+
+    def register(self, client: socket.socket, capabilities: list[str] | None = None) -> dict:
+        message: dict = {"type": "register", "platform": "test"}
+        if capabilities is not None:
+            message["capabilities"] = capabilities
+        client.sendall(client_frame(0x1, json.dumps(message).encode()))
+        return json.loads(read_server_frame(client)[1])
+
+    @staticmethod
+    def send(client: socket.socket, message: dict) -> None:
+        client.sendall(client_frame(0x1, json.dumps(message).encode()))
+
+    @staticmethod
+    def read_until(client: socket.socket, predicate, timeout: float = 3) -> list[dict]:
+        received: list[dict] = []
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            opcode, payload = read_server_frame(client)
+            if opcode != 1:
+                continue
+            received.append(json.loads(payload))
+            if predicate(received[-1]):
+                return received
+        raise AssertionError(f"predicate never matched: {received}")
+
+    TWO_PART = (
+        "import json, sys, time\n"
+        "for line in sys.stdin:\n"
+        "    print(json.dumps({'type':'text_delta','text':'first'}), flush=True)\n"
+        "    time.sleep(0.4)\n"
+        "    print(json.dumps({'type':'text_delta','text':'second'}), flush=True)\n"
+        "    print(json.dumps({'type':'done'}), flush=True)\n"
+    )
+
+    def test_legacy_client_sees_no_v2_fields_and_disconnect_still_closes(self) -> None:
+        transport = self.transport_for(self.TWO_PART)
+        client = self.run_server(transport)
+        self.handshake(client)
+        ack = self.register(client, ["text", "buttons", "typing", "preview", "terminal"])
+        self.assertEqual(ack, {"type": "register_ack", "ok": True, "error": ""})
+        self.send(client, {"type": "message", "session_key": "s1", "content": "go"})
+        events = self.read_until(client, lambda e: e.get("type") == "run_done")
+        self.assertFalse(any("seq" in event for event in events))
+        self.send(client, {"type": "resume", "session_key": "s1", "after_seq": 0})
+        self.send(client, {"type": "message", "session_key": "s1", "content": "again"})
+        events = self.read_until(client, lambda e: e.get("type") in {"reply_stream", "reply"})
+        self.assertFalse(any(e.get("type") in {"resume_ack", "resync_required"} for e in events))
+        client.close()
+        deadline = time.monotonic() + 2
+        while "s1" in self.adapters[0].active_sessions and time.monotonic() < deadline:
+            time.sleep(0.01)
+        self.assertNotIn("s1", self.adapters[0].active_sessions)
+        self.assertEqual(transport.detached_sessions(), ())
+
+    def test_v2_client_gets_seq_and_resumes_events_missed_while_disconnected(self) -> None:
+        transport = self.transport_for(self.TWO_PART)
+        client = self.run_server(transport)
+        self.handshake(client)
+        ack = self.register(client, self.V2_CAPS)
+        self.assertEqual(ack["protocol"], 2)
+        self.assertEqual(ack["capabilities"], ["seq", "resume", "session_status"])
+        self.send(client, {"type": "message", "session_key": "s1", "reply_ctx": "r1", "content": "go"})
+        first = self.read_until(client, lambda e: e.get("delta") == "first")
+        last_seq = first[-1]["seq"]
+        self.assertTrue(all(isinstance(e.get("seq"), int) for e in first if e.get("session_key")))
+        client.close()  # drop mid-run: "second" + run_done happen while detached
+
+        deadline = time.monotonic() + 2
+        while not transport.detached_sessions() and time.monotonic() < deadline:
+            time.sleep(0.01)
+        self.assertEqual(transport.detached_sessions(), ("s1",))
+        self.assertIn("s1", self.adapters[0].active_sessions)
+        time.sleep(0.8)
+
+        again = self.run_server(transport)
+        self.handshake(again)
+        self.assertEqual(self.register(again, self.V2_CAPS)["epoch"], ack["epoch"])
+        self.send(again, {"type": "resume", "session_key": "s1", "after_seq": last_seq, "epoch": ack["epoch"]})
+        replay = self.read_until(again, lambda e: e.get("type") == "resume_ack")
+        self.assertTrue(any(e.get("delta") == "second" for e in replay))
+        self.assertTrue(any(e.get("type") == "run_done" for e in replay))
+        self.assertEqual([e["seq"] for e in replay[:-1]], list(range(last_seq + 1, replay[-1]["last_seq"] + 1)))
+        self.assertTrue(all(e.get("replayed") for e in replay[:-1]))
+        self.assertEqual(transport.detached_sessions(), ())
+
+        self.send(again, {"type": "session_status", "session_key": "s1"})
+        status = self.read_until(again, lambda e: e.get("type") == "session_status")[-1]
+        self.assertTrue(status["alive"])
+        self.assertEqual(status["last_seq"], replay[-1]["last_seq"])
+
+        # The resumed connection owns the session again: new turns stream to it.
+        self.send(again, {"type": "message", "session_key": "s1", "content": "more"})
+        more = self.read_until(again, lambda e: e.get("type") == "run_done")
+        self.assertGreater(more[0]["seq"], replay[-1]["last_seq"])
+        again.close()
+
+    def test_resume_with_stale_epoch_requires_resync(self) -> None:
+        client = self.run_server(self.transport_for("pass"))
+        self.handshake(client)
+        self.register(client, self.V2_CAPS)
+        self.send(client, {"type": "resume", "session_key": "s9", "after_seq": 4, "epoch": "old-host"})
+        event = self.read_until(client, lambda e: e.get("type") == "resync_required")[-1]
+        self.assertEqual(event["session_key"], "s9")
+        client.close()
+
+    def test_detached_session_closes_after_grace(self) -> None:
+        adapter = ProductionAgentAdapter(
+            AgentSpec(agent_type="ws-fixture", command=(sys.executable, "-u", "-c", "import time; time.sleep(60)"))
+        )
+        self.adapters.append(adapter)
+        loop = AgentBridgeLoop(AgentSessionRuntime(adapter), workdir_resolver=lambda message: "/tmp")
+        transport = BridgeWebSocketTransport(
+            loop, WebSocketConfig(token="secret", poll_interval=0.01, detach_grace_seconds=0.3),
+        )
+        client = self.run_server(transport)
+        self.handshake(client)
+        self.register(client, self.V2_CAPS)
+        self.send(client, {"type": "message", "session_key": "g", "content": "x"})
+        deadline = time.monotonic() + 2
+        while "g" not in adapter.active_sessions and time.monotonic() < deadline:
+            time.sleep(0.01)
+        client.close()
+        deadline = time.monotonic() + 3
+        while "g" in adapter.active_sessions and time.monotonic() < deadline:
+            time.sleep(0.02)
+        self.assertNotIn("g", adapter.active_sessions)
+        self.assertEqual(transport.detached_sessions(), ())
+
     def test_requires_register_before_routing_message(self) -> None:
         client = self.run_server(self.transport_for("pass"))
         self.assertIn(b"101 Switching Protocols", self.handshake(client))

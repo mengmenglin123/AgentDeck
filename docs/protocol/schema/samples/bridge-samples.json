@@ -1,0 +1,356 @@
+{
+  "host_to_app": [
+    {
+      "type": "register_ack",
+      "ok": true,
+      "error": ""
+    },
+    {
+      "type": "register_ack",
+      "ok": true,
+      "error": "",
+      "protocol": 2,
+      "capabilities": [
+        "seq",
+        "resume",
+        "session_status"
+      ],
+      "epoch": "a1b2c3d4e5f6"
+    },
+    {
+      "type": "register_ack",
+      "ok": false,
+      "error": "send register first"
+    },
+    {
+      "type": "pong",
+      "ts": 1760600000000
+    },
+    {
+      "type": "typing_start",
+      "session_key": "huan:dev:c1",
+      "reply_ctx": "ctx-1",
+      "seq": 1
+    },
+    {
+      "type": "reply_stream",
+      "session_key": "huan:dev:c1",
+      "reply_ctx": "ctx-1",
+      "delta": "你好",
+      "done": false,
+      "seq": 2
+    },
+    {
+      "type": "reply_stream",
+      "session_key": "huan:dev:c1",
+      "reply_ctx": "ctx-1",
+      "delta": "，世界",
+      "full_text": "你好，世界",
+      "done": true,
+      "seq": 3
+    },
+    {
+      "type": "thinking",
+      "session_key": "huan:dev:c1",
+      "content": "planning",
+      "seq": 4
+    },
+    {
+      "type": "tool_call",
+      "session_key": "huan:dev:c1",
+      "name": "bash",
+      "input": "ls -la",
+      "call_id": "call-1",
+      "status": "running",
+      "seq": 5
+    },
+    {
+      "type": "tool_result",
+      "session_key": "huan:dev:c1",
+      "name": "bash",
+      "output": "README.md",
+      "call_id": "call-1",
+      "status": "ok",
+      "seq": 6
+    },
+    {
+      "type": "buttons",
+      "session_key": "huan:dev:c1",
+      "reply_ctx": "ctx-1",
+      "content": "Allow bash: rm -rf build?",
+      "permission_id": "p1",
+      "buttons": [
+        [
+          {
+            "text": "Allow",
+            "data": "perm:p1:allow"
+          },
+          {
+            "text": "Allow all",
+            "data": "perm:p1:allow_all"
+          },
+          {
+            "text": "Deny",
+            "data": "perm:p1:deny"
+          }
+        ]
+      ],
+      "seq": 7
+    },
+    {
+      "type": "card",
+      "session_key": "huan:dev:c1",
+      "reply_ctx": "ctx-1",
+      "title": "Permission",
+      "content": "Write file?",
+      "buttons": [
+        {
+          "text": "Allow",
+          "data": "perm:p2:allow"
+        },
+        {
+          "text": "Deny",
+          "data": "perm:p2:deny"
+        }
+      ]
+    },
+    {
+      "type": "reply",
+      "session_key": "huan:dev:c1",
+      "reply_ctx": "ctx-1",
+      "content": "Done.",
+      "format": "markdown",
+      "seq": 8
+    },
+    {
+      "type": "reply",
+      "session_key": "huan:dev:c1",
+      "content": "Agent session is owned by another connection",
+      "error": true,
+      "error_code": "session_in_use"
+    },
+    {
+      "type": "run_done",
+      "session_key": "huan:dev:c1",
+      "reply_ctx": "ctx-1",
+      "status": "completed",
+      "exit_code": 0,
+      "seq": 9
+    },
+    {
+      "type": "typing_stop",
+      "session_key": "huan:dev:c1",
+      "seq": 10
+    },
+    {
+      "type": "preview_start",
+      "session_key": "huan:dev:c1",
+      "ref_id": "r1",
+      "content": "preview…"
+    },
+    {
+      "type": "update_message",
+      "session_key": "huan:dev:c1",
+      "preview_handle": "app-1",
+      "content": "partial"
+    },
+    {
+      "type": "error",
+      "error": "invalid json"
+    },
+    {
+      "type": "reply_stream",
+      "session_key": "huan:dev:c1",
+      "delta": "missed",
+      "done": false,
+      "seq": 11,
+      "replayed": true
+    },
+    {
+      "type": "resume_ack",
+      "ok": true,
+      "session_key": "huan:dev:c1",
+      "last_seq": 11,
+      "replayed": 1,
+      "epoch": "a1b2c3d4e5f6"
+    },
+    {
+      "type": "resync_required",
+      "session_key": "huan:dev:c1",
+      "last_seq": 42,
+      "epoch": "ffffffffffff"
+    },
+    {
+      "type": "session_status",
+      "session_key": "huan:dev:c1",
+      "alive": true,
+      "running": false,
+      "last_seq": 11,
+      "epoch": "a1b2c3d4e5f6"
+    },
+    {
+      "type": "terminal_open_ack",
+      "ok": true,
+      "session_key": "huan:dev:c1",
+      "stream_id": "term-1",
+      "cols": 80,
+      "rows": 24
+    },
+    {
+      "type": "terminal_out",
+      "session_key": "huan:dev:c1",
+      "stream_id": "term-1",
+      "data": "$ ls\n",
+      "done": false
+    },
+    {
+      "type": "terminal_out",
+      "session_key": "huan:dev:c1",
+      "stream_id": "term-1",
+      "data": "",
+      "done": true,
+      "exit_code": 0
+    },
+    {
+      "type": "terminal_ack",
+      "ok": false,
+      "session_key": "huan:dev:c1",
+      "stream_id": "term-0",
+      "error": "stale_terminal_stream"
+    },
+    {
+      "type": "terminal_exit",
+      "session_key": "huan:dev:c1",
+      "stream_id": "term-1",
+      "exit_code": 0
+    },
+    {
+      "type": "terminal_clear",
+      "session_key": "huan:dev:c1",
+      "stream_id": "term-1"
+    },
+    {
+      "type": "terminal_permission",
+      "session_key": "huan:dev:c1",
+      "stream_id": "term-1",
+      "permission_id": "p3",
+      "scope": "terminal.open",
+      "content": "Allow opening a terminal?",
+      "buttons": [
+        [
+          {
+            "text": "Allow",
+            "data": "perm:p3:allow"
+          }
+        ]
+      ]
+    }
+  ],
+  "host_to_app_unknown": [
+    {
+      "type": "future_event_v9",
+      "session_key": "huan:dev:c1",
+      "seq": 12,
+      "payload": {
+        "x": 1
+      }
+    },
+    {
+      "type": "reply_stream_v3",
+      "session_key": "huan:dev:c1"
+    }
+  ],
+  "app_to_host": [
+    {
+      "type": "register",
+      "platform": "huanhermes-app",
+      "capabilities": [
+        "text",
+        "buttons",
+        "typing",
+        "preview",
+        "terminal"
+      ],
+      "metadata": {
+        "version": "0.1.206",
+        "device_id": "abc123"
+      }
+    },
+    {
+      "type": "register",
+      "platform": "huanhermes-android",
+      "capabilities": [
+        "text",
+        "buttons",
+        "typing",
+        "preview",
+        "terminal",
+        "seq",
+        "resume",
+        "session_status"
+      ],
+      "metadata": {
+        "version": "0.2.1",
+        "device_id": "abc123",
+        "protocol": 2
+      }
+    },
+    {
+      "type": "message",
+      "msg_id": "msg-1",
+      "session_key": "huan:dev:c1",
+      "project": "codex",
+      "user_id": "user",
+      "user_name": "User",
+      "content": "hello",
+      "reply_ctx": "ctx-1",
+      "images": [],
+      "files": [],
+      "audio": null
+    },
+    {
+      "type": "cancel",
+      "session_key": "huan:dev:c1",
+      "reply_ctx": "ctx-1",
+      "project": "codex"
+    },
+    {
+      "type": "card_action",
+      "session_key": "huan:dev:c1",
+      "action": "perm:p1:deny",
+      "reply_ctx": "ctx-1"
+    },
+    {
+      "type": "ping",
+      "ts": 1760600000000
+    },
+    {
+      "type": "preview_ack",
+      "ref_id": "r1",
+      "preview_handle": "app-1"
+    },
+    {
+      "type": "resume",
+      "session_key": "huan:dev:c1",
+      "after_seq": 10,
+      "epoch": "a1b2c3d4e5f6"
+    },
+    {
+      "type": "session_status",
+      "session_key": "huan:dev:c1"
+    },
+    {
+      "type": "terminal_open",
+      "session_key": "huan:dev:c1",
+      "stream_id": "term-1",
+      "cols": 80,
+      "rows": 24
+    },
+    {
+      "type": "terminal_input",
+      "session_key": "huan:dev:c1",
+      "stream_id": "term-1",
+      "data": "ls\n"
+    }
+  ]
+}

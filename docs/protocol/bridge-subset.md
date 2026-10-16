@@ -138,3 +138,16 @@ Host 拿到进程退出码时提供。一个运行最多发送一次 `run_done`�
 或对应的 `terminal_open_ack(ok=false)`。对已经占用的终端，另一条连接的
 `terminal_input`、`terminal_resize`、`terminal_close` 和 `terminal_permission_action`
 也必须拒绝，并返回 `terminal_ack(ok=false, error="terminal_stream_in_use")`。
+
+## 协议 v2（可选协商，向后兼容）
+
+机器可读规范：`docs/protocol/schema/bridge.v2.schema.json`，样本：`docs/protocol/schema/samples/bridge-samples.json`。
+Python（`server/test_protocol_schema.py`、`server/test_mock_host_protocol_v2.py`）和原生客户端（`apps/android/core` 契约测试）都用同一份 Schema 与样本校验。
+
+- **协商**：App 在 `register.capabilities` 中声明 `seq` / `resume` / `session_status`。Host 只在声明后于 `register_ack` 附加 `protocol: 2`、`capabilities`（双方交集）和 `epoch`（本次 Host 进程的随机标识）。未声明的客户端（Flutter 0.1.206）收到的帧与 v1 完全相同。
+- **seq**：Host 为每个 `session_key` 的 Agent 事件分配单调递增 `seq`（从 1 开始），只发给声明了 `seq` 的连接。终端帧、`pong`、`register_ack` 不带 `seq`。客户端丢弃 `seq <= 已应用 seq` 的重复帧。
+- **resume**：重连并注册后，App 发送 `{"type":"resume","session_key":…,"after_seq":N,"epoch":…}`。Host 先重放 `seq > N` 的事件（带 `replayed: true`），再发 `resume_ack {last_seq, replayed}`；若超出保留窗口（默认每会话 1000 条）、`epoch` 不同（Host 已重启）或 `N` 大于 Host 的 `last_seq`，返回 `resync_required`，App 改用 Management `GET /sessions/{id}` 重新拉 transcript。
+- **断线保活**：声明了 `resume` 的连接断开时，生产 Host 不立即关闭其 Agent 会话，而是保留 `detach_grace_seconds`（默认 120s）并继续把输出记入日志；新连接对该会话发送 `resume` / `session_status` / `message` / `card_action` / `cancel` 即接管。未声明 `resume` 的连接保持旧行为：断开即关闭。
+- **session_status**：`{"type":"session_status","session_key":…}` → `{"type":"session_status","session_key","alive","running","last_seq","epoch"}`。
+- **未知事件**：客户端必须容忍未知 `type`（显示兼容占位，不崩溃）和未知字段。
+- 其余新字段（`tool_call.call_id`、`status`、`turn_id` 等）均为可选。
