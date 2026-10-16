@@ -26,6 +26,8 @@ class ProductionManagementServer:
         sessions: ProjectSessionStore,
         close_session: Callable[[str], None] | None = None,
         active_sessions: Callable[[], tuple[str, ...]] | None = None,
+        pending_permissions: Callable[[str], list[dict[str, Any]]] | None = None,
+        session_activity: Callable[[str], dict[str, Any] | None] | None = None,
         bridge_port: int = 9810,
         host: str = "127.0.0.1",
         port: int = 9820,
@@ -52,6 +54,8 @@ class ProductionManagementServer:
         self.sessions = sessions
         self._close_session = close_session or (lambda session_key: None)
         self._active_sessions = active_sessions or (lambda: ())
+        self._pending_permissions = pending_permissions
+        self._session_activity = session_activity
         self.bridge_port = bridge_port
         self.host = host
         self.port = port
@@ -152,7 +156,7 @@ class ProductionManagementServer:
                     "projects_count": len(self.projects),
                     "sessions_count": self.sessions.count,
                     "active_sessions": len(self._active_sessions()),
-                    "capabilities": ["projects", "sessions", "skills", "mcp", "agents", "pairing"],
+                    "capabilities": self._capabilities(),
                 },
             })
             return
@@ -166,7 +170,7 @@ class ProductionManagementServer:
             except SessionStoreError:
                 self._send(request, 404, {"ok": False, "error": "project not found"})
                 return
-            self._send(request, 200, {"ok": True, "data": {"sessions": records, "active_keys": self._active_keys(records)}})
+            self._send(request, 200, {"ok": True, "data": {"sessions": self._overview(records), "active_keys": self._active_keys(records)}})
             return
         if path.startswith("/sessions/"):
             self._send_session_detail(request, unquote(path[len("/sessions/"):]), None)
@@ -179,7 +183,7 @@ class ProductionManagementServer:
             except SessionStoreError:
                 self._send(request, 404, {"ok": False, "error": "project not found"})
                 return
-            self._send(request, 200, {"ok": True, "data": {"sessions": records, "active_keys": self._active_keys(records)}})
+            self._send(request, 200, {"ok": True, "data": {"sessions": self._overview(records), "active_keys": self._active_keys(records)}})
             return
         if path.startswith(project_session_prefix) and "/sessions/" in path:
             prefix, session_key = path.split("/sessions/", 1)
@@ -287,6 +291,46 @@ class ProductionManagementServer:
         record["transcript"] = []
         record["active"] = session_key in self._active_sessions()
         self._send(request, 200, {"ok": True, "data": record})
+
+    def _capabilities(self) -> list[str]:
+        caps = ["projects", "sessions", "skills", "mcp", "agents", "pairing"]
+        if self._pending_permissions is not None or self._session_activity is not None:
+            caps.append("session_overview")
+        return caps
+
+    def _overview(self, records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Add optional overview fields; older clients ignore unknown keys."""
+        if self._pending_permissions is None and self._session_activity is None:
+            return records
+        active = set(self._active_sessions())
+        enriched: list[dict[str, Any]] = []
+        for item in records:
+            out = dict(item)
+            key = str(item.get("session_key") or "")
+            pending: list[dict[str, Any]] = []
+            if self._pending_permissions is not None and key:
+                try:
+                    pending = list(self._pending_permissions(key))
+                except Exception:  # noqa: BLE001
+                    pending = []
+            activity = None
+            if self._session_activity is not None and key:
+                try:
+                    activity = self._session_activity(key)
+                except Exception:  # noqa: BLE001
+                    activity = None
+            running = bool(activity and activity.get("running")) and key in active
+            out["pending_permissions"] = pending
+            out["status"] = "needs_you" if pending else "running" if running else "idle"
+            if activity and activity.get("preview"):
+                out["last_message_preview"] = activity["preview"]
+            if activity and activity.get("updated_at"):
+                ts = float(activity["updated_at"])
+                current = out.get("updated_at")
+                if not isinstance(current, (int, float)) or ts > float(current):
+                    out["updated_at"] = ts
+            enriched.append(out)
+        return enriched
 
     def _active_keys(self, records: list[dict[str, Any]]) -> dict[str, bool]:
         active = set(self._active_sessions())

@@ -15,7 +15,7 @@ import secrets
 import threading
 from collections import deque
 from collections.abc import Iterable, Mapping
-from typing import Any
+from typing import Callable, Any
 
 PROTOCOL_VERSION = 2
 # Capabilities this Host can offer when the client asks for them.
@@ -44,7 +44,13 @@ def register_ack(client_capabilities: Any, *, epoch: str) -> dict[str, Any]:
 class SessionJournal:
     """Thread-safe ring buffer of recent events, one sequence per session_key."""
 
-    def __init__(self, *, max_events_per_session: int = 1000, max_sessions: int = 256) -> None:
+    def __init__(
+        self,
+        *,
+        max_events_per_session: int = 1000,
+        max_sessions: int = 256,
+        observer: "Callable[[Mapping[str, Any]], None] | None" = None,
+    ) -> None:
         if max_events_per_session <= 0 or max_sessions <= 0:
             raise ValueError("journal limits must be positive")
         self.epoch = secrets.token_hex(6)
@@ -53,6 +59,7 @@ class SessionJournal:
         self._events: dict[str, deque[dict[str, Any]]] = {}
         self._last_seq: dict[str, int] = {}
         self._lock = threading.Lock()
+        self._observer = observer
 
     def record(self, event: Mapping[str, Any]) -> dict[str, Any]:
         """Return a copy of ``event`` stamped with the next ``seq``.
@@ -76,6 +83,11 @@ class SessionJournal:
                 ring = deque(maxlen=self._max_events)
                 self._events[session_key] = ring
             ring.append(dict(stamped))
+        if self._observer is not None:
+            try:
+                self._observer(stamped)
+            except Exception:  # noqa: BLE001 - observers must never break delivery
+                pass
         return stamped
 
     def last_seq(self, session_key: str) -> int:

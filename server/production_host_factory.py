@@ -11,6 +11,8 @@ from bridge_websocket import BridgeWebSocketServer, BridgeWebSocketTransport, We
 from production_adapter import AgentSpec, ProductionAgentAdapter
 from production_host_config import ProductionHostConfig
 from production_management import ProductionManagementServer
+from session_activity import SessionActivity
+from session_journal import SessionJournal
 from project_router import ProjectAgentRouter, ProjectTerminalRouter
 from pty_terminal_adapter import PtySpec, PtyTerminalAdapter
 from session_store import ProjectSessionStore
@@ -96,6 +98,7 @@ def build_production_host(config: ProductionHostConfig) -> ProductionHostCompone
         if terminal_loops
         else None
     )
+    activity = SessionActivity()
     transport = BridgeWebSocketTransport(
         agent_router,
         WebSocketConfig(
@@ -104,6 +107,7 @@ def build_production_host(config: ProductionHostConfig) -> ProductionHostCompone
             poll_interval=config.poll_interval,
         ),
         terminal_loop=terminal_router,
+        journal=SessionJournal(observer=activity.observe),
     )
     server = BridgeWebSocketServer(
         transport,
@@ -125,6 +129,8 @@ def build_production_host(config: ProductionHostConfig) -> ProductionHostCompone
             *agent_router.active_sessions,
             *(terminal_router.active_sessions if terminal_router is not None else ()),
         ))),
+        pending_permissions=permission_gate.pending_for if permission_gate is not None else None,
+        session_activity=activity.get,
         bridge_port=config.bridge_port,
         host=config.mgmt_host,
         port=config.mgmt_port,

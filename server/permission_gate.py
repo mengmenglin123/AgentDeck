@@ -40,6 +40,8 @@ class _PendingPermission:
     reply_ctx: str | None
     scope: str
     expires_at: float
+    prompt: str = ""
+    buttons: tuple = ()
 
 
 AuditSink = Callable[[PermissionAuditRecord], None]
@@ -100,12 +102,20 @@ class PermissionGate:
             return decision
 
         self._expire(now)
+        content = self._safe_prompt(prompt, scope)
+        buttons = [[
+            {"text": "Allow", "data": f"perm:{request_id}:allow"},
+            {"text": "Allow all", "data": f"perm:{request_id}:allow_all"},
+            {"text": "Deny", "data": f"perm:{request_id}:deny"},
+        ]]
         pending = _PendingPermission(
             request_id=request_id,
             session_key=session_key,
             reply_ctx=reply_ctx,
             scope=scope,
             expires_at=now + self.ttl_seconds,
+            prompt=content,
+            buttons=tuple(tuple(dict(b) for b in row) for row in buttons),
         )
         self._record(
             "permission.requested",
@@ -119,13 +129,24 @@ class PermissionGate:
             "reply_ctx": reply_ctx,
             "permission_id": request_id,
             "scope": scope,
-            "content": self._safe_prompt(prompt, scope),
-            "buttons": [[
-                {"text": "Allow", "data": f"perm:{request_id}:allow"},
-                {"text": "Allow all", "data": f"perm:{request_id}:allow_all"},
-                {"text": "Deny", "data": f"perm:{request_id}:deny"},
-            ]],
+            "content": content,
+            "buttons": buttons,
         }
+
+    def pending_for(self, session_key: str) -> list[dict[str, object]]:
+        """Pending, unexpired challenges for one session (oldest first)."""
+        self._expire()
+        return [
+            {
+                "id": p.request_id,
+                "prompt": p.prompt,
+                "scope": p.scope,
+                "reply_ctx": p.reply_ctx,
+                "buttons": [[dict(b) for b in row] for row in p.buttons],
+            }
+            for p in self._pending.values()
+            if p.session_key == session_key
+        ]
 
     def decide(
         self,
