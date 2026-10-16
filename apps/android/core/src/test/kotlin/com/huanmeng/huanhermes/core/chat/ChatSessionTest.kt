@@ -188,4 +188,34 @@ class ChatSessionTest {
         assertNull(r.chat.state.value.error)
         assertFalse(r.chat.state.value.reloading)
     }
+
+    @Test fun messagesTypedDuringARunWaitForRunDone() = runTest {
+        val r = rig(); r.chat.start(); connect(r)
+        assertTrue(r.chat.send("first"))
+        assertTrue(r.chat.send("second"))
+        assertTrue(r.chat.send("/status"))
+        // v2 Host (session_status): queued behind the run; slash commands go straight out.
+        assertEquals(listOf("first", "/status"), r.sentMessages().map { it["content"]!!.jsonPrimitive.content })
+        assertEquals(listOf("second"), r.chat.state.value.runQueue.map { it.text })
+        r.fake.last.text("""{"type":"run_done","session_key":"$sk","status":"completed"}""")
+        runCurrent()
+        assertEquals(listOf("first", "/status", "second"), r.sentMessages().map { it["content"]!!.jsonPrimitive.content })
+        assertTrue(r.chat.state.value.runQueue.isEmpty())
+    }
+
+    @Test fun queuedEntriesCanBeEditedOrSentNow() = runTest {
+        val r = rig(); r.chat.start(); connect(r)
+        r.chat.send("first"); r.chat.send("a"); r.chat.send("b")
+        val (a, b) = r.chat.state.value.runQueue
+        assertEquals("a", r.chat.takeQueued(a.msgId))
+        assertTrue(r.chat.sendQueuedNow(b.msgId))
+        assertEquals(listOf("first", "b"), r.sentMessages().map { it["content"]!!.jsonPrimitive.content })
+        assertTrue(r.chat.state.value.runQueue.isEmpty())
+    }
+
+    @Test fun v1HostWithoutRunEndsNeverQueues() = runTest {
+        val r = rig(); r.chat.start(); connect(r, v2 = false)
+        r.chat.send("first"); r.chat.send("second")
+        assertEquals(listOf("first", "second"), r.sentMessages().map { it["content"]!!.jsonPrimitive.content })
+    }
 }

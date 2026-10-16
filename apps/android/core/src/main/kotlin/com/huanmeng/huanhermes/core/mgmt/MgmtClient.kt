@@ -75,12 +75,24 @@ data class SessionInfo(
     val running: Boolean,
     val mode: String?,
     val model: String?,
+    /** Optional overview from Hosts with the `session_overview` capability. */
+    val status: String? = null,
+    val preview: String? = null,
+    val pendingPermissions: List<PendingPermission> = emptyList(),
 ) {
     val displayTitle: String
         get() = title?.trim()?.takeIf { it.isNotEmpty() }
             ?: lastUser?.trim()?.takeIf { it.isNotEmpty() }?.let { if (it.length > 40) it.take(40) + "…" else it }
             ?: sessionKey.substringAfterLast(':').take(16).ifEmpty { id }
 }
+
+/** A permission challenge the Host is still waiting on (from `/sessions`). */
+data class PendingPermission(
+    val id: String,
+    val prompt: String,
+    val replyCtx: String?,
+    val buttons: List<com.huanmeng.huanhermes.core.protocol.FrameButton>,
+)
 
 data class TranscriptRow(val role: String, val content: String)
 
@@ -303,9 +315,28 @@ class MgmtClient(
                 title = o.s("title") ?: o.s("name") ?: o.s("chat_name"),
                 lastUser = last,
                 updatedAt = time(o["updated_at"] ?: o["updatedAt"]),
-                running = o.b("running") || o.b("live") || o.b("active"),
+                running = o.b("running") || o.b("live") || o.b("active") || o.s("status") == "running",
                 mode = o.s("mode"), model = o.s("model"),
+                status = o.s("status")?.takeIf { it.isNotEmpty() },
+                preview = (o.s("last_message_preview") ?: o.s("preview"))?.takeIf { it.isNotBlank() },
+                pendingPermissions = (o["pending_permissions"] as? JsonArray).orEmpty().mapNotNull { pendingPermission(it) },
             )
+        }
+
+        private fun pendingPermission(e: JsonElement): PendingPermission? {
+            val o = e as? JsonObject ?: return null
+            val id = o.s("id")?.takeIf { it.isNotEmpty() } ?: return null
+            val buttons = (o["buttons"] as? JsonArray).orEmpty().flatMap { row ->
+                when (row) {
+                    is JsonArray -> row.toList()
+                    else -> listOf(row)
+                }
+            }.mapNotNull { b ->
+                val bo = b as? JsonObject ?: return@mapNotNull null
+                val data = bo.s("data")?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+                com.huanmeng.huanhermes.core.protocol.FrameButton(bo.s("text") ?: data, data)
+            }
+            return PendingPermission(id, o.s("prompt").orEmpty(), o.s("reply_ctx"), buttons)
         }
 
         private fun time(e: JsonElement?): Double? {

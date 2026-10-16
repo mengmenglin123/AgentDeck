@@ -40,6 +40,10 @@ data class ChatState(
     val mode: String? = null,
     val model: String? = null,
     val capabilities: List<String> = emptyList(),
+    /** Messages typed while a run was active; sent one by one after each `run_done`. */
+    val runQueue: List<QueuedSend> = emptyList(),
+    /** Host capabilities from the Bridge handshake (empty until connected). */
+    val hostCapabilities: Set<String> = emptySet(),
 ) {
     val items get() = transcript.items
 }
@@ -69,6 +73,8 @@ class ChatSession(
     private var lastReplyCtx: String? = null
     private val flushLock = Mutex()
     private var wasDisconnected = false
+    /** The run queue is only safe once this Host has shown it reports run ends. */
+    @Volatile private var runEndsKnown = false
 
     fun start() {
         bridge.watch(session.sessionKey)
@@ -115,8 +121,10 @@ class ChatSession(
                 bridge.send(Outbound.previewAck(frame.refId, "app-${clock()}"))
                 mutate { it.copy(transcript = it.transcript.apply(frame)) }
             }
-            is BridgeFrame.RunDone -> mutate {
-                it.copy(transcript = it.transcript.apply(frame), runActive = false, typing = false)
+            is BridgeFrame.RunDone -> {
+                runEndsKnown = true
+                mutate { it.copy(transcript = it.transcript.apply(frame), runActive = false, typing = false) }
+                scope.launch { sendNextQueued() }
             }
             is BridgeFrame.ResumeAck -> Unit
             is BridgeFrame.SessionStatus -> {
@@ -143,7 +151,11 @@ class ChatSession(
                 wasDisconnected = false
                 // Rule: a successful (re)connect clears the stale error banner.
                 mutate { it.copy(banner = ConnectionBanner.None, connected = true, error = if (recovered) null else it.error) }
-                if (Capabilities.SESSION_STATUS in s.hostCapabilities) bridge.send(Outbound.sessionStatus(session.sessionKey))
+                if (Capabilities.SESSION_STATUS in s.hostCapabilities) {
+                    runEndsKnown = true
+                    bridge.send(Outbound.sessionStatus(session.sessionKey))
+                }
+                mutate { it.copy(hostCapabilities = s.hostCapabilities) }
                 flushQueue()
             }
             is BridgeState.Connecting -> mutate {
@@ -168,8 +180,25 @@ class ChatSession(
 
     // --- outbound --------------------------------------------------------
 
-    /** Sends text now, or queues it for this session when offline. */
+    /** True when [send] would hold the text in the run queue instead of sending it now. */
+    val queuesWhileRunning: Boolean get() = runEndsKnown && _state.value.runActive && bridge.isConnected
+
+    /**
+     * Sends text now, queues it behind the active run (Hosts known to report
+     * run ends), or keeps it in the offline queue when disconnected.
+     */
     suspend fun send(text: String): Boolean {
+        val content = text.trim()
+        if (content.isEmpty() || closed) return false
+        if (queuesWhileRunning && !content.startsWith("/")) {
+            mutate { it.copy(runQueue = it.runQueue + QueuedSend(Outbound.shortId("q"), content), error = null) }
+            return true
+        }
+        return sendNow(content)
+    }
+
+    /** Sends immediately even while a run is active (steer / slash commands). */
+    suspend fun sendNow(text: String): Boolean {
         val content = text.trim()
         if (content.isEmpty() || closed) return false
         val msgId = Outbound.shortId("msg")
@@ -186,6 +215,30 @@ class ChatSession(
             else it.copy(error = "离线队列已满，消息未保存")
         }
         return queued
+    }
+
+    /** Removes a run-queue entry and returns its text (to edit it in the composer). */
+    fun takeQueued(id: String): String? {
+        var taken: String? = null
+        mutate { st ->
+            taken = st.runQueue.firstOrNull { it.msgId == id }?.text
+            st.copy(runQueue = st.runQueue.filterNot { it.msgId == id })
+        }
+        return taken
+    }
+
+    /** Sends one queued entry right away instead of waiting for the run to end. */
+    suspend fun sendQueuedNow(id: String): Boolean {
+        val text = takeQueued(id) ?: return false
+        return sendNow(text)
+    }
+
+    private suspend fun sendNextQueued() {
+        if (closed) return
+        val next = _state.value.runQueue.firstOrNull() ?: return
+        if (_state.value.runActive || !bridge.isConnected) return
+        takeQueued(next.msgId)
+        sendNow(next.text)
     }
 
     private suspend fun flushQueue() = flushLock.withLock {
