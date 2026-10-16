@@ -4521,6 +4521,24 @@ def _touch_session(sk: str, content: str = "", project: Optional[str] = None) ->
             p["sessions_count"] = sum(1 for s in SESSIONS.values() if s.get("project") == p["name"])
 
 
+PENDING_PERMS: Dict[str, List[Dict[str, Any]]] = {}
+
+
+def _overview(rec: Dict[str, Any]) -> Dict[str, Any]:
+    """Optional session_overview fields (status, pending_permissions, last_message_preview)."""
+    out = dict(rec)
+    sk = rec.get("session_key") or rec.get("id") or ""
+    pending = list(PENDING_PERMS.get(sk, []))
+    out["pending_permissions"] = pending
+    out["status"] = "needs_you" if pending else "running" if rec.get("running") else "idle"
+    st = SESSION_STATE.get(sk) or {}
+    last = next((t["content"] for t in reversed(st.get("transcript", [])) if t.get("role") == "assistant"), None)
+    if last:
+        flat = " ".join(str(last).split())
+        out["last_message_preview"] = flat[:159] + ("…" if len(flat) > 159 else "")
+    return out
+
+
 def _set_running(sk: str, running: bool) -> None:
     with SESSIONS_LOCK:
         if sk in SESSIONS:
@@ -4593,6 +4611,17 @@ def _handle_message(conn: socket.socket, msg: Dict[str, Any]) -> None:
         return
 
     if content.startswith("/perm") or content.lower() == "need permission":
+        pid = "demo" + uuid.uuid4().hex[:8]
+        buttons = [[
+            {"text": "Allow", "data": f"perm:{pid}:allow"},
+            {"text": "Deny", "data": f"perm:{pid}:deny"},
+            {"text": "Allow all", "data": f"perm:{pid}:allow_all"},
+        ]]
+        prompt = "Mock agent wants to run: `echo hello` — allow?"
+        with SESSIONS_LOCK:
+            PENDING_PERMS.setdefault(sk, []).append({"id": pid, "prompt": prompt, "reply_ctx": ctx, "buttons": buttons})
+            if sk in SESSIONS:
+                SESSIONS[sk]["updated_at"] = time.time()
         ws_send_text(
             conn,
             json.dumps(
@@ -4600,14 +4629,8 @@ def _handle_message(conn: socket.socket, msg: Dict[str, Any]) -> None:
                     "type": "buttons",
                     "session_key": sk,
                     "reply_ctx": ctx,
-                    "content": "Mock agent wants to run: `echo hello` — allow?",
-                    "buttons": [
-                        [
-                            {"text": "Allow", "data": "perm:demo:allow"},
-                            {"text": "Deny", "data": "perm:demo:deny"},
-                            {"text": "Allow all", "data": "perm:demo:allow_all"},
-                        ]
-                    ],
+                    "content": prompt,
+                    "buttons": buttons,
                 }
             ),
         )
@@ -4862,6 +4885,12 @@ def _handle_card_action(conn: socket.socket, msg: Dict[str, Any]) -> None:
     sk = msg.get("session_key") or "huan:unknown"
     ctx = msg.get("reply_ctx") or str(uuid.uuid4())
     st = _session_state(sk)
+    parts = action.split(":")
+    with SESSIONS_LOCK:
+        if len(parts) == 3 and sk in PENDING_PERMS:
+            PENDING_PERMS[sk] = [p for p in PENDING_PERMS[sk] if p["id"] != parts[1]]
+            if not PENDING_PERMS[sk]:
+                PENDING_PERMS.pop(sk, None)
     if action == "deny" or action.endswith(":deny"):
         text = "Permission denied (mock)."
     elif action == "allow_all" or action.endswith(":allow_all"):
@@ -4990,6 +5019,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                             "activity_readonly",
                             "logs_readonly",
                             "agents_catalog",
+                            "session_overview",
                         ],
                         "hermes": {
                             "adapter": "mock",
@@ -5037,7 +5067,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
         if m:
             name = m.group(1)
             with SESSIONS_LOCK:
-                items = [s for s in SESSIONS.values() if s.get("project") == name]
+                items = [_overview(s) for s in SESSIONS.values() if s.get("project") == name]
             self._send(200, {"ok": True, "data": {"sessions": items, "active_keys": {}}})
             return
         m = re.match(r"^/api/v1/projects/([^/]+)/sessions/(.+)$", path)
@@ -5369,7 +5399,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
             q = parse_qs(urlparse(self.path).query)
             project = q.get("project", [None])[0]
             with SESSIONS_LOCK:
-                items = list(SESSIONS.values())
+                items = [_overview(s) for s in SESSIONS.values()]
             if project:
                 items = [s for s in items if s.get("project") == project]
             self._send(200, {"ok": True, "data": {"sessions": items}})
