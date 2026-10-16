@@ -1,6 +1,7 @@
 package com.huanmeng.huanhermes.ui.screens
 
 import android.os.Build
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,7 +30,7 @@ import com.huanmeng.huanhermes.data.ThemeMode
 import kotlinx.coroutines.launch
 
 @Composable
-fun SettingsScreen(settings: AppSettings, repo: SettingsRepository) {
+fun SettingsScreen(settings: AppSettings, repo: SettingsRepository, onOpenHosts: () -> Unit = {}) {
     val scope = rememberCoroutineScope()
     fun set(t: (AppSettings) -> AppSettings) { scope.launch { repo.update(t) } }
 
@@ -37,6 +38,13 @@ fun SettingsScreen(settings: AppSettings, repo: SettingsRepository) {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        Text("连接", style = MaterialTheme.typography.titleMedium)
+        ElevatedCard(Modifier.fillMaxWidth().clickable(onClick = onOpenHosts)) {
+            Column(Modifier.padding(16.dp)) {
+                Text("Host 连接", style = MaterialTheme.typography.bodyLarge)
+                Text("添加、编辑、切换 Host 和令牌", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
         Text("外观", style = MaterialTheme.typography.titleMedium)
         ElevatedCard {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

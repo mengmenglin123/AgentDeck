@@ -1,6 +1,7 @@
 package com.huanmeng.huanhermes
 
 import android.app.Application
+import com.huanmeng.huanhermes.data.AppGraph
 import com.huanmeng.huanhermes.data.SettingsRepository
 
 /**
@@ -9,4 +10,5 @@ import com.huanmeng.huanhermes.data.SettingsRepository
  */
 class HuanHermesApp : Application() {
     val settings: SettingsRepository by lazy { SettingsRepository(this) }
+    val graph: AppGraph by lazy { AppGraph(this) }
 }

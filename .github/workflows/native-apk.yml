@@ -7,6 +7,8 @@ on:
     branches: [native-android]
     paths:
       - 'apps/android/**'
+      - 'server/**'
+      - 'docs/protocol/**'
       - '.github/workflows/native-apk.yml'
     tags:
       - 'native-v*'
@@ -38,12 +40,23 @@ jobs:
         with:
           gradle-version: '8.11.1'
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Host tests (protocol v2, schema, mock-host)
+        shell: bash
+        run: |
+          set -o pipefail
+          pip install -q jsonschema
+          cd server && python -m unittest discover -p 'test_*.py' 2>&1 | tee "$RUNNER_TEMP/gradle.log"
+
       - name: Unit tests and release APK
         working-directory: apps/android
         shell: bash
         run: |
           set -o pipefail
-          gradle --no-daemon :app:testReleaseUnitTest :app:assembleRelease 2>&1 | tee "$RUNNER_TEMP/gradle.log"
+          gradle --no-daemon :core:test :app:testReleaseUnitTest :app:assembleRelease 2>&1 | tee -a "$RUNNER_TEMP/gradle.log"
 
       # The sandbox can't read Actions logs, so failures are pushed to a log branch.
       - name: Publish failure log
@@ -88,7 +101,7 @@ jobs:
         run: |
           notes="HuanHermes 原生版 $VERSION 预发布（Kotlin + Compose，release 构建，固定预发布签名）。
           构建提交：${GITHUB_SHA}
-          与 Flutter 版同签名、versionCode 更高，可直接覆盖安装 0.1.205 及以后的版本。
+          与 Flutter 版同签名、versionCode 更高，可直接覆盖安装 0.1.205 及以后的版本（需 Android 8.0+）。
           校验：见 $NAME.sha256。"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "dist/$NAME" "dist/$NAME.sha256" --clobber
