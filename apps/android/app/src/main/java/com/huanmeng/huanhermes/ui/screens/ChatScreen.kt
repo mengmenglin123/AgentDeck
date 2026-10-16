@@ -42,6 +42,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,18 +70,19 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit) {
     val list = rememberLazyListState()
     val items = state.items
 
-    // Follow the conversation while the user is at (or near) the bottom.
-    var jumpedToEnd by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(items.size, (items.lastOrNull() as? ChatItem.Assistant)?.text?.length) {
-        if (items.isEmpty()) return@LaunchedEffect
-        if (!jumpedToEnd) {
-            // Opening a session shows its latest messages, not the top of the history.
-            list.scrollToItem(items.size - 1)
-            jumpedToEnd = true
-            return@LaunchedEffect
+    // Stick to the newest message unless the user scrolled up to read. Re-applied when
+    // items arrive, the last one grows (streaming), or the viewport changes size
+    // (keyboard, rotation, activity recreation), so the latest reply never ends up
+    // hidden below the fold.
+    var stick by rememberSaveable { mutableStateOf(true) }
+    LaunchedEffect(list) {
+        snapshotFlow { list.isScrollInProgress }.collect { scrolling ->
+            if (!scrolling) stick = !list.canScrollForward
         }
-        val lastVisible = list.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-        if (lastVisible >= items.size - 3) list.animateScrollToItem(items.size - 1)
+    }
+    val viewport by remember { derivedStateOf { list.layoutInfo.viewportSize.height } }
+    LaunchedEffect(items.size, items.lastOrNull(), viewport) {
+        if (items.isNotEmpty() && stick) list.scrollToItem(items.size - 1, 100_000) // offset is clamped to the end
     }
 
     Column(Modifier.fillMaxSize().navigationBarsPadding().imePadding()) {
@@ -117,7 +120,7 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit) {
             if (state.runActive) {
                 IconButton(onClick = vm::cancel) { Icon(Icons.Outlined.StopCircle, "停止运行") }
             }
-            IconButton(onClick = { if (input.isNotBlank()) { vm.send(input); input = "" } }, enabled = input.isNotBlank()) {
+            IconButton(onClick = { if (input.isNotBlank()) { vm.send(input); input = ""; stick = true } }, enabled = input.isNotBlank()) {
                 Icon(Icons.AutoMirrored.Filled.Send, "发送")
             }
         }
