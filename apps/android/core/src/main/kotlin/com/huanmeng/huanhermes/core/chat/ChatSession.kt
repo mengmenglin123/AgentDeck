@@ -206,7 +206,10 @@ class ChatSession(
         val sent = bridge.isConnected && bridge.send(Outbound.message(session.sessionKey, content, session.project, msgId, replyCtx))
         if (sent) {
             lastReplyCtx = replyCtx
-            mutate { it.copy(transcript = it.transcript.addUser(content, msgId, queued = false), runActive = true, error = null) }
+            // Slash commands are answered by the Host itself and may never send run_done;
+            // the run indicator for them comes from typing/stream frames instead.
+            val starts = !content.startsWith("/")
+            mutate { it.copy(transcript = it.transcript.addUser(content, msgId, queued = false), runActive = it.runActive || starts, error = null) }
             return true
         }
         val queued = queue.enqueue(QueuedMessage(hostId, session.sessionKey, session.project, content, msgId, clock()))

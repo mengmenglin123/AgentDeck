@@ -37,6 +37,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -60,6 +61,9 @@ fun InboxScreen(vm: InboxViewModel, onOpenChat: (SessionRef) -> Unit, onOpenHost
     val error by vm.error.collectAsStateWithLifecycle()
     val haptic = rememberHaptic()
     LaunchedEffect(Unit) { vm.refresh() }
+    // Only a pull shows the indicator; background refreshes stay quiet.
+    var pulling by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    LaunchedEffect(state.loading) { if (!state.loading) pulling = false }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -77,8 +81,8 @@ fun InboxScreen(vm: InboxViewModel, onOpenChat: (SessionRef) -> Unit, onOpenHost
         },
     ) { padding ->
         PullToRefreshBox(
-            isRefreshing = state.loading,
-            onRefresh = { vm.refresh() },
+            isRefreshing = pulling,
+            onRefresh = { pulling = true; vm.refresh() },
             modifier = Modifier.fillMaxSize().padding(padding),
         ) {
             LazyColumn(

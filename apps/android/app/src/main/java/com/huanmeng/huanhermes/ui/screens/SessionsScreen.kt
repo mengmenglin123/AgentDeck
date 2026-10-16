@@ -240,7 +240,10 @@ fun SessionsScreen(vm: SessionsViewModel, onOpenHosts: () -> Unit, onOpenChat: (
                 }
             }
             if (active != null && !showArchived) QuickStartBar(
-                projects = projects.map { it.name },
+                // Most recently used project first, so the default is where the user just was.
+                projects = projects.map { it.name }.sortedByDescending { name ->
+                    state.sessions.filter { it.project == name }.maxOfOrNull { it.updatedAt ?: 0.0 } ?: -1.0
+                },
                 onStart = { project, text ->
                     haptic.confirm()
                     vm.quickStart(project, text) { onOpenChat(vm.remember(it)) }

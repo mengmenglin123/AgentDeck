@@ -228,8 +228,9 @@ class ChatViewModel(private val graph: AppGraph, private val sessionId: String, 
 
     fun send(text: String) = viewModelScope.launch {
         if (text.isBlank()) return@launch
-        graph.localPrefs.addHistory(text)
+        draftJob?.cancel() // a pending debounced save must not resurrect the sent text
         saveDraftNow("")
+        graph.localPrefs.addHistory(text)
         chat?.send(text)
     }
 
