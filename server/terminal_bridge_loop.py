@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import threading
+import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
@@ -19,6 +20,9 @@ WorkdirResolver = Callable[[Mapping[str, Any]], str]
 class _TerminalState:
     stream_id: str
     exit_sent: bool = False
+    # True between a terminal_input and the terminal_out that carries done=True.
+    awaiting_done: bool = False
+    last_activity: float = 0.0
 
 
 class TerminalBridgeLoop:
@@ -31,8 +35,14 @@ class TerminalBridgeLoop:
         workdir_resolver: WorkdirResolver,
         permission_gate: PermissionGate | None = None,
         require_open_permission: bool = False,
+        quiet_seconds: float = 0.25,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
+        if quiet_seconds < 0:
+            raise ValueError("quiet_seconds must not be negative")
         self.adapter = adapter
+        self._quiet_seconds = quiet_seconds
+        self._clock = clock
         self._workdir = workdir_resolver
         self._permission_gate = permission_gate
         self._require_open_permission = require_open_permission
@@ -75,13 +85,31 @@ class TerminalBridgeLoop:
             except AdapterError:
                 return [self._error("terminal_read_failed", session_key=session_key)]
             events: list[dict[str, Any]] = []
+            now = self._clock()
             if data:
+                state.last_activity = now
                 events.append(self._out(session_key, state.stream_id, data, done=False))
             exit_code = self.adapter.exit_code(session_key)
             if exit_code is not None and not data and not state.exit_sent:
                 state.exit_sent = True
+                if state.awaiting_done:
+                    state.awaiting_done = False
+                    events.append(self._out(
+                        session_key, state.stream_id, b"", done=True, exit_code=exit_code,
+                    ))
                 events.append(self._exit(session_key, state.stream_id, exit_code))
                 self._remove(session_key)
+                return events
+            # A PTY shell never says "command finished"; the output going quiet
+            # after an input is the end of that burst. Clients (Flutter 0.1.206
+            # included) clear their busy state on done=True.
+            if (
+                not data
+                and state.awaiting_done
+                and now - state.last_activity >= self._quiet_seconds
+            ):
+                state.awaiting_done = False
+                events.append(self._out(session_key, state.stream_id, b"", done=True))
             return events
 
     def poll_all(self) -> list[dict[str, Any]]:
@@ -209,6 +237,8 @@ class TerminalBridgeLoop:
             self.adapter.send(session_key, data)
         except AdapterError:
             return [self._error("terminal_write_failed", session_key=session_key)]
+        state.awaiting_done = True
+        state.last_activity = self._clock()
         return self.poll(session_key)
 
     def _resize(self, message: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -293,14 +323,24 @@ class TerminalBridgeLoop:
         return event
 
     @staticmethod
-    def _out(session_key: str, stream_id: str, data: bytes, *, done: bool) -> dict[str, Any]:
-        return {
+    def _out(
+        session_key: str,
+        stream_id: str,
+        data: bytes,
+        *,
+        done: bool,
+        exit_code: int | None = None,
+    ) -> dict[str, Any]:
+        event: dict[str, Any] = {
             "type": "terminal_out",
             "session_key": session_key,
             "stream_id": stream_id,
             "data": data.decode("utf-8", errors="replace"),
             "done": done,
         }
+        if exit_code is not None:
+            event["exit_code"] = exit_code
+        return event
 
     @staticmethod
     def _exit(session_key: str, stream_id: str, exit_code: int) -> dict[str, Any]:

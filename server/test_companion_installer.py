@@ -41,7 +41,7 @@ class TestCompanionInstaller(unittest.TestCase):
             self.assertTrue(Path(first.release_dir, "server/production_host.py").is_file())
             self.assertFalse(Path(first.release_dir, "server/test_bridge.py").exists())
             self.assertEqual(Path(first.current_link).resolve(), Path(first.release_dir))
-            self.assertIn("production_host.py --config", Path(first.service_path).read_text())
+            self.assertIn('production_host.py" --config', Path(first.service_path).read_text())
 
             second = build_install_plan(source=str(source), prefix=prefix, version="0.1.202")
             install(second)
@@ -80,6 +80,30 @@ class TestCompanionInstaller(unittest.TestCase):
             self.assertNotIn("sudo", service)
             self.assertNotIn("systemctl", service)
             self.assertIn("Restart=on-failure", service)
+
+    def test_service_quotes_paths_with_spaces_quotes_and_dollars(self) -> None:
+        import shlex
+        with tempfile.TemporaryDirectory() as directory:
+            source = self._source(directory)
+            prefix = str(Path(directory, 'my $HOME "hh" 100%'))
+            plan = build_install_plan(source=str(source), prefix=prefix, version="v1")
+            service = render_user_service(plan)
+            exec_line = next(line for line in service.splitlines() if line.startswith("ExecStart="))
+            value = exec_line[len("ExecStart="):]
+            # Undo systemd's own escapes ($$ -> $, %% -> %) then split like systemd does.
+            self.assertNotIn(" $H", value.replace("$$", ""))
+            args = shlex.split(value.replace("$$", "$").replace("%%", "%"))
+            self.assertEqual(args[0], "/usr/bin/python3")
+            self.assertEqual(args[1], f"{plan.prefix}/current/server/production_host.py")
+            self.assertEqual(args[2:], ["--config", plan.config_path])
+            self.assertIn("%%", exec_line)
+            working = next(line for line in service.splitlines() if line.startswith("WorkingDirectory="))
+            self.assertEqual(working, f"WorkingDirectory={plan.prefix.replace('%', '%%')}/current/server")
+
+    def test_service_rejects_control_characters(self) -> None:
+        from companion_installer import _systemd_exec_arg
+        with self.assertRaises(CompanionInstallError):
+            _systemd_exec_arg("/tmp/a\nb".replace("\\n", "\n"))
 
 
 if __name__ == "__main__":

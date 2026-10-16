@@ -103,14 +103,15 @@ def activate(plan: CompanionInstallPlan) -> CompanionInstallPlan:
 
 def render_user_service(plan: CompanionInstallPlan) -> str:
     prefix = _systemd_escape(plan.prefix)
-    config = _systemd_escape(plan.config_path)
+    script = _systemd_exec_arg(f"{plan.prefix}/current/server/production_host.py")
+    config = _systemd_exec_arg(plan.config_path)
     return (
         "[Unit]\n"
         "Description=HuanHermes Host Companion\n"
         "After=network-online.target\n\n"
         "[Service]\n"
         f"WorkingDirectory={prefix}/current/server\n"
-        f"ExecStart=/usr/bin/python3 {prefix}/current/server/production_host.py --config {config}\n"
+        f"ExecStart=/usr/bin/python3 {script} --config {config}\n"
         "Restart=on-failure\n"
         "RestartSec=3\n\n"
         "[Install]\n"
@@ -154,6 +155,18 @@ def _systemd_escape(value: str) -> str:
     if any(character in value for character in "\n\r\x00"):
         raise CompanionInstallError("systemd value contains control characters")
     return value.replace("%", "%%")
+
+
+def _systemd_exec_arg(value: str) -> str:
+    """Quote one ExecStart argument so spaces, quotes, ``$`` and ``%`` survive.
+
+    systemd splits ExecStart on whitespace, unescapes C-style ``\\``/``\"``
+    inside double quotes, expands ``$VAR``/``${VAR}`` (``$$`` is a literal
+    ``$``) and ``%`` specifiers (``%%`` is a literal ``%``).
+    """
+    escaped = _systemd_escape(value)
+    escaped = escaped.replace("\\", "\\\\").replace('"', '\\"').replace("$", "$$")
+    return f'"{escaped}"'
 
 
 def main(argv: Sequence[str] | None = None) -> int:

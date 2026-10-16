@@ -77,6 +77,8 @@ Host → App：
 { "type": "terminal_permission", "session_key": "...", "stream_id": "term-1", "permission_id": "...", "scope": "terminal.open", "content": "Allow opening a terminal?", "buttons": [[{"text":"Allow","data":"perm:<id>:allow"}]] }
 ```
 
+`done` 语义：每次 `terminal_input` 之后，Host 在输出静默（生产 Host 默认 0.25s 无新输出）或进程退出时发送**恰好一条** `done: true` 的 `terminal_out`（可为空 `data`；进程退出时附 `exit_code`）。未发送输入时不发 `done`。客户端不应只依赖 `done` 解除忙碌：收到本 stream 任意 `terminal_out` 即可解除，并保留约 10s 兜底。
+
 这是 **协议演示级** 通道；真 Host 可映射到 PTY。Mock 回显内置命令（`help`/`pwd`/`ls`/`whoami`/`uname`/`hostname`/`id`/`date`/`env`/`cat`/`echo`/`stty size`…），并记住最近一次 `terminal_resize` 的 `cols`/`rows`。App 根据布局估算几何后推送 resize（非真 ioctl）。
 
 App 端只保留有上限的本地输出窗口；该窗口不是 Host 审计或完整 transcript，超出上限时丢弃最旧显示内容并保留最新输出。

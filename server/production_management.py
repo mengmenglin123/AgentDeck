@@ -29,7 +29,11 @@ class ProductionManagementServer:
         bridge_port: int = 9810,
         host: str = "127.0.0.1",
         port: int = 9820,
+        request_timeout: float = 30.0,
     ) -> None:
+        if request_timeout <= 0:
+            raise ValueError("Management request timeout must be positive")
+        self.request_timeout = float(request_timeout)
         if not projects:
             raise ValueError("at least one Management project is required")
         if not token:
@@ -96,6 +100,8 @@ class ProductionManagementServer:
 
         class Handler(BaseHTTPRequestHandler):
             server_version = "HuanHermesManagement/1"
+            # Idle/slow clients (slowloris) must not pin a handler thread forever.
+            timeout = owner.request_timeout
 
             def _authorized_or_401(self) -> bool:
                 if owner._authorized(self.headers.get("Authorization", "")):

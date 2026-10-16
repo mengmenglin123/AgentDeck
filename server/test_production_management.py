@@ -161,6 +161,30 @@ class TestProductionManagementServer(unittest.TestCase):
             self.request("/skills?project=missing")
         self.assertEqual(missing.exception.code, 404)
 
+    def test_idle_connection_is_dropped_after_request_timeout(self) -> None:
+        # Regression: no socket timeout let a slowloris client pin a handler thread.
+        import socket
+        import time as _time
+        self.assertEqual(self.server.request_timeout, 30.0)
+        self.server.shutdown()
+        self.server.request_timeout = 0.3
+        self.server.port = 0
+        self.server.start()
+        host, port = self.server.address
+        with socket.create_connection((host, port), timeout=5) as sock:
+            sock.sendall(b"GET /api/v1/status HTTP/1.1\r\n")  # never finish headers
+            started = _time.monotonic()
+            sock.settimeout(5)
+            data = sock.recv(1024)
+            elapsed = _time.monotonic() - started
+        self.assertEqual(data, b"")
+        self.assertLess(elapsed, 3)
+        with self.assertRaises(ValueError):
+            ProductionManagementServer(
+                self.server.projects if hasattr(self.server, "projects") else (),
+                default_project="codex", token="t", sessions=self.sessions, request_timeout=0,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

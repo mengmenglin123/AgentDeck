@@ -69,6 +69,70 @@ class TestTerminalBridgeLoop(unittest.TestCase):
         self.assertEqual(events[-1]["type"], "terminal_exit")
         self.assertEqual(events[-1]["exit_code"], 0)
 
+    def test_input_burst_ends_with_done_true_after_output_goes_quiet(self) -> None:
+        # Regression: terminal_out.done was always False, so clients that clear
+        # their busy state on done (Flutter 0.1.206) stayed locked forever.
+        loop = self.loop_for(
+            "import sys\nprint('ready', flush=True)\n"
+            "for line in sys.stdin:\n    print('got:'+line.strip(), flush=True)"
+        )
+        loop._quiet_seconds = 0.05
+        loop.handle({"type": "terminal_open", "session_key": "s1", "stream_id": "t1"})
+        self.poll_until(loop, "s1", "terminal_out")
+        # Idle shells never emit done on their own (no input pending).
+        time.sleep(0.1)
+        self.assertFalse(any(e.get("done") for e in loop.poll("s1")))
+        events = loop.handle({
+            "type": "terminal_input", "session_key": "s1", "stream_id": "t1", "data": "hi\n",
+        })
+        deadline = time.monotonic() + 2
+        while not any(e.get("done") is True for e in events) and time.monotonic() < deadline:
+            events.extend(loop.poll("s1"))
+            time.sleep(0.01)
+        outs = [e for e in events if e.get("type") == "terminal_out"]
+        self.assertTrue(any("got:hi" in e["data"] for e in outs))
+        self.assertTrue(outs[-1]["done"])
+        self.assertEqual(outs[-1]["stream_id"], "t1")
+        self.assertEqual([e["done"] for e in outs].count(True), 1)
+        # done is sent once per input burst.
+        time.sleep(0.1)
+        self.assertFalse(any(e.get("done") for e in loop.poll("s1")))
+
+    def test_done_carries_exit_code_when_process_exits_after_input(self) -> None:
+        loop = self.loop_for("import sys; sys.stdin.readline(); sys.exit(3)")
+        loop._quiet_seconds = 60  # only the exit can finish this burst
+        loop.handle({"type": "terminal_open", "session_key": "s1", "stream_id": "t1"})
+        events = loop.handle({
+            "type": "terminal_input", "session_key": "s1", "stream_id": "t1", "data": "x\n",
+        })
+        deadline = time.monotonic() + 2
+        while not any(e.get("type") == "terminal_exit" for e in events) and time.monotonic() < deadline:
+            events.extend(loop.poll("s1"))
+            time.sleep(0.01)
+        done = [e for e in events if e.get("type") == "terminal_out" and e.get("done")]
+        self.assertEqual(len(done), 1)
+        self.assertEqual(done[0]["exit_code"], 3)
+        self.assertEqual(events[-1], {
+            "type": "terminal_exit", "session_key": "s1", "stream_id": "t1", "exit_code": 3,
+        })
+
+    def test_quiet_window_uses_injected_clock(self) -> None:
+        now = [100.0]
+        adapter = PtyTerminalAdapter(PtySpec(command=(sys.executable, "-u", "-c", "import time; time.sleep(30)")))
+        loop = TerminalBridgeLoop(
+            adapter, workdir_resolver=lambda m: "/tmp", quiet_seconds=1.0, clock=lambda: now[0],
+        )
+        self.loops.append(loop)
+        loop.handle({"type": "terminal_open", "session_key": "s1", "stream_id": "t1"})
+        loop.handle({"type": "terminal_input", "session_key": "s1", "stream_id": "t1", "data": "a"})
+        now[0] = 100.5
+        self.assertFalse(any(e.get("done") for e in loop.poll("s1")))
+        now[0] = 101.2
+        events = [e for e in loop.poll("s1") if e.get("done")]
+        self.assertEqual(len(events), 1)
+        with self.assertRaises(ValueError):
+            TerminalBridgeLoop(adapter, workdir_resolver=lambda m: "/tmp", quiet_seconds=-1)
+
     def test_resize_ack_and_stale_stream_rejection(self) -> None:
         loop = self.loop_for("import time; time.sleep(60)")
         loop.handle({"type": "terminal_open", "session_key": "s1", "stream_id": "t1"})
