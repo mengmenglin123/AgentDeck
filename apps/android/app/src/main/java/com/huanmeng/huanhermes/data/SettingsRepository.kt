@@ -21,6 +21,12 @@ data class AppSettings(
     val dynamicColor: Boolean = false,
     val highContrast: Boolean = false,
     val fontScale: Float = 1.0f,
+    /** Pure black backgrounds in dark mode (OLED). */
+    val amoledBlack: Boolean = false,
+    /** Haptic feedback on send, approve and long-press. */
+    val haptics: Boolean = true,
+    /** Fold each finished turn's tool calls into one line. */
+    val foldTurns: Boolean = true,
 )
 
 /** UI preferences. A corrupt file is replaced with defaults instead of crashing. */
@@ -41,6 +47,9 @@ class SettingsRepository(context: Context) {
             prefs[DYNAMIC] = next.dynamicColor
             prefs[CONTRAST] = next.highContrast
             prefs[FONT] = next.fontScale.coerceIn(MIN_FONT, MAX_FONT)
+            prefs[AMOLED] = next.amoledBlack
+            prefs[HAPTICS] = next.haptics
+            prefs[FOLD] = next.foldTurns
         }
     }
 
@@ -49,6 +58,9 @@ class SettingsRepository(context: Context) {
         dynamicColor = this[DYNAMIC] ?: false,
         highContrast = this[CONTRAST] ?: false,
         fontScale = (this[FONT] ?: 1.0f).coerceIn(MIN_FONT, MAX_FONT),
+        amoledBlack = this[AMOLED] ?: false,
+        haptics = this[HAPTICS] ?: true,
+        foldTurns = this[FOLD] ?: true,
     )
 
     companion object {
@@ -58,5 +70,8 @@ class SettingsRepository(context: Context) {
         private val DYNAMIC = booleanPreferencesKey("dynamic_color")
         private val CONTRAST = booleanPreferencesKey("high_contrast")
         private val FONT = floatPreferencesKey("font_scale")
+        private val AMOLED = booleanPreferencesKey("amoled_black")
+        private val HAPTICS = booleanPreferencesKey("haptics")
+        private val FOLD = booleanPreferencesKey("fold_turns")
     }
 }

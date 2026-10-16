@@ -1,0 +1,355 @@
+package com.huanmeng.huanhermes.ui.chat
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.StopCircle
+import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.outlined.WifiOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.huanmeng.huanhermes.core.chat.ChatItem
+import com.huanmeng.huanhermes.core.chat.ChatRowModel
+import com.huanmeng.huanhermes.core.chat.ConnectionBanner
+import com.huanmeng.huanhermes.core.chat.QueuedSend
+import com.huanmeng.huanhermes.core.chat.SlashCommand
+import com.huanmeng.huanhermes.core.chat.SlashCommands
+import com.huanmeng.huanhermes.core.net.Diagnostics
+import com.huanmeng.huanhermes.ui.theme.Brand
+
+@Composable
+fun ChatEmpty(onPick: (String) -> Unit) {
+    val prompts = listOf("解释一下这个项目的结构", "运行测试并修复失败的用例", "看看最近的 git 改动", "/status")
+    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(Icons.Outlined.AutoAwesome, null, Modifier.size(40.dp), tint = MaterialTheme.colorScheme.primary)
+        Spacer(Modifier.size(12.dp))
+        Text("从一句话开始", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.size(12.dp))
+        prompts.forEach { p ->
+            OutlinedCard(onClick = { onPick(p) }, modifier = Modifier.widthIn(max = 420.dp).fillMaxWidth().padding(vertical = 4.dp)) {
+                Text(p, Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
+}
+
+/** A finished turn's tool calls and thinking, as one line that expands. */
+@Composable
+fun FoldedWorkRow(row: ChatRowModel.FoldedWork) {
+    var open by rememberSaveable(row.key) { mutableStateOf(false) }
+    Column(Modifier.fillMaxWidth().animateContentSize()) {
+        Row(
+            Modifier.clickable { open = !open }.padding(vertical = 4.dp)
+                .semantics { contentDescription = "${row.summary}，点按${if (open) "收起" else "展开"}" },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Outlined.Build, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(row.summary, Modifier.padding(horizontal = 6.dp), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (row.failedTools > 0) Icon(Icons.Outlined.ErrorOutline, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
+            Icon(if (open) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (open) Column(Modifier.padding(start = 8.dp, top = 6.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            row.children.forEach { child ->
+                when (child) {
+                    is ChatItem.Thinking -> ThinkingRow(child, live = false)
+                    is ChatItem.Tool -> ToolRow(child)
+                    else -> Unit
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RunQueue(queue: List<QueuedSend>, onEdit: (String) -> Unit, onSendNow: (String) -> Unit, onRemove: (String) -> Unit) {
+    AnimatedVisibility(queue.isNotEmpty()) {
+        Surface(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
+                Text("排队中（${queue.size}）· 本轮结束后依次发送", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                queue.forEach { q ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.Schedule, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(q.text, Modifier.weight(1f).padding(horizontal = 6.dp), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall)
+                        IconButton(onClick = { onEdit(q.msgId) }) { Icon(Icons.Outlined.Edit, "编辑排队消息", Modifier.size(18.dp)) }
+                        IconButton(onClick = { onSendNow(q.msgId) }) { Icon(Icons.Outlined.Bolt, "立即发送", Modifier.size(18.dp)) }
+                        IconButton(onClick = { onRemove(q.msgId) }) { Icon(Icons.Outlined.Close, "移除排队消息", Modifier.size(18.dp)) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SlashPalette(input: String, onPick: (SlashCommand) -> Unit) {
+    val suggestions = remember(input) { SlashCommands.suggestions(input) }
+    AnimatedVisibility(suggestions.isNotEmpty()) {
+        Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp)) {
+            LazyColumn(Modifier.testTag("slash-palette")) {
+                items(suggestions, key = { it.command }) { c ->
+                    Row(
+                        Modifier.fillMaxWidth().clickable { onPick(c) }.padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(c.command, style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace), color = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(12.dp))
+                        Text(c.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+        }
+    }
+}
+
+fun modeLabel(mode: String?) = when (mode) {
+    null, "", "default" -> "默认模式"
+    "plan" -> "计划模式"
+    "acceptEdits" -> "自动接受编辑"
+    "bypassPermissions" -> "跳过权限"
+    else -> mode
+}
+
+@Composable
+fun Composer(
+    input: String,
+    onInput: (String) -> Unit,
+    connected: Boolean,
+    runActive: Boolean,
+    queues: Boolean,
+    model: String?,
+    mode: String?,
+    models: List<String>,
+    history: List<String>,
+    onSend: () -> Unit,
+    onCommand: (String) -> Unit,
+    onCancel: () -> Unit,
+) {
+    var modelMenu by remember { mutableStateOf(false) }
+    var modeMenu by remember { mutableStateOf(false) }
+    var historyMenu by remember { mutableStateOf(false) }
+    Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box {
+                    FilterChip(
+                        selected = false, onClick = { modelMenu = true },
+                        label = { Text(model ?: "模型", maxLines = 1) },
+                        leadingIcon = { Icon(Icons.Outlined.AutoAwesome, null, Modifier.size(16.dp)) },
+                        modifier = Modifier.semantics { contentDescription = "切换模型，当前 ${model ?: "默认"}" },
+                    )
+                    DropdownMenu(expanded = modelMenu, onDismissRequest = { modelMenu = false }) {
+                        if (models.isEmpty()) DropdownMenuItem(text = { Text("Host 未提供模型列表，输入 /model 名称") }, onClick = { modelMenu = false; onInput("/model ") })
+                        models.forEach { m ->
+                            DropdownMenuItem(
+                                text = { Text(m) },
+                                leadingIcon = { if (m == model) Icon(Icons.Outlined.Check, "当前") },
+                                onClick = { modelMenu = false; if (m != model) onCommand(SlashCommands.modelCommand(m)) },
+                            )
+                        }
+                    }
+                }
+                Box {
+                    FilterChip(
+                        selected = mode == "plan", onClick = { modeMenu = true },
+                        label = { Text(modeLabel(mode), maxLines = 1) },
+                        leadingIcon = { Icon(Icons.Outlined.Tune, null, Modifier.size(16.dp)) },
+                        modifier = Modifier.semantics { contentDescription = "切换模式，当前 ${modeLabel(mode)}" },
+                    )
+                    DropdownMenu(expanded = modeMenu, onDismissRequest = { modeMenu = false }) {
+                        SlashCommands.MODES.forEach { m ->
+                            DropdownMenuItem(
+                                text = { Text(modeLabel(m)) },
+                                leadingIcon = { if (m == (mode ?: "default")) Icon(Icons.Outlined.Check, "当前") },
+                                onClick = { modeMenu = false; if (m != mode) onCommand(SlashCommands.modeCommand(m)) },
+                            )
+                        }
+                    }
+                }
+                FilterChip(selected = false, onClick = { onInput("/") }, label = { Text("/ 命令") })
+                if (history.isNotEmpty()) Box {
+                    FilterChip(
+                        selected = false, onClick = { historyMenu = true },
+                        label = { Text("历史") },
+                        leadingIcon = { Icon(Icons.Outlined.History, null, Modifier.size(16.dp)) },
+                    )
+                    DropdownMenu(expanded = historyMenu, onDismissRequest = { historyMenu = false }) {
+                        history.take(15).forEach { h ->
+                            DropdownMenuItem(text = { Text(h, maxLines = 2, overflow = TextOverflow.Ellipsis) }, onClick = { historyMenu = false; onInput(h) })
+                        }
+                    }
+                }
+            }
+            Row(verticalAlignment = Alignment.Bottom) {
+                TextField(
+                    value = input, onValueChange = onInput,
+                    modifier = Modifier.weight(1f).testTag("chat-input"),
+                    placeholder = {
+                        Text(
+                            when {
+                                !connected -> "离线：发送后会排队，重连后自动发出"
+                                runActive && queues -> "运行中：新消息会排在本轮之后"
+                                else -> "发消息，输入 / 打开命令…"
+                            },
+                            maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    maxLines = 6,
+                    shape = RoundedCornerShape(22.dp),
+                    colors = TextFieldDefaults.colors(focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent, disabledIndicatorColor = Color.Transparent),
+                )
+                if (runActive) {
+                    IconButton(onClick = onCancel) { Icon(Icons.Outlined.StopCircle, "停止运行", tint = MaterialTheme.colorScheme.error) }
+                }
+                Spacer(Modifier.width(4.dp))
+                FilledIconButton(onClick = onSend, enabled = input.isNotBlank()) {
+                    Icon(Icons.AutoMirrored.Filled.Send, "发送")
+                }
+            }
+        }
+    }
+}
+
+/** Only shows when something is wrong; one tap to reconnect or diagnose. */
+@Composable
+fun HealthStrip(banner: ConnectionBanner, onRetry: () -> Unit, onDiagnose: () -> Unit) {
+    val (text, retry) = when (banner) {
+        ConnectionBanner.None -> return
+        ConnectionBanner.Connecting -> "正在连接 Bridge…" to false
+        is ConnectionBanner.Reconnecting ->
+            (if (banner.delayMs > 0) "已断开：${banner.reason} · ${(banner.delayMs + 999) / 1000} 秒后第 ${banner.attempt} 次重连" else "已断开，正在重连…") to true
+        is ConnectionBanner.Stopped ->
+            (if (banner.authFailed) "连接被拒绝：${banner.reason}。请在 Host 连接里检查令牌。" else "已停止：${banner.reason}") to true
+    }
+    val warn = banner !is ConnectionBanner.Connecting
+    Surface(color = if (warn) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.fillMaxWidth()) {
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (warn) Icon(Icons.Outlined.WifiOff, null, Modifier.size(16.dp))
+            Text(text, Modifier.weight(1f).padding(horizontal = 6.dp), style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            if (retry) {
+                TextButton(onClick = onDiagnose) { Text("诊断") }
+                TextButton(onClick = onRetry) { Text("立即重连") }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DiagnosticsSheet(
+    bridgeConnected: Boolean,
+    capabilities: Set<String>,
+    lastError: String?,
+    report: () -> String,
+    onReconnect: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    @Suppress("DEPRECATION")
+    val clipboard = LocalClipboardManager.current
+    var copied by remember { mutableStateOf(false) }
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text("连接诊断", style = MaterialTheme.typography.titleMedium)
+            Diagnostics.checks(bridgeConnected, null, capabilities, lastError).forEach { c ->
+                Row(verticalAlignment = Alignment.Top) {
+                    val icon = when (c.ok) { true -> Icons.Outlined.CheckCircle; false -> Icons.Outlined.ErrorOutline; null -> Icons.AutoMirrored.Outlined.HelpOutline }
+                    val tint = when (c.ok) { true -> Brand.success; false -> MaterialTheme.colorScheme.error; null -> MaterialTheme.colorScheme.onSurfaceVariant }
+                    Icon(icon, null, Modifier.size(18.dp), tint = tint)
+                    Column(Modifier.padding(start = 8.dp)) {
+                        Text(c.label + when (c.ok) { true -> "：正常"; false -> "：异常"; null -> "：未知" }, style = MaterialTheme.typography.bodyMedium)
+                        if (c.detail.isNotBlank()) Text(c.detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+            HorizontalDivider()
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = onReconnect) { Text("立即重连") }
+                OutlinedButton(onClick = { clipboard.setText(AnnotatedString(report())); copied = true }) {
+                    Icon(Icons.Outlined.ContentCopy, null, Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(if (copied) "已复制（令牌已隐藏）" else "复制诊断信息")
+                }
+            }
+        }
+    }
+}
+
+/** Only the decisions the Host's card actually offers; older Hosts keep working. */
+@Composable
+fun PermissionButtons(buttonData: List<String>, onDecision: (String) -> Unit) {
+    val has = { suffix: String -> buttonData.any { it.endsWith(":$suffix") || it == suffix } }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (has("allow") || buttonData.isEmpty()) Button(onClick = { onDecision("allow") }) { Text("允许本次") }
+        if (has("allow_all")) OutlinedButton(onClick = { onDecision("allow_all") }) { Text("本会话允许") }
+        if (has("deny") || buttonData.isEmpty()) OutlinedButton(
+            onClick = { onDecision("deny") },
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+        ) { Text("拒绝") }
+    }
+}

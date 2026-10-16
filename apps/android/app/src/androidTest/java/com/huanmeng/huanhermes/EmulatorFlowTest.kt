@@ -124,7 +124,7 @@ class EmulatorFlowTest {
         shot("07-chat-reply")
 
         send("/perm")
-        waitText("需要权限")
+        waitText("需要权限 · 待处理")
         shot("08-permission-card")
         rule.onNodeWithText("拒绝").performClick()
         waitText("Permission denied (mock).", substring = true, ms = 30_000)
@@ -141,6 +141,38 @@ class EmulatorFlowTest {
         rule.activity.runOnUiThread { rule.activity.onBackPressedDispatcher.onBackPressed() }
         waitText("模拟器测试")
         shot("11-sessions-with-new")
+    }
+
+    @Test fun b2_inboxComposerAndSessionRows() {
+        ensureConnected()
+        openNewChat("审批测试")
+        rule.waitUntil(15_000) { rule.onAllNodesWithText("正在连接 Bridge…").count() == 0 }
+        // Slash palette opens on "/" and closes once a command is picked.
+        rule.onNodeWithTag("chat-input").performTextInput("/")
+        rule.waitUntilAtLeastOneExists(androidx.compose.ui.test.hasTestTag("slash-palette"), 10_000)
+        shot("13-slash-palette")
+        rule.onNode(hasText("/status") and androidx.compose.ui.test.hasAnyAncestor(androidx.compose.ui.test.hasTestTag("slash-palette"))).performClick()
+        rule.waitUntil(10_000) { rule.onAllNodes(androidx.compose.ui.test.hasTestTag("slash-palette")).count() == 0 }
+        rule.onNodeWithContentDescription("发送").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+        rule.waitForIdle()
+        shot("14-composer-chips")
+
+        send("/perm")
+        waitText("需要权限 · 待处理")
+        rule.activity.runOnUiThread { rule.activity.onBackPressedDispatcher.onBackPressed() }
+        waitText("审批测试")
+        // The session list shows the pending approval as a row status.
+        rule.waitUntilAtLeastOneExists(hasText("需要你", substring = true), 20_000)
+        shot("15-session-rows")
+
+        rule.onAllNodesWithText("需要我").onFirst().performClick()
+        waitText("Mock agent wants to run", substring = true, ms = 20_000)
+        shot("16-inbox")
+        rule.onAllNodesWithText("拒绝").onFirst().performClick()
+        waitText("都处理完了", ms = 30_000)
+        shot("17-inbox-done")
+        rule.onAllNodesWithText("会话").onFirst().performClick()
+        waitText("审批测试")
     }
 
     @Test fun c_otherTabsAndDarkTheme() {

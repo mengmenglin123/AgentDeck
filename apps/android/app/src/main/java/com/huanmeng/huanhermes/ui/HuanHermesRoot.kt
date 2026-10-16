@@ -6,6 +6,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.PanTool
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import com.huanmeng.huanhermes.ui.screens.InboxScreen
+import com.huanmeng.huanhermes.ui.vm.InboxViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -39,6 +45,7 @@ import com.huanmeng.huanhermes.ui.vm.SessionsViewModel
 
 private enum class Tab(val route: String, val label: String, val icon: ImageVector) {
     Sessions("sessions", "会话", Icons.Outlined.ChatBubbleOutline),
+    Inbox("inbox", "需要我", Icons.Outlined.PanTool),
     Tools("tools", "工具", Icons.Outlined.Apps),
     Settings("settings", "设置", Icons.Outlined.Settings),
 }
@@ -51,6 +58,16 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
     val current = entry?.destination?.route
     val showBar = Tab.entries.any { it.route == current }
     val sessionsVm: SessionsViewModel = viewModel { SessionsViewModel(graph) }
+    val inboxVm: InboxViewModel = viewModel { InboxViewModel(graph) }
+    val inbox by inboxVm.state.collectAsStateWithLifecycle()
+    val pending = inbox.visible.size
+    androidx.compose.runtime.LaunchedEffect(current) {
+        if (current == Tab.Sessions.route || current == Tab.Inbox.route) inboxVm.refresh()
+    }
+    val openChat = { ref: SessionRef ->
+        val e = { v: String? -> android.net.Uri.encode(v.orEmpty()) }
+        nav.navigate("chat/${e(ref.id)}?sk=${e(ref.sessionKey)}&p=${e(ref.project)}&t=${e(ref.title)}")
+    }
     // Each screen handles its own top/bottom insets; the outer Scaffold only reserves the nav bar.
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -66,7 +83,11 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
                                 restoreState = true
                             }
                         },
-                        icon = { Icon(tab.icon, contentDescription = null) },
+                        icon = {
+                            if (tab == Tab.Inbox && pending > 0) BadgedBox(badge = { Badge { Text(if (pending > 99) "99+" else "$pending") } }) {
+                                Icon(tab.icon, contentDescription = "$pending 项待处理")
+                            } else Icon(tab.icon, contentDescription = null)
+                        },
                         label = { Text(tab.label) },
                     )
                 }
@@ -78,13 +99,13 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
                 SessionsScreen(
                     sessionsVm,
                     onOpenHosts = { nav.navigate("hosts") },
-                    onOpenChat = { ref ->
-                        val e = { v: String? -> android.net.Uri.encode(v.orEmpty()) }
-                        nav.navigate("chat/${e(ref.id)}?sk=${e(ref.sessionKey)}&p=${e(ref.project)}&t=${e(ref.title)}")
-                    },
+                    onOpenChat = openChat,
                 )
             }
-            composable(Tab.Tools.route) { ToolsScreen() }
+            composable(Tab.Inbox.route) {
+                InboxScreen(inboxVm, onOpenChat = openChat, onOpenHosts = { nav.navigate("hosts") })
+            }
+            composable(Tab.Tools.route) { ToolsScreen(onOpenHosts = { nav.navigate("hosts") }, onOpenInbox = { nav.navigate(Tab.Inbox.route) { launchSingleTop = true } }) }
             composable(Tab.Settings.route) { SettingsScreen(settings, repo, onOpenHosts = { nav.navigate("hosts") }) }
             composable("hosts") {
                 val vm: HostsViewModel = viewModel { HostsViewModel(graph) }
@@ -106,7 +127,7 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
                     id, sk, args?.getString("p")?.ifEmpty { null }, args?.getString("t")?.ifEmpty { null } ?: "会话",
                 )
                 val vm: ChatViewModel = viewModel(key = "chat-$id") { ChatViewModel(graph, id, fallback) }
-                ChatScreen(vm, onBack = { nav.popBackStack() })
+                ChatScreen(vm, onBack = { nav.popBackStack() }, foldTurns = settings.foldTurns)
             }
         }
     }

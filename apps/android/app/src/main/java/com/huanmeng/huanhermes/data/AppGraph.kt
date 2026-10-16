@@ -11,6 +11,9 @@ import com.huanmeng.huanhermes.core.hosts.HostProfile
 import com.huanmeng.huanhermes.core.hosts.ProfileManager
 import com.huanmeng.huanhermes.core.mgmt.MgmtClient
 import com.huanmeng.huanhermes.core.mgmt.OkHttpEngine
+import com.huanmeng.huanhermes.core.overview.FilePrefsStorage
+import com.huanmeng.huanhermes.core.overview.InboxModel
+import com.huanmeng.huanhermes.core.overview.LocalSessionPrefs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -47,10 +50,34 @@ class AppGraph(private val context: Context) {
         OfflineQueue(FileQueueStorage(File(context.filesDir, "offline_queue_v2.json")))
     }
 
+    /** Pinned / archived / last seen / drafts / input history, local to this device. */
+    val localPrefs: LocalSessionPrefs by lazy {
+        LocalSessionPrefs(FilePrefsStorage(File(context.filesDir, "session_prefs_v1.json")))
+    }
+
+    /** Cross-Host "需要我" list, read from each Host's Management `/sessions` overview. */
+    val inbox: InboxModel by lazy {
+        InboxModel({ profile ->
+            val rt = runtime
+            val client = if (rt != null && rt.profile == profile) rt.mgmt else MgmtClient(profile.config, engine)
+            val caps = runCatching {
+                (client.status()["capabilities"] as? kotlinx.serialization.json.JsonArray).orEmpty()
+                    .mapNotNull { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
+            }.getOrDefault(emptyList())
+            client.sessions() to ("session_overview" in caps)
+        })
+    }
+
+    /** First message typed in the session list's quick-start bar, sent once the chat opens. */
+    val pendingFirstMessage = ConcurrentHashMap<String, String>()
+
     /** Sessions the list showed, so a chat route only needs the id. */
     val sessionRefs = ConcurrentHashMap<String, SessionRef>()
 
     @Volatile private var runtime: HostRuntime? = null
+
+    /** The live runtime, if any (diagnostics, inbox approvals). */
+    val currentRuntime: HostRuntime? get() = runtime
 
     /** App came to the foreground: don't sit out a long backoff wait. */
     fun onForeground() {

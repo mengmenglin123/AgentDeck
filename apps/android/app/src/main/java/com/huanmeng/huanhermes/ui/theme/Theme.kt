@@ -81,10 +81,33 @@ fun HuanHermesTheme(settings: AppSettings, content: @Composable () -> Unit) {
         dark -> dark(settings.highContrast)
         else -> light(settings.highContrast)
     }
+    val finalScheme = if (dark && settings.amoledBlack) scheme.copy(
+        background = Color.Black,
+        surface = Color.Black,
+        surfaceContainerLowest = Color.Black,
+        surfaceContainerLow = Color(0xFF0A0A0B),
+        surfaceContainer = Color(0xFF111113),
+        surfaceContainerHigh = Color(0xFF18181B),
+        surfaceContainerHighest = Color(0xFF202024),
+    ) else scheme
     val base = LocalDensity.current
     CompositionLocalProvider(
         LocalDensity provides Density(base.density, base.fontScale * settings.fontScale),
+        LocalHaptics provides settings.haptics,
     ) {
-        MaterialTheme(colorScheme = scheme, content = content)
+        MaterialTheme(colorScheme = finalScheme, typography = AppTypography, content = content)
     }
 }
+
+/** Slightly tighter titles and roomier body text for long agent output. */
+private val AppTypography = androidx.compose.material3.Typography().let { t ->
+    t.copy(
+        titleLarge = t.titleLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
+        titleMedium = t.titleMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
+        bodyLarge = t.bodyLarge.copy(lineHeight = androidx.compose.ui.unit.TextUnit(24f, androidx.compose.ui.unit.TextUnitType.Sp)),
+        bodyMedium = t.bodyMedium.copy(lineHeight = androidx.compose.ui.unit.TextUnit(21f, androidx.compose.ui.unit.TextUnitType.Sp)),
+    )
+}
+
+/** Haptics that respect the user's setting. */
+val LocalHaptics = androidx.compose.runtime.staticCompositionLocalOf { true }

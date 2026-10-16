@@ -70,14 +70,37 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.huanmeng.huanhermes.core.chat.ChatItem
 import com.huanmeng.huanhermes.core.chat.ConnectionBanner
 import com.huanmeng.huanhermes.ui.vm.ChatViewModel
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.ErrorOutline
+import com.huanmeng.huanhermes.core.chat.ChatRowModel
+import com.huanmeng.huanhermes.core.chat.TurnFolding
+import com.huanmeng.huanhermes.ui.chat.ChatEmpty
+import com.huanmeng.huanhermes.ui.chat.Composer
+import com.huanmeng.huanhermes.ui.chat.DiagnosticsSheet
+import com.huanmeng.huanhermes.ui.chat.FoldedWorkRow
+import com.huanmeng.huanhermes.ui.chat.HealthStrip
+import com.huanmeng.huanhermes.ui.chat.PermissionButtons
+import com.huanmeng.huanhermes.ui.chat.RunQueue
+import com.huanmeng.huanhermes.ui.chat.SlashPalette
+import com.huanmeng.huanhermes.ui.rememberHaptic
+import com.huanmeng.huanhermes.ui.theme.Brand
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit) {
+fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit, foldTurns: Boolean = true) {
     val state by vm.state.collectAsStateWithLifecycle()
-    var input by rememberSaveable { mutableStateOf("") }
+    val history by vm.history.collectAsStateWithLifecycle()
+    val models by vm.models.collectAsStateWithLifecycle()
+    var input by rememberSaveable { mutableStateOf(vm.initialDraft) }
+    var showDiagnostics by remember { mutableStateOf(false) }
     val list = rememberLazyListState()
     val items = state.items
+    val rows = remember(items, foldTurns) { if (foldTurns) TurnFolding.fold(items) else items.map { ChatRowModel.Item(it) } }
+    val haptic = rememberHaptic()
 
     // Stick to the newest message unless the user scrolled up to read. Re-applied when
     // items arrive, the last one grows (streaming), or the viewport changes size
@@ -91,8 +114,8 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit) {
         }
     }
     val viewport by remember { derivedStateOf { list.layoutInfo.viewportSize.height } }
-    LaunchedEffect(items.size, items.lastOrNull(), viewport) {
-        if (items.isNotEmpty() && stick) list.scrollToItem(items.size - 1, 100_000) // offset is clamped to the end
+    LaunchedEffect(rows.size, items.lastOrNull(), viewport) {
+        if (rows.isNotEmpty() && stick) list.scrollToItem(rows.size - 1, 100_000) // offset is clamped to the end
     }
     // Rows also grow without the items changing (Markdown parsed off-thread, code
     // highlighted, cards expanding): follow the bottom edge of the last row too.
@@ -111,70 +134,82 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit) {
             title = {
                 Column {
                     Text(vm.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    val sub = listOfNotNull(state.model, state.mode, if (state.typing) "正在输入…" else null).joinToString(" · ")
-                    if (sub.isNotEmpty()) Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    val sub = listOfNotNull(
+                        if (state.typing) "正在输入…" else if (state.runActive) "运行中" else null,
+                        state.model, state.mode,
+                    ).joinToString(" · ")
+                    if (sub.isNotEmpty()) Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                 }
             },
             navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回") } },
-            actions = { IconButton(onClick = { vm.reload() }) { Icon(Icons.Outlined.Refresh, "重新加载记录") } },
+            actions = {
+                IconButton(onClick = { vm.reload() }) { Icon(Icons.Outlined.Refresh, "重新加载记录") }
+                IconButton(onClick = { showDiagnostics = true }) { Icon(Icons.AutoMirrored.Outlined.HelpOutline, "连接诊断") }
+            },
         )
-        Banner(state.banner, onRetry = vm::reconnect)
+        HealthStrip(state.banner, onRetry = vm::reconnect, onDiagnose = { showDiagnostics = true })
         if (state.reloading) LinearProgressIndicator(Modifier.fillMaxWidth())
         vm.safeError(state.error)?.let {
             Text(it, Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
         Box(Modifier.weight(1f).fillMaxWidth()) {
+            if (items.isEmpty() && !state.reloading) ChatEmpty(onPick = { input = it })
             LazyColumn(
                 state = list,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                itemsIndexed(items, key = { _, it -> it.id }) { i, item ->
-                    ChatRow(item, live = state.runActive && i == items.lastIndex, onDecision = { d -> vm.respond(item as ChatItem.Permission, d) })
+                itemsIndexed(rows, key = { _, it -> it.key }) { i, row ->
+                    when (row) {
+                        is ChatRowModel.Item -> ChatRow(
+                            row.item, live = state.runActive && i == rows.lastIndex,
+                            onDecision = { d -> haptic.confirm(); vm.respond(row.item as ChatItem.Permission, d) },
+                        )
+                        is ChatRowModel.FoldedWork -> FoldedWorkRow(row)
+                    }
                 }
             }
             // Scrolled up to read: one tap back to the newest message.
-            if (!stick && items.isNotEmpty()) {
+            if (!stick && rows.isNotEmpty()) {
                 SmallFloatingActionButton(
-                    onClick = { stick = true; scope.launch { list.animateScrollToItem(items.size - 1, 100_000) } },
+                    onClick = { stick = true; scope.launch { list.animateScrollToItem(rows.size - 1, 100_000) } },
                     modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp),
                 ) { Icon(Icons.Outlined.KeyboardArrowDown, "回到最新消息") }
             }
         }
-        Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.Bottom) {
-            OutlinedTextField(
-                value = input, onValueChange = { input = it },
-                modifier = Modifier.weight(1f).testTag("chat-input"),
-                placeholder = { Text(if (state.connected) "发消息…" else "离线：发送后会排队，重连后自动发出") },
-                maxLines = 6,
-            )
-            if (state.runActive) {
-                IconButton(onClick = vm::cancel) { Icon(Icons.Outlined.StopCircle, "停止运行") }
-            }
-            IconButton(onClick = { if (input.isNotBlank()) { vm.send(input); input = ""; stick = true } }, enabled = input.isNotBlank()) {
-                Icon(Icons.AutoMirrored.Filled.Send, "发送")
-            }
-        }
+        RunQueue(
+            state.runQueue,
+            onEdit = { id -> vm.takeQueued(id)?.let { input = it } },
+            onSendNow = { id -> vm.sendQueuedNow(id) },
+            onRemove = { id -> vm.takeQueued(id) },
+        )
+        SlashPalette(input, onPick = { cmd -> input = cmd.command + if (cmd.takesArgument) " " else "" })
+        Composer(
+            input = input,
+            onInput = { input = it; vm.saveDraft(it) },
+            connected = state.connected,
+            runActive = state.runActive,
+            queues = vm.queuesWhileRunning(),
+            model = state.model, mode = state.mode, models = models,
+            history = history,
+            onSend = {
+                val text = input
+                if (text.isNotBlank()) { haptic.tick(); vm.send(text); input = ""; stick = true }
+            },
+            onCommand = { cmd -> haptic.tick(); vm.sendNow(cmd); stick = true },
+            onCancel = vm::cancel,
+        )
     }
-}
 
-@Composable
-private fun Banner(banner: ConnectionBanner, onRetry: () -> Unit) {
-    val (text, retry) = when (banner) {
-        ConnectionBanner.None -> return
-        ConnectionBanner.Connecting -> "正在连接 Bridge…" to false
-        is ConnectionBanner.Reconnecting ->
-            (if (banner.delayMs > 0) "已断开：${banner.reason} · ${(banner.delayMs + 999) / 1000} 秒后第 ${banner.attempt} 次重连" else "已断开，正在重连…") to true
-        is ConnectionBanner.Stopped ->
-            (if (banner.authFailed) "连接被拒绝：${banner.reason}。请在 Host 连接里检查令牌。" else "已停止：${banner.reason}") to true
-    }
-    Surface(color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(text, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-            if (retry) TextButton(onClick = onRetry) { Text("立即重连") }
-        }
-    }
+    if (showDiagnostics) DiagnosticsSheet(
+        bridgeConnected = state.connected,
+        capabilities = state.hostCapabilities,
+        lastError = vm.safeError(state.error),
+        report = { vm.diagnostics() },
+        onReconnect = vm::reconnect,
+        onDismiss = { showDiagnostics = false },
+    )
 }
 
 @Composable
@@ -240,25 +275,24 @@ private fun Muted(text: String, maxLines: Int = Int.MAX_VALUE) {
 
 @Composable
 private fun PermissionCard(item: ChatItem.Permission, onDecision: (String) -> Unit) {
+    val decided = item.decision
+    val tint = when (decided) { null -> Brand.warning; "deny" -> MaterialTheme.colorScheme.error; else -> Brand.success }
     ElevatedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("需要权限", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    when (decided) { null -> Icons.Outlined.Schedule; "deny" -> Icons.Outlined.ErrorOutline; else -> Icons.Outlined.CheckCircle },
+                    null, Modifier.size(18.dp), tint = tint,
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    when (decided) { null -> "需要权限 · 待处理"; "deny" -> "需要权限 · 已拒绝"; "allow_all" -> "需要权限 · 本会话已允许"; else -> "需要权限 · 已允许" },
+                    style = MaterialTheme.typography.titleSmall, color = tint,
+                )
+            }
             MarkdownView(item.text, style = MaterialTheme.typography.bodyMedium)
-            val decided = item.decision
-            if (decided != null) {
-                AssistChip(onClick = {}, label = {
-                    Text(when (decided) { "allow_all" -> "已始终允许"; "deny" -> "已拒绝"; else -> "已允许" })
-                })
-            } else {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val has = { suffix: String -> item.buttons.any { it.data.endsWith(":$suffix") || it.data == suffix } }
-                    if (has("allow") || item.buttons.isEmpty()) Button(onClick = { onDecision("allow") }) { Text("允许") }
-                    if (has("allow_all")) OutlinedButton(onClick = { onDecision("allow_all") }) { Text("始终允许") }
-                    if (has("deny") || item.buttons.isEmpty()) OutlinedButton(
-                        onClick = { onDecision("deny") },
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                    ) { Text("拒绝") }
-                }
+            if (decided == null) {
+                PermissionButtons(item.buttons.map { it.data }, onDecision)
                 // Non-permission buttons (plain actions) are offered with their own labels.
                 val others = item.buttons.filterNot { b -> listOf("allow", "allow_all", "deny").any { b.data.endsWith(":$it") } }
                 others.forEach { b -> TextButton(onClick = { onDecision(b.data) }) { Text(b.text) } }

@@ -62,6 +62,7 @@ fun SettingsScreen(settings: AppSettings, repo: SettingsRepository, onOpenHosts:
                 if (Build.VERSION.SDK_INT >= 31) {
                     SwitchRow("动态取色（Material You）", settings.dynamicColor) { v -> set { it.copy(dynamicColor = v) } }
                 }
+                SwitchRow("纯黑深色（OLED 省电）", settings.amoledBlack) { v -> set { it.copy(amoledBlack = v) } }
                 SwitchRow("高对比度", settings.highContrast) { v -> set { it.copy(highContrast = v) } }
                 Text("字号 ${"%.0f".format(settings.fontScale * 100)}%", style = MaterialTheme.typography.bodyMedium)
                 Slider(
@@ -70,6 +71,13 @@ fun SettingsScreen(settings: AppSettings, repo: SettingsRepository, onOpenHosts:
                     valueRange = SettingsRepository.MIN_FONT..SettingsRepository.MAX_FONT,
                     steps = 10,
                 )
+            }
+        }
+        Text("对话", style = MaterialTheme.typography.titleMedium)
+        ElevatedCard {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SwitchRow("折叠已完成轮次的工具调用", settings.foldTurns) { v -> set { it.copy(foldTurns = v) } }
+                SwitchRow("触感反馈", settings.haptics) { v -> set { it.copy(haptics = v) } }
             }
         }
         Text("关于", style = MaterialTheme.typography.titleMedium)
