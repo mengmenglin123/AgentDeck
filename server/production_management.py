@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import file_index
+import host_feeds
 
 import json
 import threading
@@ -30,6 +31,9 @@ class ProductionManagementServer:
         active_sessions: Callable[[], tuple[str, ...]] | None = None,
         pending_permissions: Callable[[str], list[dict[str, Any]]] | None = None,
         session_activity: Callable[[str], dict[str, Any] | None] | None = None,
+        activity_feed: Any = None,
+        log_ring: Any = None,
+        audit_path: str | None = None,
         bridge_port: int = 9810,
         host: str = "127.0.0.1",
         port: int = 9820,
@@ -58,6 +62,9 @@ class ProductionManagementServer:
         self._active_sessions = active_sessions or (lambda: ())
         self._pending_permissions = pending_permissions
         self._session_activity = session_activity
+        self._activity_feed = activity_feed
+        self._log_ring = log_ring
+        self._audit_path = audit_path
         self.bridge_port = bridge_port
         self.host = host
         self.port = port
@@ -213,6 +220,23 @@ class ProductionManagementServer:
                 data = {"agents": [self._agent(project)], "platforms": [{"type": "bridge", "connected": True}]}
             self._send(request, 200, {"ok": True, "data": data})
             return
+        if path in {"/activity", "/logs", "/audit"}:
+            def num(name: str, default: int) -> int:
+                try:
+                    return int(query.get(name, [str(default)])[0])
+                except ValueError:
+                    return default
+            if path == "/activity" and self._activity_feed is not None:
+                self._send(request, 200, {"ok": True, "data": {"events": self._activity_feed.list(num("limit", 50))}})
+            elif path == "/logs" and self._log_ring is not None:
+                items = self._log_ring.list(num("limit", 80), query.get("level", [""])[0], query.get("source", [""])[0])
+                self._send(request, 200, {"ok": True, "data": {"logs": items, "count": len(items)}})
+            elif path == "/audit" and self._audit_path:
+                records = host_feeds.read_audit_tail(self._audit_path, num("limit", 100))
+                self._send(request, 200, {"ok": True, "data": {"records": records, "count": len(records)}})
+            else:
+                self._send(request, 404, {"ok": False, "error": "not found"})
+            return
         if path == "/files/search":
             project = self._selected(query.get("project", [None])[0])
             if project is None:
@@ -308,6 +332,12 @@ class ProductionManagementServer:
 
     def _capabilities(self) -> list[str]:
         caps = ["projects", "sessions", "skills", "mcp", "agents", "pairing", "file_search"]
+        if self._activity_feed is not None:
+            caps.append("activity_readonly")
+        if self._log_ring is not None:
+            caps.append("logs_readonly")
+        if self._audit_path:
+            caps.append("audit_readonly")
         if self._pending_permissions is not None or self._session_activity is not None:
             caps.append("session_overview")
         return caps

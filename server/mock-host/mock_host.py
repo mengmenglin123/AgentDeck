@@ -1147,6 +1147,21 @@ def seed_host_logs() -> None:
 seed_host_logs()
 
 
+MOCK_AUDIT: List[Dict[str, Any]] = []
+
+
+def _audit_card_action(msg: Dict[str, Any]) -> None:
+    action = str(msg.get("action") or "")
+    parts = action.split(":")
+    if len(parts) != 3 or parts[0] != "perm":
+        return
+    MOCK_AUDIT.append({
+        "action": "decided", "request_id": parts[1], "session_key": msg.get("session_key"),
+        "scope": "shell", "decision": parts[2], "ts": time.time(),
+    })
+    del MOCK_AUDIT[:-500]
+
+
 def activity_push(kind: str, summary: str, **extra: Any) -> None:
     evt = {
         "id": f"act-{uuid.uuid4().hex[:10]}",
@@ -1468,6 +1483,7 @@ def handle_bridge_client(conn: socket.socket, addr: Tuple[str, int]) -> None:
                 continue
 
             if mtype == "card_action":
+                _audit_card_action(msg)
                 _handle_card_action(conn, msg)
                 continue
 
@@ -5043,6 +5059,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                             "agents_catalog",
                             "session_overview",
                             "file_search",
+                            "audit_readonly",
                         ],
                         "hermes": {
                             "adapter": "mock",
@@ -5408,6 +5425,9 @@ class MgmtHandler(BaseHTTPRequestHandler):
             except ValueError:
                 lim = 50
             self._send(200, {"ok": True, "data": {"events": activity_list(lim)}})
+            return
+        if path == "/api/v1/audit":
+            self._send(200, {"ok": True, "data": {"records": list(reversed(MOCK_AUDIT))[:100], "count": len(MOCK_AUDIT)}})
             return
         if path == "/api/v1/cron":
             self._send(200, {"ok": True, "data": {"jobs": CRON_JOBS}})

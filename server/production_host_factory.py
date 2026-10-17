@@ -18,6 +18,8 @@ from pty_terminal_adapter import PtySpec, PtyTerminalAdapter
 from session_store import ProjectSessionStore
 from terminal_bridge_loop import TerminalBridgeLoop
 from workspace_allowlist import WorkspaceAllowlist
+from host_feeds import ActivityFeed, RingLogHandler, combine_observers
+import logging
 
 
 @dataclass
@@ -30,8 +32,11 @@ class ProductionHostComponents:
     transport: BridgeWebSocketTransport
     server: BridgeWebSocketServer
     management: ProductionManagementServer
+    log_ring: logging.Handler | None = None
 
     def close(self) -> None:
+        if self.log_ring is not None:
+            logging.getLogger().removeHandler(self.log_ring)
         self.server.shutdown()
         self.management.shutdown()
         self.agent_router.close()
@@ -99,6 +104,12 @@ def build_production_host(config: ProductionHostConfig) -> ProductionHostCompone
         else None
     )
     activity = SessionActivity()
+    feed = ActivityFeed()
+    log_ring = RingLogHandler()
+    logging.getLogger().addHandler(log_ring)
+    if logging.getLogger().level > logging.INFO or logging.getLogger().level == logging.NOTSET:
+        logging.getLogger().setLevel(logging.INFO)
+    feed.add("host.started", f"Host 启动，{len(config.projects)} 个项目")
     transport = BridgeWebSocketTransport(
         agent_router,
         WebSocketConfig(
@@ -107,7 +118,7 @@ def build_production_host(config: ProductionHostConfig) -> ProductionHostCompone
             poll_interval=config.poll_interval,
         ),
         terminal_loop=terminal_router,
-        journal=SessionJournal(observer=activity.observe),
+        journal=SessionJournal(observer=combine_observers(activity.observe, feed.observe)),
     )
     server = BridgeWebSocketServer(
         transport,
@@ -131,6 +142,9 @@ def build_production_host(config: ProductionHostConfig) -> ProductionHostCompone
         ))),
         pending_permissions=permission_gate.pending_for if permission_gate is not None else None,
         session_activity=activity.get,
+        activity_feed=feed,
+        log_ring=log_ring,
+        audit_path=config.security.permission_audit_path,
         bridge_port=config.bridge_port,
         host=config.mgmt_host,
         port=config.mgmt_port,
@@ -144,6 +158,7 @@ def build_production_host(config: ProductionHostConfig) -> ProductionHostCompone
         transport=transport,
         server=server,
         management=management,
+        log_ring=log_ring,
     )
 
 
