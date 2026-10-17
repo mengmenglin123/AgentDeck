@@ -10,6 +10,8 @@ dependencies {
     api(libs.kotlinx.serialization.json)
     api(libs.okhttp)
     // Chat rendering: CommonMark + GFM parsed off the main thread into our own block model.
+    // SSH companion install: ConnectBot sshlib (Apache-2.0).
+    implementation(libs.sshlib)
     implementation(libs.commonmark)
     implementation(libs.commonmark.gfm.tables)
     implementation(libs.commonmark.gfm.strikethrough)

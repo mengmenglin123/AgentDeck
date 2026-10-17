@@ -89,6 +89,8 @@ kotlin {
     compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) }
 }
 
+configurations.all { exclude(group = "com.google.crypto.tink", module = "tink") }
+
 dependencies {
     implementation(project(":core"))
     implementation(libs.androidx.security.crypto)
@@ -109,8 +111,8 @@ dependencies {
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
     implementation(libs.zxing.core)
-    // UnifiedPush ships JVM tink; security-crypto ships tink-android. Keep one (Android) copy.
-    implementation(libs.unifiedpush.connector) { exclude(group = "com.google.crypto.tink", module = "tink") }
+    // UnifiedPush and sshlib ship JVM tink; security-crypto ships tink-android. Keep one (Android) copy.
+    implementation(libs.unifiedpush.connector)
     implementation("com.google.crypto.tink:tink-android:1.23.0")
     implementation(libs.datastore.preferences)
     implementation(libs.kotlinx.serialization.json)
