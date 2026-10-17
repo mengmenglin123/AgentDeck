@@ -106,7 +106,7 @@ class TestSessionsOverview(unittest.TestCase):
 
     def test_without_overview_sources_records_are_unchanged(self) -> None:
         plain = ProductionManagementServer((_project("p"),), default_project="p", token="t", sessions=self.sessions, port=0)
-        self.assertEqual(plain._capabilities(), ["projects", "sessions", "skills", "mcp", "agents", "pairing"])
+        self.assertEqual(plain._capabilities(), ["projects", "sessions", "skills", "mcp", "agents", "pairing", "file_search"])
         recs = [{"session_key": "z"}]
         self.assertIs(plain._overview(recs), recs)
 

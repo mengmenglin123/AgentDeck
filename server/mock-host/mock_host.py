@@ -861,6 +861,28 @@ def _ws_resolve(path: str) -> Tuple[Optional[Dict[str, Any]], str]:
     return node, "/".join(parts)
 
 
+def _ws_files(node: Optional[Dict[str, Any]] = None, prefix: str = "") -> List[str]:
+    node = node if node is not None else WORKSPACE_TREE
+    out: List[str] = []
+    for name, child in sorted((node.get("children") or {}).items()):
+        rel = f"{prefix}{name}"
+        if child.get("type") == "dir":
+            out.extend(_ws_files(child, rel + "/"))
+        else:
+            out.append(rel)
+    return out
+
+
+def files_search(q: str, limit: int = 30) -> List[Dict[str, str]]:
+    _sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    try:
+        import file_index  # shared ranking with the production Host
+        return [{"path": p, "type": "file"} for p in file_index.rank(_ws_files(), q, limit)]
+    except ImportError:
+        ql = q.lower().lstrip("@")
+        return [{"path": p, "type": "file"} for p in _ws_files() if ql in p.lower()][:limit]
+
+
 def workspace_list(path: str = "") -> Dict[str, Any]:
     node, cleaned = _ws_resolve(path)
     if node is None:
@@ -5020,6 +5042,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                             "logs_readonly",
                             "agents_catalog",
                             "session_overview",
+                            "file_search",
                         ],
                         "hermes": {
                             "adapter": "mock",
@@ -5301,6 +5324,14 @@ class MgmtHandler(BaseHTTPRequestHandler):
                     },
                 },
             )
+            return
+        if path == "/api/v1/files/search":
+            qs = parse_qs(urlparse(self.path).query)
+            try:
+                lim = int((qs.get("limit") or ["30"])[0])
+            except ValueError:
+                lim = 30
+            self._send(200, {"ok": True, "data": {"files": files_search((qs.get("q") or [""])[0][:200], lim)}})
             return
         if path == "/api/v1/workspace" or path == "/api/v1/workspace/":
             qs = parse_qs(urlparse(self.path).query)

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import file_index
+
 import json
 import threading
 import time
@@ -211,6 +213,18 @@ class ProductionManagementServer:
                 data = {"agents": [self._agent(project)], "platforms": [{"type": "bridge", "connected": True}]}
             self._send(request, 200, {"ok": True, "data": data})
             return
+        if path == "/files/search":
+            project = self._selected(query.get("project", [None])[0])
+            if project is None:
+                self._send(request, 404, {"ok": False, "error": "project not found"})
+                return
+            try:
+                limit = int(query.get("limit", ["30"])[0])
+            except ValueError:
+                limit = 30
+            q = query.get("q", [""])[0][:200]
+            self._send(request, 200, {"ok": True, "data": {"files": file_index.search(project.workdir, q, limit)}})
+            return
         if path == "/pairing":
             self._send(request, 200, {"ok": True, "data": {
                 "scheme": "huanhermes", "version": 1, "bridge_port": self.bridge_port,
@@ -293,7 +307,7 @@ class ProductionManagementServer:
         self._send(request, 200, {"ok": True, "data": record})
 
     def _capabilities(self) -> list[str]:
-        caps = ["projects", "sessions", "skills", "mcp", "agents", "pairing"]
+        caps = ["projects", "sessions", "skills", "mcp", "agents", "pairing", "file_search"]
         if self._pending_permissions is not None or self._session_activity is not None:
             caps.append("session_overview")
         return caps
