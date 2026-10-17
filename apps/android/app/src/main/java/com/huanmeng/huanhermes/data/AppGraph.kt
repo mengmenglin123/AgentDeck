@@ -128,6 +128,17 @@ class AppGraph(private val context: Context) {
         scope.launch { inbox.state.collect { reconcile(it) } }
     }
 
+    /** Tell every Host (with `push`) where to wake this device; null unregisters. */
+    suspend fun syncPush(endpoint: String?) {
+        if (!profiles.state.value.loaded) profiles.load()
+        for (p in profiles.state.value.profiles) {
+            runCatching {
+                val mgmt = MgmtClient(p.config, engine)
+                if (endpoint != null) mgmt.registerPush(p.config.deviceId, endpoint) else mgmt.unregisterPush(p.config.deviceId)
+            }
+        }
+    }
+
     suspend fun checkInboxAndNotify() {
         if (!profiles.state.value.loaded) profiles.load()
         val list = profiles.state.value.profiles

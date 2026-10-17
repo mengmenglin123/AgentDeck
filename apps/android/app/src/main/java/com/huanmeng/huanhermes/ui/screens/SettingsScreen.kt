@@ -20,6 +20,8 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -85,6 +87,23 @@ fun SettingsScreen(settings: AppSettings, repo: SettingsRepository, onOpenHosts:
                 }
             }
         }
+        Text("推送", style = MaterialTheme.typography.titleMedium)
+        ElevatedCard {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                PushRow(settings.pushEndpoint, onDisable = {
+                    runCatching { org.unifiedpush.android.connector.UnifiedPush.unregister(context) }
+                    set { it.copy(pushEndpoint = null) }
+                })
+                SwitchRow("保持连接（前台服务，每 30 秒检查，较耗电）", settings.keepAlive) { v ->
+                    set { it.copy(keepAlive = v) }
+                    com.huanmeng.huanhermes.notify.KeepAliveService.set(context, v)
+                }
+                Text(
+                    "没有推送分发器时，后台大约每 15 分钟检查一次；离开 App 后的前几分钟检查更频繁。",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         Text("关于", style = MaterialTheme.typography.titleMedium)
         ElevatedCard {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -104,5 +123,42 @@ private fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Un
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
         Switch(checked = checked, onCheckedChange = onChange)
+    }
+}
+
+@Composable
+private fun PushRow(endpoint: String?, onDisable: () -> Unit) {
+    val activity = androidx.compose.ui.platform.LocalContext.current.let { c ->
+        var x = c
+        while (x is android.content.ContextWrapper && x !is android.app.Activity) x = x.baseContext
+        x as? android.app.Activity
+    }
+    var message by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text("UnifiedPush 实时推送", style = MaterialTheme.typography.bodyLarge)
+            val host = endpoint?.let { runCatching { android.net.Uri.parse(it).host }.getOrNull() }
+            Text(
+                message ?: if (endpoint != null) "已启用 · ${host ?: "分发器"}" else "通过 ntfy 等分发器即时唤醒，无需 Google 服务",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (endpoint != null) {
+            androidx.compose.material3.TextButton(onClick = onDisable) { Text("停用") }
+        } else {
+            androidx.compose.material3.FilledTonalButton(onClick = {
+                val a = activity ?: return@FilledTonalButton
+                runCatching {
+                    org.unifiedpush.android.connector.UnifiedPush.tryUseCurrentOrDefaultDistributor(a) { ok ->
+                        if (ok) {
+                            org.unifiedpush.android.connector.UnifiedPush.register(a, messageForDistributor = "HuanHermes 审批通知")
+                            message = "正在向分发器注册…"
+                        } else {
+                            message = "没有找到分发器：先安装 ntfy（F-Droid / Play）再试"
+                        }
+                    }
+                }.onFailure { message = "启用失败：${it.message}" }
+            }) { Text("启用") }
+        }
     }
 }

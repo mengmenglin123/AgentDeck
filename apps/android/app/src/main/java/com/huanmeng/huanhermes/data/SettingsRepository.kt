@@ -31,6 +31,10 @@ data class AppSettings(
     val approvalNotifications: Boolean = true,
     /** The notification permission prompt was shown once already. */
     val askedNotificationPermission: Boolean = false,
+    /** UnifiedPush endpoint from the distributor (ntfy etc.); null = not registered. */
+    val pushEndpoint: String? = null,
+    /** Foreground service that keeps checking while the app is closed. */
+    val keepAlive: Boolean = false,
 )
 
 /** UI preferences. A corrupt file is replaced with defaults instead of crashing. */
@@ -56,6 +60,8 @@ class SettingsRepository(context: Context) {
             prefs[FOLD] = next.foldTurns
             prefs[NOTIFY] = next.approvalNotifications
             prefs[ASKED] = next.askedNotificationPermission
+            if (next.pushEndpoint == null) prefs.remove(PUSH) else prefs[PUSH] = next.pushEndpoint
+            prefs[KEEP] = next.keepAlive
         }
     }
 
@@ -69,6 +75,8 @@ class SettingsRepository(context: Context) {
         foldTurns = this[FOLD] ?: true,
         approvalNotifications = this[NOTIFY] ?: true,
         askedNotificationPermission = this[ASKED] ?: false,
+        pushEndpoint = this[PUSH],
+        keepAlive = this[KEEP] ?: false,
     )
 
     companion object {
@@ -83,5 +91,7 @@ class SettingsRepository(context: Context) {
         private val FOLD = booleanPreferencesKey("fold_turns")
         private val NOTIFY = booleanPreferencesKey("approval_notifications")
         private val ASKED = booleanPreferencesKey("asked_notification_permission")
+        private val PUSH = androidx.datastore.preferences.core.stringPreferencesKey("push_endpoint")
+        private val KEEP = booleanPreferencesKey("keep_alive")
     }
 }
