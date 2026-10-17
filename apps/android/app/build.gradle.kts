@@ -1,3 +1,4 @@
+import java.security.MessageDigest
 import java.util.Properties
 
 plugins {
@@ -147,7 +148,7 @@ val bundleCompanion by tasks.registering {
         val log = proc.inputStream.bufferedReader().readText()
         if (proc.waitFor() != 0) throw GradleException("build_companion.sh failed:\n$log")
         val tar = dir.resolve("huanhermes-host-$nativeVersionName.tar.gz")
-        val sha = java.security.MessageDigest.getInstance("SHA-256").digest(tar.readBytes()).joinToString("") { "%02x".format(it) }
+        val sha = MessageDigest.getInstance("SHA-256").digest(tar.readBytes()).joinToString("") { "%02x".format(it) }
         dir.resolve("companion.json").writeText("""{"version":"$nativeVersionName","sha256":"$sha","file":"${tar.name}"}""")
     }
 }
