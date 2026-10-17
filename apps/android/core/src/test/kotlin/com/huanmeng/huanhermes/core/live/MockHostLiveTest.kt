@@ -115,4 +115,30 @@ class MockHostLiveTest {
             scope.cancel()
         }
     }
+
+    @Test fun terminalOpenEchoResizeAndCatalogs() = runBlocking {
+        assumeTrue("mock host not available", proc != null)
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val bridge = BridgeClient(config, OkHttpWsTransport(), scope)
+        try {
+            val term = com.huanmeng.huanhermes.core.terminal.TerminalSession(bridge, scope, "live-term", "codex", cols = 60, rows = 12)
+            term.start()
+            withTimeout(10_000) { term.ui.first { it.status == com.huanmeng.huanhermes.core.terminal.TerminalSession.Status.Open } }
+            term.input("echo hello-term\n")
+            // Mock output uses bare LF: the output line must still start at column 0.
+            withTimeout(10_000) { term.ui.first { term.read { e -> e.screenText() }.lines().any { it.startsWith("hello-term") } } }
+            term.resize(40, 10)
+            term.input("stty size\n")
+            withTimeout(10_000) { term.ui.first { term.read { e -> e.screenText() }.contains("columns") } }
+            term.close()
+            // M3 catalogs parse against the real mock payloads.
+            val mgmt = MgmtClient(config)
+            com.huanmeng.huanhermes.core.catalog.CatalogKind.entries.forEach { kind ->
+                val rows = com.huanmeng.huanhermes.core.catalog.HostCatalogs.parse(kind, mgmt.get(kind.url(null)))
+                if (kind != com.huanmeng.huanhermes.core.catalog.CatalogKind.AUDIT) assertTrue("$kind empty", rows.isNotEmpty())
+            }
+        } finally {
+            bridge.stop(); scope.cancel()
+        }
+    }
 }
