@@ -68,7 +68,7 @@ private val sections = listOf(
         Tool("终端", "远程终端（PTY）", Icons.Outlined.Terminal, action = "terminal"),
     )),
     Section("配对与安装", listOf(
-        Tool("扫码配对", "扫描 Host 二维码一键连接", Icons.Outlined.QrCodeScanner, "0.2.7"),
+        Tool("扫码配对", "扫描 Host 二维码一键连接", Icons.Outlined.QrCodeScanner, action = "scan"),
         Tool("SSH 安装", "一键安装 companion", Icons.Outlined.InstallDesktop, "0.2.7"),
     )),
 )

@@ -105,6 +105,10 @@ dependencies {
     implementation(libs.compose.material.icons)
     implementation(libs.navigation.compose)
     implementation(libs.androidx.work.runtime)
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.camera.view)
+    implementation(libs.zxing.core)
     // UnifiedPush ships JVM tink; security-crypto ships tink-android. Keep one (Android) copy.
     implementation(libs.unifiedpush.connector) { exclude(group = "com.google.crypto.tink", module = "tink") }
     implementation("com.google.crypto.tink:tink-android:1.23.0")

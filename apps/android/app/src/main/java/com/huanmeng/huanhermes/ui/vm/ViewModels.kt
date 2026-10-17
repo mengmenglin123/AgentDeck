@@ -50,6 +50,40 @@ class HostsViewModel(private val graph: AppGraph) : ViewModel() {
 
     fun testAndSave(profileId: String?, name: String, draft: HostConfig, onDone: (Boolean) -> Unit = {}) =
         viewModelScope.launch { onDone(graph.profiles.testAndSave(profileId, name, draft)) }
+
+    val pendingScan = graph.pendingPairing
+
+    /** Status line for scan/paste pairing; null when idle. */
+    val pairingStatus = MutableStateFlow<String?>(null)
+    /** A link without tokens or code: open the form prefilled with it. */
+    val prefill = MutableStateFlow<Pair<String, HostConfig>?>(null)
+
+    /**
+     * Pairs from a scanned or pasted `huanhermes://` link: a one-time code is
+     * traded for this device's own tokens; a link with tokens connects
+     * directly; anything else prefills the form.
+     */
+    fun pair(raw: String, onDone: (Boolean) -> Unit) = viewModelScope.launch {
+        val link = com.huanmeng.huanhermes.core.net.PairingLink.parse(raw)
+        if (link == null) { pairingStatus.value = "无法识别的二维码或链接"; return@launch }
+        val name = link.name ?: link.config.host
+        try {
+            val cfg = when {
+                link.needsClaim -> {
+                    pairingStatus.value = "正在用配对码换取本机令牌…"
+                    com.huanmeng.huanhermes.core.net.Pairing.claim(link, graph.engineFor(link.config), android.os.Build.MODEL ?: "Android")
+                }
+                link.config.hasTokens -> link.config
+                else -> { pairingStatus.value = null; prefill.value = name to link.config; return@launch }
+            }
+            pairingStatus.value = "正在连接 $name…"
+            val ok = graph.profiles.testAndSave(null, name, cfg)
+            pairingStatus.value = if (ok) null else graph.profiles.state.value.lastError ?: "连接失败"
+            onDone(ok)
+        } catch (e: Exception) {
+            pairingStatus.value = e.message ?: "配对失败"
+        }
+    }
 }
 
 class SessionsViewModel(private val graph: AppGraph) : ViewModel() {

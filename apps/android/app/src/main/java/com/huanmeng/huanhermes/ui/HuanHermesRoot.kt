@@ -186,7 +186,16 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
             composable(Tab.Settings.route) { SettingsScreen(settings, repo, onOpenHosts = { nav.navigate("hosts") }) }
             composable("hosts") {
                 val vm: HostsViewModel = viewModel { HostsViewModel(graph) }
-                HostsScreen(vm, onBack = { nav.popBackStack() }, onConnected = { nav.popBackStack() })
+                HostsScreen(vm, onBack = { nav.popBackStack() }, onConnected = { nav.popBackStack() }, onScan = { nav.navigate("scan") })
+            }
+            composable("scan") {
+                com.huanmeng.huanhermes.ui.pairing.QrScanScreen(
+                    onResult = { text ->
+                        graph.pendingPairing.value = text
+                        if (!nav.popBackStack("hosts", inclusive = false)) { nav.popBackStack(); nav.navigate("hosts") }
+                    },
+                    onBack = { nav.popBackStack() },
+                )
             }
             composable(
                 "chat/{id}?sk={sk}&p={p}&t={t}",
