@@ -103,6 +103,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
     for warning in (*components.config.security_warnings(), *config_file_warnings(args.config)):
         print(f"Host security warning: {warning}", file=sys.stderr)
+    advertiser = None
+    if components.config.bridge_host not in {"127.0.0.1", "::1", "localhost"} and os.environ.get("HUAN_MDNS", "1") != "0":
+        import socket
+        from mdns_advertiser import MdnsAdvertiser
+        address = components.config.bridge_host if components.config.bridge_host not in {"0.0.0.0", "::"} else _lan_address()
+        advertiser = MdnsAdvertiser(instance=socket.gethostname(), address=address,
+                                    bridge_port=components.config.bridge_port, mgmt_port=components.config.mgmt_port)
+        if not advertiser.start():
+            advertiser = None
     try:
         components.management.start()
         components.server.serve_forever()
@@ -112,6 +121,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"Host listener failed: {exc}", file=sys.stderr)
         return 1
     finally:
+        if advertiser is not None:
+            advertiser.close()
         components.close()
     return 0
 
