@@ -220,8 +220,11 @@ private fun EmptyState(icon: androidx.compose.ui.graphics.vector.ImageVector, ti
 /** Status (compact = false) and Dashboard share one screen; Dashboard leads with the numbers. */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun DashboardScreen(vm: DashboardViewModel, statusOnly: Boolean, onBack: () -> Unit, onOpenInbox: () -> Unit) {
+fun DashboardScreen(vm: DashboardViewModel, statusOnly: Boolean, onBack: () -> Unit, onOpenInbox: () -> Unit, autoRefresh: Boolean = false) {
     val st by vm.state.collectAsStateWithLifecycle()
+    androidx.compose.runtime.LaunchedEffect(autoRefresh) {
+        while (autoRefresh) { kotlinx.coroutines.delay(30_000); vm.refresh() }
+    }
     Scaffold(
         topBar = {
             TopAppBar(

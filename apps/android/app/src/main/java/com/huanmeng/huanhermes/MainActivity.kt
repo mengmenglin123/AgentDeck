@@ -76,6 +76,10 @@ class MainActivity : ComponentActivity() {
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
                 onDispose {}
             }
+            androidx.compose.runtime.LaunchedEffect(settings.keepScreenOn) {
+                if (settings.keepScreenOn) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
             HuanHermesTheme(settings) {
                 HuanHermesRoot(settings = settings, repo = repo)
             }

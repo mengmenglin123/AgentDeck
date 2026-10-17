@@ -81,6 +81,14 @@ fun SettingsScreen(settings: AppSettings, repo: SettingsRepository, onOpenHosts:
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 SwitchRow("折叠已完成轮次的工具调用", settings.foldTurns) { v -> set { it.copy(foldTurns = v) } }
                 SwitchRow("触感反馈", settings.haptics) { v -> set { it.copy(haptics = v) } }
+                SwitchRow("保持屏幕常亮", settings.keepScreenOn) { v -> set { it.copy(keepScreenOn = v) } }
+                SwitchRow("仪表盘每 30 秒自动刷新", settings.dashboardAutoRefresh) { v -> set { it.copy(dashboardAutoRefresh = v) } }
+                Text("终端字号 ${settings.terminalFontSp.toInt()} sp", style = MaterialTheme.typography.bodyMedium)
+                Slider(
+                    value = settings.terminalFontSp,
+                    onValueChange = { v -> set { it.copy(terminalFontSp = v) } },
+                    valueRange = 10f..20f, steps = 9,
+                )
                 SwitchRow("后台审批通知（可在通知里直接允许/拒绝）", settings.approvalNotifications) { v ->
                     set { it.copy(approvalNotifications = v) }
                     com.huanmeng.huanhermes.notify.InboxWorker.schedule(context, v)
@@ -104,6 +112,20 @@ fun SettingsScreen(settings: AppSettings, repo: SettingsRepository, onOpenHosts:
                 )
             }
         }
+        var confirmReset by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+        androidx.compose.material3.OutlinedButton(onClick = { confirmReset = true }, modifier = Modifier.fillMaxWidth()) { Text("恢复默认偏好") }
+        if (confirmReset) androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmReset = false },
+            title = { Text("恢复默认偏好？") },
+            text = { Text("外观、对话和终端设置会恢复默认；Host 连接、令牌和推送注册保持不变。") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    confirmReset = false
+                    set { AppSettings(askedNotificationPermission = it.askedNotificationPermission, pushEndpoint = it.pushEndpoint, keepAlive = it.keepAlive, approvalNotifications = it.approvalNotifications) }
+                }) { Text("恢复") }
+            },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { confirmReset = false }) { Text("取消") } },
+        )
         Text("关于", style = MaterialTheme.typography.titleMedium)
         ElevatedCard {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -112,6 +134,12 @@ fun SettingsScreen(settings: AppSettings, repo: SettingsRepository, onOpenHosts:
                     "版本 ${BuildConfig.VERSION_NAME}（${BuildConfig.VERSION_CODE}）· Kotlin + Jetpack Compose",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "隐私：令牌只保存在本机加密存储（Android Keystore），不备份、不上传。推送消息只带会话引用，内容由 App 通过你自己的 Host 读取。App 不含统计或广告 SDK。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 6.dp),
                 )
             }
         }

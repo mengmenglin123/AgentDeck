@@ -54,6 +54,7 @@ class TerminalSession(
     private val _ui = MutableStateFlow(Ui())
     val ui: StateFlow<Ui> = _ui.asStateFlow()
     private var job: Job? = null
+    private var busyGuard: Job? = null
 
     init {
         emulator.onResponse = { reply -> send(frame("terminal_input") { put("data", reply) }) }
@@ -93,7 +94,12 @@ class TerminalSession(
 
     fun input(text: String) {
         if (text.isEmpty()) return
-        if (send(frame("terminal_input") { put("data", text) })) _ui.update { it.copy(busy = true) }
+        if (send(frame("terminal_input") { put("data", text) })) {
+            _ui.update { it.copy(busy = true) }
+            // Never stay busy on a silent Host (audit item 1): ~10 s fallback.
+            busyGuard?.cancel()
+            busyGuard = scope.launch { kotlinx.coroutines.delay(10_000); _ui.update { it.copy(busy = false) } }
+        }
     }
 
     fun resize(cols: Int, rows: Int) {

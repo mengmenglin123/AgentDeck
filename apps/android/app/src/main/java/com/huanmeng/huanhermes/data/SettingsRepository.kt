@@ -35,6 +35,12 @@ data class AppSettings(
     val pushEndpoint: String? = null,
     /** Foreground service that keeps checking while the app is closed. */
     val keepAlive: Boolean = false,
+    /** Keep the screen on while the app is in front (long runs, terminal). */
+    val keepScreenOn: Boolean = false,
+    /** Terminal font size in sp. */
+    val terminalFontSp: Float = 13f,
+    /** Dashboard refreshes itself every 30 s while open. */
+    val dashboardAutoRefresh: Boolean = true,
 )
 
 /** UI preferences. A corrupt file is replaced with defaults instead of crashing. */
@@ -62,6 +68,9 @@ class SettingsRepository(context: Context) {
             prefs[ASKED] = next.askedNotificationPermission
             if (next.pushEndpoint == null) prefs.remove(PUSH) else prefs[PUSH] = next.pushEndpoint
             prefs[KEEP] = next.keepAlive
+            prefs[SCREEN] = next.keepScreenOn
+            prefs[TERMFONT] = next.terminalFontSp.coerceIn(10f, 20f)
+            prefs[DASHAUTO] = next.dashboardAutoRefresh
         }
     }
 
@@ -77,6 +86,9 @@ class SettingsRepository(context: Context) {
         askedNotificationPermission = this[ASKED] ?: false,
         pushEndpoint = this[PUSH],
         keepAlive = this[KEEP] ?: false,
+        keepScreenOn = this[SCREEN] ?: false,
+        terminalFontSp = (this[TERMFONT] ?: 13f).coerceIn(10f, 20f),
+        dashboardAutoRefresh = this[DASHAUTO] ?: true,
     )
 
     companion object {
@@ -93,5 +105,8 @@ class SettingsRepository(context: Context) {
         private val ASKED = booleanPreferencesKey("asked_notification_permission")
         private val PUSH = androidx.datastore.preferences.core.stringPreferencesKey("push_endpoint")
         private val KEEP = booleanPreferencesKey("keep_alive")
+        private val SCREEN = booleanPreferencesKey("keep_screen_on")
+        private val TERMFONT = floatPreferencesKey("terminal_font_sp")
+        private val DASHAUTO = booleanPreferencesKey("dashboard_auto_refresh")
     }
 }

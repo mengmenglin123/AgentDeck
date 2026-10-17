@@ -112,7 +112,7 @@ private fun styled(line: TerminalEmulator.Line, cursorAt: Int?): AnnotatedString
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TerminalScreen(vm: TerminalViewModel, onBack: () -> Unit) {
+fun TerminalScreen(vm: TerminalViewModel, onBack: () -> Unit, fontSp: Float = 13f) {
     val session by vm.session.collectAsStateWithLifecycle()
     val error by vm.error.collectAsStateWithLifecycle()
     val projects by vm.projects.collectAsStateWithLifecycle()
@@ -151,7 +151,7 @@ fun TerminalScreen(vm: TerminalViewModel, onBack: () -> Unit) {
         Column(Modifier.padding(pad).fillMaxSize().imePadding().testTag("terminal-screen")) {
             ProjectChips(projects, project, vm::selectProject)
             error?.let { Text(it, Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error) }
-            if (s != null) TerminalCanvas(s, ui.version, Modifier.weight(1f), onSize = vm::resize)
+            if (s != null) TerminalCanvas(s, ui.version, Modifier.weight(1f), fontSp, onSize = vm::resize)
             else Box(Modifier.weight(1f))
             KeyBar(ctrl, onCtrl = { vm.ctrl.value = !vm.ctrl.value }, onKey = { vm.key(it) }, arrow = { d -> s?.arrow(d) ?: "\u001b[$d" })
             TerminalInput(enabled = ui.status == TerminalSession.Status.Open, raw = raw, onType = vm::type)
@@ -172,12 +172,12 @@ fun TerminalScreen(vm: TerminalViewModel, onBack: () -> Unit) {
 }
 
 @Composable
-private fun TerminalCanvas(s: TerminalSession, version: Long, modifier: Modifier, onSize: (Int, Int) -> Unit) {
-    val style = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp, lineHeight = 16.sp, color = TERM_FG)
+private fun TerminalCanvas(s: TerminalSession, version: Long, modifier: Modifier, fontSp: Float, onSize: (Int, Int) -> Unit) {
+    val style = TextStyle(fontFamily = FontFamily.Monospace, fontSize = fontSp.sp, lineHeight = (fontSp * 1.25f).sp, color = TERM_FG)
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
     val cell = remember(style) { measurer.measure("MMMMMMMMMM", style).size.width / 10f }
-    val lineH = with(density) { 16.sp.toPx() }
+    val lineH = with(density) { (fontSp * 1.25f).sp.toPx() }
     val listState = rememberLazyListState()
     BoxWithConstraints(modifier.fillMaxWidth().background(TERM_BG).padding(horizontal = 4.dp)) {
         val cols = (constraints.maxWidth / cell).toInt().coerceIn(20, 300)

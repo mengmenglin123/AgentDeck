@@ -163,7 +163,7 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
             }
             composable("dashboard") {
                 val vm: com.huanmeng.huanhermes.ui.vm.DashboardViewModel = viewModel { com.huanmeng.huanhermes.ui.vm.DashboardViewModel(graph) }
-                com.huanmeng.huanhermes.ui.screens.DashboardScreen(vm, statusOnly = false, onBack = { nav.popBackStack() }, onOpenInbox = { nav.navigate(Tab.Inbox.route) { launchSingleTop = true } })
+                com.huanmeng.huanhermes.ui.screens.DashboardScreen(vm, statusOnly = false, onBack = { nav.popBackStack() }, onOpenInbox = { nav.navigate(Tab.Inbox.route) { launchSingleTop = true } }, autoRefresh = settings.dashboardAutoRefresh)
             }
             composable("workspace") {
                 val vm: com.huanmeng.huanhermes.ui.vm.WorkspaceViewModel = viewModel { com.huanmeng.huanhermes.ui.vm.WorkspaceViewModel(graph) }
@@ -175,7 +175,7 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
             }
             composable("terminal") {
                 val vm: com.huanmeng.huanhermes.ui.vm.TerminalViewModel = viewModel { com.huanmeng.huanhermes.ui.vm.TerminalViewModel(graph) }
-                com.huanmeng.huanhermes.ui.screens.TerminalScreen(vm, onBack = { nav.popBackStack() })
+                com.huanmeng.huanhermes.ui.screens.TerminalScreen(vm, onBack = { nav.popBackStack() }, fontSp = settings.terminalFontSp)
             }
             composable("catalog/{kind}") { e ->
                 val kind = runCatching { com.huanmeng.huanhermes.core.catalog.CatalogKind.valueOf(e.arguments?.getString("kind").orEmpty()) }
