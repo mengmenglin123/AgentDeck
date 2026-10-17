@@ -101,4 +101,17 @@ class MgmtClientTest {
         val req = server.takeRequest()
         assertEquals("/api/v1/files/search?q=ma%20in&limit=20&project=codex", req.path)
     }
+
+    @Test fun pushRegistrationBodies() = runBlocking {
+        server.enqueue(json("""{"ok":true,"data":{"registered":true}}"""))
+        server.enqueue(json("""{"ok":true,"data":{"removed":true}}"""))
+        client.registerPush("dev1", "https://ntfy.sh/upX")
+        client.unregisterPush("dev1")
+        val reg = server.takeRequest()
+        assertEquals("POST", reg.method); assertEquals("/api/v1/push/register", reg.path)
+        assertTrue(reg.body.readUtf8().contains("\"endpoint\":\"https://ntfy.sh/upX\""))
+        val del = server.takeRequest()
+        assertEquals("DELETE", del.method)
+        assertTrue(del.body.readUtf8().contains("dev1"))
+    }
 }
