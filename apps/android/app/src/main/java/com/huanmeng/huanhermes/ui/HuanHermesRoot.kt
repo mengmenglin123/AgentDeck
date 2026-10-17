@@ -165,6 +165,18 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
                 val vm: com.huanmeng.huanhermes.ui.vm.DashboardViewModel = viewModel { com.huanmeng.huanhermes.ui.vm.DashboardViewModel(graph) }
                 com.huanmeng.huanhermes.ui.screens.DashboardScreen(vm, statusOnly = false, onBack = { nav.popBackStack() }, onOpenInbox = { nav.navigate(Tab.Inbox.route) { launchSingleTop = true } })
             }
+            composable("workspace") {
+                val vm: com.huanmeng.huanhermes.ui.vm.WorkspaceViewModel = viewModel { com.huanmeng.huanhermes.ui.vm.WorkspaceViewModel(graph) }
+                com.huanmeng.huanhermes.ui.screens.WorkspaceScreen(vm, onBack = { nav.popBackStack() })
+            }
+            composable("git") {
+                val vm: com.huanmeng.huanhermes.ui.vm.GitViewModel = viewModel { com.huanmeng.huanhermes.ui.vm.GitViewModel(graph) }
+                com.huanmeng.huanhermes.ui.screens.GitScreen(vm, onBack = { nav.popBackStack() })
+            }
+            composable("terminal") {
+                val vm: com.huanmeng.huanhermes.ui.vm.TerminalViewModel = viewModel { com.huanmeng.huanhermes.ui.vm.TerminalViewModel(graph) }
+                com.huanmeng.huanhermes.ui.screens.TerminalScreen(vm, onBack = { nav.popBackStack() })
+            }
             composable("catalog/{kind}") { e ->
                 val kind = runCatching { com.huanmeng.huanhermes.core.catalog.CatalogKind.valueOf(e.arguments?.getString("kind").orEmpty()) }
                     .getOrDefault(com.huanmeng.huanhermes.core.catalog.CatalogKind.AGENTS)

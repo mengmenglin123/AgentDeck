@@ -63,9 +63,9 @@ private val sections = listOf(
         Tool("Cron", "定时任务", Icons.Outlined.Schedule, action = "catalog/CRON"),
     )),
     Section("代码与终端", listOf(
-        Tool("Workspace", "浏览项目文件", Icons.Outlined.Folder, "0.2.6"),
-        Tool("Diff", "查看改动", Icons.Outlined.Difference, "0.2.6"),
-        Tool("终端", "远程终端（PTY）", Icons.Outlined.Terminal, "0.2.6"),
+        Tool("Workspace", "浏览项目文件", Icons.Outlined.Folder, action = "workspace"),
+        Tool("Diff", "Git 状态与改动", Icons.Outlined.Difference, action = "git"),
+        Tool("终端", "远程终端（PTY）", Icons.Outlined.Terminal, action = "terminal"),
     )),
     Section("配对与安装", listOf(
         Tool("扫码配对", "扫描 Host 二维码一键连接", Icons.Outlined.QrCodeScanner, "0.2.7"),

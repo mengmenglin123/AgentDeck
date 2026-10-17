@@ -8,6 +8,8 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
@@ -209,6 +211,32 @@ class EmulatorFlowTest {
         rule.onNodeWithTag("tools-list").performScrollToNode(hasTestTag("tool-audit")); rule.onNodeWithTag("tool-audit").performClick()
         rule.waitUntilAtLeastOneExists(hasTestTag("catalog-audit"), 10_000)
         rule.waitForIdle(); shot("22-audit")
+        rule.onNodeWithContentDescription("返回").performClick()
+        // M4: workspace, git diff, terminal.
+        rule.onNodeWithTag("tools-list").performScrollToNode(hasTestTag("tool-workspace")); rule.onNodeWithTag("tool-workspace").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("ws-entry-README.md"), 15_000)
+        shot("23-workspace")
+        rule.onNodeWithTag("ws-entry-README.md").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("file-view"), 15_000)
+        rule.waitForIdle(); shot("24-file")
+        rule.onNodeWithContentDescription("返回").performClick() // up to root
+        rule.waitUntilAtLeastOneExists(hasTestTag("ws-entry-README.md"), 15_000)
+        rule.onNodeWithContentDescription("返回").performClick() // leave
+        rule.onNodeWithTag("tools-list").performScrollToNode(hasTestTag("tool-diff")); rule.onNodeWithTag("tool-diff").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("git-file-src/main.py"), 15_000)
+        shot("25-git")
+        rule.onNodeWithTag("git-file-src/main.py").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("diff-view"), 15_000)
+        rule.waitForIdle(); shot("26-diff")
+        rule.onNodeWithContentDescription("返回").performClick()
+        rule.onNodeWithContentDescription("返回").performClick()
+        rule.onNodeWithTag("tools-list").performScrollToNode(hasTestTag("tool-终端")); rule.onNodeWithTag("tool-终端").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("terminal-input"), 15_000)
+        rule.waitUntil(15_000) { runCatching { rule.onNodeWithTag("terminal-input").assertIsEnabled(); true }.getOrDefault(false) }
+        rule.onNodeWithTag("terminal-input").performTextInput("echo native-term")
+        rule.onNodeWithTag("terminal-input").performImeAction()
+        rule.waitUntilAtLeastOneExists(hasText("native-term") , 15_000)
+        rule.waitForIdle(); shot("27-terminal")
         rule.onNodeWithContentDescription("返回").performClick()
         rule.onAllNodesWithText("设置").onFirst().performClick()
         waitText("外观")
