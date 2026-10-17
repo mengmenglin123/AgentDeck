@@ -20,6 +20,7 @@ from terminal_bridge_loop import TerminalBridgeLoop
 from workspace_allowlist import WorkspaceAllowlist
 from host_feeds import ActivityFeed, RingLogHandler, combine_observers
 from push_notifier import PushNotifier
+from device_tokens import DeviceTokenStore
 import os
 import logging
 
@@ -44,6 +45,10 @@ class ProductionHostComponents:
         self.agent_router.close()
         if self.terminal_router is not None:
             self.terminal_router.close()
+
+
+def device_store_path(config: ProductionHostConfig) -> str:
+    return os.path.join(os.path.dirname(config.session_store_path), "devices.json")
 
 
 def build_production_host(config: ProductionHostConfig) -> ProductionHostComponents:
@@ -107,6 +112,7 @@ def build_production_host(config: ProductionHostConfig) -> ProductionHostCompone
     )
     activity = SessionActivity()
     feed = ActivityFeed()
+    devices = DeviceTokenStore(device_store_path(config))
     push = PushNotifier(os.path.join(os.path.dirname(config.session_store_path), "push-registrations.json"))
     log_ring = RingLogHandler()
     logging.getLogger().addHandler(log_ring)
@@ -123,6 +129,7 @@ def build_production_host(config: ProductionHostConfig) -> ProductionHostCompone
         terminal_loop=terminal_router,
         journal=SessionJournal(observer=combine_observers(activity.observe, feed.observe, push.observe)),
     )
+    transport.extra_token_check = lambda token: devices.check(token, "bridge") is not None
     server = BridgeWebSocketServer(
         transport,
         host=config.bridge_host,
@@ -149,6 +156,7 @@ def build_production_host(config: ProductionHostConfig) -> ProductionHostCompone
         log_ring=log_ring,
         audit_path=config.security.permission_audit_path,
         push=push,
+        devices=devices,
         bridge_port=config.bridge_port,
         host=config.mgmt_host,
         port=config.mgmt_port,

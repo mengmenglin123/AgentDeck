@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Callable
+
 import base64
 import hashlib
 import json
@@ -65,6 +67,8 @@ class BridgeWebSocketTransport:
         self.loop = loop
         self.config = config
         self.terminal_loop = terminal_loop
+        # Optional second credential source (per-device tokens); master token always works.
+        self.extra_token_check: Callable[[str], bool] | None = None
         self.journal = journal or SessionJournal()
         self._clock = clock
         # session_key -> deadline for Agent sessions whose v2 connection dropped.
@@ -326,7 +330,8 @@ class BridgeWebSocketTransport:
             return False
 
         token = self._extract_token(headers, parse_qs(parsed.query))
-        if not tokens_match(token, self.config.token):
+        extra = self.extra_token_check
+        if not tokens_match(token, self.config.token) and not (extra is not None and isinstance(token, str) and extra(token)):
             self._send_http_error(connection, 401, "Unauthorized")
             return False
 

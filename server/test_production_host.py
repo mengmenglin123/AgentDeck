@@ -44,6 +44,15 @@ workdir = "{root}"
 ''',
                 encoding="utf-8",
             )
+            import io, contextlib
+            from production_host import main as host_main
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.assertEqual(host_main(["pair", "--config", str(config), "--host", "10.0.0.5"]), 0)
+            link = [line for line in out.getvalue().splitlines() if line.startswith("huanhermes://")][0]
+            self.assertIn("host=10.0.0.5", link)
+            self.assertIn("code=", link)
+            self.assertTrue((root / "devices.json").exists())
             components = load_components(str(config))
             try:
                 self.assertEqual(components.config.default_project, "codex")

@@ -36,6 +36,7 @@ class ProductionManagementServer:
         log_ring: Any = None,
         audit_path: str | None = None,
         push: Any = None,
+        devices: Any = None,
         bridge_port: int = 9810,
         host: str = "127.0.0.1",
         port: int = 9820,
@@ -68,6 +69,7 @@ class ProductionManagementServer:
         self._log_ring = log_ring
         self._audit_path = audit_path
         self._push = push
+        self._devices = devices
         self.bridge_port = bridge_port
         self.host = host
         self.port = port
@@ -130,6 +132,9 @@ class ProductionManagementServer:
                     owner._handle_get(self)
 
             def do_POST(self) -> None:  # noqa: N802
+                if urlparse(self.path).path == "/api/v1/pairing/claim":
+                    owner._claim(self)  # code-gated, no bearer token yet
+                    return
                 if self._authorized_or_401():
                     owner._handle_mutation(self, "POST")
 
@@ -270,6 +275,9 @@ class ProductionManagementServer:
             q = query.get("q", [""])[0][:200]
             self._send(request, 200, {"ok": True, "data": {"files": file_index.search(project.workdir, q, limit)}})
             return
+        if path == "/devices" and self._devices is not None:
+            self._send(request, 200, {"ok": True, "data": {"devices": self._devices.list()}})
+            return
         if path == "/pairing":
             self._send(request, 200, {"ok": True, "data": {
                 "scheme": "huanhermes", "version": 1, "bridge_port": self.bridge_port,
@@ -286,6 +294,10 @@ class ProductionManagementServer:
         path = parsed.path[len("/api/v1"):] or "/"
         body = self._read_json(request)
         if body is None:
+            return
+        if path.startswith("/devices/") and method == "DELETE" and self._devices is not None:
+            removed = self._devices.revoke(unquote(path[len("/devices/"):]))
+            self._send(request, 200 if removed else 404, {"ok": removed, "data": {"removed": removed}})
             return
         if path == "/push/register":
             if self._push is None:
@@ -379,6 +391,8 @@ class ProductionManagementServer:
             caps.append("audit_readonly")
         if self._push is not None:
             caps.append("push")
+        if self._devices is not None:
+            caps.append("device_tokens")
         if self._pending_permissions is not None or self._session_activity is not None:
             caps.append("session_overview")
         return caps
@@ -494,7 +508,30 @@ class ProductionManagementServer:
 
     def _authorized(self, value: str) -> bool:
         prefix = "Bearer "
-        return isinstance(value, str) and value.startswith(prefix) and tokens_match(value[len(prefix):], self.token)
+        if not isinstance(value, str) or not value.startswith(prefix):
+            return False
+        presented = value[len(prefix):]
+        if tokens_match(presented, self.token):
+            return True
+        if self._devices is not None:
+            device = self._devices.check(presented, "mgmt")
+            if device is not None:
+                self._devices.touch(device)
+                return True
+        return False
+
+    def _claim(self, request: BaseHTTPRequestHandler) -> None:
+        if self._devices is None:
+            self._send(request, 404, {"ok": False, "error": "not found"})
+            return
+        body = self._read_json(request)
+        if body is None:
+            return
+        tokens = self._devices.claim(body.get("code"), body.get("device_id"), body.get("name"))
+        if tokens is None:
+            self._send(request, 403, {"ok": False, "error": "invalid or expired pairing code"})
+            return
+        self._send(request, 200, {"ok": True, "data": {**tokens, "bridge_port": self.bridge_port, "mgmt_port": self.port}})
 
     @staticmethod
     def _send(request: BaseHTTPRequestHandler, status: int, payload: dict[str, Any]) -> None:
