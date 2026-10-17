@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import file_index
 import host_feeds
+import workspace_readonly
 
 import json
 import threading
@@ -237,6 +238,24 @@ class ProductionManagementServer:
             else:
                 self._send(request, 404, {"ok": False, "error": "not found"})
             return
+        if path in {"/workspace", "/workspace/", "/workspace/git", "/workspace/diff"}:
+            project = self._selected(query.get("project", [None])[0])
+            if project is None:
+                self._send(request, 404, {"ok": False, "error": "project not found"})
+                return
+            rel = query.get("path", [""])[0][:1024]
+            try:
+                if path == "/workspace/git":
+                    data = workspace_readonly.git_status(project.workdir)
+                elif path == "/workspace/diff":
+                    data = workspace_readonly.diff(project.workdir, rel)
+                else:
+                    data = workspace_readonly.listing(project.workdir, rel)
+            except workspace_readonly.WorkspaceError as exc:
+                self._send(request, exc.status, {"ok": False, "error": str(exc)})
+                return
+            self._send(request, 200, {"ok": True, "data": data})
+            return
         if path == "/files/search":
             project = self._selected(query.get("project", [None])[0])
             if project is None:
@@ -331,7 +350,8 @@ class ProductionManagementServer:
         self._send(request, 200, {"ok": True, "data": record})
 
     def _capabilities(self) -> list[str]:
-        caps = ["projects", "sessions", "skills", "mcp", "agents", "pairing", "file_search"]
+        caps = ["projects", "sessions", "skills", "mcp", "agents", "pairing", "file_search",
+                "workspace_readonly", "diff_readonly"]
         if self._activity_feed is not None:
             caps.append("activity_readonly")
         if self._log_ring is not None:
