@@ -94,4 +94,11 @@ class MgmtClientTest {
         server.takeRequest()
         assertEquals("/api/v1/projects/codex/sessions/a%2Fb", server.takeRequest().path)
     }
+
+    @Test fun searchFilesDropsUnsafePaths() = runBlocking {
+        server.enqueue(json("""{"ok":true,"data":{"files":[{"path":"src/Main.kt"},{"path":"../etc/passwd"},{"path":"/abs"},"docs/a b.md"]}}"""))
+        assertEquals(listOf("src/Main.kt", "docs/a b.md"), client.searchFiles("codex", "ma in", 20))
+        val req = server.takeRequest()
+        assertEquals("/api/v1/files/search?q=ma%20in&limit=20&project=codex", req.path)
+    }
 }

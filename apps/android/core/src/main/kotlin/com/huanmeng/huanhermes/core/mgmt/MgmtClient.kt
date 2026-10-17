@@ -115,6 +115,8 @@ interface MgmtApi {
     suspend fun renameSession(id: String, title: String, project: String?): SessionInfo
     suspend fun deleteSession(id: String, project: String?)
     suspend fun sessionDetail(id: String, project: String?): SessionDetail
+    /** File paths for `@` mentions (Hosts with `file_search`); empty when unsupported. */
+    suspend fun searchFiles(project: String?, query: String, limit: Int = 30): List<String> = emptyList()
 }
 
 /**
@@ -130,6 +132,20 @@ class MgmtClient(
         private set
 
     override suspend fun status(): JsonObject = request("GET", "/status")
+
+    override suspend fun searchFiles(project: String?, query: String, limit: Int): List<String> {
+        val qs = buildString {
+            append("/files/search?q=").append(q(query.take(200))).append("&limit=").append(limit.coerceIn(1, 100))
+            if (!project.isNullOrBlank()) append("&project=").append(q(project))
+        }
+        return (request("GET", qs)["files"] as? JsonArray).orEmpty().mapNotNull { e ->
+            when (e) {
+                is JsonObject -> e.s("path")
+                is JsonPrimitive -> e.contentOrNull
+                else -> null
+            }?.takeIf { it.isNotBlank() && !it.startsWith("/") && !it.split('/').contains("..") }
+        }
+    }
 
     override suspend fun projects(): List<ProjectInfo> =
         (request("GET", "/projects")["projects"] as? JsonArray).orEmpty().mapNotNull { e ->

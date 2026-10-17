@@ -36,4 +36,14 @@ class ComposerTest {
         val items = listOf(ChatItem.User(1, "q"), ChatItem.Tool(2, "Bash", "{}", output = "ok"), ChatItem.RunEnded(3, "completed"))
         assertTrue(TurnFolding.fold(items).all { it is ChatRowModel.Item })
     }
+
+    @Test fun mentionQueryAndInsert() {
+        assertEquals("src/Ma", Mentions.activeQuery("看看 @src/Ma"))
+        assertEquals("", Mentions.activeQuery("@"))
+        assertEquals(null, Mentions.activeQuery("mail a@b.com"))
+        assertEquals(null, Mentions.activeQuery("@src/Main.kt done"))
+        assertEquals("看看 @src/Main.kt ", Mentions.insert("看看 @src/Ma", "src/Main.kt"))
+        assertEquals("@\"my file.md\" ", Mentions.insert("@my", "my file.md"))
+        assertEquals("plain", Mentions.insert("plain", "x"))
+    }
 }
