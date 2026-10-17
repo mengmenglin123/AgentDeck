@@ -16,7 +16,35 @@ class CompanionConfigError(ValueError):
     pass
 
 
-def configure(*, prefix: str, workspace: str) -> dict[str, object]:
+def _existing_tokens(config_path: Path) -> tuple[str, str] | None:
+    """Re-running the configurator keeps tokens so other paired devices keep working."""
+    try:
+        text = config_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    import re
+    bridge = re.search(r'^bridge_token\s*=\s*"([A-Za-z0-9_\-]{16,})"', text, re.M)
+    mgmt = re.search(r'^mgmt_token\s*=\s*"([A-Za-z0-9_\-]{16,})"', text, re.M)
+    return (bridge.group(1), mgmt.group(1)) if bridge and mgmt else None
+
+
+def _start_service() -> bool:
+    import shutil
+    import subprocess
+    if not shutil.which("systemctl"):
+        return False
+    for args in (("daemon-reload",), ("enable", "huanhermes-host.service"), ("restart", "huanhermes-host.service")):
+        try:
+            if subprocess.run(["systemctl", "--user", *args], capture_output=True, timeout=20).returncode != 0:
+                return False
+        except (OSError, subprocess.TimeoutExpired):
+            return False
+    return True
+
+
+def configure(*, prefix: str, workspace: str, bind: str = "127.0.0.1", start: bool = False) -> dict[str, object]:
+    if bind not in {"127.0.0.1", "0.0.0.0", "::1", "::"}:
+        raise CompanionConfigError("bind must be a loopback or wildcard address")
     prefix_path = _absolute(prefix, "prefix")
     workspace_path = _absolute(workspace, "workspace")
     if not workspace_path.is_dir():
@@ -29,8 +57,8 @@ def configure(*, prefix: str, workspace: str) -> dict[str, object]:
     )
     if not projects:
         raise CompanionConfigError("no stdin-safe supported Agent was discovered")
-    bridge_token = secrets.token_urlsafe(32)
-    mgmt_token = secrets.token_urlsafe(32)
+    existing = _existing_tokens(prefix_path / "config" / "host.toml")
+    bridge_token, mgmt_token = existing or (secrets.token_urlsafe(32), secrets.token_urlsafe(32))
     data = prefix_path / "data"
     config_dir = prefix_path / "config"
     data.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -45,18 +73,21 @@ def configure(*, prefix: str, workspace: str) -> dict[str, object]:
         data=str(data),
         bridge_token=bridge_token,
         mgmt_token=mgmt_token,
+        bind=bind,
     )
     _write_private_file(config_path, content)
+    started = _start_service() if start else False
     return {
         "config_path": str(config_path),
-        "bridge_host": "127.0.0.1",
+        "bridge_host": bind,
         "bridge_port": 9810,
-        "mgmt_host": "127.0.0.1",
+        "mgmt_host": bind,
         "mgmt_port": 9820,
         "bridge_token": bridge_token,
         "mgmt_token": mgmt_token,
         "projects": list(projects),
-        "service_started": False,
+        "service_started": started,
+        "reused_tokens": existing is not None,
     }
 
 
@@ -94,12 +125,13 @@ def _render_config(
     data: str,
     bridge_token: str,
     mgmt_token: str,
+    bind: str = "127.0.0.1",
 ) -> str:
     default_project = next(iter(projects))
     return f'''[server]
-bridge_host = "127.0.0.1"
+bridge_host = "{bind}"
 bridge_port = 9810
-mgmt_host = "127.0.0.1"
+mgmt_host = "{bind}"
 mgmt_port = 9820
 default_project = {json.dumps(default_project)}
 
@@ -137,8 +169,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Configure HuanHermes Host Companion")
     parser.add_argument("--prefix", required=True)
     parser.add_argument("--workspace", required=True)
+    parser.add_argument("--bind", default="127.0.0.1", help="listen address (0.0.0.0 for direct LAN access)")
+    parser.add_argument("--start", action="store_true", help="(re)start the systemd user service")
     args = parser.parse_args(argv)
-    result = configure(prefix=args.prefix, workspace=args.workspace)
+    result = configure(prefix=args.prefix, workspace=args.workspace, bind=args.bind, start=args.start)
     print("HH_COMPANION_CONFIG\t" + json.dumps(result, separators=(",", ":")))
     return 0
 

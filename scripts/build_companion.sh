@@ -16,7 +16,8 @@ day="${2:-$(date -u +%F)}"
 mtime="$(date -u -d "$day 00:00:00" +%s)"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-out="$ROOT/apps/mobile/assets/companion/huanhermes-host-$version.tar.gz"
+out="${HH_COMPANION_OUT:-$ROOT/apps/mobile/assets/companion}/huanhermes-host-$version.tar.gz"
+mkdir -p "$(dirname "$out")"
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
 

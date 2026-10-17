@@ -139,7 +139,9 @@ python3 "${'$'}work/server/companion_installer.py" install --source "${'$'}work"
 """
     }
 
-    const val CONFIGURE_COMMAND = "set -eu\npython3 \"\$HOME/.local/share/huanhermes/current/server/companion_configurator.py\" --prefix \"\$HOME/.local/share/huanhermes\" --workspace \"\$HOME\""
+    fun configureCommand(lan: Boolean): String =
+        "set -eu\npython3 \"\$HOME/.local/share/huanhermes/current/server/companion_configurator.py\" --prefix \"\$HOME/.local/share/huanhermes\" --workspace \"\$HOME\" --start" +
+            if (lan) " --bind 0.0.0.0" else ""
 
     private fun tagged(output: String, tag: String): JsonObject? = output.lineSequence()
         .filter { it.startsWith("$tag\t") }
@@ -167,6 +169,7 @@ python3 "${'$'}work/server/companion_installer.py" install --source "${'$'}work"
         bundle: CompanionBundle,
         connect: (SshTarget) -> SshRunner,
         progress: (String) -> Unit = {},
+        lan: Boolean = true,
     ): CompanionResult = withContext(Dispatchers.IO) {
         if (target.host.isBlank() || target.username.isBlank()) throw SshException("SSH 主机和用户名不能为空")
         if (target.password.isNullOrEmpty() && target.privateKeyPem.isNullOrBlank()) throw SshException("请输入 SSH 密码或私钥")
@@ -181,9 +184,10 @@ python3 "${'$'}work/server/companion_installer.py" install --source "${'$'}work"
             if (inst.exitCode != 0) throw SshException("Companion 安装失败" + inst.stderr.trim().takeIf { it.isNotEmpty() }?.let { "：${it.take(300)}" }.orEmpty())
             val (version, started) = parseInstall(inst.stdout)
             progress("正在生成 Host 配置…")
-            val cfg = ssh.run(CONFIGURE_COMMAND, 60_000)
+            val cfg = ssh.run(configureCommand(lan), 60_000)
             if (cfg.exitCode != 0) throw SshException("Host 配置初始化失败" + cfg.stderr.trim().takeIf { it.isNotEmpty() }?.let { "：${it.take(300)}" }.orEmpty())
-            CompanionResult(parseConfig(cfg.stdout, target.host.trim()), version, started)
+            val serviceStarted = started || cfg.stdout.contains("\"service_started\":true")
+            CompanionResult(parseConfig(cfg.stdout, target.host.trim()), version, serviceStarted)
         }
     }
 }

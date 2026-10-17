@@ -34,6 +34,16 @@ class TestCompanionConfigurator(unittest.TestCase):
             self.assertEqual(config_path.parent.stat().st_mode & 0o777, 0o700)
             self.assertEqual(Path(prefix, "data").stat().st_mode & 0o777, 0o700)
             self.assertEqual(list(config_path.parent.glob(".*.tmp")), [])
+            # Re-running keeps tokens (other paired devices stay valid) and can bind the LAN.
+            with patch("companion_configurator.discover_installed_agents", return_value=()), patch(
+                "companion_configurator.build_project_suggestions", return_value=projects
+            ):
+                again = configure(prefix=prefix, workspace=directory, bind="0.0.0.0")
+            self.assertEqual(again["bridge_token"], result["bridge_token"])
+            self.assertTrue(again["reused_tokens"])
+            self.assertEqual(tomllib.loads(config_path.read_text(encoding="utf-8"))["server"]["bridge_host"], "0.0.0.0")
+            with self.assertRaises(Exception):
+                configure(prefix=prefix, workspace=directory, bind="8.8.8.8")
 
     def test_secret_file_is_private_before_it_is_published(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

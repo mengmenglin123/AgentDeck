@@ -56,7 +56,7 @@ import com.huanmeng.huanhermes.ui.vm.HostsViewModel
 /** Host profiles: pick one, edit it, or add a new one (with pairing-link import). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HostsScreen(vm: HostsViewModel, onBack: () -> Unit, onConnected: () -> Unit, onScan: () -> Unit = {}) {
+fun HostsScreen(vm: HostsViewModel, onBack: () -> Unit, onConnected: () -> Unit, onScan: () -> Unit = {}, onSsh: () -> Unit = {}) {
     val state by vm.state.collectAsStateWithLifecycle()
     var editing by remember { mutableStateOf<HostProfile?>(null) }
     var creating by rememberSaveable { mutableStateOf(false) }
@@ -159,7 +159,8 @@ fun HostsScreen(vm: HostsViewModel, onBack: () -> Unit, onConnected: () -> Unit,
                 }
             }
             if (!creating && editing == null) {
-                OutlinedButton(onClick = { creating = true }, modifier = Modifier.fillMaxWidth()) { Text("添加 Host") }
+                OutlinedButton(onClick = { creating = true }, modifier = Modifier.fillMaxWidth()) { Text("手动添加 Host") }
+                TextButton(onClick = onSsh, modifier = Modifier.fillMaxWidth()) { Text("还没装 Host？通过 SSH 一键安装") }
             }
             state.active?.let { active ->
                 if (!state.ready && !creating && editing == null) {

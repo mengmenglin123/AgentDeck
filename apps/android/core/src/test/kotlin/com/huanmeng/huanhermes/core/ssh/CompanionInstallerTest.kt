@@ -33,6 +33,7 @@ class CompanionInstallerTest {
         assertTrue(Regex("huanhermes-companion-[a-f0-9]{32}\\.tar\\.gz").matches(ssh.uploaded!!.second))
         assertTrue(ssh.commands[0].contains(sha)); assertTrue(ssh.commands[0].contains("sha256sum -c"))
         assertTrue(ssh.closed)
+        assertTrue(ssh.commands[1].contains("--bind 0.0.0.0")); assertTrue(ssh.commands[1].contains("--start"))
         assertEquals(4, steps.size)
     }
 

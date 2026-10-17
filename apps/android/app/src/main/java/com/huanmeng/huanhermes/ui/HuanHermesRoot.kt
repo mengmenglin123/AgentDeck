@@ -186,7 +186,12 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
             composable(Tab.Settings.route) { SettingsScreen(settings, repo, onOpenHosts = { nav.navigate("hosts") }) }
             composable("hosts") {
                 val vm: HostsViewModel = viewModel { HostsViewModel(graph) }
-                HostsScreen(vm, onBack = { nav.popBackStack() }, onConnected = { nav.popBackStack() }, onScan = { nav.navigate("scan") })
+                HostsScreen(vm, onBack = { nav.popBackStack() }, onConnected = { nav.popBackStack() }, onScan = { nav.navigate("scan") }, onSsh = { nav.navigate("ssh") })
+            }
+            composable("ssh") {
+                val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
+                val vm: com.huanmeng.huanhermes.ui.pairing.SshInstallViewModel = viewModel { com.huanmeng.huanhermes.ui.pairing.SshInstallViewModel(graph, appContext) }
+                com.huanmeng.huanhermes.ui.pairing.SshInstallScreen(vm, onBack = { nav.popBackStack() }, onConnected = { nav.popBackStack() })
             }
             composable("scan") {
                 com.huanmeng.huanhermes.ui.pairing.QrScanScreen(

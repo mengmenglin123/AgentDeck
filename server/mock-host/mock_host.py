@@ -5490,6 +5490,19 @@ class MgmtHandler(BaseHTTPRequestHandler):
         self._send(404, {"ok": False, "error": "not found"})
 
     def do_POST(self) -> None:  # noqa: N802
+        if urlparse(self.path).path == "/api/v1/pairing/claim":
+            # Demo pairing: the fixed code MOCKPAIR yields the mock's (shared) tokens.
+            length = int(self.headers.get("Content-Length") or 0)
+            try:
+                body = json.loads((self.rfile.read(length) if length else b"{}").decode("utf-8") or "{}")
+            except json.JSONDecodeError:
+                body = {}
+            if "".join(ch for ch in str(body.get("code") or "").upper() if ch.isalnum()) == "MOCKPAIR":
+                self._send(200, {"ok": True, "data": {"bridge_token": BRIDGE_TOKEN, "mgmt_token": MGMT_TOKEN,
+                                                       "bridge_port": BRIDGE_PORT, "mgmt_port": MGMT_PORT}})
+            else:
+                self._send(403, {"ok": False, "error": "invalid or expired pairing code"})
+            return
         if not self._auth_ok():
             self._send(401, {"ok": False, "error": "unauthorized: missing or invalid token"})
             return

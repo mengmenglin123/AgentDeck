@@ -64,7 +64,8 @@ class TerminalSession(
     fun start() {
         if (job != null) return
         job = scope.launch {
-            launch {
+            // Subscribe before sending terminal_open: the ack is not replayed.
+            launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
                 bridge.events.collect { e ->
                     when (e) {
                         is BridgeEvent.Frame -> (e.frame as? BridgeFrame.Terminal)?.let { onFrame(it.raw) }
@@ -76,6 +77,11 @@ class TerminalSession(
             bridge.start()
             bridge.state.first { it is BridgeState.Connected }
             open()
+            // Belt and braces: re-send the (idempotent) open while no ack arrived.
+            repeat(3) {
+                kotlinx.coroutines.delay(4_000)
+                if (_ui.value.status == Status.Opening && bridge.state.value is BridgeState.Connected) open()
+            }
         }
     }
 

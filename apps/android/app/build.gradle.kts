@@ -9,8 +9,8 @@ plugins {
 
 // Native versions start at 0.2.0 / versionCode 2000 so they install over the
 // Flutter app (0.1.2xx, versionCode 2xx), which uses the same applicationId and key.
-val nativeVersionName = "0.2.5"
-val nativeVersionCode = 2007
+val nativeVersionName = "0.2.6"
+val nativeVersionCode = 2008
 
 android {
     namespace = "com.huanmeng.huanhermes"
@@ -128,3 +128,28 @@ dependencies {
     androidTestUtil("androidx.test.services:test-services:1.5.0")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
+
+
+// Host companion for "SSH 一键安装": packaged reproducibly from this commit's server/ (scripts/build_companion.sh).
+val companionDir = layout.buildDirectory.dir("generated/companion")
+val bundleCompanion by tasks.registering {
+    val out = companionDir
+    val script = rootProject.file("../../scripts/build_companion.sh")
+    val serverDir = rootProject.file("../../server")
+    inputs.dir(serverDir)
+    inputs.file(script)
+    outputs.dir(out)
+    doLast {
+        val dir = out.get().asFile.resolve("companion").apply { deleteRecursively(); mkdirs() }
+        val proc = ProcessBuilder("bash", script.absolutePath, nativeVersionName, "2026-01-01")
+            .apply { environment()["HH_COMPANION_OUT"] = dir.absolutePath }
+            .redirectErrorStream(true).start()
+        val log = proc.inputStream.bufferedReader().readText()
+        if (proc.waitFor() != 0) throw GradleException("build_companion.sh failed:\n$log")
+        val tar = dir.resolve("huanhermes-host-$nativeVersionName.tar.gz")
+        val sha = java.security.MessageDigest.getInstance("SHA-256").digest(tar.readBytes()).joinToString("") { "%02x".format(it) }
+        dir.resolve("companion.json").writeText("""{"version":"$nativeVersionName","sha256":"$sha","file":"${tar.name}"}""")
+    }
+}
+android.sourceSets["main"].assets.srcDir(companionDir)
+tasks.named("preBuild") { dependsOn(bundleCompanion) }
