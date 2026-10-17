@@ -35,6 +35,7 @@ class ProductionManagementServer:
         activity_feed: Any = None,
         log_ring: Any = None,
         audit_path: str | None = None,
+        push: Any = None,
         bridge_port: int = 9810,
         host: str = "127.0.0.1",
         port: int = 9820,
@@ -66,6 +67,7 @@ class ProductionManagementServer:
         self._activity_feed = activity_feed
         self._log_ring = log_ring
         self._audit_path = audit_path
+        self._push = push
         self.bridge_port = bridge_port
         self.host = host
         self.port = port
@@ -285,6 +287,23 @@ class ProductionManagementServer:
         body = self._read_json(request)
         if body is None:
             return
+        if path == "/push/register":
+            if self._push is None:
+                self._send(request, 404, {"ok": False, "error": "not found"})
+                return
+            device_id = body.get("device_id")
+            if method == "DELETE":
+                removed = self._push.unregister(device_id) if isinstance(device_id, str) else False
+                self._send(request, 200, {"ok": True, "data": {"removed": removed}})
+            elif method == "POST":
+                ok = self._push.register(device_id, body.get("endpoint"), str(body.get("kind") or "unifiedpush"))
+                if ok:
+                    self._send(request, 200, {"ok": True, "data": {"registered": True}})
+                else:
+                    self._send(request, 400, {"ok": False, "error": "invalid device_id or endpoint"})
+            else:
+                self._send(request, 405, {"ok": False, "error": "method not allowed"})
+            return
         project: str | None = None
         session_key: str | None = None
         if path.startswith("/projects/") and "/sessions" in path:
@@ -358,6 +377,8 @@ class ProductionManagementServer:
             caps.append("logs_readonly")
         if self._audit_path:
             caps.append("audit_readonly")
+        if self._push is not None:
+            caps.append("push")
         if self._pending_permissions is not None or self._session_activity is not None:
             caps.append("session_overview")
         return caps

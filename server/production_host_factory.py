@@ -19,6 +19,8 @@ from session_store import ProjectSessionStore
 from terminal_bridge_loop import TerminalBridgeLoop
 from workspace_allowlist import WorkspaceAllowlist
 from host_feeds import ActivityFeed, RingLogHandler, combine_observers
+from push_notifier import PushNotifier
+import os
 import logging
 
 
@@ -105,6 +107,7 @@ def build_production_host(config: ProductionHostConfig) -> ProductionHostCompone
     )
     activity = SessionActivity()
     feed = ActivityFeed()
+    push = PushNotifier(os.path.join(os.path.dirname(config.session_store_path), "push-registrations.json"))
     log_ring = RingLogHandler()
     logging.getLogger().addHandler(log_ring)
     if logging.getLogger().level > logging.INFO or logging.getLogger().level == logging.NOTSET:
@@ -118,7 +121,7 @@ def build_production_host(config: ProductionHostConfig) -> ProductionHostCompone
             poll_interval=config.poll_interval,
         ),
         terminal_loop=terminal_router,
-        journal=SessionJournal(observer=combine_observers(activity.observe, feed.observe)),
+        journal=SessionJournal(observer=combine_observers(activity.observe, feed.observe, push.observe)),
     )
     server = BridgeWebSocketServer(
         transport,
@@ -145,6 +148,7 @@ def build_production_host(config: ProductionHostConfig) -> ProductionHostCompone
         activity_feed=feed,
         log_ring=log_ring,
         audit_path=config.security.permission_audit_path,
+        push=push,
         bridge_port=config.bridge_port,
         host=config.mgmt_host,
         port=config.mgmt_port,

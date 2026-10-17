@@ -1148,6 +1148,19 @@ seed_host_logs()
 
 
 MOCK_AUDIT: List[Dict[str, Any]] = []
+_MOCK_PUSH: Any = None
+
+
+def mock_push() -> Any:
+    global _MOCK_PUSH
+    if _MOCK_PUSH is None:
+        _sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+        try:
+            from push_notifier import PushNotifier
+            _MOCK_PUSH = PushNotifier(None)
+        except ImportError:
+            _MOCK_PUSH = False
+    return _MOCK_PUSH or None
 
 
 def _audit_card_action(msg: Dict[str, Any]) -> None:
@@ -4656,6 +4669,8 @@ def _handle_message(conn: socket.socket, msg: Dict[str, Any]) -> None:
             {"text": "Allow all", "data": f"perm:{pid}:allow_all"},
         ]]
         prompt = "Mock agent wants to run: `echo hello` — allow?"
+        if mock_push() is not None:
+            mock_push().observe({"type": "buttons", "session_key": sk, "buttons": buttons})
         with SESSIONS_LOCK:
             PENDING_PERMS.setdefault(sk, []).append({"id": pid, "prompt": prompt, "reply_ctx": ctx, "buttons": buttons})
             if sk in SESSIONS:
@@ -5060,6 +5075,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                             "session_overview",
                             "file_search",
                             "audit_readonly",
+                            "push",
                         ],
                         "hermes": {
                             "adapter": "mock",
@@ -5485,6 +5501,12 @@ class MgmtHandler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             self._send(400, {"ok": False, "error": "invalid json"})
             return
+        if path == "/api/v1/push/register" and mock_push() is not None:
+            if mock_push().register(body.get("device_id"), body.get("endpoint"), str(body.get("kind") or "unifiedpush")):
+                self._send(200, {"ok": True, "data": {"registered": True}})
+            else:
+                self._send(400, {"ok": False, "error": "invalid device_id or endpoint"})
+            return
         # Flat MVP: POST /sessions
         if path == "/api/v1/sessions":
             project = body.get("project") or "claude-code"
@@ -5547,6 +5569,15 @@ class MgmtHandler(BaseHTTPRequestHandler):
             self._send(401, {"ok": False, "error": "unauthorized: missing or invalid token"})
             return
         path = unquote(urlparse(self.path).path)
+        if path == "/api/v1/push/register" and mock_push() is not None:
+            length = int(self.headers.get("Content-Length") or 0)
+            try:
+                body = json.loads((self.rfile.read(length) if length else b"{}").decode("utf-8") or "{}")
+            except json.JSONDecodeError:
+                body = {}
+            removed = mock_push().unregister(str(body.get("device_id") or ""))
+            self._send(200, {"ok": True, "data": {"removed": removed}})
+            return
         m = re.match(r"^/api/v1/sessions/(.+)$", path)
         if m:
             sid = m.group(1)
