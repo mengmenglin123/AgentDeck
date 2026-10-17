@@ -51,8 +51,18 @@ class AppGraph(private val context: Context) {
     private val wsHttp: OkHttpClient by lazy { http.newBuilder().readTimeout(0, TimeUnit.MILLISECONDS).build() }
     private val engine by lazy { OkHttpEngine(http) }
 
+    /** Per-Host HTTP: pinned TLS when the profile carries a certificate pin. */
+    fun engineFor(cfg: com.huanmeng.huanhermes.core.net.HostConfig): com.huanmeng.huanhermes.core.mgmt.HttpEngine =
+        if (cfg.useTls && cfg.certPin.isNotBlank()) OkHttpEngine(com.huanmeng.huanhermes.core.net.Pinning.clientFor(http, cfg)) else engine
+
+    private fun wsFor(cfg: com.huanmeng.huanhermes.core.net.HostConfig): OkHttpClient =
+        com.huanmeng.huanhermes.core.net.Pinning.clientFor(wsHttp, cfg)
+
+    /** A link scanned from a QR code, waiting for the Hosts screen to pair it. */
+    val pendingPairing = MutableStateFlow<String?>(null)
+
     val profiles: ProfileManager by lazy {
-        ProfileManager(SecureProfileStorage(context), { cfg -> MgmtClient(cfg, engine) })
+        ProfileManager(SecureProfileStorage(context), { cfg -> MgmtClient(cfg, engineFor(cfg)) })
     }
 
     val offlineQueue: OfflineQueue by lazy {
@@ -68,7 +78,7 @@ class AppGraph(private val context: Context) {
     val inbox: InboxModel by lazy {
         InboxModel({ profile ->
             val rt = runtime
-            val client = if (rt != null && rt.profile == profile) rt.mgmt else MgmtClient(profile.config, engine)
+            val client = if (rt != null && rt.profile == profile) rt.mgmt else MgmtClient(profile.config, engineFor(profile.config))
             val caps = runCatching {
                 (client.status()["capabilities"] as? kotlinx.serialization.json.JsonArray).orEmpty()
                     .mapNotNull { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
@@ -133,7 +143,7 @@ class AppGraph(private val context: Context) {
         if (!profiles.state.value.loaded) profiles.load()
         for (p in profiles.state.value.profiles) {
             runCatching {
-                val mgmt = MgmtClient(p.config, engine)
+                val mgmt = MgmtClient(p.config, engineFor(p.config))
                 if (endpoint != null) mgmt.registerPush(p.config.deviceId, endpoint) else mgmt.unregisterPush(p.config.deviceId)
             }
         }
@@ -176,7 +186,7 @@ class AppGraph(private val context: Context) {
             val up = withTimeoutOrNull(12_000) { rt.bridge.state.first { it is BridgeState.Connected } } != null
             return up && rt.bridge.send(frame)
         }
-        val temp = BridgeClient(profile.config, OkHttpWsTransport(wsHttp), scope, appVersion = BuildConfig.VERSION_NAME)
+        val temp = BridgeClient(profile.config, OkHttpWsTransport(wsFor(profile.config)), scope, appVersion = BuildConfig.VERSION_NAME)
         return try {
             temp.start()
             val up = withTimeoutOrNull(12_000) { temp.state.first { it is BridgeState.Connected } } != null
@@ -200,10 +210,10 @@ class AppGraph(private val context: Context) {
         current?.bridge?.stop()
         val bridge = BridgeClient(
             profile.config,
-            OkHttpWsTransport(wsHttp),
+            OkHttpWsTransport(wsFor(profile.config)),
             scope,
             appVersion = BuildConfig.VERSION_NAME,
         )
-        return HostRuntime(profile, bridge, MgmtClient(profile.config, engine)).also { runtime = it }
+        return HostRuntime(profile, bridge, MgmtClient(profile.config, engineFor(profile.config))).also { runtime = it }
     }
 }

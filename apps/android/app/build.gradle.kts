@@ -105,7 +105,9 @@ dependencies {
     implementation(libs.compose.material.icons)
     implementation(libs.navigation.compose)
     implementation(libs.androidx.work.runtime)
-    implementation(libs.unifiedpush.connector)
+    // UnifiedPush ships JVM tink; security-crypto ships tink-android. Keep one (Android) copy.
+    implementation(libs.unifiedpush.connector) { exclude(group = "com.google.crypto.tink", module = "tink") }
+    implementation("com.google.crypto.tink:tink-android:1.23.0")
     implementation(libs.datastore.preferences)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
