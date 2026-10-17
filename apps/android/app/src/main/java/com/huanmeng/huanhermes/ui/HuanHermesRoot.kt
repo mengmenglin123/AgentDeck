@@ -150,7 +150,27 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
             composable(Tab.Inbox.route) {
                 InboxScreen(inboxVm, onOpenChat = openChat, onOpenHosts = { nav.navigate("hosts") })
             }
-            composable(Tab.Tools.route) { ToolsScreen(onOpenHosts = { nav.navigate("hosts") }, onOpenInbox = { nav.navigate(Tab.Inbox.route) { launchSingleTop = true } }) }
+            composable(Tab.Tools.route) {
+                ToolsScreen(
+                    onOpenHosts = { nav.navigate("hosts") },
+                    onOpenInbox = { nav.navigate(Tab.Inbox.route) { launchSingleTop = true } },
+                    onOpen = { route -> nav.navigate(route) },
+                )
+            }
+            composable("status") {
+                val vm: com.huanmeng.huanhermes.ui.vm.DashboardViewModel = viewModel { com.huanmeng.huanhermes.ui.vm.DashboardViewModel(graph) }
+                com.huanmeng.huanhermes.ui.screens.DashboardScreen(vm, statusOnly = true, onBack = { nav.popBackStack() }, onOpenInbox = { nav.navigate(Tab.Inbox.route) { launchSingleTop = true } })
+            }
+            composable("dashboard") {
+                val vm: com.huanmeng.huanhermes.ui.vm.DashboardViewModel = viewModel { com.huanmeng.huanhermes.ui.vm.DashboardViewModel(graph) }
+                com.huanmeng.huanhermes.ui.screens.DashboardScreen(vm, statusOnly = false, onBack = { nav.popBackStack() }, onOpenInbox = { nav.navigate(Tab.Inbox.route) { launchSingleTop = true } })
+            }
+            composable("catalog/{kind}") { e ->
+                val kind = runCatching { com.huanmeng.huanhermes.core.catalog.CatalogKind.valueOf(e.arguments?.getString("kind").orEmpty()) }
+                    .getOrDefault(com.huanmeng.huanhermes.core.catalog.CatalogKind.AGENTS)
+                val vm: com.huanmeng.huanhermes.ui.vm.CatalogViewModel = viewModel(key = "catalog-$kind") { com.huanmeng.huanhermes.ui.vm.CatalogViewModel(graph, kind) }
+                com.huanmeng.huanhermes.ui.screens.CatalogScreen(vm, onBack = { nav.popBackStack() })
+            }
             composable(Tab.Settings.route) { SettingsScreen(settings, repo, onOpenHosts = { nav.navigate("hosts") }) }
             composable("hosts") {
                 val vm: HostsViewModel = viewModel { HostsViewModel(graph) }

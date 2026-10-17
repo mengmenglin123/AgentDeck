@@ -35,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
@@ -47,34 +48,34 @@ private val sections = listOf(
         Tool("Host 连接", "添加、切换 Host 与令牌", Icons.Outlined.Dns, action = "hosts"),
     )),
     Section("Host 状态", listOf(
-        Tool("Status", "版本、运行时间、能力", Icons.Outlined.MonitorHeart, "0.2.4"),
-        Tool("Dashboard", "会话与运行概览", Icons.Outlined.Dashboard, "0.2.4"),
-        Tool("Activity", "最近事件流", Icons.Outlined.Insights, "0.2.4"),
-        Tool("Logs", "Host 日志", Icons.AutoMirrored.Outlined.ReceiptLong, "0.2.4"),
-        Tool("Audit", "权限审批记录", Icons.Outlined.Security, "0.2.4"),
+        Tool("Status", "版本、运行时间、能力", Icons.Outlined.MonitorHeart, action = "status"),
+        Tool("Dashboard", "会话与运行概览", Icons.Outlined.Dashboard, action = "dashboard"),
+        Tool("Activity", "最近事件流", Icons.Outlined.Insights, action = "catalog/ACTIVITY"),
+        Tool("Logs", "Host 日志", Icons.AutoMirrored.Outlined.ReceiptLong, action = "catalog/LOGS"),
+        Tool("Audit", "权限审批记录", Icons.Outlined.Security, action = "catalog/AUDIT"),
     )),
     Section("Agent 能力", listOf(
-        Tool("Agents", "可用的 Agent 与驱动", Icons.Outlined.SmartToy, "0.2.4"),
-        Tool("Skills", "技能目录", Icons.Outlined.Psychology, "0.2.4"),
-        Tool("MCP", "MCP 服务器与工具", Icons.Outlined.Extension, "0.2.4"),
-        Tool("Tools", "内置工具清单", Icons.Outlined.Handyman, "0.2.4"),
-        Tool("Memory", "长期记忆", Icons.Outlined.AccountTree, "0.2.4"),
-        Tool("Cron", "定时任务", Icons.Outlined.Schedule, "0.2.4"),
+        Tool("Agents", "可用的 Agent 与驱动", Icons.Outlined.SmartToy, action = "catalog/AGENTS"),
+        Tool("Skills", "技能目录", Icons.Outlined.Psychology, action = "catalog/SKILLS"),
+        Tool("MCP", "MCP 服务器与工具", Icons.Outlined.Extension, action = "catalog/MCP"),
+        Tool("Tools", "内置工具清单", Icons.Outlined.Handyman, action = "catalog/TOOLS"),
+        Tool("Memory", "长期记忆", Icons.Outlined.AccountTree, action = "catalog/MEMORY"),
+        Tool("Cron", "定时任务", Icons.Outlined.Schedule, action = "catalog/CRON"),
     )),
     Section("代码与终端", listOf(
-        Tool("Workspace", "浏览项目文件", Icons.Outlined.Folder, "0.2.5"),
-        Tool("Diff", "查看改动", Icons.Outlined.Difference, "0.2.5"),
-        Tool("终端", "远程终端（PTY）", Icons.Outlined.Terminal, "0.2.5"),
+        Tool("Workspace", "浏览项目文件", Icons.Outlined.Folder, "0.2.6"),
+        Tool("Diff", "查看改动", Icons.Outlined.Difference, "0.2.6"),
+        Tool("终端", "远程终端（PTY）", Icons.Outlined.Terminal, "0.2.6"),
     )),
     Section("配对与安装", listOf(
-        Tool("扫码配对", "扫描 Host 二维码一键连接", Icons.Outlined.QrCodeScanner, "0.2.6"),
-        Tool("SSH 安装", "一键安装 companion", Icons.Outlined.InstallDesktop, "0.2.6"),
+        Tool("扫码配对", "扫描 Host 二维码一键连接", Icons.Outlined.QrCodeScanner, "0.2.7"),
+        Tool("SSH 安装", "一键安装 companion", Icons.Outlined.InstallDesktop, "0.2.7"),
     )),
 )
 
 @Composable
-fun ToolsScreen(onOpenHosts: () -> Unit = {}, onOpenInbox: () -> Unit = {}) {
-    LazyColumn(Modifier.fillMaxSize().statusBarsPadding(), contentPadding = PaddingValues(vertical = 8.dp)) {
+fun ToolsScreen(onOpenHosts: () -> Unit = {}, onOpenInbox: () -> Unit = {}, onOpen: (String) -> Unit = {}) {
+    LazyColumn(Modifier.fillMaxSize().statusBarsPadding().testTag("tools-list"), contentPadding = PaddingValues(vertical = 8.dp)) {
         sections.forEach { section ->
             item(key = "h-${section.title}") {
                 Text(
@@ -84,10 +85,11 @@ fun ToolsScreen(onOpenHosts: () -> Unit = {}, onOpenInbox: () -> Unit = {}) {
                 )
             }
             items(section.tools, key = { it.name }) { tool ->
+                val tag = "tool-" + tool.name.lowercase()
                 val enabled = tool.action != null
                 ListItem(
-                    modifier = Modifier.fillMaxWidth().clickable(enabled = enabled) {
-                        when (tool.action) { "hosts" -> onOpenHosts(); "inbox" -> onOpenInbox() }
+                    modifier = Modifier.fillMaxWidth().testTag(tag).clickable(enabled = enabled) {
+                        when (tool.action) { "hosts" -> onOpenHosts(); "inbox" -> onOpenInbox(); null -> {}; else -> onOpen(tool.action) }
                     },
                     colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background),
                     leadingContent = { Icon(tool.icon, null, tint = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant) },

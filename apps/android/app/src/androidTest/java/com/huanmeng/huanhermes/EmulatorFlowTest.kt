@@ -7,6 +7,7 @@ import androidx.compose.ui.test.SemanticsNodeInteractionCollection
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
@@ -15,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
@@ -190,6 +192,24 @@ class EmulatorFlowTest {
         ensureConnected()
         rule.onAllNodesWithText("工具").onFirst().performClick()
         rule.waitForIdle(); shot("12-tools")
+        // Read-only catalogs (M3): Dashboard, Agents, Logs, Audit (has the deny from test b).
+        rule.onNodeWithTag("tool-dashboard").performClick()
+        rule.waitUntilAtLeastOneExists(hasText("运行中"), 15_000)
+        rule.waitUntilAtLeastOneExists(hasText("能力", substring = true), 15_000)
+        shot("19-dashboard")
+        rule.onNodeWithContentDescription("返回").performClick()
+        rule.onNodeWithTag("tool-agents").performClick()
+        waitText("Claude Code")
+        shot("20-agents")
+        rule.onNodeWithContentDescription("返回").performClick()
+        rule.onNodeWithTag("tools-list").performScrollToNode(hasTestTag("tool-logs")); rule.onNodeWithTag("tool-logs").performClick()
+        rule.waitUntilAtLeastOneExists(hasText("Mock Host", substring = true), 15_000)
+        shot("21-logs")
+        rule.onNodeWithContentDescription("返回").performClick()
+        rule.onNodeWithTag("tools-list").performScrollToNode(hasTestTag("tool-audit")); rule.onNodeWithTag("tool-audit").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("catalog-audit"), 10_000)
+        rule.waitForIdle(); shot("22-audit")
+        rule.onNodeWithContentDescription("返回").performClick()
         rule.onAllNodesWithText("设置").onFirst().performClick()
         waitText("外观")
         shot("13-settings")

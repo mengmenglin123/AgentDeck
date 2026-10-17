@@ -117,6 +117,8 @@ interface MgmtApi {
     suspend fun sessionDetail(id: String, project: String?): SessionDetail
     /** File paths for `@` mentions (Hosts with `file_search`); empty when unsupported. */
     suspend fun searchFiles(project: String?, query: String, limit: Int = 30): List<String> = emptyList()
+    /** Raw GET of a read-only catalog (`/agents?project=x`); the `data` object. */
+    suspend fun get(pathAndQuery: String): JsonObject = throw HostError.Protocol("unsupported")
 }
 
 /**
@@ -132,6 +134,8 @@ class MgmtClient(
         private set
 
     override suspend fun status(): JsonObject = request("GET", "/status")
+
+    override suspend fun get(pathAndQuery: String): JsonObject = request("GET", pathAndQuery)
 
     override suspend fun searchFiles(project: String?, query: String, limit: Int): List<String> {
         val qs = buildString {
