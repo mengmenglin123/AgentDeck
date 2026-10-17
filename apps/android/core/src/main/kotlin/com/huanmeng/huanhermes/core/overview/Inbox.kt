@@ -82,7 +82,9 @@ class InboxModel(
         _state.update { st -> InboxState(items, hosts, loading = false, answered = st.answered intersect keys) }
     }
 
-    fun markAnswered(item: InboxItem) = _state.update { it.copy(answered = it.answered + item.key) }
+    fun markAnswered(item: InboxItem) = markAnswered(item.key)
+
+    fun markAnswered(key: String) = _state.update { it.copy(answered = it.answered + key) }
 
     fun unmark(item: InboxItem) = _state.update { it.copy(answered = it.answered - item.key) }
 }

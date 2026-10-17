@@ -1,5 +1,9 @@
 package com.huanmeng.huanhermes
 
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+
 import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.SystemBarStyle
@@ -22,11 +26,36 @@ class MainActivity : ComponentActivity() {
         (application as HuanHermesApp).graph.onForeground()
     }
 
+    override fun onStop() {
+        super.onStop()
+        if (!isChangingConfigurations) (application as HuanHermesApp).graph.onBackground()
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        handleOpenTab(intent)
+    }
+
+    private fun handleOpenTab(intent: android.content.Intent?) {
+        val tab = intent?.getStringExtra(com.huanmeng.huanhermes.notify.ApprovalNotifications.EXTRA_OPEN_TAB) ?: return
+        (application as HuanHermesApp).graph.openTabRequests.value = tab
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val repo = (application as HuanHermesApp).settings
+        handleOpenTab(intent)
+        // Notifications start after the first frame; nothing here may block or throw.
+        window.decorView.post {
+            val app = application as HuanHermesApp
+            app.graph.startNotifier(repo.settings.map { it.approvalNotifications })
+            app.graph.scope.launch {
+                val on = runCatching { repo.settings.first().approvalNotifications }.getOrDefault(true)
+                com.huanmeng.huanhermes.notify.InboxWorker.schedule(applicationContext, on)
+            }
+        }
         setContent {
             val settings by repo.settings.collectAsStateWithLifecycle(initialValue = AppSettings())
             val systemDark = isSystemInDarkTheme()

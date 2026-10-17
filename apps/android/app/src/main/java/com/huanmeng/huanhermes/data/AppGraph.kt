@@ -17,6 +17,15 @@ import com.huanmeng.huanhermes.core.overview.LocalSessionPrefs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import com.huanmeng.huanhermes.core.bridge.BridgeState
+import com.huanmeng.huanhermes.core.protocol.Outbound
+import com.huanmeng.huanhermes.notify.ApprovalNotifications
 import okhttp3.OkHttpClient
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
@@ -79,10 +88,93 @@ class AppGraph(private val context: Context) {
     /** The live runtime, if any (diagnostics, inbox approvals). */
     val currentRuntime: HostRuntime? get() = runtime
 
+    // --- foreground / notifications -------------------------------------
+
+    @Volatile var inForeground = false
+        private set
+    @Volatile private var notificationsEnabled = true
+    private val notified: MutableSet<String> = ConcurrentHashMap.newKeySet()
+    @Volatile private var backgroundPoll: Job? = null
+    @Volatile private var notifierStarted = false
+
+    /** A tab the UI should switch to (set by a notification tap). */
+    val openTabRequests = MutableStateFlow<String?>(null)
+
     /** App came to the foreground: don't sit out a long backoff wait. */
     fun onForeground() {
+        inForeground = true
+        backgroundPoll?.cancel()
         val rt = runtime ?: return
         if (!rt.bridge.isConnected) rt.bridge.reconnectNow()
+    }
+
+    /** For a few minutes after leaving the app, check for approvals often; WorkManager covers the rest. */
+    fun onBackground() {
+        inForeground = false
+        backgroundPoll?.cancel()
+        backgroundPoll = scope.launch {
+            repeat(12) {
+                delay(45_000)
+                runCatching { checkInboxAndNotify() }
+            }
+        }
+    }
+
+    /** Called once after the first frame (never at process start). */
+    fun startNotifier(enabled: kotlinx.coroutines.flow.Flow<Boolean>) {
+        if (notifierStarted) return
+        notifierStarted = true
+        scope.launch { enabled.collect { notificationsEnabled = it } }
+        scope.launch { inbox.state.collect { reconcile(it) } }
+    }
+
+    suspend fun checkInboxAndNotify() {
+        if (!profiles.state.value.loaded) profiles.load()
+        val list = profiles.state.value.profiles
+        if (list.isEmpty()) return
+        inbox.refresh(list)
+        reconcile(inbox.state.value)
+    }
+
+    private fun reconcile(st: com.huanmeng.huanhermes.core.overview.InboxState) {
+        if (st.loading) return
+        val live = st.visible.associateBy { it.key }
+        for (key in notified.toList()) if (key !in live) {
+            notified.remove(key)
+            ApprovalNotifications.cancel(context, key)
+        }
+        for ((key, item) in live) {
+            if (!notified.add(key)) continue
+            // In the app the badge is enough; only new items while away become notifications.
+            if (!inForeground && notificationsEnabled) ApprovalNotifications.post(context, item)
+        }
+    }
+
+    /**
+     * Sends a permission decision to the Host that asked. The active Host uses
+     * its live Bridge; any other Host gets a short-lived connection (its
+     * detached session is claimable), so approving never switches Host.
+     */
+    suspend fun sendDecision(hostId: String, sessionKey: String, project: String?, replyCtx: String?, action: String): Boolean {
+        if (!profiles.state.value.loaded) profiles.load()
+        val profile = profiles.state.value.profiles.firstOrNull { it.id == hostId } ?: return false
+        val frame = Outbound.cardAction(sessionKey, action, replyCtx, project)
+        val rt = runtime
+        if (rt != null && rt.profile.id == hostId) {
+            rt.bridge.start()
+            val up = withTimeoutOrNull(12_000) { rt.bridge.state.first { it is BridgeState.Connected } } != null
+            return up && rt.bridge.send(frame)
+        }
+        val temp = BridgeClient(profile.config, OkHttpWsTransport(wsHttp), scope, appVersion = BuildConfig.VERSION_NAME)
+        return try {
+            temp.start()
+            val up = withTimeoutOrNull(12_000) { temp.state.first { it is BridgeState.Connected } } != null
+            val sent = up && temp.send(frame)
+            if (sent) delay(1_500) // let the frame flush before closing
+            sent
+        } finally {
+            temp.stop()
+        }
     }
 
     @Synchronized

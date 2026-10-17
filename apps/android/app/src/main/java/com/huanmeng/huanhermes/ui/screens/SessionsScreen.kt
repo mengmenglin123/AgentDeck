@@ -99,7 +99,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun SessionsScreen(vm: SessionsViewModel, onOpenHosts: () -> Unit, onOpenChat: (SessionRef) -> Unit) {
+fun SessionsScreen(vm: SessionsViewModel, onOpenHosts: () -> Unit, onOpenChat: (SessionRef) -> Unit, selectedId: String? = null) {
     val state by vm.sessions.collectAsStateWithLifecycle()
     val active by vm.active.collectAsStateWithLifecycle()
     val profiles by vm.profiles.collectAsStateWithLifecycle()
@@ -217,6 +217,7 @@ fun SessionsScreen(vm: SessionsViewModel, onOpenHosts: () -> Unit, onOpenChat: (
                             items(group.rows, key = { "${group.key}|${it.session.id}" }) { row ->
                                 SessionListRow(
                                     row = row,
+                                    selected = row.session.id == selectedId,
                                     preview = SessionOverview.previewOf(row.session, prefs.drafts[row.session.id]),
                                     time = SessionOverview.relativeTime(row.session.updatedAt, now / 1000.0),
                                     onOpen = { onOpenChat(vm.remember(row.session)) },
@@ -335,6 +336,7 @@ private fun statusLook(s: SessionStatus): StatusLook = when (s) {
 @Composable
 private fun SessionListRow(
     row: SessionRow,
+    selected: Boolean,
     preview: String,
     time: String,
     onOpen: () -> Unit,
@@ -396,7 +398,9 @@ private fun SessionListRow(
                     .semantics(mergeDescendants = true) {
                         contentDescription = "${s.displayTitle}，${row.status.label}" + if (row.pinned) "，已置顶" else ""
                     },
-                colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background),
+                colors = ListItemDefaults.colors(
+                    containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.background,
+                ),
                 leadingContent = {
                     Box(
                         Modifier.size(40.dp).background(look.tint.copy(alpha = 0.14f), CircleShape),

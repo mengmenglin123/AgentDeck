@@ -86,6 +86,7 @@ import com.huanmeng.huanhermes.ui.chat.HealthStrip
 import com.huanmeng.huanhermes.ui.chat.PermissionButtons
 import com.huanmeng.huanhermes.ui.chat.RunQueue
 import com.huanmeng.huanhermes.ui.chat.SlashPalette
+import com.huanmeng.huanhermes.ui.chat.MentionPalette
 import com.huanmeng.huanhermes.ui.rememberHaptic
 import com.huanmeng.huanhermes.ui.theme.Brand
 
@@ -95,6 +96,7 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit, foldTurns: Boolean = true)
     val state by vm.state.collectAsStateWithLifecycle()
     val history by vm.history.collectAsStateWithLifecycle()
     val models by vm.models.collectAsStateWithLifecycle()
+    val fileHits by vm.fileHits.collectAsStateWithLifecycle()
     var input by rememberSaveable { mutableStateOf(vm.initialDraft) }
     var showDiagnostics by remember { mutableStateOf(false) }
     val list = rememberLazyListState()
@@ -185,9 +187,14 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit, foldTurns: Boolean = true)
             onRemove = { id -> vm.takeQueued(id) },
         )
         SlashPalette(input, onPick = { cmd -> input = cmd.command + if (cmd.takesArgument) " " else "" })
+        MentionPalette(
+            visible = com.huanmeng.huanhermes.core.chat.Mentions.activeQuery(input) != null,
+            files = fileHits,
+            onPick = { path -> input = com.huanmeng.huanhermes.core.chat.Mentions.insert(input, path); vm.onInputChanged(input); vm.saveDraft(input) },
+        )
         Composer(
             input = input,
-            onInput = { input = it; vm.saveDraft(it) },
+            onInput = { input = it; vm.saveDraft(it); vm.onInputChanged(it) },
             connected = state.connected,
             runActive = state.runActive,
             queues = vm.queuesWhileRunning(),
@@ -259,8 +266,8 @@ private fun Bubble(alignEnd: Boolean, color: androidx.compose.ui.graphics.Color,
     Box(Modifier.fillMaxWidth(), contentAlignment = if (alignEnd) Alignment.CenterEnd else Alignment.CenterStart) {
         Box(
             Modifier.widthIn(max = 560.dp)
-                .background(color, RoundedCornerShape(14.dp))
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .background(color, if (alignEnd) RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp) else RoundedCornerShape(18.dp, 18.dp, 18.dp, 4.dp))
+                .padding(horizontal = 14.dp, vertical = 10.dp),
         ) { content() }
     }
 }

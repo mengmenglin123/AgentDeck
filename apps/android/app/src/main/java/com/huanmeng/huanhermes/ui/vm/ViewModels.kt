@@ -26,6 +26,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withTimeoutOrNull
@@ -164,16 +166,9 @@ class InboxViewModel(private val graph: AppGraph) : ViewModel() {
         _busy.value = item.key
         _error.value = null
         try {
-            val profile = graph.profiles.state.value.profiles.firstOrNull { it.id == item.hostId }
-                ?: run { _error.value = "Host 已删除"; return@launch }
-            if (graph.profiles.state.value.activeId != profile.id) graph.profiles.select(profile.id)
-            val rt = graph.runtimeFor(profile) ?: run { _error.value = "无法连接 ${profile.name}"; return@launch }
-            rt.bridge.start()
-            val connected = withTimeoutOrNull(12_000) { rt.bridge.state.first { it is BridgeState.Connected } } != null
-            if (!connected) { _error.value = "连不上 ${profile.name} 的 Bridge，稍后再试"; return@launch }
             val action = Outbound.resolvePermissionAction(decision, item.permission.buttons)
-            val ok = rt.bridge.send(Outbound.cardAction(item.session.sessionKey, action, item.permission.replyCtx, item.session.project.ifBlank { null }))
-            if (!ok) { _error.value = "发送失败，请重试"; return@launch }
+            val ok = graph.sendDecision(item.hostId, item.session.sessionKey, item.session.project.ifBlank { null }, item.permission.replyCtx, action)
+            if (!ok) { _error.value = "连不上 ${item.hostName} 的 Bridge，稍后再试"; return@launch }
             graph.inbox.markAnswered(item)
             delay(800)
             graph.inbox.refresh(graph.profiles.state.value.profiles)
@@ -192,6 +187,7 @@ class InboxViewModel(private val graph: AppGraph) : ViewModel() {
 }
 
 /** [fallback] comes from the nav route, so the chat survives process death (no in-memory map then). */
+@OptIn(kotlinx.coroutines.FlowPreview::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class ChatViewModel(private val graph: AppGraph, private val sessionId: String, fallback: SessionRef?) : ViewModel() {
     private val ref: SessionRef? = graph.sessionRefs[sessionId] ?: fallback
     private val hostId: String? = run {
@@ -214,6 +210,20 @@ class ChatViewModel(private val graph: AppGraph, private val sessionId: String, 
     private val _models = MutableStateFlow<List<String>>(emptyList())
     val models: StateFlow<List<String>> = _models.asStateFlow()
     private var draftJob: Job? = null
+    private val mentionQuery = MutableStateFlow<String?>(null)
+
+    /** Workspace files matching the `@` mention being typed (Hosts with `file_search`). */
+    val fileHits: StateFlow<List<String>> = mentionQuery
+        .debounce(180)
+        .mapLatest { q ->
+            if (q == null) emptyList()
+            else runCatching { graph.currentRuntime?.mgmt?.searchFiles(ref?.project, q, 20) }.getOrNull().orEmpty()
+        }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    fun onInputChanged(text: String) {
+        mentionQuery.value = com.huanmeng.huanhermes.core.chat.Mentions.activeQuery(text)
+    }
 
     init {
         chat?.start()

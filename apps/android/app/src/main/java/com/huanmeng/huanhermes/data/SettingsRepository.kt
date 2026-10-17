@@ -27,6 +27,10 @@ data class AppSettings(
     val haptics: Boolean = true,
     /** Fold each finished turn's tool calls into one line. */
     val foldTurns: Boolean = true,
+    /** Notify about pending approvals while the app is in the background. */
+    val approvalNotifications: Boolean = true,
+    /** The notification permission prompt was shown once already. */
+    val askedNotificationPermission: Boolean = false,
 )
 
 /** UI preferences. A corrupt file is replaced with defaults instead of crashing. */
@@ -50,6 +54,8 @@ class SettingsRepository(context: Context) {
             prefs[AMOLED] = next.amoledBlack
             prefs[HAPTICS] = next.haptics
             prefs[FOLD] = next.foldTurns
+            prefs[NOTIFY] = next.approvalNotifications
+            prefs[ASKED] = next.askedNotificationPermission
         }
     }
 
@@ -61,6 +67,8 @@ class SettingsRepository(context: Context) {
         amoledBlack = this[AMOLED] ?: false,
         haptics = this[HAPTICS] ?: true,
         foldTurns = this[FOLD] ?: true,
+        approvalNotifications = this[NOTIFY] ?: true,
+        askedNotificationPermission = this[ASKED] ?: false,
     )
 
     companion object {
@@ -73,5 +81,7 @@ class SettingsRepository(context: Context) {
         private val AMOLED = booleanPreferencesKey("amoled_black")
         private val HAPTICS = booleanPreferencesKey("haptics")
         private val FOLD = booleanPreferencesKey("fold_turns")
+        private val NOTIFY = booleanPreferencesKey("approval_notifications")
+        private val ASKED = booleanPreferencesKey("asked_notification_permission")
     }
 }

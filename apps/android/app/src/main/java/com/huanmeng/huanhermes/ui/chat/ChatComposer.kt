@@ -31,6 +31,7 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
@@ -168,6 +169,31 @@ fun SlashPalette(input: String, onPick: (SlashCommand) -> Unit) {
     }
 }
 
+/** `@` file picker; shows nothing when the Host has no `file_search` or nothing matches. */
+@Composable
+fun MentionPalette(visible: Boolean, files: List<String>, onPick: (String) -> Unit) {
+    AnimatedVisibility(visible && files.isNotEmpty()) {
+        Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth().heightIn(max = 240.dp)) {
+            LazyColumn(Modifier.testTag("mention-palette")) {
+                items(files, key = { it }) { path ->
+                    val name = path.substringAfterLast('/')
+                    val dir = path.substringBeforeLast('/', "")
+                    Row(
+                        Modifier.fillMaxWidth().clickable { onPick(path) }.padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Outlined.Description, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                        Column(Modifier.padding(start = 10.dp)) {
+                            Text(name, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            if (dir.isNotEmpty()) Text(dir, style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 fun modeLabel(mode: String?) = when (mode) {
     null, "", "default" -> "默认模式"
     "plan" -> "计划模式"
@@ -233,6 +259,7 @@ fun Composer(
                     }
                 }
                 FilterChip(selected = false, onClick = { onInput("/") }, label = { Text("/ 命令") })
+                FilterChip(selected = false, onClick = { onInput(if (input.isEmpty() || input.endsWith(" ")) input + "@" else "$input @") }, label = { Text("@ 文件") })
                 if (history.isNotEmpty()) Box {
                     FilterChip(
                         selected = false, onClick = { historyMenu = true },
@@ -255,7 +282,7 @@ fun Composer(
                             when {
                                 !connected -> "离线：发送后会排队，重连后自动发出"
                                 runActive && queues -> "运行中：新消息会排在本轮之后"
-                                else -> "发消息，输入 / 打开命令…"
+                                else -> "发消息，/ 命令，@ 文件…"
                             },
                             maxLines = 1, overflow = TextOverflow.Ellipsis,
                         )

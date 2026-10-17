@@ -38,6 +38,10 @@ import org.junit.runners.MethodSorters
 @RunWith(AndroidJUnit4::class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class EmulatorFlowTest {
+    // No system permission dialog over the UI under test (Android 13+).
+    @get:Rule(order = -1) val notifications: org.junit.rules.TestRule =
+        if (android.os.Build.VERSION.SDK_INT >= 33) androidx.test.rule.GrantPermissionRule.grant(android.Manifest.permission.POST_NOTIFICATIONS)
+        else org.junit.rules.TestRule { base, _ -> base }
     @get:Rule(order = 0) val rule = createAndroidComposeRule<MainActivity>()
     // Inner rule: runs while the activity is still on screen.
     @get:Rule(order = 1) val shotOnFailure = object : TestWatcher() {
@@ -156,6 +160,13 @@ class EmulatorFlowTest {
         rule.onNodeWithContentDescription("发送").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
         rule.waitForIdle()
         shot("14-composer-chips")
+        // @ mention: the Host's file search fills the picker; picking inserts the path.
+        rule.onNodeWithTag("chat-input").performTextInput("看看 @READ")
+        rule.waitUntilAtLeastOneExists(androidx.compose.ui.test.hasTestTag("mention-palette"), 10_000)
+        shot("14b-mention-palette")
+        rule.onAllNodes(hasText("README.md") and androidx.compose.ui.test.hasAnyAncestor(androidx.compose.ui.test.hasTestTag("mention-palette"))).onFirst().performClick()
+        rule.waitUntilAtLeastOneExists(hasText("看看 @README.md", substring = true), 5_000)
+        rule.onNodeWithTag("chat-input").performTextClearance()
 
         send("/perm")
         waitText("需要权限 · 待处理")

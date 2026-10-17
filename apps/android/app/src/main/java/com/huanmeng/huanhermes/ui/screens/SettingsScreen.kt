@@ -33,6 +33,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsScreen(settings: AppSettings, repo: SettingsRepository, onOpenHosts: () -> Unit = {}) {
     val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current.applicationContext
     fun set(t: (AppSettings) -> AppSettings) { scope.launch { repo.update(t) } }
 
     Column(
@@ -78,6 +79,10 @@ fun SettingsScreen(settings: AppSettings, repo: SettingsRepository, onOpenHosts:
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 SwitchRow("折叠已完成轮次的工具调用", settings.foldTurns) { v -> set { it.copy(foldTurns = v) } }
                 SwitchRow("触感反馈", settings.haptics) { v -> set { it.copy(haptics = v) } }
+                SwitchRow("后台审批通知（可在通知里直接允许/拒绝）", settings.approvalNotifications) { v ->
+                    set { it.copy(approvalNotifications = v) }
+                    com.huanmeng.huanhermes.notify.InboxWorker.schedule(context, v)
+                }
             }
         }
         Text("关于", style = MaterialTheme.typography.titleMedium)

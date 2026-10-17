@@ -15,8 +15,10 @@ okhttp = "4.12.0"
 securityCrypto = "1.1.0-alpha06"
 jsonSchema = "1.5.3"
 commonmark = "0.24.0"
+work = "2.10.5"
 
 [libraries]
+androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "splash" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
