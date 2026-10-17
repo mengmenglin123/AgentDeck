@@ -17,6 +17,8 @@ data class HostConfig(
     val useTls: Boolean = false,
     val platformName: String = "huanhermes-app",
     val deviceId: String = newDeviceId(),
+    /** TLS certificate pin: base64 SHA-256 of the server's public key (SPKI); allows self-signed. */
+    val certPin: String = "",
 ) {
     val secrets: List<String> get() = listOf(bridgeToken, mgmtToken).filter { it.isNotEmpty() }
     val hasTokens: Boolean get() = bridgeToken.isNotEmpty() && mgmtToken.isNotEmpty()
@@ -48,6 +50,7 @@ data class HostConfig(
         val q = linkedMapOf(
             "host" to host, "bridge" to "$bridgePort", "mgmt" to "$mgmtPort", "tls" to if (useTls) "1" else "0",
         )
+        if (certPin.isNotEmpty()) q["pin"] = certPin
         if (includeTokens) {
             if (bridgeToken.isNotEmpty()) q["bridge_token"] = bridgeToken
             if (mgmtToken.isNotEmpty()) q["mgmt_token"] = mgmtToken
@@ -97,7 +100,15 @@ data class HostConfig(
                 host = host, bridgePort = bridge, mgmtPort = mgmt, useTls = tls,
                 bridgeToken = params["bridge_token"].orEmpty().trim(),
                 mgmtToken = params["mgmt_token"].orEmpty().trim(),
+                certPin = Pinning.normalize(params["pin"].orEmpty()),
             )
+        }
+
+        /** Query parameters of a pairing link (for `code` / `name`). */
+        fun pairingParams(raw: String): Map<String, String> {
+            val s = raw.trim()
+            val query = s.substringAfter('?', "").ifEmpty { s.substringAfter('#', "") }
+            return query.split('&').filter { it.isNotEmpty() }.associate { decode(it.substringBefore('=')) to decode(it.substringAfter('=', "")) }
         }
 
         private fun port(raw: String?, default: Int): Int? {
