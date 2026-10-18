@@ -124,13 +124,17 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit, foldTurns: Boolean = true,
     val cameraFile = remember { java.io.File(ctx.cacheDir, "camera").apply { mkdirs() }.let { java.io.File(it, "shot.jpg") } }
     val cameraUri = remember { androidx.core.content.FileProvider.getUriForFile(ctx, ctx.packageName + ".files", cameraFile) }
     val takePhoto = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.TakePicture()) { ok ->
-        if (ok) com.huanmeng.huanhermes.ui.chat.AttachmentReader.read(ctx, cameraUri)?.let { vm.addAttachment(it.copy(name = "photo-${System.currentTimeMillis() / 1000}.jpg")) }
+        if (ok) vm.addAttachmentFrom(cameraUri, "photo-${System.currentTimeMillis() / 1000}.jpg")
+    }
+    // The manifest declares CAMERA (QR pairing), so the capture intent needs the grant too.
+    val cameraPerm = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) runCatching { takePhoto.launch(cameraUri) } else android.widget.Toast.makeText(ctx, "需要相机权限才能拍照", android.widget.Toast.LENGTH_SHORT).show()
     }
     val pickImage = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { uri ->
-        uri?.let { com.huanmeng.huanhermes.ui.chat.AttachmentReader.read(ctx, it)?.let(vm::addAttachment) }
+        uri?.let { vm.addAttachmentFrom(it) }
     }
     val pickFile = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let { com.huanmeng.huanhermes.ui.chat.AttachmentReader.read(ctx, it)?.let(vm::addAttachment) }
+        uri?.let { vm.addAttachmentFrom(it) }
     }
     val clipboardImage: android.net.Uri? = remember(attachSheet) {
         runCatching {
@@ -410,10 +414,14 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit, foldTurns: Boolean = true,
     }
 
     if (attachSheet) com.huanmeng.huanhermes.ui.chat.AttachSheet(
-        onCamera = { runCatching { takePhoto.launch(cameraUri) } },
+        onCamera = {
+            if (androidx.core.content.ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED)
+                runCatching { takePhoto.launch(cameraUri) }
+            else cameraPerm.launch(android.Manifest.permission.CAMERA)
+        },
         onGallery = { pickImage.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly)) },
         onFile = { pickFile.launch(arrayOf("*/*")) },
-        onClipboard = clipboardImage?.let { uri -> { com.huanmeng.huanhermes.ui.chat.AttachmentReader.read(ctx, uri)?.let(vm::addAttachment); Unit } },
+        onClipboard = clipboardImage?.let { uri -> { vm.addAttachmentFrom(uri); Unit } },
         onDismiss = { attachSheet = false },
     )
     pendingPaste?.let { pasted ->

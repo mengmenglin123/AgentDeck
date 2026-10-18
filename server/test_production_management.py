@@ -194,3 +194,39 @@ class TestProductionManagementServer(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestProductionManagementExtensions(unittest.TestCase):
+    def test_skill_and_mcp_endpoints(self) -> None:
+        import agent_extensions
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        work = Path(tmp.name) / "work"; work.mkdir()
+        home = Path(tmp.name) / "home"; home.mkdir()
+        sessions = ProjectSessionStore(str(Path(tmp.name) / "s.json"), projects=("cc",))
+        server = ProductionManagementServer(
+            (ProjectRuntimeConfig(name="cc", agent_type="claudecode", command=("/bin/true",), workdir=str(work)),),
+            default_project="cc", token="t", sessions=sessions, close_session=lambda _k: None, port=0,
+            extensions=agent_extensions.AgentExtensions(home=str(home), write=True),
+        )
+        server.start()
+        self.addCleanup(server.shutdown)
+        host, port = server.address or ("127.0.0.1", 0)
+
+        def call(path: str, method: str = "GET", body: dict | None = None) -> dict:
+            req = urllib.request.Request(f"http://{host}:{port}/api/v1{path}", method=method,
+                                         data=json.dumps(body).encode() if body is not None else None,
+                                         headers={"Authorization": "Bearer t"})
+            with _DIRECT.open(req, timeout=5) as resp:
+                return json.loads(resp.read().decode())
+
+        self.assertIn("extensions_write", call("/status")["data"]["capabilities"])
+        call("/skills?project=cc", "POST", {"name": "review", "description": "Review diffs", "body": "Be strict"})
+        names = [s["name"] for s in call("/skills?project=cc")["data"]["skills"]]
+        self.assertIn("review", names)
+        self.assertIn("Be strict", call("/skills/review?project=cc")["data"]["content"])
+        call("/mcp?project=cc", "POST", {"name": "web", "kind": "http", "url": "https://example.invalid/mcp"})
+        self.assertEqual([s["name"] for s in call("/mcp?project=cc")["data"]["servers"]], ["web"])
+        call("/mcp/web?project=cc", "DELETE")
+        call("/skills/review?project=cc", "DELETE")
+        self.assertEqual(call("/mcp?project=cc")["data"]["servers"], [])

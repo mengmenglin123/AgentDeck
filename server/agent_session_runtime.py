@@ -26,6 +26,7 @@ class _SessionState:
     started_at: float
     timeout_seconds: float | None
     done_emitted: bool = False
+    workdir: str | None = None
 
 
 class AgentSessionRuntime:
@@ -46,6 +47,10 @@ class AgentSessionRuntime:
     @property
     def active_sessions(self) -> tuple[str, ...]:
         return tuple(self._sessions)
+
+    def workdir_of(self, session_key: str) -> str | None:
+        state = self._sessions.get(session_key)
+        return state.workdir if state is not None else None
 
     def has_active_run(self, session_key: str) -> bool:
         state = self._sessions.get(session_key)
@@ -73,6 +78,7 @@ class AgentSessionRuntime:
             driver=driver,
             started_at=time.monotonic(),
             timeout_seconds=timeout_seconds,
+            workdir=workdir,
         )
 
     def begin_run(

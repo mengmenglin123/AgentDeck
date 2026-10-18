@@ -64,3 +64,9 @@ AMOLED/动态色/高对比/字号、Flutter 数据迁移、保持亮屏、等宽
 - [x] F7 桌面小部件「需要我」（待处理数，点按打开）
 - [x] F8 会话目标条（本机保存，可一键发给 Agent）
 - 延后：终端多标签、Mermaid/LaTeX、Fork/Undo（依赖 Agent）、多人同看、FCM（需 Firebase）
+
+# 0.5.0 扩展管理（2026-10-19，用户：“检查 bug，模拟测试后，继续丰富功能，比如连接器、MCP、skills”）
+- Bug 修复：附件读取移到 IO 线程；拍照前先申请相机权限（清单里声明了 CAMERA）；定时提示提前触发不再重复排程；附件保存到会话真实的 workdir
+- [x] Host 读取 Agent 真实配置：Claude Code（.mcp.json、~/.claude.json、.claude/skills、~/.claude/skills）、Codex（~/.codex/config.toml、.agents/skills、~/.codex/skills）、Hermes（~/.hermes/skills）；密钥只显示键名（server/agent_extensions.py）
+- [x] 写操作 opt-in `[workspace] extensions_write = true`：添加/移除 MCP、探测 MCP 工具（stdio + HTTP）、新建/删除项目技能，全部记活动流
+- [x] App「扩展」页：MCP 服务 / 技能 / 连接器三栏；连接器预设 GitHub、Playwright、Context7、文件系统、网页抓取、记忆、分步思考、Notion、Linear、Sentry

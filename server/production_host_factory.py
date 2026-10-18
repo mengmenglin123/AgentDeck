@@ -21,6 +21,7 @@ from workspace_allowlist import WorkspaceAllowlist
 from host_feeds import ActivityFeed, RingLogHandler, combine_observers
 from push_notifier import PushNotifier
 from device_tokens import DeviceTokenStore
+import agent_extensions
 import os
 import logging
 
@@ -158,6 +159,7 @@ def build_production_host(config: ProductionHostConfig) -> ProductionHostCompone
         push=push,
         devices=devices,
         git_write=config.git_write,
+        extensions=agent_extensions.AgentExtensions(write=config.extensions_write),
         bridge_port=config.bridge_port,
         host=config.mgmt_host,
         port=config.mgmt_port,

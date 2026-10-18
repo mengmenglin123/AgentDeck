@@ -62,6 +62,7 @@ private val sections = listOf(
         Tool("MCP", "MCP 服务器与工具", Icons.Outlined.Extension, action = "catalog/MCP"),
         Tool("Tools", "内置工具清单", Icons.Outlined.Handyman, action = "catalog/TOOLS"),
         Tool("Memory", "长期记忆", Icons.Outlined.AccountTree, action = "catalog/MEMORY"),
+        Tool("扩展", "MCP 服务、技能、连接器", Icons.Outlined.Extension, action = "extensions"),
         Tool("Cron", "定时任务", Icons.Outlined.Schedule, action = "catalog/CRON"),
         Tool("定时提示", "按计划自动发给会话", Icons.Outlined.Alarm, action = "automations"),
     )),

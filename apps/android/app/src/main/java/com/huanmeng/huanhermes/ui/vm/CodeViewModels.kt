@@ -252,3 +252,87 @@ class ExternalSessionsViewModel(graph: AppGraph) : ProjectScopedViewModel(graph)
 
     fun close() = _ui.update { it.copy(open = null, rows = emptyList()) }
 }
+
+data class ExtensionsUi(
+    val loading: Boolean = true,
+    val error: String? = null,
+    val projects: List<ProjectInfo> = emptyList(),
+    val project: String? = null,
+    val servers: List<com.huanmeng.huanhermes.core.extensions.McpServer> = emptyList(),
+    val skills: List<com.huanmeng.huanhermes.core.extensions.SkillInfo> = emptyList(),
+    /** Host reads the Agents' own config files (`extensions`). */
+    val discovers: Boolean = false,
+    /** Host allows changes (`extensions_write`). */
+    val canWrite: Boolean = false,
+    val busy: Boolean = false,
+    val result: String? = null,
+    val probe: Pair<String, List<com.huanmeng.huanhermes.core.extensions.McpTool>>? = null,
+    val skillView: Triple<String, String, String?>? = null,
+)
+
+/** MCP servers, skills and connectors of the project's Agent (0.5.0). */
+class ExtensionsViewModel(graph: AppGraph) : ProjectScopedViewModel(graph) {
+    private val _ui = MutableStateFlow(ExtensionsUi())
+    val ui: StateFlow<ExtensionsUi> = _ui.asStateFlow()
+
+    init { refresh() }
+
+    fun selectProject(name: String?) { _ui.update { it.copy(project = name) }; refresh() }
+
+    fun refresh() = viewModelScope.launch {
+        val rt = runtime() ?: run { _ui.update { it.copy(loading = false, error = "还没有连接 Host") }; return@launch }
+        _ui.update { it.copy(loading = true, error = null) }
+        if (_ui.value.projects.isEmpty()) _ui.update { it.copy(projects = runCatching { rt.mgmt.projects() }.getOrDefault(emptyList())) }
+        val caps = runCatching { rt.mgmt.status()["capabilities"].toString() }.getOrDefault("")
+        val p = _ui.value.project
+        val servers = runCatching { com.huanmeng.huanhermes.core.extensions.Extensions.parseServers(rt.mgmt.get(Workspace.url("/mcp", p))) }
+        val skills = runCatching { com.huanmeng.huanhermes.core.extensions.Extensions.parseSkills(rt.mgmt.get(Workspace.url("/skills", p))) }
+        _ui.update {
+            it.copy(
+                loading = false,
+                servers = servers.getOrDefault(emptyList()), skills = skills.getOrDefault(emptyList()),
+                discovers = caps.contains("\"extensions\""), canWrite = caps.contains("\"extensions_write\""),
+                error = (servers.exceptionOrNull() ?: skills.exceptionOrNull())?.let { e -> friendlyError(e).second },
+            )
+        }
+    }
+
+    private fun act(label: String, then: (kotlinx.serialization.json.JsonObject) -> Unit = {}, call: suspend (com.huanmeng.huanhermes.data.HostRuntime) -> kotlinx.serialization.json.JsonObject) =
+        viewModelScope.launch {
+            val rt = runtime() ?: return@launch
+            _ui.update { it.copy(busy = true, result = null) }
+            val r = runCatching { call(rt) }
+            _ui.update { it.copy(busy = false, result = r.fold({ label }, { e -> "失败：" + (e.message ?: e.javaClass.simpleName) })) }
+            r.getOrNull()?.let(then)
+            if (r.isSuccess) refresh()
+        }
+
+    fun addServer(spec: com.huanmeng.huanhermes.core.extensions.McpSpec) =
+        act("已添加 ${spec.name}，新会话里生效") { it.mgmt.post(Workspace.url("/mcp", _ui.value.project), spec.toJson()) }
+
+    fun removeServer(name: String) =
+        act("已移除 $name") { it.mgmt.delete(Workspace.url("/mcp/" + com.huanmeng.huanhermes.core.net.HostConfig.encode(name), _ui.value.project)) }
+
+    fun probe(name: String) = act("已读取 $name 的工具", then = { d ->
+        _ui.update { it.copy(probe = name to com.huanmeng.huanhermes.core.extensions.Extensions.parseTools(d)) }
+    }) { it.mgmt.post(Workspace.url("/mcp/" + com.huanmeng.huanhermes.core.net.HostConfig.encode(name) + "/probe", _ui.value.project), kotlinx.serialization.json.JsonObject(emptyMap())) }
+
+    fun createSkill(name: String, description: String, body: String) =
+        act("已创建技能 $name") { it.mgmt.post(Workspace.url("/skills", _ui.value.project), com.huanmeng.huanhermes.core.extensions.Extensions.skillBody(name, description, body)) }
+
+    fun deleteSkill(id: String) =
+        act("已删除技能 $id") { it.mgmt.delete(Workspace.url("/skills/" + com.huanmeng.huanhermes.core.net.HostConfig.encode(id), _ui.value.project)) }
+
+    fun openSkill(id: String) = viewModelScope.launch {
+        val rt = runtime() ?: return@launch
+        val r = runCatching { rt.mgmt.get(Workspace.url("/skills/" + com.huanmeng.huanhermes.core.net.HostConfig.encode(id), _ui.value.project)) }
+        r.onSuccess { d ->
+            val content = (d["content"] as? kotlinx.serialization.json.JsonPrimitive)?.content.orEmpty()
+            val path = (d["path"] as? kotlinx.serialization.json.JsonPrimitive)?.content
+            _ui.update { it.copy(skillView = Triple(id, content, path)) }
+        }.onFailure { e -> _ui.update { it.copy(result = "这个 Host 不提供技能内容：" + (e.message ?: "")) } }
+    }
+
+    fun dismiss() = _ui.update { it.copy(probe = null, skillView = null) }
+    fun clearResult() = _ui.update { it.copy(result = null) }
+}

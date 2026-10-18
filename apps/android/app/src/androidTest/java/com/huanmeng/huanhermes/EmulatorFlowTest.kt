@@ -8,6 +8,8 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -309,6 +311,34 @@ class EmulatorFlowTest {
         rule.onNodeWithText("提交").performClick()
         rule.waitUntil(15_000) { rule.onAllNodes(hasTestTag("git-file-src/main.py")).fetchSemanticsNodes().isEmpty() }
         shot("26c-git-committed")
+        rule.onNodeWithContentDescription("返回").performClick()
+        // Extensions (0.5.0): connect GitHub, probe its tools, create a skill.
+        rule.onNodeWithTag("tools-list").performScrollToNode(hasTestTag("tool-扩展")); rule.onNodeWithTag("tool-扩展").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("mcp-list"), 15_000)
+        rule.onNodeWithTag("ext-tab-2").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("connector-github"), 10_000)
+        rule.onNode(hasText("接入") and hasAnyAncestor(hasTestTag("connector-github"))).performClick()
+        rule.onNodeWithTag("connector-field-token").performTextInput("github_pat_test")
+        rule.onNode(hasText("接入") and hasAnyAncestor(isDialog())).performClick()
+        rule.waitUntilAtLeastOneExists(hasText("已接入") and hasAnyAncestor(hasTestTag("connector-github")), 15_000)
+        shot("27-connectors")
+        rule.onNodeWithTag("ext-tab-0").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("probe-github"), 10_000)
+        rule.onNodeWithTag("probe-github").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("probe-tools"), 15_000)
+        shot("27b-mcp-tools")
+        rule.onNodeWithText("好").performClick()
+        rule.onNodeWithTag("ext-tab-1").performClick()
+        rule.onNodeWithTag("ext-fab").performClick()
+        rule.onNodeWithTag("skill-name").performTextInput("deploy-check")
+        rule.onNodeWithTag("skill-desc").performTextInput("发布前检查版本号")
+        rule.onNodeWithTag("skill-body").performTextInput("1. 看 versionCode")
+        rule.onNodeWithText("保存").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("skill-deploy-check"), 15_000)
+        rule.onNodeWithTag("skill-deploy-check").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("skill-content"), 10_000)
+        shot("27c-skill")
+        rule.onNodeWithText("关闭").performClick()
         rule.onNodeWithContentDescription("返回").performClick()
         rule.onNodeWithTag("tools-list").performScrollToNode(hasTestTag("tool-终端")); rule.onNodeWithTag("tool-终端").performClick()
         rule.waitUntilAtLeastOneExists(hasTestTag("terminal-input"), 15_000)

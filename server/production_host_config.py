@@ -65,6 +65,8 @@ class ProductionHostConfig:
     max_frame_bytes: int = 16 * 1024 * 1024
     #: Opt-in: let the App stage / commit / push (``[workspace] git_write = true``).
     git_write: bool = False
+    #: Opt-in: let the App add / remove MCP servers and skills, and probe MCP tools.
+    extensions_write: bool = False
 
     def security_warnings(self) -> tuple[str, ...]:
         """Non-fatal deployment risks; never includes secret values."""
@@ -154,6 +156,7 @@ class ProductionHostConfig:
             poll_interval=poll_interval,
             max_frame_bytes=max_frame_bytes,
             git_write=cls._flag(workspace.get("git_write", False), "workspace.git_write"),
+            extensions_write=cls._flag(workspace.get("extensions_write", False), "workspace.extensions_write"),
         )
 
     @staticmethod

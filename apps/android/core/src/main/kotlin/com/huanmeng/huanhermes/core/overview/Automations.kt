@@ -59,7 +59,10 @@ object Automations {
 
     /** The soonest enabled automation and its fire time, if any. */
     fun soonest(list: List<Automation>, now: Long, zone: ZoneId = ZoneId.systemDefault()): Pair<Automation, Long>? =
-        list.filter { it.enabled && it.prompt.isNotBlank() }.map { it to nextFire(it, now, zone) }.minByOrNull { it.second }
+        // A slot that already ran (the worker may fire a little early) is not "next" again.
+        list.filter { it.enabled && it.prompt.isNotBlank() }
+            .map { it to nextFire(it, maxOf(now, it.lastRunAt + 120_000), zone) }
+            .minByOrNull { it.second }
 
     /**
      * Automations due at [now]: their latest slot is at most [lateMs] ago (a phone that

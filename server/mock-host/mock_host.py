@@ -919,6 +919,83 @@ def workspace_list(path: str = "") -> Dict[str, Any]:
 
 # Git write is opt-in like on the production Host (emulator CI sets HUAN_MOCK_GIT_WRITE=1).
 MOCK_GIT_WRITE = os.environ.get("HUAN_MOCK_GIT_WRITE") == "1"
+# In-memory MCP servers / skills added from the App (extensions_write demo).
+MOCK_EXT_MCP: Dict[str, Dict[str, Any]] = {}
+MOCK_EXT_SKILLS: Dict[str, Dict[str, str]] = {}
+MOCK_PROBE_TOOLS: Dict[str, List[Dict[str, str]]] = {}
+
+
+def mock_ext_augment(path: str, method: str, code: int, obj: Any) -> Any:
+    """Appends App-added entries to GET /skills and /mcp responses."""
+    if method != "GET" or code != 200 or not isinstance(obj, dict) or not isinstance(obj.get("data"), dict):
+        return obj
+    if path == "/api/v1/mcp":
+        for n, spec in MOCK_EXT_MCP.items():
+            obj["data"].setdefault("servers", []).append({
+                "name": n, "status": "configured", "kind": spec["kind"], "enabled": True, "scope": "project",
+                "target": spec.get("url") or " ".join([spec.get("command", "")] + spec.get("args", [])),
+                "secret_keys": sorted({*spec.get("env", {}), *spec.get("headers", {})}), "editable": True,
+                "tools": [t["name"] for t in MOCK_PROBE_TOOLS.get(n, [])], "description": "added from the App (mock)",
+            })
+    elif path == "/api/v1/skills":
+        for n, sk in MOCK_EXT_SKILLS.items():
+            obj["data"].setdefault("skills", []).append({
+                "name": n, "id": n, "description": sk["description"], "source": "project", "scope": "project",
+                "category": "skill", "path": f".claude/skills/{n}/SKILL.md", "editable": True, "tags": ["project"],
+            })
+    return obj
+
+
+def mock_ext_write(method: str, path: str, body: Dict[str, Any]) -> Optional[Tuple[int, Dict[str, Any]]]:
+    if path == "/api/v1/mcp" and method == "POST":
+        name = str(body.get("name") or "").strip()
+        kind = str(body.get("kind") or "stdio")
+        if not re.match(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$", name):
+            return 400, {"ok": False, "error": "invalid server name"}
+        if name in MOCK_EXT_MCP:
+            return 409, {"ok": False, "error": "a server with this name already exists"}
+        if kind == "stdio" and not body.get("command"):
+            return 400, {"ok": False, "error": "command is required"}
+        if kind != "stdio" and not str(body.get("url") or "").startswith(("http://", "https://")):
+            return 400, {"ok": False, "error": "url must start with http(s)://"}
+        MOCK_EXT_MCP[name] = {"kind": kind, "command": str(body.get("command") or ""), "args": [str(a) for a in body.get("args") or []],
+                              "url": str(body.get("url") or ""), "env": dict(body.get("env") or {}), "headers": dict(body.get("headers") or {})}
+        return 200, {"ok": True, "data": {"name": name, "file": ".mcp.json"}}
+    m = re.match(r"^/api/v1/mcp/([^/]+)/probe$", path)
+    if m and method == "POST":
+        n = m.group(1)
+        tools = [{"name": "echo", "description": "Echo text back (mock)"}, {"name": "search", "description": "Search (mock)"}]
+        MOCK_PROBE_TOOLS[n] = tools
+        return 200, {"ok": True, "data": {"name": n, "tools": tools}}
+    m = re.match(r"^/api/v1/mcp/([^/]+)$", path)
+    if m and method == "DELETE":
+        if MOCK_EXT_MCP.pop(m.group(1), None) is None:
+            return 404, {"ok": False, "error": "only servers added from the App can be removed (mock)"}
+        return 200, {"ok": True, "data": {"removed": m.group(1)}}
+    if path == "/api/v1/skills" and method == "POST":
+        name = str(body.get("name") or "").strip()
+        if not re.match(r"^[a-z0-9][a-z0-9-]{0,63}$", name):
+            return 400, {"ok": False, "error": "skill name: lowercase letters, digits and '-'"}
+        if not str(body.get("description") or "").strip():
+            return 400, {"ok": False, "error": "description is required"}
+        if name in MOCK_EXT_SKILLS:
+            return 409, {"ok": False, "error": "a skill with this name already exists"}
+        MOCK_EXT_SKILLS[name] = {"description": str(body["description"]).strip(), "body": str(body.get("body") or "")}
+        return 200, {"ok": True, "data": {"name": name, "path": f".claude/skills/{name}/SKILL.md"}}
+    m = re.match(r"^/api/v1/skills/([^/]+)$", path)
+    if m and method == "DELETE":
+        if MOCK_EXT_SKILLS.pop(m.group(1), None) is None:
+            return 404, {"ok": False, "error": "only project skills can be deleted"}
+        return 200, {"ok": True, "data": {"deleted": m.group(1)}}
+    if m and method == "GET":
+        n = m.group(1)
+        sk = MOCK_EXT_SKILLS.get(n)
+        content = (f"---\nname: {n}\ndescription: {sk['description']}\n---\n\n{sk['body']}\n" if sk
+                   else f"---\nname: {n}\ndescription: mock skill\n---\n\n# {n}\n\nThis is a readonly mock skill body.\n")
+        return 200, {"ok": True, "data": {"name": n, "scope": "project" if sk else "user", "path": f"~/.claude/skills/{n}/SKILL.md", "content": content}}
+    return None
+
+
 MOCK_GIT_FILES = ["src/main.py", "docs/notes.md", "docs/protocol.md", "hermes/README.md", "hermes/AGENTS.md"]
 MOCK_GIT_STATUS = {"src/main.py": "M", "docs/notes.md": "?", "docs/protocol.md": "A", "hermes/README.md": "A", "hermes/AGENTS.md": "A"}
 MOCK_STAGED: set = set()
@@ -5104,6 +5181,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
         return False
 
     def _send(self, code: int, obj: Any) -> None:
+        obj = mock_ext_augment(urlparse(self.path).path, self.command, code, obj)
         body = json_bytes(obj)
         self.send_response(code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -5157,6 +5235,8 @@ class MgmtHandler(BaseHTTPRequestHandler):
                             "audit_readonly",
                             "push",
                             "external_sessions",
+                            "extensions",
+                            "extensions_write",
                         ] + (["git_write"] if MOCK_GIT_WRITE else []),
                         "hermes": {
                             "adapter": "mock",
@@ -5290,6 +5370,10 @@ class MgmtHandler(BaseHTTPRequestHandler):
                     },
                 },
             )
+            return
+        ext = mock_ext_write("GET", path, {}) if path.startswith("/api/v1/skills/") else None
+        if ext is not None:
+            self._send(*ext)
             return
         if path == "/api/v1/bridge/adapters":
             self._send(200, {"ok": True, "data": {"adapters": []}})
@@ -5611,6 +5695,10 @@ class MgmtHandler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             self._send(400, {"ok": False, "error": "invalid json"})
             return
+        ext = mock_ext_write("POST", path, body)
+        if ext is not None:
+            self._send(*ext)
+            return
         if path.startswith("/api/v1/workspace/git/") and MOCK_GIT_WRITE:
             status, payload = mock_git_write(path.rsplit("/", 1)[1], body)
             self._send(status, payload)
@@ -5691,6 +5779,10 @@ class MgmtHandler(BaseHTTPRequestHandler):
                 body = {}
             removed = mock_push().unregister(str(body.get("device_id") or ""))
             self._send(200, {"ok": True, "data": {"removed": removed}})
+            return
+        ext = mock_ext_write("DELETE", path, {})
+        if ext is not None:
+            self._send(*ext)
             return
         m = re.match(r"^/api/v1/sessions/(.+)$", path)
         if m:

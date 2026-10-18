@@ -28,3 +28,12 @@ class AutomationsTest {
         assertEquals("每天 09:30", daily.scheduleLabel)
     }
 }
+
+class AutomationsSoonestTest {
+    @Test fun earlyRunDoesNotReArmSameSlot() {
+        val zone = java.time.ZoneId.of("Asia/Shanghai")
+        fun at(h: Int, m: Int, s: Int = 0, day: Int = 19) = java.time.ZonedDateTime.of(2026, 10, day, h, m, s, 0, zone).toInstant().toEpochMilli()
+        val a = Automation("a", "h", "s", "sk", null, "t", "p", hour = 9, minute = 30, lastRunAt = at(9, 29, 30))
+        assertEquals(at(9, 30, 0, 20), Automations.soonest(listOf(a), at(9, 29, 31), zone)!!.second)
+    }
+}

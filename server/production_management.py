@@ -5,6 +5,7 @@ from __future__ import annotations
 import external_sessions
 import file_index
 import workspace_git_write
+import agent_extensions
 import host_feeds
 import workspace_readonly
 
@@ -40,6 +41,7 @@ class ProductionManagementServer:
         push: Any = None,
         devices: Any = None,
         git_write: bool = False,
+        extensions: Any = None,
         bridge_port: int = 9810,
         host: str = "127.0.0.1",
         port: int = 9820,
@@ -63,6 +65,7 @@ class ProductionManagementServer:
             raise ValueError("Management default project is not configured")
         self.default_project = default_project
         self._git_write = bool(git_write)
+        self._ext = extensions
         self.token = token
         self.sessions = sessions
         self._close_session = close_session or (lambda session_key: None)
@@ -225,11 +228,31 @@ class ProductionManagementServer:
                 self._send(request, 404, {"ok": False, "error": "project not found"})
                 return
             if path == "/skills":
-                data = {"skills": [self._skill(project, name) for name in project.skills]}
+                skills = [self._skill(project, name) for name in project.skills]
+                if self._ext is not None:
+                    have = {s["name"] for s in skills}
+                    skills += [s for s in self._ext.skills(project.workdir, project.agent_type) if s["name"] not in have]
+                data = {"skills": skills}
             elif path == "/mcp":
-                data = {"servers": [self._mcp(project, name) for name in project.mcp_servers]}
+                servers = [self._mcp(project, name) for name in project.mcp_servers]
+                if self._ext is not None:
+                    have = {s["name"] for s in servers}
+                    servers += [s for s in self._ext.servers(project.workdir, project.agent_type, project.name) if s["name"] not in have]
+                data = {"servers": servers}
             else:
                 data = {"agents": [self._agent(project)], "platforms": [{"type": "bridge", "connected": True}]}
+            self._send(request, 200, {"ok": True, "data": data})
+            return
+        if path.startswith("/skills/") and self._ext is not None:
+            project = self._selected(query.get("project", [None])[0])
+            if project is None:
+                self._send(request, 404, {"ok": False, "error": "project not found"})
+                return
+            try:
+                data = self._ext.skill_content(project.workdir, project.agent_type, unquote(path[len("/skills/"):]))
+            except agent_extensions.ExtensionError as exc:
+                self._send(request, exc.status, {"ok": False, "error": str(exc)})
+                return
             self._send(request, 200, {"ok": True, "data": data})
             return
         if path in {"/activity", "/logs", "/audit"}:
@@ -316,6 +339,36 @@ class ProductionManagementServer:
         if path.startswith("/devices/") and method == "DELETE" and self._devices is not None:
             removed = self._devices.revoke(unquote(path[len("/devices/"):]))
             self._send(request, 200 if removed else 404, {"ok": removed, "data": {"removed": removed}})
+            return
+        if self._ext is not None and (path in {"/skills", "/mcp"} or path.startswith(("/skills/", "/mcp/"))):
+            project = self._selected(parse_qs(parsed.query).get("project", [None])[0])
+            if project is None:
+                self._send(request, 404, {"ok": False, "error": "project not found"})
+                return
+            wd, at = project.workdir, project.agent_type
+            try:
+                if path == "/skills" and method == "POST":
+                    data = self._ext.create_skill(wd, at, body); what = f"skill {data['name']} created"
+                elif path.startswith("/skills/") and method == "DELETE":
+                    data = self._ext.delete_skill(wd, at, unquote(path[len("/skills/"):])); what = f"skill {data['deleted']} deleted"
+                elif path == "/mcp" and method == "POST":
+                    data = self._ext.add_server(wd, at, body); what = f"MCP {data['name']} added"
+                elif path.startswith("/mcp/") and path.endswith("/probe") and method == "POST":
+                    name = unquote(path[len("/mcp/"):-len("/probe")])
+                    data = self._ext.probe(wd, at, project.name, name); what = f"MCP {name} probed ({len(data['tools'])} tools)"
+                elif path.startswith("/mcp/") and method == "DELETE":
+                    data = self._ext.remove_server(wd, at, project.name, unquote(path[len("/mcp/"):])); what = f"MCP {data['removed']} removed"
+                else:
+                    self._send(request, 405, {"ok": False, "error": "method not allowed"})
+                    return
+            except agent_extensions.ExtensionError as exc:
+                self._send(request, exc.status, {"ok": False, "error": str(exc)})
+                return
+            except OSError as exc:
+                self._send(request, 500, {"ok": False, "error": f"cannot write config: {exc.strerror or exc}"})
+                return
+            self._feed("extensions", f"{what} in {project.name}")
+            self._send(request, 200, {"ok": True, "data": data})
             return
         if path.startswith("/workspace/git/") and method == "POST":
             action = path[len("/workspace/git/"):]
@@ -438,6 +491,10 @@ class ProductionManagementServer:
             caps.append("device_tokens")
         if self._git_write:
             caps.append("git_write")
+        if self._ext is not None:
+            caps.append("extensions")
+            if self._ext.write:
+                caps.append("extensions_write")
         if self._pending_permissions is not None or self._session_activity is not None:
             caps.append("session_overview")
         return caps

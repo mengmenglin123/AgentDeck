@@ -317,6 +317,14 @@ class ChatViewModel(private val graph: AppGraph, private val sessionId: String, 
         val problem = com.huanmeng.huanhermes.core.protocol.Attachment.problem(next)
         if (problem != null) _notice.value = problem else _attachments.value = next
     }
+    /** Reads a picked URI off the main thread (files can be several MB). */
+    fun addAttachmentFrom(uri: android.net.Uri, rename: String? = null) = viewModelScope.launch {
+        val a = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            com.huanmeng.huanhermes.ui.chat.AttachmentReader.read(graph.appContext, uri)
+        }
+        if (a == null) _notice.value = "读不了这个文件（太大或没有权限）"
+        else addAttachment(if (rename != null) a.copy(name = rename) else a)
+    }
     fun removeAttachment(index: Int) { _attachments.value = _attachments.value.filterIndexed { i, _ -> i != index } }
 
     /** Sends text plus any attachments; [onDone] says whether the composer may clear. */

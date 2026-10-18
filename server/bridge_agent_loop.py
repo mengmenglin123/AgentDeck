@@ -89,7 +89,8 @@ class AgentBridgeLoop:
         reply_ctx = self._optional_text(message, "reply_ctx")
         if attached:
             try:
-                content = uploads.annotate(content, uploads.save(self._workdir(message), message))
+                live = getattr(self.runtime, "workdir_of", lambda _key: None)(session_key)
+                content = uploads.annotate(content, uploads.save(live or self._workdir(message), message))
             except (uploads.UploadError, OSError):
                 return [self._error("attachment_rejected", session_key=session_key)]
         try:
