@@ -85,14 +85,13 @@ fun SettingsScreen(settings: AppSettings, repo: SettingsRepository, onOpenHosts:
                 SwitchRow("等宽聊天字体", settings.monoChat) { v -> set { it.copy(monoChat = v) } }
                 SwitchRow("紧凑会话列表", settings.compactList) { v -> set { it.copy(compactList = v) } }
                 Text("会话排序", style = MaterialTheme.typography.bodyMedium)
-                androidx.compose.material3.SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                    val sorts = com.huanmeng.huanhermes.core.overview.SessionSort.entries
-                    sorts.forEachIndexed { i, sort ->
-                        androidx.compose.material3.SegmentedButton(
+                androidx.compose.foundation.layout.Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                    com.huanmeng.huanhermes.core.overview.SessionSort.entries.forEach { sort ->
+                        androidx.compose.material3.FilterChip(
                             selected = settings.sessionSort == sort,
                             onClick = { set { it.copy(sessionSort = sort) } },
-                            shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(i, sorts.size),
-                        ) { Text(sort.label) }
+                            label = { Text(sort.label) },
+                        )
                     }
                 }
                 SwitchRow("仪表盘每 30 秒自动刷新", settings.dashboardAutoRefresh) { v -> set { it.copy(dashboardAutoRefresh = v) } }
