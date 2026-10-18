@@ -917,6 +917,8 @@ def workspace_list(path: str = "") -> Dict[str, Any]:
     }
 
 
+# Git write is opt-in like on the production Host (emulator CI sets HUAN_MOCK_GIT_WRITE=1).
+MOCK_GIT_WRITE = os.environ.get("HUAN_MOCK_GIT_WRITE") == "1"
 MOCK_GIT_FILES = ["src/main.py", "docs/notes.md", "docs/protocol.md", "hermes/README.md", "hermes/AGENTS.md"]
 MOCK_GIT_STATUS = {"src/main.py": "M", "docs/notes.md": "?", "docs/protocol.md": "A", "hermes/README.md": "A", "hermes/AGENTS.md": "A"}
 MOCK_STAGED: set = set()
@@ -5155,8 +5157,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                             "audit_readonly",
                             "push",
                             "external_sessions",
-                            "git_write",
-                        ],
+                        ] + (["git_write"] if MOCK_GIT_WRITE else []),
                         "hermes": {
                             "adapter": "mock",
                             "process": False,
@@ -5610,7 +5611,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             self._send(400, {"ok": False, "error": "invalid json"})
             return
-        if path.startswith("/api/v1/workspace/git/"):
+        if path.startswith("/api/v1/workspace/git/") and MOCK_GIT_WRITE:
             status, payload = mock_git_write(path.rsplit("/", 1)[1], body)
             self._send(status, payload)
             return

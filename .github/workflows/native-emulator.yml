@@ -59,7 +59,7 @@ jobs:
 
       - name: Start mock-host
         run: |
-          nohup python3 server/mock-host/mock_host.py > "$RUNNER_TEMP/mock-host.log" 2>&1 &
+          HUAN_MOCK_GIT_WRITE=1 nohup python3 server/mock-host/mock_host.py > "$RUNNER_TEMP/mock-host.log" 2>&1 &
           for i in $(seq 1 30); do (echo > /dev/tcp/127.0.0.1/9820) 2>/dev/null && break; sleep 1; done
 
       - name: Emulator run
