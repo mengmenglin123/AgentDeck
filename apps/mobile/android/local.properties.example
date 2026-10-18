@@ -1,3 +1,0 @@
-## Copy to local.properties (gitignored). Flutter tool usually writes this.
-sdk.dir=/path/to/Android/sdk
-flutter.sdk=/path/to/flutter

@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.Density
 import com.huanmeng.huanhermes.data.AppSettings
 import com.huanmeng.huanhermes.data.ThemeMode
 
-// Brand tokens carried over from the Flutter theme (apps/mobile/lib/theme/app_theme.dart).
+// Brand tokens carried over from the Flutter theme (former Flutter app_theme.dart).
 object Brand {
     val accent = Color(0xFF5E6AD2)
     val accentBright = Color(0xFF7170FF)

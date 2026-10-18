@@ -10,6 +10,13 @@
 - **配对导入修复**：导入对话框的输入控制器在关闭动画期间被提前释放导致崩溃，已修复；扫码时连续识别同一二维码不再多次返回而关闭连接页；对话框内容可滚动。
 - **测试**：新增 SSH Companion 安装/配置与配对导入的服务与界面测试（模拟 SSH 与相机层）、基于真实 dartssh2 与本地 paramiko 服务器的 SSH 适配器端到端测试、390/320dp 键盘弹出布局测试，以及工具中心逐个打开全部工具的端到端测试。
 
+
+## native 0.2.9 — 2026-10-18
+
+- 下线 Flutter 版：删除 `apps/mobile` 及其构建流程，仓库只保留原生 Android（`apps/android`）。
+- 签名密钥移至 `apps/android/signing/`，证书不变，可继续覆盖安装。
+- companion 打包测试改为校验可复现性。
+
 ## 0.1.205
 
 - **修复启动卡在启动页**：0.1.204 Release 包在 `runApp` 之前初始化通知插件，使用的小图标 `@mipmap/ic_launcher` 在 Release 构建中并不存在（只有 `@drawable/ic_launcher`，且资源被 R8 压缩），`initialize()` 抛出 `invalid_icon`，导致应用永远停留在白底蓝图标的启动页。

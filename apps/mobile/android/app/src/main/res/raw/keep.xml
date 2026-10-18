@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Resources referenced only by name (flutter_local_notifications looks up
-     the small icon from Dart) or only from XML must survive R8 resource
-     shrinking in release builds. Launcher icons are listed explicitly so a
-     shrinker change can never strip them again. -->
-<resources xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@drawable/ic_stat_notify,@mipmap/ic_launcher,@mipmap/ic_launcher_round,@drawable/ic_launcher_foreground,@drawable/ic_launcher_background,@drawable/ic_launcher_monochrome,@drawable/launch_background" />

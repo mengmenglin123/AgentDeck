@@ -101,7 +101,7 @@ jobs:
         run: |
           notes="HuanHermes 原生版 $VERSION 预发布（Kotlin + Compose，release 构建，固定预发布签名）。
           构建提交：${GITHUB_SHA}
-          与 Flutter 版同签名、versionCode 更高，可直接覆盖安装 0.1.205 及以后的版本（需 Android 8.0+）。
+          与旧 Flutter 版同签名、versionCode 更高，可直接覆盖安装并自动迁移 Host 配置（需 Android 8.0+）。
           校验：见 $NAME.sha256。"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "dist/$NAME" "dist/$NAME.sha256" --clobber

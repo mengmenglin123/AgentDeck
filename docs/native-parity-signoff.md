@@ -54,3 +54,8 @@
 
 ## 下掉 Flutter 版
 待你确认后执行：删除 `apps/mobile` 与 `.github/workflows/build-apk.yml`，companion 发布流程改为由原生构建打包（已在 0.2.6 实现）。
+
+
+## Flutter 下线（2026-10-18）
+
+用户确认后已删除 `apps/mobile` 与 Flutter 的 `build-apk.yml`、`prerelease-apk.yml`。签名密钥移至 `apps/android/signing/`，companion 打包改由原生构建负责，`server/test_companion_bundle.py` 改为校验可复现打包。历史代码可在 tag `native-v0.2.8-rc1` 及之前找到。

@@ -14,7 +14,7 @@ App **不做** coding agent loop；真相源在服务器 Host。
 ## 架构
 
 ```
-App (Flutter Android)  ──WSS Bridge + HTTPS Mgmt──►  Host (Mock 或自研兼容实现)
+App (原生 Android, Kotlin + Compose)  ──WSS Bridge + HTTPS Mgmt──►  Host (Mock 或自研兼容实现)
                                                       └── 驱动服务器侧 Agent 进程
 ```
 
@@ -28,7 +28,7 @@ App (Flutter Android)  ──WSS Bridge + HTTPS Mgmt──►  Host (Mock 或自
 ## 仓库结构
 
 ```
-apps/mobile/              # Flutter Android 控制台
+apps/android/             # 原生 Android 控制台（Kotlin + Jetpack Compose；Flutter 版已于 0.2.8 后下线）
 packages/huan_protocol/   # Python 协议参考客户端 + 测试
 server/mock-host/         # Mock Host（默认端口见环境变量）
 docs/protocol/            # 协议规范（本仓拥有）
@@ -42,10 +42,11 @@ docs/adr/                 # 架构决策
 # 开发机：任意空闲端口（示例 19810/19820）
 HUAN_BRIDGE_PORT=19810 HUAN_MGMT_PORT=19820 HUAN_BRIDGE_TOKEN=dev-bridge-token-change-me HUAN_MGMT_TOKEN=dev-mgmt-token-change-me python3 server/mock-host/mock_host.py
 
-cd apps/mobile && flutter pub get && flutter analyze --no-fatal-infos && flutter test && flutter run
+# App 由 CI 构建（.github/workflows/native-apk.yml）；本地仅跑 core 测试：
+cd apps/android && gradle -PcoreOnly :core:test
 # 模拟器 Host 填 10.0.2.2，端口与上面一致
 
-# 一键跑与 CI 相同的 Python 门禁（加 --flutter 同时跑 Flutter analyze/test）
+# 一键跑与 CI 相同的 Python 门禁
 ./scripts/check.sh
 ```
 

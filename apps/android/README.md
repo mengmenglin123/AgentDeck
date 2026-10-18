@@ -1,6 +1,6 @@
 # HuanHermes 原生安卓版（Kotlin + Jetpack Compose）
 
-与 `apps/mobile`（Flutter）同 applicationId `com.huanmeng.huanhermes`、同签名，versionCode 从 2000 起，可直接覆盖安装 Flutter 版（需 Android 8.0+ / API 26）。
+与已下线的 Flutter 版同 applicationId `com.huanmeng.huanhermes`、同签名，versionCode 从 2000 起，可直接覆盖安装 Flutter 版（需 Android 8.0+ / API 26）。
 
 ## 模块
 

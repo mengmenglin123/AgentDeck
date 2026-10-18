@@ -1,16 +1,23 @@
-# 内测包 / 发布清单（P2-7）
+# 内测包 / 发布清单
 
-## 构建（开发者本机）
+## 构建
+
+原生 App 只在 CI 构建（`.github/workflows/native-apk.yml`）：
+
+- 推送到 `native-android`：构建 APK，产物为 workflow artifact `huanhermes-native-<版本>-apk`。
+- 推送 tag `native-v<版本>-rc<N>`：额外发布私有预发布。
+- 版本号：`apps/android/app/build.gradle.kts` 中的 `nativeVersionName` / `nativeVersionCode`（2000 起）。
+- 签名：`apps/android/signing/huanhermes-prerelease.p12`（与旧 Flutter 版同证书，SHA-256 前缀 `fb220e0970ca5764`），保证覆盖安装。
+- Host companion 由 `:app:bundleCompanion` 调用 `scripts/build_companion.sh` 从当前 `server/` 可复现打包进 APK。
+
+本地（无 Android SDK）可跑：
 
 ```bash
-cd apps/mobile
-flutter pub get
-flutter test
-flutter build apk --release
-# 产物: build/app/outputs/flutter-apk/app-release.apk
+cd apps/android && gradle -PcoreOnly :core:test
+./scripts/check.sh   # Python 协议 / Host 测试
 ```
 
-> 本仓库 CI/服务器可能无完整 Flutter SDK；**内测 APK 在有 SDK 的机器上构建**。
+模拟器 UI 测试：`.github/workflows/native-emulator.yml`（API 26 + 34，对接 Mock Host 10.0.2.2）。
 
 ## 联调前置
 
@@ -23,18 +30,18 @@ HUAN_MGMT_TOKEN=dev-mgmt-token-change-me \
 python3 server/mock-host/mock_host.py
 ```
 
-2. App Connect 填 host / 端口 / token（模拟器用 `10.0.2.2`）。
+2. App 添加 Host（模拟器用 `10.0.2.2`），或用 `production_host.py pair` 生成一次性配对码 / 二维码。
 3. 真 Host：只在 App 填用户自有 token；**禁止**为联调改服务器无关服务/渠道配置。
 
-## 验收清单
+## 真机验收清单
 
-- [ ] Connect 多 profile 切换需重新 Test
-- [ ] Sessions 按 project 过滤（含 hermes）
-- [ ] Chat 流式 / stop / /perm / attach demo
-- [ ] Skills 只读列表（Mock）
-- [ ] Pairing 文本可复制（无 token）
-- [ ] 审计页无明文 token
+- [ ] 从旧 Flutter 版覆盖安装，Host 与会话保留
+- [ ] 扫码配对、证书指纹固定
+- [ ] 同局域网自动发现 Host
+- [ ] UnifiedPush（ntfy）审批通知，通知内允许/拒绝
+- [ ] SSH 一键安装 companion
+- [ ] 终端 vim/less、Diff、Workspace
 
 ## 版本
 
-见 `apps/mobile/pubspec.yaml` 与根 `CHANGELOG.md`。
+见 `apps/android/app/build.gradle.kts` 与根 `CHANGELOG.md`。

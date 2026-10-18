@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
-# 可复现地打包 Host Companion：apps/mobile/assets/companion/huanhermes-host-<version>.tar.gz
+# 可复现地打包 Host Companion：dist/companion/huanhermes-host-<version>.tar.gz
+# 原生 App 构建（apps/android :app:bundleCompanion）会以 HH_COMPANION_OUT 调用本脚本并打进 assets。
 #
 # 用法：scripts/build_companion.sh <version> [YYYY-MM-DD]
 #   - 内容：git 跟踪的 server/ 文件（不含 __pycache__ 与未跟踪文件），根目录为 huanhermes-host-<version>/server/
 #   - 格式：GNU tar，按名称排序，owner/group 0/0，文件 0644、目录 0755，统一 mtime（默认当天 00:00 UTC）
 #   - 压缩：gzip -n -6（不写入文件名与时间戳）
 # 相同输入 + 相同日期 => 相同 sha256（已用该流程复现 0.1.203 的 bd755aa0…7528）。
-# 打包后需同步：pubspec.yaml 资产与版本、app_meta.dart、ssh_bootstrap_service.dart 的
-# releaseVersion/assetPath/archiveSha256/releaseUrl、server/test_companion_bundle.py。
 set -euo pipefail
 
 version="${1:?usage: build_companion.sh <version> [YYYY-MM-DD]}"
@@ -16,7 +15,7 @@ day="${2:-$(date -u +%F)}"
 mtime="$(date -u -d "$day 00:00:00" +%s)"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-out="${HH_COMPANION_OUT:-$ROOT/apps/mobile/assets/companion}/huanhermes-host-$version.tar.gz"
+out="${HH_COMPANION_OUT:-$ROOT/dist/companion}/huanhermes-host-$version.tar.gz"
 mkdir -p "$(dirname "$out")"
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
