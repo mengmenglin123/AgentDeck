@@ -87,6 +87,8 @@ fun SettingsScreen(settings: AppSettings, repo: SettingsRepository, onOpenHosts:
                 SwitchRow("保持屏幕常亮", settings.keepScreenOn) { v -> set { it.copy(keepScreenOn = v) } }
                 SwitchRow("等宽聊天字体", settings.monoChat) { v -> set { it.copy(monoChat = v) } }
                 SwitchRow("回车发送（Shift+回车换行）", settings.enterToSend) { v -> set { it.copy(enterToSend = v) } }
+                SwitchRow("「本会话允许」前验证指纹/锁屏密码", settings.confirmAllowAll) { v -> set { it.copy(confirmAllowAll = v) } }
+                SwitchRow("App 锁（离开 1 分钟后需解锁）", settings.appLock) { v -> set { it.copy(appLock = v) } }
                 SwitchRow("代码块显示行号", settings.codeLineNumbers) { v -> set { it.copy(codeLineNumbers = v) } }
                 SwitchRow("代码块自动换行", settings.codeWrap) { v -> set { it.copy(codeWrap = v) } }
                 var editQuick by remember { mutableStateOf(false) }

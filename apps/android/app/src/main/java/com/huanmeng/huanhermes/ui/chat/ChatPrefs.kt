@@ -8,6 +8,7 @@ data class ChatPrefs(
     val quickMessages: List<String> = emptyList(),
     val codeLineNumbers: Boolean = false,
     val codeWrap: Boolean = false,
+    val confirmAllowAll: Boolean = true,
 )
 
 val LocalChatPrefs = staticCompositionLocalOf { ChatPrefs() }

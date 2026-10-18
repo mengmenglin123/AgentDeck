@@ -111,6 +111,8 @@ class AgentBridgeLoop:
                 session_key,
                 action=action,
                 reply_ctx=reply_ctx,
+                text=message.get("text"),
+                answers=message.get("answers"),
             )
         except (AdapterError, ValueError):
             return [self._error("permission_action_rejected", session_key=session_key)]

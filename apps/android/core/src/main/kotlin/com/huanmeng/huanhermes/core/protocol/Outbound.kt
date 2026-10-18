@@ -15,7 +15,11 @@ object Capabilities {
     const val SEQ = "seq"
     const val RESUME = "resume"
     const val SESSION_STATUS = "session_status"
-    val V2 = listOf(SEQ, RESUME, SESSION_STATUS)
+    /** Plan approval and AskUserQuestion cards (`card.kind`). */
+    const val PLAN_CARDS = "plan_cards"
+    /** Token / context usage on `run_done`. */
+    const val USAGE = "usage"
+    val V2 = listOf(SEQ, RESUME, SESSION_STATUS, PLAN_CARDS, USAGE)
     val NATIVE = LEGACY + V2
 }
 
@@ -64,12 +68,23 @@ object Outbound {
         if (!project.isNullOrBlank()) put("project", project)
     }
 
-    fun cardAction(sessionKey: String, action: String, replyCtx: String?, project: String?) = buildJsonObject {
+    fun cardAction(
+        sessionKey: String,
+        action: String,
+        replyCtx: String?,
+        project: String?,
+        text: String? = null,
+        answers: Map<String, List<String>>? = null,
+    ) = buildJsonObject {
         put("type", "card_action")
         put("session_key", sessionKey)
         put("action", action)
         put("reply_ctx", replyCtx.orEmpty())
         if (!project.isNullOrBlank()) put("project", project)
+        if (!text.isNullOrBlank()) put("text", text)
+        if (!answers.isNullOrEmpty()) put("answers", buildJsonObject {
+            answers.forEach { (k, v) -> put(k, JsonArray(v.map(::JsonPrimitive))) }
+        })
     }
 
     fun ping(ts: Long) = buildJsonObject { put("type", "ping"); put("ts", ts) }

@@ -31,8 +31,11 @@ sealed class ChatItem {
         val buttons: List<FrameButton>,
         val replyCtx: String?,
         val permissionId: String?,
-        /** `allow` / `allow_all` / `deny` once answered from this device. */
+        /** `allow` / `allow_all` / `deny` (or `accept`/`keep`/`submit` for plan and question cards) once answered. */
         val decision: String? = null,
+        /** `plan` / `question` cards (protocol v2 `plan_cards`); null = tool permission. */
+        val kind: String? = null,
+        val questions: List<com.huanmeng.huanhermes.core.protocol.CardQuestion> = emptyList(),
     ) : ChatItem()
 
     data class Notice(override val id: Long, val text: String) : ChatItem()
@@ -83,7 +86,7 @@ data class Transcript(
         is BridgeFrame.Card -> if (frame.buttons.isEmpty()) {
             append { ChatItem.Notice(it, frame.content) }
         } else finishStreaming().append {
-            ChatItem.Permission(it, frame.content, frame.buttons, frame.replyCtx, frame.permissionId)
+            ChatItem.Permission(it, frame.content, frame.buttons, frame.replyCtx, frame.permissionId, kind = frame.kind, questions = frame.questions)
         }
         is BridgeFrame.RunDone -> finishStreaming().append { ChatItem.RunEnded(it, frame.status, frame.exitCode) }
         is BridgeFrame.Error -> append { ChatItem.Failure(it, frame.message, frame.code) }

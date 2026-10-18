@@ -163,6 +163,51 @@ class ChatSessionTest {
         assertEquals("deny", r.chat.state.value.items.filterIsInstance<ChatItem.Permission>().single().decision)
     }
 
+    @Test fun planAndQuestionCardsCarryFeedbackAndAnswers() = runTest {
+        val r = rig(); r.chat.start()
+        runCurrent(); r.fake.last.open(); runCurrent()
+        r.fake.last.ack(""","protocol":2,"capabilities":["seq","resume","session_status","plan_cards","usage"],"epoch":"e1"""")
+        runCurrent()
+        r.fake.last.text("""{"type":"card","session_key":"$sk","reply_ctx":"c1","kind":"plan","content":"## Plan","buttons":[[{"text":"Accept","data":"perm:p1:accept"},{"text":"Keep","data":"perm:p1:keep"}]]}""")
+        r.fake.last.text("""{"type":"card","session_key":"$sk","reply_ctx":"c2","kind":"question","content":"Q","questions":[{"id":"0","question":"DB?","options":[{"label":"SQLite"},{"label":"PG","description":"prod"}]}],"buttons":[[{"text":"Submit","data":"perm:p2:submit"}]]}""")
+        r.fake.last.text("""{"type":"run_done","session_key":"$sk","status":"completed","usage":{"context_tokens":50000,"context_window":200000}}""")
+        runCurrent()
+        val (plan, question) = r.chat.state.value.items.filterIsInstance<ChatItem.Permission>()
+        assertEquals("plan", plan.kind)
+        assertEquals("PG", question.questions.single().options[1].label)
+        assertEquals(25, r.chat.state.value.usage?.contextPercent)
+        assertTrue(r.chat.respondPermission(plan, "keep", text = "先别动数据库"))
+        val a1 = r.fake.last.sent.last()
+        assertEquals("perm:p1:keep", a1["action"]!!.jsonPrimitive.content)
+        assertEquals("先别动数据库", a1["text"]!!.jsonPrimitive.content)
+        assertTrue(r.chat.respondPermission(question, "submit", answers = mapOf("0" to listOf("PG"))))
+        val a2 = r.fake.last.sent.last()
+        assertEquals("perm:p2:submit", a2["action"]!!.jsonPrimitive.content)
+        assertTrue(a2["answers"].toString().contains("PG"))
+        assertEquals(listOf("keep", "submit"), r.chat.state.value.items.filterIsInstance<ChatItem.Permission>().map { it.decision })
+    }
+
+    @Test fun oldHostGetsPlanFeedbackAsMessage() = runTest {
+        val r = rig(); r.chat.start(); connect(r)
+        r.fake.last.text("""{"type":"card","session_key":"$sk","reply_ctx":"c1","kind":"plan","content":"## Plan","buttons":[[{"text":"Keep","data":"perm:p1:keep"}]]}""")
+        runCurrent()
+        val plan = r.chat.state.value.items.filterIsInstance<ChatItem.Permission>().single()
+        assertTrue(r.chat.respondPermission(plan, "keep", text = "再想想"))
+        assertTrue(r.fake.last.sent.none { it["type"]!!.jsonPrimitive.content == "card_action" && it.containsKey("text") })
+        assertEquals("再想想", r.sentMessages().last()["content"]!!.jsonPrimitive.content)
+    }
+
+    @Test fun stallHintAfterFiveSilentMinutes() = runTest {
+        val r = rig(); r.chat.start(); connect(r)
+        advanceTimeBy(1_000)
+        r.fake.last.text("""{"type":"reply_stream","session_key":"$sk","delta":"x"}""")
+        runCurrent()
+        val st = r.chat.state.value
+        assertTrue(st.runActive)
+        assertEquals(false, st.stalled(st.lastActivityAt + 60_000))
+        assertTrue(st.stalled(st.lastActivityAt + ChatState.STALL_MS))
+    }
+
     @Test fun noStateUpdatesAfterClose() = runTest {
         val r = rig(); r.chat.start(); connect(r)
         val before = r.chat.state.value

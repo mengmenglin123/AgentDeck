@@ -271,6 +271,24 @@ class ChatViewModel(private val graph: AppGraph, private val sessionId: String, 
         chat?.start()
         hostId?.let { h -> viewModelScope.launch { graph.localPrefs.markSeen(h, sessionId) } }
         graph.pendingFirstMessage.remove(sessionId)?.let { first -> send(first) }
+        // Long runs while the app is away: an ongoing (Live Update) notification, then a
+        // "finished" one. In the foreground the chat itself shows it.
+        if (chat != null) viewModelScope.launch {
+            var shownWhileAway = false
+            combine(state.map { it.runActive }.distinctUntilChanged(), graph.foreground) { run, fg -> run to fg }
+                .distinctUntilChanged()
+                .collect { (run, fg) ->
+                    when {
+                        run && !fg -> { shownWhileAway = true; com.huanmeng.huanhermes.notify.RunNotifications.ongoing(graph.appContext, sessionId, title, "离开 App 后仍在运行，点按回到会话") }
+                        !run && shownWhileAway && !fg -> {
+                            shownWhileAway = false
+                            val status = (state.value.items.lastOrNull { it is ChatItem.RunEnded } as? ChatItem.RunEnded)?.status ?: "completed"
+                            com.huanmeng.huanhermes.notify.RunNotifications.finished(graph.appContext, sessionId, title, status)
+                        }
+                        fg -> { shownWhileAway = false; com.huanmeng.huanhermes.notify.RunNotifications.cancelRun(graph.appContext, sessionId) }
+                    }
+                }
+        }
         viewModelScope.launch {
             val project = ref?.project ?: return@launch
             val rt = graph.currentRuntime ?: return@launch
@@ -309,8 +327,8 @@ class ChatViewModel(private val graph: AppGraph, private val sessionId: String, 
 
     fun cancel() { chat?.cancelRun() }
     fun reload() = viewModelScope.launch { chat?.reloadTranscript() }
-    fun respond(item: ChatItem.Permission, decision: String) {
-        if (chat?.respondPermission(item, decision) == true) {
+    fun respond(item: ChatItem.Permission, decision: String, text: String? = null, answers: Map<String, List<String>>? = null) {
+        if (chat?.respondPermission(item, decision, text, answers) == true) {
             hostId?.let { h -> viewModelScope.launch { delay(600); graph.inbox.refresh(graph.profiles.state.value.profiles) } }
         }
     }
@@ -336,6 +354,7 @@ class ChatViewModel(private val graph: AppGraph, private val sessionId: String, 
     fun safeError(text: String?): String? = text?.let { Redactor.redact(it, graph.profiles.state.value.active?.config?.secrets.orEmpty()) }
 
     override fun onCleared() {
+        com.huanmeng.huanhermes.notify.RunNotifications.cancelRun(graph.appContext, sessionId)
         hostId?.let { h -> graph.scope.launch { graph.localPrefs.markSeen(h, sessionId) } }
         chat?.close() // no state updates after the screen is gone
     }

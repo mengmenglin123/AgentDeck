@@ -19,7 +19,7 @@ from typing import Callable, Any
 
 PROTOCOL_VERSION = 2
 # Capabilities this Host can offer when the client asks for them.
-HOST_V2_CAPABILITIES = ("seq", "resume", "session_status")
+HOST_V2_CAPABILITIES = ("seq", "resume", "session_status", "plan_cards", "usage")
 
 
 def negotiate(client_capabilities: Any) -> tuple[str, ...]:

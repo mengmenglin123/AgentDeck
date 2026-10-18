@@ -110,6 +110,14 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit, foldTurns: Boolean = true,
     val rows = remember(items, foldTurns) { if (foldTurns) TurnFolding.fold(items) else items.map { ChatRowModel.Item(it) } }
     val haptic = rememberHaptic()
     val ctx = androidx.compose.ui.platform.LocalContext.current
+    val chatPrefs = com.huanmeng.huanhermes.ui.chat.LocalChatPrefs.current
+    val deviceAuth = com.huanmeng.huanhermes.ui.rememberDeviceAuth()
+    // Stall hint (D2): re-check every 30 s while a run is active.
+    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+    var stallDismissedAt by rememberSaveable { mutableStateOf(0L) }
+    LaunchedEffect(state.runActive) {
+        while (state.runActive) { now = System.currentTimeMillis(); kotlinx.coroutines.delay(30_000) }
+    }
     // In-chat search (A6).
     var searching by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
@@ -233,7 +241,12 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit, foldTurns: Boolean = true,
                         is ChatRowModel.Item -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             ChatRow(
                                 row.item, live = state.runActive && i == rows.lastIndex,
-                                onDecision = { d -> haptic.confirm(); vm.respond(row.item as ChatItem.Permission, d) },
+                                onDecision = { d ->
+                                    val perm = row.item as ChatItem.Permission
+                                    if (d == "allow_all" && chatPrefs.confirmAllowAll) deviceAuth("确认允许本会话内的同类操作") { haptic.confirm(); vm.respond(perm, d) }
+                                    else { haptic.confirm(); vm.respond(perm, d) }
+                                },
+                                onAnswer = { d, text, answers -> haptic.confirm(); vm.respond(row.item as ChatItem.Permission, d, text, answers) },
                                 onQuote = { t -> input = com.huanmeng.huanhermes.core.chat.Quote.insert(input, t); vm.saveDraft(input) },
                                 onEdit = { t -> input = t; vm.saveDraft(input) },
                             )
@@ -261,6 +274,29 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit, foldTurns: Boolean = true,
                         onClick = { stick = true; scope.launch { list.animateScrollToItem(rows.size - 1, 100_000) } },
                     ) { Icon(Icons.Outlined.KeyboardArrowDown, "回到最新消息") }
                 }
+            }
+        }
+        if (state.stalled(now) && state.lastActivityAt > stallDismissedAt) {
+            Surface(color = MaterialTheme.colorScheme.tertiaryContainer, modifier = Modifier.fillMaxWidth().testTag("stall-strip")) {
+                Row(Modifier.padding(horizontal = 12.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("已 ${(now - state.lastActivityAt) / 60_000} 分钟没有新输出，可能卡住了", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                    TextButton(onClick = { stallDismissedAt = state.lastActivityAt }) { Text("继续等") }
+                    TextButton(onClick = vm::cancel) { Text("中断") }
+                }
+            }
+        }
+        state.usage?.let { u ->
+            val pct = u.contextPercent
+            Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 2.dp).testTag("usage-row"), verticalAlignment = Alignment.CenterVertically) {
+                if (pct != null) androidx.compose.material3.LinearProgressIndicator(
+                    progress = { pct / 100f }, modifier = Modifier.width(56.dp),
+                    color = if (pct >= 80) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    listOfNotNull(pct?.let { "上下文 $it%" }, u.totalTokens?.let { "${formatTokens(it)} tokens" }, u.costUsd?.let { "$" + String.format(java.util.Locale.US, "%.2f", it) })
+                        .joinToString(" · ") + if ((pct ?: 0) >= 80) " · 可用 /compact 压缩" else "",
+                    Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
         RunQueue(
@@ -310,7 +346,14 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit, foldTurns: Boolean = true,
 }
 
 @Composable
-private fun ChatRow(item: ChatItem, live: Boolean, onDecision: (String) -> Unit, onQuote: (String) -> Unit = {}, onEdit: (String) -> Unit = {}) {
+private fun ChatRow(
+    item: ChatItem,
+    live: Boolean,
+    onDecision: (String) -> Unit,
+    onQuote: (String) -> Unit = {},
+    onEdit: (String) -> Unit = {},
+    onAnswer: (String, String?, Map<String, List<String>>?) -> Unit = { d, _, _ -> onDecision(d) },
+) {
     when (item) {
         is ChatItem.User -> MessageActions(item.text, onQuote = { onQuote(item.text) }, onEdit = { onEdit(item.text) }) {
             Bubble(alignEnd = true, color = MaterialTheme.colorScheme.primaryContainer) {
@@ -332,7 +375,11 @@ private fun ChatRow(item: ChatItem, live: Boolean, onDecision: (String) -> Unit,
         }
         is ChatItem.Thinking -> ThinkingRow(item, live)
         is ChatItem.Tool -> ToolRow(item)
-        is ChatItem.Permission -> PermissionCard(item, onDecision)
+        is ChatItem.Permission -> when (item.kind) {
+            "plan" -> com.huanmeng.huanhermes.ui.chat.PlanCard(item, onAnswer)
+            "question" -> com.huanmeng.huanhermes.ui.chat.QuestionCard(item, onAnswer)
+            else -> PermissionCard(item, onDecision)
+        }
         is ChatItem.Notice -> Muted(item.text)
         is ChatItem.Failure -> Text(
             "错误：${item.text}${item.code?.let { "（$it）" } ?: ""}",
@@ -420,4 +467,10 @@ private fun ChangedFilesCard(files: List<com.huanmeng.huanhermes.core.chat.Chang
             if (files.size > 8) Text("还有 ${files.size - 8} 个…", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
+}
+
+private fun formatTokens(n: Long): String = when {
+    n >= 1_000_000 -> String.format(java.util.Locale.US, "%.1fM", n / 1_000_000.0)
+    n >= 1_000 -> String.format(java.util.Locale.US, "%.1fk", n / 1_000.0)
+    else -> n.toString()
 }

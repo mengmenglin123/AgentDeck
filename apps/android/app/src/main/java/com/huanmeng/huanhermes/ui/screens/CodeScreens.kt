@@ -245,7 +245,7 @@ fun GitScreen(
                     if (st != null && st.clean) {
                         Text(st.note ?: "工作区很干净，没有改动", Modifier.padding(24.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LazyColumn(Modifier.fillMaxWidth().weight(1f), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(st?.files.orEmpty(), key = { it.path }) { f ->
                             Card(
                                 Modifier.fillMaxWidth().clickable { vm.openDiff(f.path) }.testTag("git-file-${f.path}"),
@@ -265,6 +265,7 @@ fun GitScreen(
                         }
                     }
                 }
+            }
             if (ui.comments.isNotEmpty()) {
                 androidx.compose.material3.Surface(tonalElevation = 3.dp, modifier = Modifier.fillMaxWidth().testTag("review-bar")) {
                     Column(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
@@ -279,7 +280,6 @@ fun GitScreen(
                         }
                     }
                 }
-            }
             }
         }
     }

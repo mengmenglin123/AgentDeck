@@ -65,6 +65,7 @@ class TestSessionJournal(unittest.TestCase):
         self.assertEqual(register_ack(legacy, epoch="e"), {"type": "register_ack", "ok": True, "error": ""})
         self.assertEqual(register_ack(None, epoch="e"), {"type": "register_ack", "ok": True, "error": ""})
         v2 = register_ack([*legacy, "seq", "resume", "session_status", "future_thing"], epoch="e")
+        self.assertEqual(negotiate(["plan_cards", "usage", "seq"]), ("seq", "plan_cards", "usage"))
         self.assertEqual(v2["protocol"], 2)
         self.assertEqual(v2["capabilities"], ["seq", "resume", "session_status"])
         self.assertEqual(v2["epoch"], "e")

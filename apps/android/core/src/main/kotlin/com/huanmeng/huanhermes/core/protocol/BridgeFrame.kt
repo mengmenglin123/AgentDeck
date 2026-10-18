@@ -9,6 +9,22 @@ import kotlinx.serialization.json.jsonObject
 /** A permission/action button: `data` is what goes back in `card_action.action`. */
 data class FrameButton(val text: String, val data: String)
 
+/** One AskUserQuestion item on a `kind: question` card. */
+data class CardQuestion(val id: String, val question: String, val header: String?, val multiSelect: Boolean, val options: List<Option>) {
+    data class Option(val label: String, val description: String?)
+}
+
+/** Token / context usage a Host reports on `run_done` (capability `usage`). */
+data class Usage(val inputTokens: Long?, val outputTokens: Long?, val contextTokens: Long?, val contextWindow: Long?, val costUsd: Double?) {
+    /** 0..100, or null when the Host gave no window. */
+    val contextPercent: Int? get() {
+        val used = contextTokens ?: return null
+        val window = contextWindow?.takeIf { it > 0 } ?: return null
+        return ((used * 100) / window).toInt().coerceIn(0, 100)
+    }
+    val totalTokens: Long? get() = contextTokens ?: listOfNotNull(inputTokens, outputTokens).takeIf { it.isNotEmpty() }?.sum()
+}
+
 /**
  * Typed view of a Host -> App Bridge frame (see docs/protocol/schema).
  * Every frame keeps its raw JSON; unknown types become [Unknown] instead of failing.
@@ -39,8 +55,14 @@ sealed class BridgeFrame {
     data class ToolResult(override val raw: JsonObject, val name: String, val output: String, val callId: String?, val status: String?, val isError: Boolean) : BridgeFrame()
 
     /** `buttons` and `card` frames: a permission request when it has buttons. */
-    data class Card(override val raw: JsonObject, val content: String, val buttons: List<FrameButton>, val permissionId: String?) : BridgeFrame()
-    data class RunDone(override val raw: JsonObject, val status: String, val exitCode: Long?, val summary: String?) : BridgeFrame()
+    data class Card(override val raw: JsonObject, val content: String, val buttons: List<FrameButton>, val permissionId: String?) : BridgeFrame() {
+        /** `plan` / `question` (capability `plan_cards`), null for a plain permission card. */
+        val kind: String? get() = raw.text("kind")
+        val questions: List<CardQuestion> get() = parseQuestions(raw["questions"])
+    }
+    data class RunDone(override val raw: JsonObject, val status: String, val exitCode: Long?, val summary: String?) : BridgeFrame() {
+        val usage: Usage? get() = parseUsage(raw["usage"])
+    }
     data class Typing(override val raw: JsonObject, val active: Boolean) : BridgeFrame()
     data class PreviewStart(override val raw: JsonObject, val refId: String) : BridgeFrame()
     data class UpdateMessage(override val raw: JsonObject, val content: String) : BridgeFrame()
@@ -94,6 +116,25 @@ sealed class BridgeFrame {
             "resync_required" -> ResyncRequired(o, o.long("last_seq") ?: 0)
             "session_status" -> SessionStatus(o, o.bool("alive"), o.bool("running"), o.long("last_seq") ?: 0)
             else -> if (o.str("type")?.startsWith("terminal_") == true) Terminal(o) else Unknown(o)
+        }
+
+        fun parseQuestions(raw: JsonElement?): List<CardQuestion> = (raw as? JsonArray).orEmpty().mapIndexedNotNull { i, el ->
+            val q = el as? JsonObject ?: return@mapIndexedNotNull null
+            val text = q.text("question") ?: return@mapIndexedNotNull null
+            val options = (q["options"] as? JsonArray).orEmpty().mapNotNull { o ->
+                val ob = o as? JsonObject ?: return@mapNotNull null
+                ob.text("label")?.let { CardQuestion.Option(it, ob.text("description")) }
+            }
+            CardQuestion(q.text("id") ?: i.toString(), text, q.text("header"), q.bool("multi_select") || q.bool("multiSelect"), options)
+        }
+
+        fun parseUsage(raw: JsonElement?): Usage? {
+            val u = raw as? JsonObject ?: return null
+            val usage = Usage(
+                u.long("input_tokens"), u.long("output_tokens"), u.long("context_tokens"), u.long("context_window"),
+                (u["cost_usd"] as? JsonPrimitive)?.content?.toDoubleOrNull(),
+            )
+            return if (listOf(usage.inputTokens, usage.outputTokens, usage.contextTokens, usage.costUsd).all { it == null }) null else usage
         }
 
         /** Buttons arrive flat (`[{text,data}]`) or as rows (`[[…]]`). */

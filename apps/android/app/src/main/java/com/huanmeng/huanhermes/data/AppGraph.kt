@@ -104,6 +104,15 @@ class AppGraph(private val context: Context) {
 
     @Volatile var inForeground = false
         private set
+    /** Same as [inForeground], observable (run notifications, app lock). */
+    val foreground = MutableStateFlow(false)
+    /** When the app last went to the background (app lock grace period). */
+    @Volatile var backgroundAt: Long = 0L
+        private set
+    /** App lock: unlocked for this foreground stretch. */
+    val unlocked = MutableStateFlow(false)
+    val appContext: Context get() = context
+    @Volatile private var unsentWatch: Job? = null
     @Volatile private var notificationsEnabled = true
     private val notified: MutableSet<String> = ConcurrentHashMap.newKeySet()
     @Volatile private var backgroundPoll: Job? = null
@@ -115,6 +124,10 @@ class AppGraph(private val context: Context) {
     /** App came to the foreground: don't sit out a long backoff wait. */
     fun onForeground() {
         inForeground = true
+        foreground.value = true
+        if (backgroundAt > 0 && System.currentTimeMillis() - backgroundAt > LOCK_GRACE_MS) unlocked.value = false
+        unsentWatch?.cancel()
+        com.huanmeng.huanhermes.notify.RunNotifications.cancelUnsent(context)
         backgroundPoll?.cancel()
         val rt = runtime ?: return
         if (!rt.bridge.isConnected) rt.bridge.reconnectNow()
@@ -123,6 +136,15 @@ class AppGraph(private val context: Context) {
     /** For a few minutes after leaving the app, check for approvals often; WorkManager covers the rest. */
     fun onBackground() {
         inForeground = false
+        foreground.value = false
+        backgroundAt = System.currentTimeMillis()
+        // Watchdog: messages still queued 30 s after leaving the app get a notification.
+        unsentWatch?.cancel()
+        unsentWatch = scope.launch {
+            delay(30_000)
+            val n = offlineQueue.items.value.size
+            if (!inForeground && n > 0) com.huanmeng.huanhermes.notify.RunNotifications.unsent(context, n)
+        }
         backgroundPoll?.cancel()
         backgroundPoll = scope.launch {
             repeat(12) {
@@ -217,5 +239,10 @@ class AppGraph(private val context: Context) {
             appVersion = BuildConfig.VERSION_NAME,
         )
         return HostRuntime(profile, bridge, MgmtClient(profile.config, engineFor(profile.config))).also { runtime = it }
+    }
+
+    companion object {
+        /** App lock re-arms after this long in the background. */
+        const val LOCK_GRACE_MS = 60_000L
     }
 }

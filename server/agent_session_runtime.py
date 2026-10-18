@@ -134,6 +134,8 @@ class AgentSessionRuntime:
         *,
         action: str,
         reply_ctx: str | None,
+        text: object = None,
+        answers: object = None,
     ) -> list[dict]:
         if self.permission_gate is None:
             raise AdapterError("permission gate is not configured")
@@ -143,6 +145,8 @@ class AgentSessionRuntime:
                 session_key=session_key,
                 reply_ctx=reply_ctx,
                 action=action,
+                text=text,
+                answers=answers,
             )
         except PermissionGateError as exc:
             raise AdapterError(str(exc)) from exc
@@ -204,6 +208,8 @@ class AgentSessionRuntime:
                     reply_ctx=state.driver.reply_ctx,
                     scope=str(event.get("scope") or event.get("name") or "agent.permission"),
                     prompt=str(event.get("content") or "Agent requests permission"),
+                    kind=event.get("kind") if isinstance(event.get("kind"), str) else None,
+                    questions=event.get("questions"),
                 )
                 if isinstance(challenge, PermissionDecision):
                     self._send_permission_decision(challenge)
@@ -221,12 +227,19 @@ class AgentSessionRuntime:
         return transformed
 
     def _send_permission_decision(self, decision: PermissionDecision) -> None:
-        payload = json.dumps({
+        body: dict = {
             "type": "permission_response",
             "permission_id": decision.request_id,
             "decision": decision.decision,
             "scope": decision.scope,
-        }, separators=(",", ":"))
+        }
+        if decision.kind:
+            body["kind"] = decision.kind
+        if decision.text:
+            body["text"] = decision.text
+        if decision.answers:
+            body["answers"] = decision.answers
+        payload = json.dumps(body, separators=(",", ":"))
         self.adapter.send(decision.session_key, payload + "\n")
 
     def _require_state(self, session_key: str) -> _SessionState:

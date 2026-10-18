@@ -44,7 +44,16 @@ data class ChatState(
     val runQueue: List<QueuedSend> = emptyList(),
     /** Host capabilities from the Bridge handshake (empty until connected). */
     val hostCapabilities: Set<String> = emptySet(),
+    /** Latest token / context usage the Host reported (capability `usage`). */
+    val usage: com.huanmeng.huanhermes.core.protocol.Usage? = null,
+    /** Clock time of the last frame for this session; drives the stall hint. */
+    val lastActivityAt: Long = 0,
 ) {
+    /** A run that produced nothing for [thresholdMs] (default 5 min) — maybe stuck. */
+    fun stalled(now: Long, thresholdMs: Long = STALL_MS): Boolean = runActive && lastActivityAt > 0 && now - lastActivityAt >= thresholdMs
+
+    companion object { const val STALL_MS = 5 * 60_000L }
+
     val items get() = transcript.items
 }
 
@@ -115,6 +124,8 @@ class ChatSession(
         // Rule 1: anything for another session (or no session at all) is not ours.
         if (frame.sessionKey != session.sessionKey) return
         frame.replyCtx?.let { lastReplyCtx = it }
+        val now = clock()
+        if (frame !is BridgeFrame.Pong && frame !is BridgeFrame.ResumeAck) mutate { it.copy(lastActivityAt = now) }
         when (frame) {
             is BridgeFrame.Typing -> mutate { it.copy(typing = frame.active, runActive = it.runActive || frame.active) }
             is BridgeFrame.PreviewStart -> {
@@ -123,7 +134,7 @@ class ChatSession(
             }
             is BridgeFrame.RunDone -> {
                 runEndsKnown = true
-                mutate { it.copy(transcript = it.transcript.apply(frame), runActive = false, typing = false) }
+                mutate { it.copy(transcript = it.transcript.apply(frame), runActive = false, typing = false, usage = frame.usage ?: it.usage) }
                 scope.launch { sendNextQueued() }
             }
             is BridgeFrame.ResumeAck -> Unit
@@ -266,12 +277,31 @@ class ChatSession(
         return ok
     }
 
-    /** Answers a permission card with its own `reply_ctx` and exact button data. */
-    fun respondPermission(item: ChatItem.Permission, decision: String): Boolean {
+    /**
+     * Answers a card with its own `reply_ctx` and exact button data. Plan cards may carry
+     * feedback [text]; question cards carry [answers] (question id -> option labels).
+     */
+    fun respondPermission(item: ChatItem.Permission, decision: String, text: String? = null, answers: Map<String, List<String>>? = null): Boolean {
         val action = Outbound.resolvePermissionAction(decision, item.buttons)
-        val ok = bridge.send(Outbound.cardAction(session.sessionKey, action, item.replyCtx ?: lastReplyCtx, session.project))
+        val withFields = item.kind != null && Capabilities.PLAN_CARDS in state.value.hostCapabilities
+        val ok = bridge.send(
+            Outbound.cardAction(session.sessionKey, action, item.replyCtx ?: lastReplyCtx, session.project,
+                text = if (withFields) text else null, answers = if (withFields) answers else null),
+        )
+        // A Host without plan_cards gets the feedback / answers as a plain message instead.
+        if (ok && !withFields && (!text.isNullOrBlank() || !answers.isNullOrEmpty())) {
+            val body = buildString {
+                if (!answers.isNullOrEmpty()) item.questions.forEach { q -> answers[q.id]?.let { append(q.question).append(" → ").append(it.joinToString("、")).append('\n') } }
+                if (!text.isNullOrBlank()) append(text)
+            }.trim()
+            if (body.isNotEmpty()) bridge.send(Outbound.message(session.sessionKey, body, session.project))
+        }
         val label = when {
             action.endsWith("allow_all") -> "allow_all"
+            action.endsWith("accept_clear") -> "accept_clear"
+            action.endsWith("accept") -> "accept"
+            action.endsWith("keep") -> "keep"
+            action.endsWith("submit") -> "submit"
             action.endsWith("deny") -> "deny"
             else -> "allow"
         }

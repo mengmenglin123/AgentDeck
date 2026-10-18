@@ -60,6 +60,8 @@ fun InboxScreen(vm: InboxViewModel, onOpenChat: (SessionRef) -> Unit, onOpenHost
     val busy by vm.busy.collectAsStateWithLifecycle()
     val error by vm.error.collectAsStateWithLifecycle()
     val haptic = rememberHaptic()
+    val chatPrefs = com.huanmeng.huanhermes.ui.chat.LocalChatPrefs.current
+    val deviceAuth = com.huanmeng.huanhermes.ui.rememberDeviceAuth()
     LaunchedEffect(Unit) { vm.refresh() }
     // Only a pull shows the indicator; background refreshes stay quiet.
     var pulling by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
@@ -109,7 +111,10 @@ fun InboxScreen(vm: InboxViewModel, onOpenChat: (SessionRef) -> Unit, onOpenHost
                     InboxCard(
                         item = item,
                         sending = busy == item.key,
-                        onDecision = { d -> haptic.confirm(); vm.decide(item, d) },
+                        onDecision = { d ->
+                            if (d == "allow_all" && chatPrefs.confirmAllowAll) deviceAuth("确认允许本会话内的同类操作") { haptic.confirm(); vm.decide(item, d) }
+                            else { haptic.confirm(); vm.decide(item, d) }
+                        },
                         onOpen = { vm.open(item, onOpenChat) },
                         modifier = Modifier.animateItem(),
                     )
@@ -167,7 +172,13 @@ private fun InboxCard(item: InboxItem, sending: Boolean, onDecision: (String) ->
                 CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                 Spacer(Modifier.width(8.dp))
                 Text("发送中…", style = MaterialTheme.typography.bodySmall)
-            } else PermissionButtons(item.permission.buttons.map { it.data }, onDecision)
+            } else {
+                val data = item.permission.buttons.map { it.data }
+                // Plans and questions need the full card: answer them in the session.
+                if (data.isNotEmpty() && data.none { d -> listOf("allow", "allow_all", "deny").any { d.endsWith(":$it") } }) {
+                    androidx.compose.material3.Button(onClick = onOpen) { Text("打开会话处理") }
+                } else PermissionButtons(data, onDecision)
+            }
         }
     }
 }

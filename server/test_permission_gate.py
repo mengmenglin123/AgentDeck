@@ -95,5 +95,32 @@ class TestPermissionGate(unittest.TestCase):
         self.assertEqual(gate.pending_ids, ("p1",))
 
 
+    def test_plan_card_accepts_plan_decisions_only(self) -> None:
+        card = self.gate.issue(session_key="s1", reply_ctx="r1", scope="plan", prompt="# Plan\n1. a", kind="plan")
+        self.assertEqual(card["kind"], "plan")
+        self.assertEqual([b["data"] for b in card["buttons"][0]], ["perm:p1:accept", "perm:p1:accept_clear", "perm:p1:keep"])
+        with self.assertRaises(PermissionGateError):
+            self.gate.decide(session_key="s1", reply_ctx="r1", action="perm:p1:allow_all")
+        d = self.gate.decide(session_key="s1", reply_ctx="r1", action="perm:p1:keep", text="先别动数据库")
+        self.assertEqual((d.decision, d.kind, d.text), ("keep", "plan", "先别动数据库"))
+
+    def test_question_card_sanitises_questions_and_answers(self) -> None:
+        qs = [{"question": "用哪个库?", "header": "库", "options": [{"label": "A", "description": "a"}, {"label": "B"}]},
+              {"question": "要哪些?", "multiSelect": True, "options": [{"label": "x"}, {"label": "y"}]}, "junk"]
+        card = self.gate.issue(session_key="s1", reply_ctx="r1", scope="ask", prompt="问题", kind="question", questions=qs)
+        self.assertEqual(len(card["questions"]), 2)
+        self.assertTrue(card["questions"][1]["multi_select"])
+        self.assertEqual(self.gate.pending_for("s1")[0]["kind"], "question")
+        d = self.gate.decide(session_key="s1", reply_ctx="r1", action="perm:p1:submit",
+                             answers={"0": ["A", "B"], "1": ["x", "y"], "9": ["z"]})
+        self.assertEqual(d.answers, {"0": ["A"], "1": ["x", "y"]})
+
+    def test_allow_all_never_auto_answers_plans(self) -> None:
+        self.gate.issue(session_key="s1", reply_ctx="r1", scope="shell", prompt="ls")
+        self.gate.decide(session_key="s1", reply_ctx="r1", action="perm:p1:allow_all")
+        plan = self.gate.issue(session_key="s1", reply_ctx="r1", scope="shell", prompt="plan", kind="plan")
+        self.assertIsInstance(plan, dict)
+
+
 if __name__ == "__main__":
     unittest.main()

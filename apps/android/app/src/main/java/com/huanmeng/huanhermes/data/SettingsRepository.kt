@@ -55,6 +55,10 @@ data class AppSettings(
     val codeLineNumbers: Boolean = false,
     /** Wrap long code lines instead of scrolling sideways. */
     val codeWrap: Boolean = false,
+    /** "本会话允许" asks for the device lock first. */
+    val confirmAllowAll: Boolean = true,
+    /** Ask for the device lock when opening the app (after 60 s away). */
+    val appLock: Boolean = false,
 )
 
 /** UI preferences. A corrupt file is replaced with defaults instead of crashing. */
@@ -94,6 +98,8 @@ class SettingsRepository(context: Context) {
             prefs[QUICK] = next.quickMessages.map { it.replace('\n', ' ').trim() }.filter { it.isNotEmpty() }.take(8).joinToString("\n")
             prefs[LINENO] = next.codeLineNumbers
             prefs[WRAP] = next.codeWrap
+            prefs[CONFIRM_ALL] = next.confirmAllowAll
+            prefs[APPLOCK] = next.appLock
         }
     }
 
@@ -119,6 +125,8 @@ class SettingsRepository(context: Context) {
         quickMessages = this[QUICK]?.split('\n')?.filter { it.isNotBlank() } ?: DEFAULT_QUICK,
         codeLineNumbers = this[LINENO] ?: false,
         codeWrap = this[WRAP] ?: false,
+        confirmAllowAll = this[CONFIRM_ALL] ?: true,
+        appLock = this[APPLOCK] ?: false,
     )
 
     companion object {
@@ -145,5 +153,7 @@ class SettingsRepository(context: Context) {
         private val QUICK = stringPreferencesKey("quick_messages")
         private val LINENO = booleanPreferencesKey("code_line_numbers")
         private val WRAP = booleanPreferencesKey("code_wrap")
+        private val CONFIRM_ALL = booleanPreferencesKey("confirm_allow_all")
+        private val APPLOCK = booleanPreferencesKey("app_lock")
     }
 }

@@ -20,6 +20,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -132,7 +133,7 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
         androidx.compose.runtime.CompositionLocalProvider(
             com.huanmeng.huanhermes.ui.screens.LocalCompactList provides settings.compactList,
             com.huanmeng.huanhermes.ui.chat.LocalChatPrefs provides com.huanmeng.huanhermes.ui.chat.ChatPrefs(
-                settings.enterToSend, settings.quickMessages, settings.codeLineNumbers, settings.codeWrap,
+                settings.enterToSend, settings.quickMessages, settings.codeLineNumbers, settings.codeWrap, settings.confirmAllowAll,
             ),
         ) {
         NavHost(nav, startDestination = Tab.Sessions.route, modifier = Modifier.padding(padding)) {
@@ -250,6 +251,27 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
                 MonoChat(settings.monoChat) { ChatScreen(vm, onBack = { nav.popBackStack() }, foldTurns = settings.foldTurns, onOpenDiff = openDiff) }
             }
         }
+        }
+    }
+    val unlocked by graph.unlocked.collectAsStateWithLifecycle()
+    if (settings.appLock && !unlocked) AppLockScreen(onUnlocked = { graph.unlocked.value = true })
+}
+
+/** App lock (C2): covers everything until the device lock is confirmed. */
+@androidx.compose.runtime.Composable
+private fun AppLockScreen(onUnlocked: () -> Unit) {
+    val auth = rememberDeviceAuth()
+    androidx.activity.compose.BackHandler(enabled = true) { }
+    androidx.compose.runtime.LaunchedEffect(Unit) { auth("解锁 HuanHermes", onUnlocked) }
+    androidx.compose.material3.Surface(Modifier.fillMaxSize()) {
+        androidx.compose.foundation.layout.Column(
+            Modifier.fillMaxSize(),
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+        ) {
+            androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Outlined.Lock, null, Modifier.padding(16.dp))
+            Text("HuanHermes 已锁定", style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
+            androidx.compose.material3.Button(onClick = { auth("解锁 HuanHermes", onUnlocked) }, modifier = Modifier.padding(top = 16.dp)) { Text("解锁") }
         }
     }
 }

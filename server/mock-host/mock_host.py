@@ -1341,12 +1341,21 @@ def _ws_send_frame_unlocked(conn: socket.socket, opcode: int, payload: bytes) ->
     conn.sendall(header + payload)
 
 
+_MOCK_USAGE: Dict[str, int] = {}
+
+
 def ws_send_text(conn: socket.socket, text: str) -> None:
     caps = _CONN_CAPS.get(conn, ())
     try:
         event = json.loads(text) if text.startswith("{") else None
     except json.JSONDecodeError:
         event = None
+    if isinstance(event, dict) and event.get("type") == "run_done" and "usage" in caps and "usage" not in event:
+        # Protocol v2 `usage`: tokens and context window, only for clients that opted in.
+        sk_usage = str(event.get("session_key") or "")
+        used = _MOCK_USAGE[sk_usage] = _MOCK_USAGE.get(sk_usage, 8000) + 4200
+        event["usage"] = {"input_tokens": used - 900, "output_tokens": 900, "context_tokens": used, "context_window": 200000}
+        text = json.dumps(event, ensure_ascii=False)
     if (
         isinstance(event, dict)
         and event.get("session_key")
@@ -4661,6 +4670,36 @@ def _handle_message(conn: socket.socket, msg: Dict[str, Any]) -> None:
         _handle_cancel(conn, {"session_key": sk, "reply_ctx": ctx})
         return
 
+    if content.startswith("/plan") or content.startswith("/ask"):
+        is_plan = content.startswith("/plan")
+        pid = ("plan" if is_plan else "ask") + uuid.uuid4().hex[:8]
+        if is_plan:
+            prompt = "## 计划\n\n1. 读取 `src/main.py`\n2. 抽出登录逻辑到 `auth.py`\n3. 补单元测试并运行"
+            buttons = [[
+                {"text": "Accept", "data": f"perm:{pid}:accept"},
+                {"text": "Accept & clear context", "data": f"perm:{pid}:accept_clear"},
+                {"text": "Keep planning", "data": f"perm:{pid}:keep"},
+            ]]
+            extra: Dict[str, Any] = {"kind": "plan"}
+        else:
+            prompt = "Agent 有两个问题"
+            buttons = [[{"text": "Submit", "data": f"perm:{pid}:submit"}, {"text": "Skip", "data": f"perm:{pid}:deny"}]]
+            extra = {"kind": "question", "questions": [
+                {"id": "0", "header": "数据库", "question": "用哪种数据库？", "multi_select": False,
+                 "options": [{"label": "SQLite", "description": "单文件，零配置"}, {"label": "PostgreSQL", "description": "生产推荐"}]},
+                {"id": "1", "header": "功能", "question": "这次要包含哪些？", "multi_select": True,
+                 "options": [{"label": "登录"}, {"label": "注册"}, {"label": "找回密码"}]},
+            ]}
+        with SESSIONS_LOCK:
+            PENDING_PERMS.setdefault(sk, []).append({"id": pid, "prompt": prompt, "reply_ctx": ctx, "buttons": buttons, **extra})
+            if sk in SESSIONS:
+                SESSIONS[sk]["updated_at"] = time.time()
+        frame: Dict[str, Any] = {"type": "buttons", "session_key": sk, "reply_ctx": ctx, "content": prompt, "buttons": buttons}
+        if "plan_cards" in _CONN_CAPS.get(conn, ()):
+            frame.update(extra)
+        ws_send_text(conn, json.dumps(frame, ensure_ascii=False))
+        return
+
     if content.startswith("/perm") or content.lower() == "need permission":
         pid = "demo" + uuid.uuid4().hex[:8]
         buttons = [[
@@ -4832,7 +4871,7 @@ def _mock_slash(sk: str, content: str) -> str:
     cmd = parts[0].lower()
     st = _session_state(sk)
     if cmd in ("/help", "/h"):
-        return "mock commands: /help /status /mode /model /dir /cd /stop /cancel /perm"
+        return "mock commands: /help /status /mode /model /dir /cd /stop /cancel /perm /plan /ask"
     if cmd == "/status":
         return (
             f"mock host uptime={int(time.time()-START_TS)}s projects={len(PROJECTS)} "
@@ -4944,7 +4983,16 @@ def _handle_card_action(conn: socket.socket, msg: Dict[str, Any]) -> None:
             PENDING_PERMS[sk] = [p for p in PENDING_PERMS[sk] if p["id"] != parts[1]]
             if not PENDING_PERMS[sk]:
                 PENDING_PERMS.pop(sk, None)
-    if action == "deny" or action.endswith(":deny"):
+    feedback = msg.get("text") if isinstance(msg.get("text"), str) else ""
+    answers = msg.get("answers") if isinstance(msg.get("answers"), dict) else {}
+    if action.endswith(":accept") or action.endswith(":accept_clear"):
+        text = "计划已接受" + ("，已清空上下文" if action.endswith("_clear") else "") + "，开始执行。"
+    elif action.endswith(":keep"):
+        text = "继续规划" + (f"，已收到反馈：{feedback}" if feedback else "。")
+    elif action.endswith(":submit"):
+        picked = "；".join(f"{k} → {', '.join(v) if isinstance(v, list) else v}" for k, v in answers.items())
+        text = "已收到回答：" + (picked or feedback or "（空）")
+    elif action == "deny" or action.endswith(":deny"):
         text = "Permission denied (mock)."
     elif action == "allow_all" or action.endswith(":allow_all"):
         st["allow_all"] = True
