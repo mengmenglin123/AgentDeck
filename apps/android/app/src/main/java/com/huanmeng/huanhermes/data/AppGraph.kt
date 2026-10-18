@@ -120,6 +120,10 @@ class AppGraph(private val context: Context) {
 
     /** A tab the UI should switch to (set by a notification tap). */
     val openTabRequests = MutableStateFlow<String?>(null)
+    /** Text shared into the app (E1), waiting for the user to pick a session. */
+    val pendingShare = MutableStateFlow<String?>(null)
+    /** A session a launcher shortcut asked to open (E3). */
+    val openSessionRequests = MutableStateFlow<SessionRef?>(null)
 
     /** App came to the foreground: don't sit out a long backoff wait. */
     fun onForeground() {
@@ -183,6 +187,7 @@ class AppGraph(private val context: Context) {
 
     private fun reconcile(st: com.huanmeng.huanhermes.core.overview.InboxState) {
         if (st.loading) return
+        com.huanmeng.huanhermes.notify.InboxTileService.refresh(context)
         val live = st.visible.associateBy { it.key }
         for (key in notified.toList()) if (key !in live) {
             notified.remove(key)

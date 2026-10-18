@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material.icons.outlined.Terminal
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -66,6 +67,7 @@ private val sections = listOf(
         Tool("Workspace", "浏览项目文件", Icons.Outlined.Folder, action = "workspace"),
         Tool("Diff", "Git 状态与改动", Icons.Outlined.Difference, action = "git"),
         Tool("终端", "远程终端（PTY）", Icons.Outlined.Terminal, action = "terminal"),
+        Tool("CLI 会话", "电脑上已有的 Claude Code 会话", Icons.Outlined.History, action = "external"),
     )),
     Section("配对与安装", listOf(
         Tool("扫码配对", "扫描 Host 二维码一键连接", Icons.Outlined.QrCodeScanner, action = "scan"),

@@ -19,6 +19,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.QrCode2
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -61,6 +63,7 @@ fun HostsScreen(vm: HostsViewModel, onBack: () -> Unit, onConnected: () -> Unit,
     var editing by remember { mutableStateOf<HostProfile?>(null) }
     var creating by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf<HostProfile?>(null) }
+    var sharing by remember { mutableStateOf<HostProfile?>(null) }
 
     LaunchedEffect(state.loaded, state.profiles.isEmpty()) {
         if (state.loaded && state.profiles.isEmpty()) creating = true
@@ -153,6 +156,7 @@ fun HostsScreen(vm: HostsViewModel, onBack: () -> Unit, onConnected: () -> Unit,
                                 maxLines = 1, overflow = TextOverflow.Ellipsis,
                             )
                         }
+                        IconButton(onClick = { sharing = p }) { Icon(Icons.Outlined.QrCode2, "分享连接二维码") }
                         TextButton(onClick = { creating = false; vm.select(p.id); editing = p }) { Text("编辑") }
                         IconButton(onClick = { confirmDelete = p }) { Icon(Icons.Outlined.Delete, "删除") }
                     }
@@ -172,6 +176,26 @@ fun HostsScreen(vm: HostsViewModel, onBack: () -> Unit, onConnected: () -> Unit,
                 }
             }
         }
+    }
+
+    sharing?.let { p ->
+        val uri = remember(p) { p.config.toPairingUri(includeTokens = false) }
+        val qr = remember(uri) { qrBitmap(uri, 720) }
+        AlertDialog(
+            onDismissRequest = { sharing = null },
+            title = { Text("「${p.name}」连接二维码") },
+            text = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    qr?.let { androidx.compose.foundation.Image(it, "连接二维码", Modifier.size(240.dp).testTag("host-qr")) }
+                    Text("另一台设备用「扫码配对」扫描即可填好地址。二维码不含令牌：在 Host 上运行 production_host.py pair 生成一次性配对码完成连接。", style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            confirmButton = { TextButton(onClick = { sharing = null }) { Text("完成") } },
+            dismissButton = {
+                val ctx = androidx.compose.ui.platform.LocalContext.current
+                TextButton(onClick = { com.huanmeng.huanhermes.ui.chat.copyToClipboard(ctx, uri, "连接链接") }) { Text("复制链接") }
+            },
+        )
     }
 
     confirmDelete?.let { p ->
@@ -287,3 +311,10 @@ private fun HostForm(
         }
     }
 }
+
+/** QR code for a pairing link (ZXing, already bundled for scanning). */
+internal fun qrBitmap(text: String, size: Int): androidx.compose.ui.graphics.ImageBitmap? = runCatching {
+    val m = com.google.zxing.qrcode.QRCodeWriter().encode(text, com.google.zxing.BarcodeFormat.QR_CODE, size, size, mapOf(com.google.zxing.EncodeHintType.MARGIN to 1))
+    val px = IntArray(m.width * m.height) { i -> if (m.get(i % m.width, i / m.width)) android.graphics.Color.BLACK else android.graphics.Color.WHITE }
+    android.graphics.Bitmap.createBitmap(px, m.width, m.height, android.graphics.Bitmap.Config.ARGB_8888).asImageBitmap()
+}.getOrNull()

@@ -37,8 +37,25 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleOpenTab(intent: android.content.Intent?) {
+        val graph = (application as HuanHermesApp).graph
+        if (intent?.action == android.content.Intent.ACTION_SEND && intent.type?.startsWith("text/") == true) {
+            val text = listOfNotNull(
+                intent.getStringExtra(android.content.Intent.EXTRA_SUBJECT),
+                intent.getStringExtra(android.content.Intent.EXTRA_TEXT),
+            ).filter { it.isNotBlank() }.distinct().joinToString("\n")
+            if (text.isNotBlank()) graph.pendingShare.value = text.take(20_000)
+            return
+        }
+        intent?.getStringExtra(com.huanmeng.huanhermes.ui.Shortcuts.EXTRA_SESSION)?.let { id ->
+            val sk = intent.getStringExtra(com.huanmeng.huanhermes.ui.Shortcuts.EXTRA_KEY) ?: return@let
+            graph.openSessionRequests.value = com.huanmeng.huanhermes.core.chat.SessionRef(
+                id, sk, intent.getStringExtra(com.huanmeng.huanhermes.ui.Shortcuts.EXTRA_PROJECT)?.ifEmpty { null },
+                intent.getStringExtra(com.huanmeng.huanhermes.ui.Shortcuts.EXTRA_TITLE) ?: "会话",
+            )
+            return
+        }
         val tab = intent?.getStringExtra(com.huanmeng.huanhermes.notify.ApprovalNotifications.EXTRA_OPEN_TAB) ?: return
-        (application as HuanHermesApp).graph.openTabRequests.value = tab
+        graph.openTabRequests.value = tab
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

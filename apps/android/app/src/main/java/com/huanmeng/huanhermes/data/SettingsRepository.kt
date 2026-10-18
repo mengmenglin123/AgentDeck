@@ -59,6 +59,8 @@ data class AppSettings(
     val confirmAllowAll: Boolean = true,
     /** Ask for the device lock when opening the app (after 60 s away). */
     val appLock: Boolean = false,
+    /** Accent preset id (ThemePresets). */
+    val themePreset: String = "brand",
 )
 
 /** UI preferences. A corrupt file is replaced with defaults instead of crashing. */
@@ -100,6 +102,7 @@ class SettingsRepository(context: Context) {
             prefs[WRAP] = next.codeWrap
             prefs[CONFIRM_ALL] = next.confirmAllowAll
             prefs[APPLOCK] = next.appLock
+            prefs[PRESET] = next.themePreset
         }
     }
 
@@ -127,6 +130,7 @@ class SettingsRepository(context: Context) {
         codeWrap = this[WRAP] ?: false,
         confirmAllowAll = this[CONFIRM_ALL] ?: true,
         appLock = this[APPLOCK] ?: false,
+        themePreset = this[PRESET] ?: "brand",
     )
 
     companion object {
@@ -155,5 +159,6 @@ class SettingsRepository(context: Context) {
         private val WRAP = booleanPreferencesKey("code_wrap")
         private val CONFIRM_ALL = booleanPreferencesKey("confirm_allow_all")
         private val APPLOCK = booleanPreferencesKey("app_lock")
+        private val PRESET = stringPreferencesKey("theme_preset")
     }
 }

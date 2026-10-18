@@ -214,7 +214,7 @@ fun GitScreen(
     val ui by vm.ui.collectAsStateWithLifecycle()
     var pickSession by remember { mutableStateOf(false) }
     BackHandler(enabled = ui.diff != null) { vm.closeDiff() }
-    if (pickSession) ReviewSessionPicker(sessions, onPick = { s -> pickSession = false; onSendReview(s, vm.reviewMessage()) }, onDismiss = { pickSession = false })
+    if (pickSession) SessionPickerSheet(sessions, onPick = { s -> pickSession = false; onSendReview(s, vm.reviewMessage()) }, onDismiss = { pickSession = false })
     val diff = ui.diff
     Scaffold(
         topBar = {
@@ -287,9 +287,14 @@ fun GitScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ReviewSessionPicker(sessions: List<com.huanmeng.huanhermes.core.mgmt.SessionInfo>, onPick: (com.huanmeng.huanhermes.core.mgmt.SessionInfo) -> Unit, onDismiss: () -> Unit) {
+fun SessionPickerSheet(
+    sessions: List<com.huanmeng.huanhermes.core.mgmt.SessionInfo>,
+    onPick: (com.huanmeng.huanhermes.core.mgmt.SessionInfo) -> Unit,
+    onDismiss: () -> Unit,
+    title: String = "发到哪个会话？批注会放进输入框，确认后再发送",
+) {
     androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
-        Text("发到哪个会话？批注会放进输入框，确认后再发送", Modifier.padding(horizontal = 20.dp, vertical = 8.dp), style = MaterialTheme.typography.titleSmall)
+        Text(title, Modifier.padding(horizontal = 20.dp, vertical = 8.dp), style = MaterialTheme.typography.titleSmall)
         if (sessions.isEmpty()) Text("当前 Host 没有会话", Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
         LazyColumn(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
             items(sessions, key = { it.id }) { s ->
@@ -371,6 +376,71 @@ private fun DiffView(diff: FileDiff, onComment: (line: Int?, code: String, note:
                 }
             }
             item { Spacer(Modifier.height(8.dp)) }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ExternalSessionsScreen(vm: com.huanmeng.huanhermes.ui.vm.ExternalSessionsViewModel, onBack: () -> Unit) {
+    val ui by vm.ui.collectAsStateWithLifecycle()
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    BackHandler(enabled = ui.open != null) { vm.close() }
+    val open = ui.open
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(open?.title ?: "电脑上的 CLI 会话", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                navigationIcon = { IconButton(onClick = { if (open != null) vm.close() else onBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回") } },
+                actions = {
+                    if (open != null) IconButton(onClick = { com.huanmeng.huanhermes.ui.chat.copyToClipboard(ctx, open.resumeCommand, "恢复命令") }) {
+                        Icon(Icons.Outlined.ContentCopy, "复制恢复命令")
+                    } else IconButton(onClick = { vm.refresh() }) { Icon(Icons.Outlined.Refresh, "刷新") }
+                },
+            )
+        },
+    ) { pad ->
+        Column(Modifier.padding(pad).fillMaxSize().testTag("external-screen")) {
+            if (ui.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
+            when {
+                ui.unsupported -> Unsupported("查看 CLI 会话")
+                open != null -> LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    item {
+                        Text("只读查看。在电脑终端运行 ${open.resumeCommand} 可继续这个会话。", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    items(ui.rows.size) { i ->
+                        val r = ui.rows[i]
+                        when (r.role) {
+                            "tool" -> Text("▸ 工具 ${r.content}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            "user" -> Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.primaryContainer) {
+                                Text(r.content, Modifier.padding(10.dp), color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            }
+                            else -> com.huanmeng.huanhermes.ui.chat.MarkdownView(r.content)
+                        }
+                    }
+                }
+                else -> {
+                    ProjectChips(ui.projects, ui.project, vm::selectProject)
+                    ui.error?.let { Text(it, Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error) }
+                    if (!ui.loading && ui.sessions.isEmpty() && ui.error == null) {
+                        Text("这个项目目录下没有找到 Claude Code 会话", Modifier.padding(24.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    LazyColumn(Modifier.fillMaxWidth().weight(1f), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(ui.sessions, key = { it.id }) { s ->
+                            Card(
+                                Modifier.fillMaxWidth().clickable { vm.open(s) }.testTag("external-${s.id}"),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                            ) {
+                                Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+                                    Text(s.title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    Text("${s.messages} 条消息 · ${s.cwd}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

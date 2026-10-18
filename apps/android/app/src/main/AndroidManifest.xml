@@ -35,7 +35,24 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Share text (links, logs, notes) into a session (E1). -->
+            <intent-filter android:label="发给 Agent">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
         </activity>
+        <service
+            android:name=".notify.InboxTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_stat_notify"
+            android:label="需要我"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+            <meta-data android:name="android.service.quicksettings.ACTIVE_TILE" android:value="false" />
+        </service>
         <receiver
             android:name=".notify.ApprovalReceiver"
             android:exported="false" />

@@ -5124,6 +5124,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                             "file_search",
                             "audit_readonly",
                             "push",
+                            "external_sessions",
                         ],
                         "hermes": {
                             "adapter": "mock",
@@ -5405,6 +5406,22 @@ class MgmtHandler(BaseHTTPRequestHandler):
                     },
                 },
             )
+            return
+        if path == "/api/v1/external-sessions" or path.startswith("/api/v1/external-sessions/"):
+            demo = {
+                "id": "4f1c2a9e-mock", "title": "重构支付模块（终端里开的）", "cwd": ".", "messages": 3,
+                "updated_at": time.time() - 3600, "resume_command": "claude --resume 4f1c2a9e-mock",
+            }
+            if path == "/api/v1/external-sessions":
+                self._send(200, {"ok": True, "data": {"sessions": [demo]}})
+            elif path.endswith("/" + demo["id"]):
+                self._send(200, {"ok": True, "data": {**demo, "transcript": [
+                    {"role": "user", "content": "把支付模块拆成 service 和 repository"},
+                    {"role": "tool", "content": "Edit"},
+                    {"role": "assistant", "content": "已拆分为 `payment_service.py` 与 `payment_repo.py`。"},
+                ]}})
+            else:
+                self._send(404, {"ok": False, "error": "session not found"})
             return
         if path == "/api/v1/files/search":
             qs = parse_qs(urlparse(self.path).query)

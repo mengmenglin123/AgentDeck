@@ -179,3 +179,48 @@ class TerminalViewModel(graph: AppGraph) : ProjectScopedViewModel(graph) {
         _session.value?.close()
     }
 }
+
+data class ExternalUi(
+    val loading: Boolean = true,
+    val sessions: List<com.huanmeng.huanhermes.core.workspace.ExternalSession> = emptyList(),
+    val error: String? = null,
+    val unsupported: Boolean = false,
+    val projects: List<ProjectInfo> = emptyList(),
+    val project: String? = null,
+    val open: com.huanmeng.huanhermes.core.workspace.ExternalSession? = null,
+    val rows: List<com.huanmeng.huanhermes.core.workspace.ExternalRow> = emptyList(),
+)
+
+/** Claude Code sessions started in a terminal on the Host (read-only, D3). */
+class ExternalSessionsViewModel(graph: AppGraph) : ProjectScopedViewModel(graph) {
+    private val _ui = MutableStateFlow(ExternalUi())
+    val ui: StateFlow<ExternalUi> = _ui.asStateFlow()
+
+    init { refresh() }
+
+    fun selectProject(name: String?) { _ui.update { it.copy(project = name, open = null) }; refresh() }
+
+    fun refresh() = viewModelScope.launch {
+        val rt = runtime() ?: run { _ui.update { it.copy(loading = false, error = "还没有连接 Host") }; return@launch }
+        _ui.update { it.copy(loading = true, error = null) }
+        if (_ui.value.projects.isEmpty()) _ui.update { it.copy(projects = runCatching { rt.mgmt.projects() }.getOrDefault(emptyList())) }
+        try {
+            val list = com.huanmeng.huanhermes.core.workspace.ExternalSessions.parseList(rt.mgmt.get(com.huanmeng.huanhermes.core.workspace.ExternalSessions.url(_ui.value.project)))
+            _ui.update { it.copy(loading = false, sessions = list, unsupported = false) }
+        } catch (e: Exception) {
+            val (unsupported, msg) = friendlyError(e)
+            _ui.update { it.copy(loading = false, error = msg, unsupported = unsupported) }
+        }
+    }
+
+    fun open(s: com.huanmeng.huanhermes.core.workspace.ExternalSession) = viewModelScope.launch {
+        val rt = runtime() ?: return@launch
+        _ui.update { it.copy(open = s, rows = emptyList(), loading = true) }
+        val rows = runCatching {
+            com.huanmeng.huanhermes.core.workspace.ExternalSessions.parseTranscript(rt.mgmt.get(com.huanmeng.huanhermes.core.workspace.ExternalSessions.url(_ui.value.project, s.id)))
+        }.getOrElse { e -> _ui.update { it.copy(error = e.message) }; emptyList() }
+        _ui.update { it.copy(rows = rows, loading = false) }
+    }
+
+    fun close() = _ui.update { it.copy(open = null, rows = emptyList()) }
+}

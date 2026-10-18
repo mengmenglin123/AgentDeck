@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import external_sessions
 import file_index
 import host_feeds
 import workspace_readonly
@@ -275,6 +276,20 @@ class ProductionManagementServer:
             q = query.get("q", [""])[0][:200]
             self._send(request, 200, {"ok": True, "data": {"files": file_index.search(project.workdir, q, limit)}})
             return
+        if path == "/external-sessions" or path.startswith("/external-sessions/"):
+            project = self._selected(query.get("project", [None])[0])
+            if project is None:
+                self._send(request, 404, {"ok": False, "error": "project not found"})
+                return
+            if path == "/external-sessions":
+                self._send(request, 200, {"ok": True, "data": {"sessions": external_sessions.list_sessions(project.workdir)}})
+                return
+            detail = external_sessions.transcript(project.workdir, path.rsplit("/", 1)[1])
+            if detail is None:
+                self._send(request, 404, {"ok": False, "error": "session not found"})
+            else:
+                self._send(request, 200, {"ok": True, "data": detail})
+            return
         if path == "/devices" and self._devices is not None:
             self._send(request, 200, {"ok": True, "data": {"devices": self._devices.list()}})
             return
@@ -382,7 +397,7 @@ class ProductionManagementServer:
 
     def _capabilities(self) -> list[str]:
         caps = ["projects", "sessions", "skills", "mcp", "agents", "pairing", "file_search",
-                "workspace_readonly", "diff_readonly"]
+                "workspace_readonly", "diff_readonly", "external_sessions"]
         if self._activity_feed is not None:
             caps.append("activity_readonly")
         if self._log_ring is not None:

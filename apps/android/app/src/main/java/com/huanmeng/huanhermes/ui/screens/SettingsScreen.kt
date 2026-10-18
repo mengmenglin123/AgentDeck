@@ -4,6 +4,9 @@ import android.os.Build
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -85,6 +88,25 @@ fun SettingsScreen(settings: AppSettings, repo: SettingsRepository, onOpenHosts:
                 SwitchRow("折叠已完成轮次的工具调用", settings.foldTurns) { v -> set { it.copy(foldTurns = v) } }
                 SwitchRow("触感反馈", settings.haptics) { v -> set { it.copy(haptics = v) } }
                 SwitchRow("保持屏幕常亮", settings.keepScreenOn) { v -> set { it.copy(keepScreenOn = v) } }
+                Text("主题色", style = MaterialTheme.typography.bodyMedium)
+                androidx.compose.foundation.layout.Row(
+                    Modifier.horizontalScroll(androidx.compose.foundation.rememberScrollState()),
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+                ) {
+                    com.huanmeng.huanhermes.ui.theme.ThemePresets.all.forEach { p ->
+                        androidx.compose.material3.FilterChip(
+                            selected = settings.themePreset == p.id,
+                            onClick = { set { it.copy(themePreset = p.id) } },
+                            label = { Text(p.label) },
+                            leadingIcon = {
+                                androidx.compose.foundation.layout.Box(
+                                    Modifier.size(14.dp).background(p.light, androidx.compose.foundation.shape.CircleShape),
+                                )
+                            },
+                        )
+                    }
+                }
+                if (settings.dynamicColor) Text("已开启动态取色，主题色不生效", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 SwitchRow("等宽聊天字体", settings.monoChat) { v -> set { it.copy(monoChat = v) } }
                 SwitchRow("回车发送（Shift+回车换行）", settings.enterToSend) { v -> set { it.copy(enterToSend = v) } }
                 SwitchRow("「本会话允许」前验证指纹/锁屏密码", settings.confirmAllowAll) { v -> set { it.copy(confirmAllowAll = v) } }

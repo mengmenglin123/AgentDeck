@@ -81,7 +81,8 @@ fun HuanHermesTheme(settings: AppSettings, content: @Composable () -> Unit) {
         dark -> dark(settings.highContrast)
         else -> light(settings.highContrast)
     }
-    val finalScheme = if (dark && settings.amoledBlack) scheme.copy(
+    val accented = ThemePresets.apply(scheme, settings.themePreset, dark, settings.dynamicColor && Build.VERSION.SDK_INT >= 31)
+    val finalScheme = if (dark && settings.amoledBlack) accented.copy(
         background = Color.Black,
         surface = Color.Black,
         surfaceContainerLowest = Color.Black,
@@ -89,7 +90,7 @@ fun HuanHermesTheme(settings: AppSettings, content: @Composable () -> Unit) {
         surfaceContainer = Color(0xFF111113),
         surfaceContainerHigh = Color(0xFF18181B),
         surfaceContainerHighest = Color(0xFF202024),
-    ) else scheme
+    ) else accented
     val base = LocalDensity.current
     CompositionLocalProvider(
         LocalDensity provides Density(base.density, base.fontScale * settings.fontScale),
@@ -111,3 +112,26 @@ private val AppTypography = androidx.compose.material3.Typography().let { t ->
 
 /** Haptics that respect the user's setting. */
 val LocalHaptics = androidx.compose.runtime.staticCompositionLocalOf { true }
+
+/** Accent presets (E4) layered on the brand scheme; dynamic colour wins when it is on. */
+object ThemePresets {
+    data class Preset(val id: String, val label: String, val light: Color, val dark: Color, val lightContainer: Color, val darkContainer: Color)
+
+    val all = listOf(
+        Preset("brand", "幻梦紫", Brand.accent, Brand.accentBright, Color(0xFFE8EAFF), Color(0xFF2A2F6B)),
+        Preset("forest", "森林绿", Color(0xFF1E7A52), Color(0xFF4CC38A), Color(0xFFD5F2E3), Color(0xFF123D2A)),
+        Preset("sunset", "落日橙", Color(0xFFB4541A), Color(0xFFF4955A), Color(0xFFFFE3D2), Color(0xFF4A2410)),
+        Preset("ocean", "海湾蓝", Color(0xFF0B6BB8), Color(0xFF5AB0F2), Color(0xFFD6EBFC), Color(0xFF0D3355)),
+        Preset("graphite", "石墨灰", Color(0xFF3C4148), Color(0xFFB7BDC6), Color(0xFFE3E5E8), Color(0xFF2C3036)),
+    )
+
+    fun apply(scheme: androidx.compose.material3.ColorScheme, id: String, dark: Boolean, dynamic: Boolean): androidx.compose.material3.ColorScheme {
+        if (dynamic || id == "brand") return scheme
+        val p = all.firstOrNull { it.id == id } ?: return scheme
+        return scheme.copy(
+            primary = if (dark) p.dark else p.light,
+            primaryContainer = if (dark) p.darkContainer else p.lightContainer,
+            onPrimaryContainer = if (dark) Color(0xFFF2F2F2) else Color(0xFF111418),
+        )
+    }
+}

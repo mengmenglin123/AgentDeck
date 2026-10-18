@@ -207,8 +207,35 @@ class EmulatorFlowTest {
         rule.waitUntilAtLeastOneExists(hasText("1/", substring = true), 10_000)
         shot("19-chat-search")
         rule.onNodeWithContentDescription("在会话中搜索").performClick()
+        // Plan approval card (plan_cards): keep planning with feedback.
+        send("/plan")
+        rule.waitUntilAtLeastOneExists(hasTestTag("plan-card"), 15_000)
+        shot("20-plan-card")
+        rule.onNodeWithText("继续规划…").performScrollTo().performClick()
+        rule.onNodeWithTag("plan-feedback").performTextInput("先别动数据库")
+        rule.onNodeWithText("发送并继续规划").performClick()
+        waitText("已收到反馈", substring = true)
+        // AskUserQuestion as a form.
+        send("/ask")
+        rule.waitUntilAtLeastOneExists(hasTestTag("question-card"), 15_000)
+        rule.onNodeWithText("PostgreSQL").performScrollTo().performClick()
+        rule.onNodeWithText("登录").performScrollTo().performClick()
+        shot("21-question-card")
+        rule.onNodeWithText("提交回答").performScrollTo().performClick()
+        waitText("已收到回答", substring = true)
+        rule.waitUntilAtLeastOneExists(hasTestTag("usage-row"), 10_000)
         rule.activity.runOnUiThread { rule.activity.onBackPressedDispatcher.onBackPressed() }
         waitText("对标测试")
+        // Claude Code sessions already on the Host (external_sessions).
+        rule.onAllNodesWithText("工具").onFirst().performClick()
+        rule.onNodeWithTag("tools-list").performScrollToNode(hasTestTag("tool-cli 会话")); rule.onNodeWithTag("tool-cli 会话").performClick()
+        waitText("重构支付模块", substring = true)
+        rule.onNodeWithText("重构支付模块", substring = true).performClick()
+        waitText("payment_service.py", substring = true)
+        shot("22-external-session")
+        rule.onNodeWithContentDescription("返回").performClick()
+        rule.onNodeWithContentDescription("返回").performClick()
+        rule.onAllNodesWithText("会话").onFirst().performClick()
     }
 
     @Test fun c_otherTabsAndDarkTheme() {

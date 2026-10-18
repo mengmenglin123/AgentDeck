@@ -102,6 +102,31 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
             graph.openTabRequests.value = null
         }
     }
+    // Launcher shortcuts follow the pinned sessions; shortcut taps and shared text open a chat.
+    val rootGroups by sessionsVm.groups.collectAsStateWithLifecycle()
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    androidx.compose.runtime.LaunchedEffect(rootGroups) {
+        val pinned = rootGroups.firstOrNull { it.key == "pinned" }?.rows.orEmpty()
+            .map { SessionRef(it.session.id, it.session.sessionKey, it.session.project.ifBlank { null }, it.session.displayTitle) }
+        Shortcuts.publish(ctx.applicationContext, pinned)
+    }
+    val shortcutOpen by graph.openSessionRequests.collectAsStateWithLifecycle()
+    androidx.compose.runtime.LaunchedEffect(shortcutOpen) {
+        shortcutOpen?.let { ref -> graph.sessionRefs[ref.id] = ref; graph.openSessionRequests.value = null; openChat(ref) }
+    }
+    val shared by graph.pendingShare.collectAsStateWithLifecycle()
+    shared?.let { text ->
+        com.huanmeng.huanhermes.ui.screens.SessionPickerSheet(
+            sessions = rootGroups.flatMap { g -> g.rows.map { it.session } }.distinctBy { it.id },
+            title = "发到哪个会话？内容会放进输入框，确认后再发送",
+            onPick = { s ->
+                graph.pendingShare.value = null
+                graph.pendingDrafts[s.id] = text
+                openChat(sessionsVm.remember(s))
+            },
+            onDismiss = { graph.pendingShare.value = null },
+        )
+    }
     NotificationPermissionOnce(settings, repo, hasHosts = sessionsVm.profiles.collectAsStateWithLifecycle().value.profiles.isNotEmpty())
     // Each screen handles its own top/bottom insets; the outer Scaffold only reserves the nav bar.
     Scaffold(
@@ -202,6 +227,10 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
                         openChat(ref)
                     },
                 )
+            }
+            composable("external") {
+                val vm: com.huanmeng.huanhermes.ui.vm.ExternalSessionsViewModel = viewModel { com.huanmeng.huanhermes.ui.vm.ExternalSessionsViewModel(graph) }
+                com.huanmeng.huanhermes.ui.screens.ExternalSessionsScreen(vm, onBack = { nav.popBackStack() })
             }
             composable("terminal") {
                 val vm: com.huanmeng.huanhermes.ui.vm.TerminalViewModel = viewModel { com.huanmeng.huanhermes.ui.vm.TerminalViewModel(graph) }
