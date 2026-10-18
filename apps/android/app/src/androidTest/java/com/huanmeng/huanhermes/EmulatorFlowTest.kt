@@ -291,4 +291,14 @@ class EmulatorFlowTest {
         waitText("收到：离线时发的消息", substring = true, ms = 30_000)
         shot("18-reconnected-flushed")
     }
+
+    /** The bundled Host companion survives packaging byte-for-byte (AAPT must not gunzip it). */
+    @Test fun e_companionAssetIntact() {
+        val ctx = InstrumentationRegistry.getInstrumentation().targetContext
+        val meta = org.json.JSONObject(ctx.assets.open("companion/companion.json").bufferedReader().readText())
+        val bytes = ctx.assets.open("companion/" + meta.getString("file")).readBytes()
+        val sha = java.security.MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
+        org.junit.Assert.assertEquals(meta.getString("sha256"), sha)
+        org.junit.Assert.assertTrue("not gzip", bytes.size > 2 && bytes[0] == 0x1f.toByte() && bytes[1] == 0x8b.toByte())
+    }
 }

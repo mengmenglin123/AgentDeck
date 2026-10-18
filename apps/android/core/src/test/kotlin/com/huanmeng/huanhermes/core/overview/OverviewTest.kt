@@ -128,4 +128,16 @@ class OverviewTest {
         assertTrue(old.pendingPermissions.isEmpty())
         assertEquals(null, old.status)
     }
+
+    @Test fun titleSortKeepsNeedsYouFirst() {
+        fun s(id: String, title: String, t: Double, perm: Boolean = false) = com.huanmeng.huanhermes.core.mgmt.SessionInfo(
+            id = id, sessionKey = id, project = "p", title = title, lastUser = null, updatedAt = t, running = false, mode = null, model = null,
+            pendingPermissions = if (perm) listOf(com.huanmeng.huanhermes.core.mgmt.PendingPermission("x", "c", null, emptyList())) else emptyList(),
+        )
+        val list = listOf(s("1", "beta", 3.0), s("2", "Alpha", 1.0), s("3", "zeta", 2.0, perm = true))
+        val rows = SessionGrouping.group(list, LocalSessionPrefs.Snapshot(), true, sort = SessionSort.Title).single().rows
+        assertEquals(listOf("zeta", "Alpha", "beta"), rows.map { it.session.displayTitle })
+        val recent = SessionGrouping.group(list, LocalSessionPrefs.Snapshot(), true).single().rows
+        assertEquals(listOf("zeta", "beta", "Alpha"), recent.map { it.session.displayTitle })
+    }
 }

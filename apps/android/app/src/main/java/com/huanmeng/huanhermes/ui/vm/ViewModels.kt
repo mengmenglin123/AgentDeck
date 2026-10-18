@@ -102,8 +102,10 @@ class SessionsViewModel(private val graph: AppGraph) : ViewModel() {
     val prefs: StateFlow<LocalSessionPrefs.Snapshot> = combine(graph.localPrefs.data, _active) { d, a -> graph.localPrefs.snapshot(a?.id, d) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, LocalSessionPrefs.Snapshot())
 
-    val groups: StateFlow<List<SessionGroup>> = combine(model.state, prefs, query, showArchived, _online) { st, p, q, arch, online ->
-        SessionGrouping.group(st.sessions, p, online, q, arch)
+    val sort = MutableStateFlow(com.huanmeng.huanhermes.core.overview.SessionSort.Recent)
+
+    val groups: StateFlow<List<SessionGroup>> = combine(model.state, prefs, combine(query, sort) { q, s -> q to s }, showArchived, _online) { st, p, qs, arch, online ->
+        SessionGrouping.group(st.sessions, p, online, qs.first, arch, qs.second)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val archivedCount: StateFlow<Int> = combine(model.state, prefs) { st, p -> SessionGrouping.archivedCount(st.sessions, p) }

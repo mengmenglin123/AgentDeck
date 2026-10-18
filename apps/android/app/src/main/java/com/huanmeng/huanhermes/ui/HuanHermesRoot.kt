@@ -124,6 +124,8 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
             }
         },
     ) { padding ->
+        androidx.compose.runtime.LaunchedEffect(settings.sessionSort) { sessionsVm.sort.value = settings.sessionSort }
+        androidx.compose.runtime.CompositionLocalProvider(com.huanmeng.huanhermes.ui.screens.LocalCompactList provides settings.compactList) {
         NavHost(nav, startDestination = Tab.Sessions.route, modifier = Modifier.padding(padding)) {
             composable(Tab.Sessions.route) {
                 if (!wide) SessionsScreen(
@@ -141,7 +143,7 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
                             ScopedViewModels {
                                 graph.sessionRefs.putIfAbsent(ref.id, ref)
                                 val vm: ChatViewModel = viewModel { ChatViewModel(graph, ref.id, ref) }
-                                ChatScreen(vm, onBack = { paneRef = null }, foldTurns = settings.foldTurns)
+                                MonoChat(settings.monoChat) { ChatScreen(vm, onBack = { paneRef = null }, foldTurns = settings.foldTurns) }
                             }
                         }
                     }
@@ -218,10 +220,28 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
                     id, sk, args?.getString("p")?.ifEmpty { null }, args?.getString("t")?.ifEmpty { null } ?: "会话",
                 )
                 val vm: ChatViewModel = viewModel(key = "chat-$id") { ChatViewModel(graph, id, fallback) }
-                ChatScreen(vm, onBack = { nav.popBackStack() }, foldTurns = settings.foldTurns)
+                MonoChat(settings.monoChat) { ChatScreen(vm, onBack = { nav.popBackStack() }, foldTurns = settings.foldTurns) }
             }
         }
+        }
     }
+}
+
+/** Settings → 等宽聊天字体: body text in the chat uses a monospace family. */
+@androidx.compose.runtime.Composable
+private fun MonoChat(on: Boolean, content: @androidx.compose.runtime.Composable () -> Unit) {
+    if (!on) { content(); return }
+    val t = androidx.compose.material3.MaterialTheme.typography
+    val mono = androidx.compose.ui.text.font.FontFamily.Monospace
+    androidx.compose.material3.MaterialTheme(
+        colorScheme = androidx.compose.material3.MaterialTheme.colorScheme,
+        typography = t.copy(
+            bodyLarge = t.bodyLarge.copy(fontFamily = mono),
+            bodyMedium = t.bodyMedium.copy(fontFamily = mono),
+            bodySmall = t.bodySmall.copy(fontFamily = mono),
+        ),
+        content = content,
+    )
 }
 
 private val SessionRefSaver = androidx.compose.runtime.saveable.listSaver<SessionRef?, String>(

@@ -387,6 +387,7 @@ private fun SessionListRow(
             scope.launch { swipe.reset() }
         },
     ) {
+        val compact = LocalCompactList.current
         Box {
             ListItem(
                 modifier = Modifier
@@ -403,7 +404,7 @@ private fun SessionListRow(
                 ),
                 leadingContent = {
                     Box(
-                        Modifier.size(40.dp).background(look.tint.copy(alpha = 0.14f), CircleShape),
+                        Modifier.size(if (compact) 30.dp else 40.dp).background(look.tint.copy(alpha = 0.14f), CircleShape),
                         contentAlignment = Alignment.Center,
                     ) { Icon(look.icon, null, Modifier.size(20.dp), tint = look.tint) }
                 },
@@ -417,7 +418,13 @@ private fun SessionListRow(
                     }
                 },
                 supportingContent = {
-                    Column {
+                    if (compact) {
+                        Text(
+                            listOfNotNull(row.status.label, preview.ifEmpty { null }).joinToString(" · "), maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (row.status == SessionStatus.NeedsYou) Brand.warning else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else Column {
                         if (preview.isNotEmpty()) Text(
                             preview, maxLines = 2, overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.bodySmall,
@@ -448,6 +455,9 @@ private fun SessionListRow(
         }
     }
 }
+
+/** Denser rows (Settings → 紧凑列表). */
+val LocalCompactList = androidx.compose.runtime.staticCompositionLocalOf { false }
 
 /** Start a session by typing its first message (no dialog). */
 @Composable

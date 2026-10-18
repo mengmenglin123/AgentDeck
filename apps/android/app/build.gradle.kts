@@ -10,8 +10,8 @@ plugins {
 
 // Native versions start at 0.2.0 / versionCode 2000 so they install over the
 // Flutter app (0.1.2xx, versionCode 2xx), which uses the same applicationId and key.
-val nativeVersionName = "0.2.7"
-val nativeVersionCode = 2009
+val nativeVersionName = "0.2.8"
+val nativeVersionCode = 2010
 
 android {
     namespace = "com.huanmeng.huanhermes"
@@ -147,7 +147,9 @@ val bundleCompanion by tasks.registering {
             .redirectErrorStream(true).start()
         val log = proc.inputStream.bufferedReader().readText()
         if (proc.waitFor() != 0) throw GradleException("build_companion.sh failed:\n$log")
-        val tar = dir.resolve("huanhermes-host-$nativeVersionName.tar.gz")
+        // AAPT gunzips "*.gz" assets and drops the extension: ship it under a neutral name.
+        val tar = dir.resolve("huanhermes-host-$nativeVersionName.tgz.bin")
+        dir.resolve("huanhermes-host-$nativeVersionName.tar.gz").renameTo(tar)
         val sha = MessageDigest.getInstance("SHA-256").digest(tar.readBytes()).joinToString("") { "%02x".format(it) }
         dir.resolve("companion.json").writeText("""{"version":"$nativeVersionName","sha256":"$sha","file":"${tar.name}"}""")
     }

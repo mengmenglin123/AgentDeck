@@ -68,6 +68,9 @@ data class SessionRow(val session: SessionInfo, val status: SessionStatus, val p
 
 data class SessionGroup(val key: String, val title: String, val rows: List<SessionRow>)
 
+/** Order inside each group; "needs you" always comes first. */
+enum class SessionSort(val label: String) { Recent("最近活动"), Title("标题") }
+
 object SessionGrouping {
     /**
      * Pinned first, then one group per project (most recently active first);
@@ -80,6 +83,7 @@ object SessionGrouping {
         hostOnline: Boolean,
         query: String = "",
         showArchived: Boolean = false,
+        sort: SessionSort = SessionSort.Recent,
     ): List<SessionGroup> {
         val q = query.trim().lowercase()
         val rows = sessions.mapNotNull { s ->
@@ -90,7 +94,12 @@ object SessionGrouping {
                 if (!hay.contains(q)) return@mapNotNull null
             }
             SessionRow(s, SessionOverview.statusOf(s, prefs.lastSeen[s.id], hostOnline), s.id in prefs.pinned, archived)
-        }.sortedWith(compareBy<SessionRow> { it.status != SessionStatus.NeedsYou }.thenByDescending { it.session.updatedAt ?: 0.0 })
+        }.sortedWith(
+            when (sort) {
+                SessionSort.Recent -> compareBy<SessionRow> { it.status != SessionStatus.NeedsYou }.thenByDescending { it.session.updatedAt ?: 0.0 }
+                SessionSort.Title -> compareBy<SessionRow> { it.status != SessionStatus.NeedsYou }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.session.displayTitle }
+            },
+        )
         val pinned = rows.filter { it.pinned }
         val rest = rows.filterNot { it.pinned }
         val out = mutableListOf<SessionGroup>()

@@ -41,6 +41,12 @@ data class AppSettings(
     val terminalFontSp: Float = 13f,
     /** Dashboard refreshes itself every 30 s while open. */
     val dashboardAutoRefresh: Boolean = true,
+    /** Denser session rows. */
+    val compactList: Boolean = false,
+    /** Order inside session groups. */
+    val sessionSort: com.huanmeng.huanhermes.core.overview.SessionSort = com.huanmeng.huanhermes.core.overview.SessionSort.Recent,
+    /** Monospace font for chat messages. */
+    val monoChat: Boolean = false,
 )
 
 /** UI preferences. A corrupt file is replaced with defaults instead of crashing. */
@@ -71,6 +77,9 @@ class SettingsRepository(context: Context) {
             prefs[SCREEN] = next.keepScreenOn
             prefs[TERMFONT] = next.terminalFontSp.coerceIn(10f, 20f)
             prefs[DASHAUTO] = next.dashboardAutoRefresh
+            prefs[COMPACT] = next.compactList
+            prefs[SORT] = next.sessionSort.name
+            prefs[MONO] = next.monoChat
         }
     }
 
@@ -89,6 +98,9 @@ class SettingsRepository(context: Context) {
         keepScreenOn = this[SCREEN] ?: false,
         terminalFontSp = (this[TERMFONT] ?: 13f).coerceIn(10f, 20f),
         dashboardAutoRefresh = this[DASHAUTO] ?: true,
+        compactList = this[COMPACT] ?: false,
+        sessionSort = runCatching { com.huanmeng.huanhermes.core.overview.SessionSort.valueOf(this[SORT] ?: "") }.getOrDefault(com.huanmeng.huanhermes.core.overview.SessionSort.Recent),
+        monoChat = this[MONO] ?: false,
     )
 
     companion object {
@@ -108,5 +120,8 @@ class SettingsRepository(context: Context) {
         private val SCREEN = booleanPreferencesKey("keep_screen_on")
         private val TERMFONT = floatPreferencesKey("terminal_font_sp")
         private val DASHAUTO = booleanPreferencesKey("dashboard_auto_refresh")
+        private val COMPACT = booleanPreferencesKey("compact_list")
+        private val SORT = stringPreferencesKey("session_sort")
+        private val MONO = booleanPreferencesKey("mono_chat")
     }
 }

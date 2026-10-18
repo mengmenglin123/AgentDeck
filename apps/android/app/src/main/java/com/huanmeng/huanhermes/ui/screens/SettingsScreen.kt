@@ -82,6 +82,19 @@ fun SettingsScreen(settings: AppSettings, repo: SettingsRepository, onOpenHosts:
                 SwitchRow("折叠已完成轮次的工具调用", settings.foldTurns) { v -> set { it.copy(foldTurns = v) } }
                 SwitchRow("触感反馈", settings.haptics) { v -> set { it.copy(haptics = v) } }
                 SwitchRow("保持屏幕常亮", settings.keepScreenOn) { v -> set { it.copy(keepScreenOn = v) } }
+                SwitchRow("等宽聊天字体", settings.monoChat) { v -> set { it.copy(monoChat = v) } }
+                SwitchRow("紧凑会话列表", settings.compactList) { v -> set { it.copy(compactList = v) } }
+                Text("会话排序", style = MaterialTheme.typography.bodyMedium)
+                androidx.compose.material3.SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    val sorts = com.huanmeng.huanhermes.core.overview.SessionSort.entries
+                    sorts.forEachIndexed { i, sort ->
+                        androidx.compose.material3.SegmentedButton(
+                            selected = settings.sessionSort == sort,
+                            onClick = { set { it.copy(sessionSort = sort) } },
+                            shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(i, sorts.size),
+                        ) { Text(sort.label) }
+                    }
+                }
                 SwitchRow("仪表盘每 30 秒自动刷新", settings.dashboardAutoRefresh) { v -> set { it.copy(dashboardAutoRefresh = v) } }
                 Text("终端字号 ${settings.terminalFontSp.toInt()} sp", style = MaterialTheme.typography.bodyMedium)
                 Slider(
@@ -113,6 +126,17 @@ fun SettingsScreen(settings: AppSettings, repo: SettingsRepository, onOpenHosts:
             }
         }
         var confirmReset by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+        androidx.compose.material3.OutlinedButton(onClick = {
+            val summary = "HuanHermes ${BuildConfig.VERSION_NAME} 本机偏好（不含令牌）\n" + listOf(
+                "主题" to settings.themeMode.name, "字号" to "${(settings.fontScale * 100).toInt()}%", "高对比" to settings.highContrast,
+                "纯黑" to settings.amoledBlack, "动态取色" to settings.dynamicColor, "折叠工具调用" to settings.foldTurns,
+                "触感" to settings.haptics, "审批通知" to settings.approvalNotifications, "UnifiedPush" to (settings.pushEndpoint != null),
+                "保持连接" to settings.keepAlive, "屏幕常亮" to settings.keepScreenOn, "终端字号" to settings.terminalFontSp.toInt(),
+                "仪表盘自动刷新" to settings.dashboardAutoRefresh, "紧凑列表" to settings.compactList, "排序" to settings.sessionSort.label,
+                "等宽聊天" to settings.monoChat,
+            ).joinToString("\n") { (k, v) -> "$k：$v" }
+            com.huanmeng.huanhermes.ui.chat.copyToClipboard(context, summary, "HuanHermes 偏好")
+        }, modifier = Modifier.fillMaxWidth()) { Text("复制本机偏好") }
         androidx.compose.material3.OutlinedButton(onClick = { confirmReset = true }, modifier = Modifier.fillMaxWidth()) { Text("恢复默认偏好") }
         if (confirmReset) androidx.compose.material3.AlertDialog(
             onDismissRequest = { confirmReset = false },
