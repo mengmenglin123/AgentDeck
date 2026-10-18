@@ -21,6 +21,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -83,6 +86,28 @@ fun SettingsScreen(settings: AppSettings, repo: SettingsRepository, onOpenHosts:
                 SwitchRow("触感反馈", settings.haptics) { v -> set { it.copy(haptics = v) } }
                 SwitchRow("保持屏幕常亮", settings.keepScreenOn) { v -> set { it.copy(keepScreenOn = v) } }
                 SwitchRow("等宽聊天字体", settings.monoChat) { v -> set { it.copy(monoChat = v) } }
+                SwitchRow("回车发送（Shift+回车换行）", settings.enterToSend) { v -> set { it.copy(enterToSend = v) } }
+                SwitchRow("代码块显示行号", settings.codeLineNumbers) { v -> set { it.copy(codeLineNumbers = v) } }
+                SwitchRow("代码块自动换行", settings.codeWrap) { v -> set { it.copy(codeWrap = v) } }
+                var editQuick by remember { mutableStateOf(false) }
+                androidx.compose.material3.OutlinedButton(onClick = { editQuick = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text("编辑快捷消息（${settings.quickMessages.size}）")
+                }
+                if (editQuick) {
+                    var text by remember { mutableStateOf(settings.quickMessages.joinToString("\n")) }
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { editQuick = false },
+                        title = { Text("快捷消息") },
+                        text = {
+                            Column {
+                                Text("每行一条，最多 8 条；输入框为空时显示", style = MaterialTheme.typography.bodySmall)
+                                androidx.compose.material3.OutlinedTextField(text, { text = it }, Modifier.fillMaxWidth().padding(top = 8.dp), minLines = 4)
+                            }
+                        },
+                        confirmButton = { TextButton(onClick = { set { it.copy(quickMessages = text.lines().map(String::trim).filter(String::isNotEmpty).take(8)) }; editQuick = false }) { Text("保存") } },
+                        dismissButton = { TextButton(onClick = { editQuick = false }) { Text("取消") } },
+                    )
+                }
                 SwitchRow("紧凑会话列表", settings.compactList) { v -> set { it.copy(compactList = v) } }
                 Text("会话排序", style = MaterialTheme.typography.bodyMedium)
                 androidx.compose.foundation.layout.Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {

@@ -46,6 +46,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -200,9 +205,16 @@ private fun FileView(file: WsNode.File) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GitScreen(vm: GitViewModel, onBack: () -> Unit) {
+fun GitScreen(
+    vm: GitViewModel,
+    onBack: () -> Unit,
+    sessions: List<com.huanmeng.huanhermes.core.mgmt.SessionInfo> = emptyList(),
+    onSendReview: (com.huanmeng.huanhermes.core.mgmt.SessionInfo, String) -> Unit = { _, _ -> },
+) {
     val ui by vm.ui.collectAsStateWithLifecycle()
+    var pickSession by remember { mutableStateOf(false) }
     BackHandler(enabled = ui.diff != null) { vm.closeDiff() }
+    if (pickSession) ReviewSessionPicker(sessions, onPick = { s -> pickSession = false; onSendReview(s, vm.reviewMessage()) }, onDismiss = { pickSession = false })
     val diff = ui.diff
     Scaffold(
         topBar = {
@@ -223,7 +235,9 @@ fun GitScreen(vm: GitViewModel, onBack: () -> Unit) {
             if (ui.loading || ui.diffLoading) LinearProgressIndicator(Modifier.fillMaxWidth())
             when {
                 ui.unsupported -> Unsupported("查看改动")
-                diff != null -> DiffView(diff)
+                diff != null -> Box(Modifier.weight(1f)) {
+                    DiffView(diff, onComment = { line, code, note -> vm.addComment(diff.path, line, code, note) })
+                }
                 else -> {
                     ProjectChips(ui.projects, ui.project, vm::selectProject)
                     ui.error?.let { Text(it, Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error) }
@@ -251,6 +265,39 @@ fun GitScreen(vm: GitViewModel, onBack: () -> Unit) {
                         }
                     }
                 }
+            if (ui.comments.isNotEmpty()) {
+                androidx.compose.material3.Surface(tonalElevation = 3.dp, modifier = Modifier.fillMaxWidth().testTag("review-bar")) {
+                    Column(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
+                        ui.comments.forEachIndexed { idx, c ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("${c.path.substringAfterLast('/')}${c.line?.let { ":$it" } ?: ""}  ${c.note}", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                IconButton(onClick = { vm.removeComment(idx) }) { Icon(Icons.Outlined.Close, "删除批注") }
+                            }
+                        }
+                        androidx.compose.material3.Button(onClick = { pickSession = true }, modifier = Modifier.fillMaxWidth()) {
+                            Text("把 ${ui.comments.size} 条批注发到会话")
+                        }
+                    }
+                }
+            }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReviewSessionPicker(sessions: List<com.huanmeng.huanhermes.core.mgmt.SessionInfo>, onPick: (com.huanmeng.huanhermes.core.mgmt.SessionInfo) -> Unit, onDismiss: () -> Unit) {
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
+        Text("发到哪个会话？批注会放进输入框，确认后再发送", Modifier.padding(horizontal = 20.dp, vertical = 8.dp), style = MaterialTheme.typography.titleSmall)
+        if (sessions.isEmpty()) Text("当前 Host 没有会话", Modifier.padding(20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        LazyColumn(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+            items(sessions, key = { it.id }) { s ->
+                androidx.compose.material3.ListItem(
+                    headlineContent = { Text(s.displayTitle, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    supportingContent = { if (s.project.isNotBlank()) Text(s.project) },
+                    modifier = Modifier.clickable { onPick(s) },
+                )
             }
         }
     }
@@ -266,8 +313,25 @@ private fun StatusBadge(status: String) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun DiffView(diff: FileDiff) {
+private fun DiffView(diff: FileDiff, onComment: (line: Int?, code: String, note: String) -> Unit = { _, _, _ -> }) {
+    var commenting by remember { mutableStateOf<com.huanmeng.huanhermes.core.workspace.DiffLine?>(null) }
+    commenting?.let { target ->
+        var note by remember(target) { mutableStateOf("") }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { commenting = null },
+            title = { Text("批注 ${target.newNo ?: target.oldNo ?: ""} 行") },
+            text = {
+                Column {
+                    Text(target.text.take(200), style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace), maxLines = 3, overflow = TextOverflow.Ellipsis)
+                    androidx.compose.material3.OutlinedTextField(note, { note = it }, Modifier.fillMaxWidth().padding(top = 8.dp).testTag("review-note"), placeholder = { Text("希望 Agent 怎么改") })
+                }
+            },
+            confirmButton = { TextButton(onClick = { onComment(target.newNo ?: target.oldNo, target.text, note); commenting = null }, enabled = note.isNotBlank()) { Text("添加") } },
+            dismissButton = { TextButton(onClick = { commenting = null }) { Text("取消") } },
+        )
+    }
     val p = codePalette()
     val lang = Workspace.languageOf(diff.path)
     // Highlight code lines once, off the main thread (the "async highlight" from the plan).
@@ -290,7 +354,11 @@ private fun DiffView(diff: FileDiff) {
                     else -> androidx.compose.ui.graphics.Color.Transparent
                 }
                 val mono = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace, fontSize = 12.5.sp)
-                Row(Modifier.background(bg).padding(vertical = 1.dp)) {
+                Row(
+                    Modifier.background(bg)
+                        .then(if (line.kind == DiffLine.Kind.Hunk || line.kind == DiffLine.Kind.Meta) Modifier else Modifier.combinedClickable(onClick = {}, onLongClick = { commenting = line }, onLongClickLabel = "添加批注"))
+                        .padding(vertical = 1.dp),
+                ) {
                     if (line.kind == DiffLine.Kind.Hunk || line.kind == DiffLine.Kind.Meta) {
                         Text(line.text, Modifier.padding(horizontal = 8.dp, vertical = 2.dp), style = mono, color = if (line.kind == DiffLine.Kind.Hunk) p.meta else MaterialTheme.colorScheme.outline, softWrap = false)
                     } else {

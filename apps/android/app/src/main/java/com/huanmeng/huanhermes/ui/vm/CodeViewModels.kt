@@ -80,13 +80,23 @@ data class GitUi(
     val hostName: String = "",
     val diff: FileDiff? = null,
     val diffLoading: Boolean = false,
+    /** Review comments on diff lines, sent back to a session as one message. */
+    val comments: List<com.huanmeng.huanhermes.core.chat.ReviewComments.Comment> = emptyList(),
 )
 
-class GitViewModel(graph: AppGraph) : ProjectScopedViewModel(graph) {
-    private val _ui = MutableStateFlow(GitUi())
+class GitViewModel(graph: AppGraph, project: String? = null, openPath: String? = null) : ProjectScopedViewModel(graph) {
+    private val _ui = MutableStateFlow(GitUi(project = project))
     val ui: StateFlow<GitUi> = _ui.asStateFlow()
 
-    init { refresh() }
+    init { refresh(); openPath?.let { openDiff(it) } }
+
+    fun addComment(path: String, line: Int?, code: String, note: String) {
+        if (note.isBlank()) return
+        _ui.update { it.copy(comments = it.comments + com.huanmeng.huanhermes.core.chat.ReviewComments.Comment(path, line, code, note)) }
+    }
+    fun removeComment(index: Int) = _ui.update { it.copy(comments = it.comments.filterIndexed { i, _ -> i != index }) }
+    fun clearComments() = _ui.update { it.copy(comments = emptyList()) }
+    fun reviewMessage(): String = com.huanmeng.huanhermes.core.chat.ReviewComments.message(_ui.value.comments)
 
     fun selectProject(name: String?) { _ui.update { it.copy(project = name, diff = null) }; refresh() }
 

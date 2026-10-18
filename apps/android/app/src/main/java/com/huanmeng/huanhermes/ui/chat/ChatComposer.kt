@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -40,6 +41,15 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.StopCircle
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.WifiOff
+import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.OpenInFull
+import androidx.compose.material.icons.outlined.CloseFullscreen
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -216,7 +226,10 @@ fun Composer(
     onSend: () -> Unit,
     onCommand: (String) -> Unit,
     onCancel: () -> Unit,
+    onVoice: (() -> Unit)? = null,
 ) {
+    val prefs = LocalChatPrefs.current
+    var fullEditor by remember { mutableStateOf(false) }
     var modelMenu by remember { mutableStateOf(false) }
     var modeMenu by remember { mutableStateOf(false) }
     var historyMenu by remember { mutableStateOf(false) }
@@ -273,10 +286,29 @@ fun Composer(
                     }
                 }
             }
+            if (input.isEmpty() && prefs.quickMessages.isNotEmpty()) {
+                Row(
+                    Modifier.horizontalScroll(rememberScrollState()).padding(top = 2.dp).testTag("quick-messages"),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    prefs.quickMessages.forEach { q ->
+                        androidx.compose.material3.SuggestionChip(onClick = { onInput(q) }, label = { Text(q, maxLines = 1) })
+                    }
+                }
+            }
+            val trySend = { if (input.isNotBlank()) onSend() }
             Row(verticalAlignment = Alignment.Bottom) {
                 TextField(
                     value = input, onValueChange = onInput,
-                    modifier = Modifier.weight(1f).testTag("chat-input"),
+                    keyboardOptions = if (prefs.enterToSend) androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Send) else androidx.compose.foundation.text.KeyboardOptions.Default,
+                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSend = { trySend() }),
+                    modifier = Modifier.weight(1f).testTag("chat-input").onPreviewKeyEvent { e ->
+                        // Hardware keyboards: Enter sends, Shift+Enter is a new line.
+                        if (prefs.enterToSend && e.key == Key.Enter && !e.isShiftPressed) {
+                            if (e.type == KeyEventType.KeyDown) trySend()
+                            true
+                        } else false
+                    },
                     placeholder = {
                         Text(
                             when {
@@ -291,13 +323,46 @@ fun Composer(
                     shape = RoundedCornerShape(22.dp),
                     colors = TextFieldDefaults.colors(focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent, disabledIndicatorColor = Color.Transparent),
                 )
+                if (input.lines().size > 3 || input.length > 160) {
+                    IconButton(onClick = { fullEditor = true }) { Icon(Icons.Outlined.OpenInFull, "全屏编辑") }
+                }
                 if (runActive) {
                     IconButton(onClick = onCancel) { Icon(Icons.Outlined.StopCircle, "停止运行", tint = MaterialTheme.colorScheme.error) }
+                }
+                if (input.isEmpty() && onVoice != null) {
+                    IconButton(onClick = onVoice, modifier = Modifier.testTag("voice-input")) { Icon(Icons.Outlined.Mic, "语音输入") }
                 }
                 Spacer(Modifier.width(4.dp))
                 FilledIconButton(onClick = onSend, enabled = input.isNotBlank()) {
                     Icon(Icons.AutoMirrored.Filled.Send, "发送")
                 }
+            }
+        }
+    }
+    if (fullEditor) FullScreenEditor(input, onInput, onDismiss = { fullEditor = false }, onSend = { fullEditor = false; trySendOutside(input, onSend) })
+}
+
+private fun trySendOutside(input: String, onSend: () -> Unit) { if (input.isNotBlank()) onSend() }
+
+/** Long prompts get the whole screen; the text is the same state as the composer's. */
+@Composable
+fun FullScreenEditor(input: String, onInput: (String) -> Unit, onDismiss: () -> Unit, onSend: () -> Unit) {
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize().imePadding().padding(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onDismiss) { Icon(Icons.Outlined.CloseFullscreen, "收起编辑器") }
+                    Text("编辑消息 · ${input.length} 字", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                    FilledIconButton(onClick = onSend, enabled = input.isNotBlank()) { Icon(Icons.AutoMirrored.Filled.Send, "发送") }
+                }
+                TextField(
+                    value = input, onValueChange = onInput,
+                    modifier = Modifier.fillMaxWidth().weight(1f).padding(top = 8.dp).testTag("full-editor"),
+                    colors = TextFieldDefaults.colors(focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
+                )
             }
         }
     }

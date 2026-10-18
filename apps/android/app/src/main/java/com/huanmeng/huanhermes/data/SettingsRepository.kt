@@ -47,9 +47,19 @@ data class AppSettings(
     val sessionSort: com.huanmeng.huanhermes.core.overview.SessionSort = com.huanmeng.huanhermes.core.overview.SessionSort.Recent,
     /** Monospace font for chat messages. */
     val monoChat: Boolean = false,
+    /** Enter / the keyboard's send key sends instead of a new line. */
+    val enterToSend: Boolean = false,
+    /** One-tap prompts shown above an empty composer. */
+    val quickMessages: List<String> = DEFAULT_QUICK,
+    /** Line numbers in chat code blocks. */
+    val codeLineNumbers: Boolean = false,
+    /** Wrap long code lines instead of scrolling sideways. */
+    val codeWrap: Boolean = false,
 )
 
 /** UI preferences. A corrupt file is replaced with defaults instead of crashing. */
+val DEFAULT_QUICK = listOf("继续", "运行测试并修复失败的用例", "总结一下本轮改动", "提交前先给我看 diff")
+
 class SettingsRepository(context: Context) {
     private val store = PreferenceDataStoreFactory.create(
         corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() },
@@ -80,6 +90,10 @@ class SettingsRepository(context: Context) {
             prefs[COMPACT] = next.compactList
             prefs[SORT] = next.sessionSort.name
             prefs[MONO] = next.monoChat
+            prefs[ENTER] = next.enterToSend
+            prefs[QUICK] = next.quickMessages.map { it.replace('\n', ' ').trim() }.filter { it.isNotEmpty() }.take(8).joinToString("\n")
+            prefs[LINENO] = next.codeLineNumbers
+            prefs[WRAP] = next.codeWrap
         }
     }
 
@@ -101,6 +115,10 @@ class SettingsRepository(context: Context) {
         compactList = this[COMPACT] ?: false,
         sessionSort = runCatching { com.huanmeng.huanhermes.core.overview.SessionSort.valueOf(this[SORT] ?: "") }.getOrDefault(com.huanmeng.huanhermes.core.overview.SessionSort.Recent),
         monoChat = this[MONO] ?: false,
+        enterToSend = this[ENTER] ?: false,
+        quickMessages = this[QUICK]?.split('\n')?.filter { it.isNotBlank() } ?: DEFAULT_QUICK,
+        codeLineNumbers = this[LINENO] ?: false,
+        codeWrap = this[WRAP] ?: false,
     )
 
     companion object {
@@ -123,5 +141,9 @@ class SettingsRepository(context: Context) {
         private val COMPACT = booleanPreferencesKey("compact_list")
         private val SORT = stringPreferencesKey("session_sort")
         private val MONO = booleanPreferencesKey("mono_chat")
+        private val ENTER = booleanPreferencesKey("enter_to_send")
+        private val QUICK = stringPreferencesKey("quick_messages")
+        private val LINENO = booleanPreferencesKey("code_line_numbers")
+        private val WRAP = booleanPreferencesKey("code_wrap")
     }
 }

@@ -136,12 +136,27 @@ fun CodeBlockView(code: String, language: String?, modifier: Modifier = Modifier
                     Icon(Icons.Outlined.ContentCopy, "复制代码", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            Text(
-                rememberHighlighted(shown, language, p),
-                fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall,
-                softWrap = false,
-                modifier = Modifier.horizontalScroll(rememberScrollState()).padding(start = 12.dp, end = 12.dp, bottom = 10.dp),
-            )
+            val prefs = LocalChatPrefs.current
+            val highlighted = rememberHighlighted(shown, language, p)
+            Row(Modifier.padding(bottom = 10.dp)) {
+                if (prefs.codeLineNumbers) {
+                    val shownLines = shown.count { it == '\n' } + 1
+                    val w = shownLines.toString().length
+                    Text(
+                        remember(shownLines) { (1..shownLines).joinToString("\n") { it.toString().padStart(w) } },
+                        fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.outline, softWrap = false,
+                        modifier = Modifier.padding(start = 10.dp),
+                    )
+                }
+                Text(
+                    highlighted,
+                    fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall,
+                    softWrap = prefs.codeWrap,
+                    modifier = (if (prefs.codeWrap) Modifier else Modifier.horizontalScroll(rememberScrollState()))
+                        .padding(start = if (prefs.codeLineNumbers) 8.dp else 12.dp, end = 12.dp),
+                )
+            }
             if (lines > foldLines) {
                 TextButton(onClick = { expanded = !expanded }, modifier = Modifier.padding(start = 4.dp)) {
                     Text(if (expanded) "收起" else "展开全部 $lines 行")

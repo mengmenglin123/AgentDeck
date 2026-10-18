@@ -15,6 +15,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -190,6 +192,25 @@ class EmulatorFlowTest {
         waitText("审批测试")
     }
 
+    @Test fun b3_quickMessagesSearchExport() {
+        ensureConnected()
+        openNewChat("对标测试")
+        rule.waitUntil(15_000) { rule.onAllNodesWithText("正在连接 Bridge…").count() == 0 }
+        rule.waitUntilAtLeastOneExists(hasTestTag("quick-messages"), 10_000)
+        shot("18-quick-messages")
+        rule.onNode(hasText("继续") and androidx.compose.ui.test.hasAnyAncestor(hasTestTag("quick-messages"))).performClick()
+        rule.waitUntilAtLeastOneExists(hasText("继续") and hasTestTag("chat-input"), 5_000)
+        rule.onNodeWithContentDescription("发送").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+        rule.waitForIdle()
+        rule.onNodeWithContentDescription("在会话中搜索").performClick()
+        rule.onNodeWithTag("chat-search").performTextInput("继续")
+        rule.waitUntilAtLeastOneExists(hasText("1/", substring = true), 10_000)
+        shot("19-chat-search")
+        rule.onNodeWithContentDescription("在会话中搜索").performClick()
+        rule.activity.runOnUiThread { rule.activity.onBackPressedDispatcher.onBackPressed() }
+        waitText("对标测试")
+    }
+
     @Test fun c_otherTabsAndDarkTheme() {
         ensureConnected()
         rule.onAllNodesWithText("工具").onFirst().performClick()
@@ -228,6 +249,14 @@ class EmulatorFlowTest {
         rule.onNodeWithTag("git-file-src/main.py").performClick()
         rule.waitUntilAtLeastOneExists(hasTestTag("diff-view"), 15_000)
         rule.waitForIdle(); shot("26-diff")
+        // Long-press a diff line to add a review comment (lands in the review bar).
+        rule.onNodeWithTag("diff-view").performTouchInput { longClick(center) }
+        if (runCatching { rule.waitUntilAtLeastOneExists(hasTestTag("review-note"), 3_000); true }.getOrDefault(false)) {
+            rule.onNodeWithTag("review-note").performTextInput("改成常量")
+            rule.onNodeWithText("添加").performClick()
+            rule.waitUntilAtLeastOneExists(hasTestTag("review-bar"), 5_000)
+            shot("26b-review-bar")
+        }
         rule.onNodeWithContentDescription("返回").performClick()
         rule.onNodeWithContentDescription("返回").performClick()
         rule.onNodeWithTag("tools-list").performScrollToNode(hasTestTag("tool-终端")); rule.onNodeWithTag("tool-终端").performClick()

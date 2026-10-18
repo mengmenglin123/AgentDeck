@@ -92,6 +92,8 @@ class AppGraph(private val context: Context) {
 
     /** Sessions the list showed, so a chat route only needs the id. */
     val sessionRefs = ConcurrentHashMap<String, SessionRef>()
+    /** Text handed to a chat before it opens (diff review, system share); consumed once by its composer. */
+    val pendingDrafts = ConcurrentHashMap<String, String>()
 
     @Volatile private var runtime: HostRuntime? = null
 

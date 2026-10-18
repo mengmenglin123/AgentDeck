@@ -86,6 +86,10 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
             nav.navigate("chat/${e(ref.id)}?sk=${e(ref.sessionKey)}&p=${e(ref.project)}&t=${e(ref.title)}")
         }
     }
+    val openDiff = { path: String?, project: String? ->
+        val e = { v: String? -> android.net.Uri.encode(v.orEmpty()) }
+        nav.navigate("git?path=${e(path)}&project=${e(project)}")
+    }
     // A tapped approval notification opens "需要我".
     val openTab by graph.openTabRequests.collectAsStateWithLifecycle()
     androidx.compose.runtime.LaunchedEffect(openTab) {
@@ -125,7 +129,12 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
         },
     ) { padding ->
         androidx.compose.runtime.LaunchedEffect(settings.sessionSort) { sessionsVm.sort.value = settings.sessionSort }
-        androidx.compose.runtime.CompositionLocalProvider(com.huanmeng.huanhermes.ui.screens.LocalCompactList provides settings.compactList) {
+        androidx.compose.runtime.CompositionLocalProvider(
+            com.huanmeng.huanhermes.ui.screens.LocalCompactList provides settings.compactList,
+            com.huanmeng.huanhermes.ui.chat.LocalChatPrefs provides com.huanmeng.huanhermes.ui.chat.ChatPrefs(
+                settings.enterToSend, settings.quickMessages, settings.codeLineNumbers, settings.codeWrap,
+            ),
+        ) {
         NavHost(nav, startDestination = Tab.Sessions.route, modifier = Modifier.padding(padding)) {
             composable(Tab.Sessions.route) {
                 if (!wide) SessionsScreen(
@@ -143,7 +152,7 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
                             ScopedViewModels {
                                 graph.sessionRefs.putIfAbsent(ref.id, ref)
                                 val vm: ChatViewModel = viewModel { ChatViewModel(graph, ref.id, ref) }
-                                MonoChat(settings.monoChat) { ChatScreen(vm, onBack = { paneRef = null }, foldTurns = settings.foldTurns) }
+                                MonoChat(settings.monoChat) { ChatScreen(vm, onBack = { paneRef = null }, foldTurns = settings.foldTurns, onOpenDiff = openDiff) }
                             }
                         }
                     }
@@ -171,9 +180,27 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
                 val vm: com.huanmeng.huanhermes.ui.vm.WorkspaceViewModel = viewModel { com.huanmeng.huanhermes.ui.vm.WorkspaceViewModel(graph) }
                 com.huanmeng.huanhermes.ui.screens.WorkspaceScreen(vm, onBack = { nav.popBackStack() })
             }
-            composable("git") {
-                val vm: com.huanmeng.huanhermes.ui.vm.GitViewModel = viewModel { com.huanmeng.huanhermes.ui.vm.GitViewModel(graph) }
-                com.huanmeng.huanhermes.ui.screens.GitScreen(vm, onBack = { nav.popBackStack() })
+            composable(
+                "git?path={path}&project={project}",
+                arguments = listOf(
+                    navArgument("path") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("project") { type = NavType.StringType; defaultValue = "" },
+                ),
+            ) { backStack ->
+                val path = backStack.arguments?.getString("path").orEmpty().ifEmpty { null }
+                val project = backStack.arguments?.getString("project").orEmpty().ifEmpty { null }
+                val vm: com.huanmeng.huanhermes.ui.vm.GitViewModel = viewModel { com.huanmeng.huanhermes.ui.vm.GitViewModel(graph, project, path) }
+                val groups by sessionsVm.groups.collectAsStateWithLifecycle()
+                com.huanmeng.huanhermes.ui.screens.GitScreen(
+                    vm, onBack = { nav.popBackStack() },
+                    sessions = groups.flatMap { g -> g.rows.map { it.session } }.distinctBy { it.id },
+                    onSendReview = { s, text ->
+                        val ref = sessionsVm.remember(s)
+                        graph.pendingDrafts[s.id] = text
+                        vm.clearComments()
+                        openChat(ref)
+                    },
+                )
             }
             composable("terminal") {
                 val vm: com.huanmeng.huanhermes.ui.vm.TerminalViewModel = viewModel { com.huanmeng.huanhermes.ui.vm.TerminalViewModel(graph) }
@@ -220,7 +247,7 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
                     id, sk, args?.getString("p")?.ifEmpty { null }, args?.getString("t")?.ifEmpty { null } ?: "会话",
                 )
                 val vm: ChatViewModel = viewModel(key = "chat-$id") { ChatViewModel(graph, id, fallback) }
-                MonoChat(settings.monoChat) { ChatScreen(vm, onBack = { nav.popBackStack() }, foldTurns = settings.foldTurns) }
+                MonoChat(settings.monoChat) { ChatScreen(vm, onBack = { nav.popBackStack() }, foldTurns = settings.foldTurns, onOpenDiff = openDiff) }
             }
         }
         }

@@ -239,8 +239,14 @@ class ChatViewModel(private val graph: AppGraph, private val sessionId: String, 
         ChatSession(profile.id, r, rt.bridge, rt.mgmt, graph.offlineQueue, viewModelScope, secrets = profile.config.secrets)
     }
     val title: String = ref?.title ?: "会话"
+    val project: String? get() = ref?.project
+    val hostLabel: String get() = graph.profiles.state.value.active?.name.orEmpty()
     val state: StateFlow<ChatState> = chat?.state ?: MutableStateFlow(ChatState(error = "会话不可用：请回到会话列表重新打开"))
-    val initialDraft: String = hostId?.let { graph.localPrefs.draft(it, sessionId) }.orEmpty()
+    val initialDraft: String = run {
+        val saved = hostId?.let { graph.localPrefs.draft(it, sessionId) }.orEmpty()
+        val handed = graph.pendingDrafts.remove(sessionId)
+        if (handed == null) saved else listOf(saved.trimEnd(), handed).filter { it.isNotEmpty() }.joinToString("\n\n")
+    }
     val history: StateFlow<List<String>> = graph.localPrefs.data.map { it.history }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     private val _models = MutableStateFlow<List<String>>(emptyList())
