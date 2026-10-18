@@ -27,6 +27,7 @@ import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.CloudUpload
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -213,6 +214,20 @@ fun GitScreen(
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     var pickSession by remember { mutableStateOf(false) }
+    var confirmPush by remember { mutableStateOf(false) }
+    var commitMsg by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
+    val gitCtx = androidx.compose.ui.platform.LocalContext.current
+    val deviceAuth = com.huanmeng.huanhermes.ui.rememberDeviceAuth()
+    androidx.compose.runtime.LaunchedEffect(ui.writeResult) {
+        ui.writeResult?.let { android.widget.Toast.makeText(gitCtx, it, android.widget.Toast.LENGTH_SHORT).show(); vm.clearWriteResult() }
+    }
+    if (confirmPush) androidx.compose.material3.AlertDialog(
+        onDismissRequest = { confirmPush = false },
+        title = { Text("推送到远程？") },
+        text = { Text("会在 Host 上运行 git push（当前分支 ${ui.status?.branch ?: ""}${if ((ui.status?.ahead ?: 0) > 0) "，领先 ${ui.status?.ahead} 个提交" else ""}）。") },
+        confirmButton = { TextButton(onClick = { confirmPush = false; deviceAuth("确认推送代码") { vm.gitWrite("push") } }) { Text("推送") } },
+        dismissButton = { TextButton(onClick = { confirmPush = false }) { Text("取消") } },
+    )
     BackHandler(enabled = ui.diff != null) { vm.closeDiff() }
     if (pickSession) SessionPickerSheet(sessions, onPick = { s -> pickSession = false; onSendReview(s, vm.reviewMessage()) }, onDismiss = { pickSession = false })
     val diff = ui.diff
@@ -227,7 +242,12 @@ fun GitScreen(
                     }
                 },
                 navigationIcon = { IconButton(onClick = { if (diff != null) vm.closeDiff() else onBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回") } },
-                actions = { IconButton(onClick = { if (diff != null) vm.openDiff(diff.path) else vm.refresh() }) { Icon(Icons.Outlined.Refresh, "刷新") } },
+                actions = {
+                    if (ui.canWrite && diff == null) IconButton(onClick = { confirmPush = true }, enabled = !ui.writing) {
+                        Icon(Icons.Outlined.CloudUpload, "推送")
+                    }
+                    IconButton(onClick = { if (diff != null) vm.openDiff(diff.path) else vm.refresh() }) { Icon(Icons.Outlined.Refresh, "刷新") }
+                },
             )
         },
     ) { pad ->
@@ -245,6 +265,18 @@ fun GitScreen(
                     if (st != null && st.clean) {
                         Text(st.note ?: "工作区很干净，没有改动", Modifier.padding(24.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                    if (ui.canWrite && st != null && st.staged.isNotEmpty()) {
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp).testTag("commit-bar"), verticalAlignment = Alignment.CenterVertically) {
+                            androidx.compose.material3.OutlinedTextField(
+                                commitMsg, { commitMsg = it }, Modifier.weight(1f).testTag("commit-message"),
+                                placeholder = { Text("提交说明（已暂存 ${st.staged.size} 个）") }, singleLine = true,
+                            )
+                            androidx.compose.material3.Button(
+                                onClick = { vm.gitWrite("commit", message = commitMsg); commitMsg = "" },
+                                enabled = commitMsg.isNotBlank() && !ui.writing, modifier = Modifier.padding(start = 8.dp),
+                            ) { Text("提交") }
+                        }
+                    }
                     LazyColumn(Modifier.fillMaxWidth().weight(1f), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(st?.files.orEmpty(), key = { it.path }) { f ->
                             Card(
@@ -260,6 +292,11 @@ fun GitScreen(
                                         if (dir.isNotEmpty()) Text(dir, style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace), color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     }
                                     Text(f.label + if (f.staged) " · 已暂存" else "", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    if (ui.canWrite) androidx.compose.material3.Checkbox(
+                                        checked = f.staged, enabled = !ui.writing,
+                                        onCheckedChange = { on -> vm.gitWrite(if (on) "stage" else "unstage", listOf(f.path)) },
+                                        modifier = Modifier.testTag("stage-${f.path}"),
+                                    )
                                 }
                             }
                         }

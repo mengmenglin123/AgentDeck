@@ -304,6 +304,57 @@ class ChatViewModel(private val graph: AppGraph, private val sessionId: String, 
         chat?.send(text)
     }
 
+    // --- attachments (F1) -----------------------------------------------------------
+    private val _attachments = MutableStateFlow<List<com.huanmeng.huanhermes.core.protocol.Attachment>>(emptyList())
+    val attachments: StateFlow<List<com.huanmeng.huanhermes.core.protocol.Attachment>> = _attachments.asStateFlow()
+    private val _notice = MutableStateFlow<String?>(null)
+    /** One-shot hint for the composer (attachment limits, scheduled prompt saved…). */
+    val notice: StateFlow<String?> = _notice.asStateFlow()
+    fun clearNotice() { _notice.value = null }
+
+    fun addAttachment(a: com.huanmeng.huanhermes.core.protocol.Attachment) {
+        val next = _attachments.value + a
+        val problem = com.huanmeng.huanhermes.core.protocol.Attachment.problem(next)
+        if (problem != null) _notice.value = problem else _attachments.value = next
+    }
+    fun removeAttachment(index: Int) { _attachments.value = _attachments.value.filterIndexed { i, _ -> i != index } }
+
+    /** Sends text plus any attachments; [onDone] says whether the composer may clear. */
+    fun sendAll(text: String, onDone: (Boolean) -> Unit) {
+        val files = _attachments.value
+        if (files.isEmpty()) { send(text); onDone(true); return }
+        viewModelScope.launch {
+            val ok = chat?.sendWithAttachments(text, files) == true
+            if (ok) {
+                _attachments.value = emptyList()
+                draftJob?.cancel(); saveDraftNow("")
+                if (text.isNotBlank()) graph.localPrefs.addHistory(text)
+            }
+            onDone(ok)
+        }
+    }
+
+    // --- goal bar (F8) ---------------------------------------------------------------
+    val goal: StateFlow<String?> = (hostId?.let { graph.extras.goal(it, sessionId) } ?: kotlinx.coroutines.flow.flowOf(null))
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    fun setGoal(text: String?) { val h = hostId ?: return; viewModelScope.launch { graph.extras.setGoal(h, sessionId, text) } }
+
+    // --- scheduled prompts (F5) --------------------------------------------------------
+    fun schedulePrompt(prompt: String, hour: Int, minute: Int, everyHours: Int?) {
+        val h = hostId ?: return
+        val r = ref ?: return
+        viewModelScope.launch {
+            val a = com.huanmeng.huanhermes.core.overview.Automation(
+                id = com.huanmeng.huanhermes.core.protocol.Outbound.shortId("auto"), hostId = h, sessionId = sessionId,
+                sessionKey = r.sessionKey, project = r.project, title = title, prompt = prompt.trim(),
+                hour = hour, minute = minute, everyHours = everyHours,
+            )
+            graph.extras.updateAutomations { it + a }
+            com.huanmeng.huanhermes.notify.AutomationWorker.schedule(graph.appContext)
+            _notice.value = "已设定：${a.scheduleLabel}发送"
+        }
+    }
+
     /** Slash commands and steer messages skip the run queue. */
     fun sendNow(text: String) = viewModelScope.launch {
         if (text.isBlank()) return@launch

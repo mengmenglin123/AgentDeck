@@ -42,6 +42,7 @@ import androidx.compose.material.icons.outlined.StopCircle
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.OpenInFull
 import androidx.compose.material.icons.outlined.CloseFullscreen
 import androidx.compose.ui.input.key.Key
@@ -227,6 +228,8 @@ fun Composer(
     onCommand: (String) -> Unit,
     onCancel: () -> Unit,
     onVoice: (() -> Unit)? = null,
+    onAttach: (() -> Unit)? = null,
+    attachCount: Int = 0,
 ) {
     val prefs = LocalChatPrefs.current
     var fullEditor by remember { mutableStateOf(false) }
@@ -271,6 +274,12 @@ fun Composer(
                         }
                     }
                 }
+                if (onAttach != null) FilterChip(
+                    selected = attachCount > 0, onClick = onAttach,
+                    label = { Text(if (attachCount > 0) "附件 $attachCount" else "附件") },
+                    leadingIcon = { Icon(Icons.Outlined.AttachFile, null, Modifier.size(16.dp)) },
+                    modifier = Modifier.testTag("attach-chip"),
+                )
                 FilterChip(selected = false, onClick = { onInput("/") }, label = { Text("/ 命令") })
                 FilterChip(selected = false, onClick = { onInput(if (input.isEmpty() || input.endsWith(" ")) input + "@" else "$input @") }, label = { Text("@ 文件") })
                 if (history.isNotEmpty()) Box {
@@ -333,7 +342,7 @@ fun Composer(
                     IconButton(onClick = onVoice, modifier = Modifier.testTag("voice-input")) { Icon(Icons.Outlined.Mic, "语音输入") }
                 }
                 Spacer(Modifier.width(4.dp))
-                FilledIconButton(onClick = onSend, enabled = input.isNotBlank()) {
+                FilledIconButton(onClick = onSend, enabled = input.isNotBlank() || attachCount > 0) {
                     Icon(Icons.AutoMirrored.Filled.Send, "发送")
                 }
             }

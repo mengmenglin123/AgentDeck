@@ -55,6 +55,25 @@ class TestAgentBridgeLoop(unittest.TestCase):
         self.assertEqual([event["type"] for event in events].count("run_done"), 1)
         self.assertEqual(events[0]["reply_ctx"], "r1")
 
+    def test_attachments_are_saved_and_paths_appended(self) -> None:
+        import base64, tempfile
+        script = (
+            "import json, sys; "
+            "line=sys.stdin.readline().rstrip(); "
+            "print(json.dumps({'type':'text_delta','text':line}), flush=True); "
+            "print(json.dumps({'type':'done'}), flush=True)"
+        )
+        with tempfile.TemporaryDirectory() as root:
+            adapter = ProductionAgentAdapter(AgentSpec(agent_type="bridge-fixture", command=(sys.executable, "-u", "-c", script)))
+            self.adapters.append(adapter)
+            loop = AgentBridgeLoop(AgentSessionRuntime(adapter), workdir_resolver=lambda message: root)
+            events = loop.handle({"type": "message", "session_key": "s9", "content": "",
+                                  "images": [{"name": "a.png", "data_base64": base64.b64encode(b"x").decode()}]})
+            events.extend(self.poll_until_done(loop, "s9"))
+            self.assertTrue(any("a.png" in str(e.get("delta", "")) for e in events))
+            bad = loop.handle({"type": "message", "session_key": "s9", "content": "x", "files": [{"data_base64": "%%%"}]})
+            self.assertEqual(bad[0].get("error_code") or bad[0].get("code"), "attachment_rejected")
+
     def test_second_message_starts_new_run_context(self) -> None:
         script = (
             "import json, sys; "

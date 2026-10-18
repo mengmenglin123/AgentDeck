@@ -157,6 +157,7 @@ def build_production_host(config: ProductionHostConfig) -> ProductionHostCompone
         audit_path=config.security.permission_audit_path,
         push=push,
         devices=devices,
+        git_write=config.git_write,
         bridge_port=config.bridge_port,
         host=config.mgmt_host,
         port=config.mgmt_port,

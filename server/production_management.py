@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import external_sessions
 import file_index
+import workspace_git_write
 import host_feeds
 import workspace_readonly
 
@@ -38,6 +39,7 @@ class ProductionManagementServer:
         audit_path: str | None = None,
         push: Any = None,
         devices: Any = None,
+        git_write: bool = False,
         bridge_port: int = 9810,
         host: str = "127.0.0.1",
         port: int = 9820,
@@ -60,6 +62,7 @@ class ProductionManagementServer:
         if default_project not in self.projects:
             raise ValueError("Management default project is not configured")
         self.default_project = default_project
+        self._git_write = bool(git_write)
         self.token = token
         self.sessions = sessions
         self._close_session = close_session or (lambda session_key: None)
@@ -314,6 +317,24 @@ class ProductionManagementServer:
             removed = self._devices.revoke(unquote(path[len("/devices/"):]))
             self._send(request, 200 if removed else 404, {"ok": removed, "data": {"removed": removed}})
             return
+        if path.startswith("/workspace/git/") and method == "POST":
+            action = path[len("/workspace/git/"):]
+            if not self._git_write or action not in workspace_git_write.ACTIONS:
+                self._send(request, 404, {"ok": False, "error": "git write is disabled on this Host"})
+                return
+            project = self._selected(parse_qs(parsed.query).get("project", [None])[0])
+            if project is None:
+                self._send(request, 404, {"ok": False, "error": "project not found"})
+                return
+            try:
+                data = workspace_git_write.perform(project.workdir, action, body)
+            except workspace_git_write.GitWriteError as exc:
+                self._feed("git", f"git {action} failed in {project.name}", level="warning")
+                self._send(request, exc.status, {"ok": False, "error": str(exc)})
+                return
+            self._feed("git", f"git {action} in {project.name}" + (f" ({data.get('commit')})" if data.get("commit") else ""))
+            self._send(request, 200, {"ok": True, "data": data})
+            return
         if path == "/push/register":
             if self._push is None:
                 self._send(request, 404, {"ok": False, "error": "not found"})
@@ -395,6 +416,13 @@ class ProductionManagementServer:
         record["active"] = session_key in self._active_sessions()
         self._send(request, 200, {"ok": True, "data": record})
 
+    def _feed(self, kind: str, summary: str, *, level: str = "info") -> None:
+        if self._activity_feed is not None:
+            try:
+                self._activity_feed.add(kind, summary, source="app", level=level)
+            except Exception:  # noqa: BLE001 - the feed must never break a request
+                pass
+
     def _capabilities(self) -> list[str]:
         caps = ["projects", "sessions", "skills", "mcp", "agents", "pairing", "file_search",
                 "workspace_readonly", "diff_readonly", "external_sessions"]
@@ -408,6 +436,8 @@ class ProductionManagementServer:
             caps.append("push")
         if self._devices is not None:
             caps.append("device_tokens")
+        if self._git_write:
+            caps.append("git_write")
         if self._pending_permissions is not None or self._session_activity is not None:
             caps.append("session_overview")
         return caps

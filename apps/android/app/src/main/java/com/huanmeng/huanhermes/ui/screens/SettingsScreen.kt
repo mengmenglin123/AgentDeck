@@ -185,6 +185,26 @@ fun SettingsScreen(settings: AppSettings, repo: SettingsRepository, onOpenHosts:
             ).joinToString("\n") { (k, v) -> "$k：$v" }
             com.huanmeng.huanhermes.ui.chat.copyToClipboard(context, summary, "HuanHermes 偏好")
         }, modifier = Modifier.fillMaxWidth()) { Text("复制本机偏好") }
+        // Settings backup (F6): a JSON file without tokens.
+        val exportDoc = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")) { uri ->
+            if (uri != null) scope.launch {
+                val ok = runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(repo.exportJson().toByteArray()) } }.isSuccess
+                android.widget.Toast.makeText(context, if (ok) "设置已导出（不含令牌）" else "导出失败", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+        val importDoc = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) scope.launch {
+                val msg = runCatching {
+                    val raw = context.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() }.orEmpty()
+                    "已导入 ${repo.importJson(raw)} 项设置"
+                }.getOrElse { "导入失败：${it.message}" }
+                android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+            androidx.compose.material3.OutlinedButton(onClick = { exportDoc.launch("huanhermes-settings.json") }, modifier = Modifier.weight(1f)) { Text("导出设置") }
+            androidx.compose.material3.OutlinedButton(onClick = { importDoc.launch(arrayOf("application/json", "text/*")) }, modifier = Modifier.weight(1f)) { Text("导入设置") }
+        }
         androidx.compose.material3.OutlinedButton(onClick = { confirmReset = true }, modifier = Modifier.fillMaxWidth()) { Text("恢复默认偏好") }
         if (confirmReset) androidx.compose.material3.AlertDialog(
             onDismissRequest = { confirmReset = false },

@@ -29,6 +29,7 @@ import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material.icons.outlined.Terminal
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Alarm
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -62,6 +63,7 @@ private val sections = listOf(
         Tool("Tools", "内置工具清单", Icons.Outlined.Handyman, action = "catalog/TOOLS"),
         Tool("Memory", "长期记忆", Icons.Outlined.AccountTree, action = "catalog/MEMORY"),
         Tool("Cron", "定时任务", Icons.Outlined.Schedule, action = "catalog/CRON"),
+        Tool("定时提示", "按计划自动发给会话", Icons.Outlined.Alarm, action = "automations"),
     )),
     Section("代码与终端", listOf(
         Tool("Workspace", "浏览项目文件", Icons.Outlined.Folder, action = "workspace"),

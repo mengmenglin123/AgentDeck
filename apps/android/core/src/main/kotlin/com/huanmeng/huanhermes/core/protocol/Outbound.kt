@@ -23,6 +23,28 @@ object Capabilities {
     val NATIVE = LEGACY + V2
 }
 
+/** A small attachment (`images[]` / `files[]` element). */
+data class Attachment(val name: String, val mime: String, val bytes: ByteArray) {
+    val isImage: Boolean get() = mime.startsWith("image/")
+    val sizeBytes: Int get() = bytes.size
+    override fun equals(other: Any?) = other is Attachment && other.name == name && other.mime == mime && other.bytes.contentEquals(bytes)
+    override fun hashCode() = name.hashCode() * 31 + bytes.contentHashCode()
+
+    companion object {
+        const val MAX_ITEMS = 4
+        const val MAX_ITEM_BYTES = 5 * 1024 * 1024
+        const val MAX_TOTAL_BYTES = 10 * 1024 * 1024
+
+        /** Why [list] cannot be sent (protocol limits), or null when it can. */
+        fun problem(list: List<Attachment>): String? = when {
+            list.size > MAX_ITEMS -> "最多 $MAX_ITEMS 个附件"
+            list.any { it.sizeBytes > MAX_ITEM_BYTES } -> "单个附件不能超过 5 MB"
+            list.sumOf { it.sizeBytes } > MAX_TOTAL_BYTES -> "附件总计不能超过 10 MB"
+            else -> null
+        }
+    }
+}
+
 /** App -> Host frame builders (shapes match docs/protocol/schema). */
 object Outbound {
     fun shortId(prefix: String) = "$prefix-" + UUID.randomUUID().toString().replace("-", "").take(12)
@@ -47,6 +69,7 @@ object Outbound {
         replyCtx: String = shortId("ctx"),
         userId: String = "user",
         userName: String = "User",
+        attachments: List<Attachment> = emptyList(),
     ) = buildJsonObject {
         put("type", "message")
         put("msg_id", msgId)
@@ -56,8 +79,12 @@ object Outbound {
         put("user_name", userName)
         put("content", content)
         put("reply_ctx", replyCtx)
-        put("images", buildJsonArray { })
-        put("files", buildJsonArray { })
+        fun encode(a: Attachment) = buildJsonObject {
+            put("name", a.name); put("mime", a.mime); put("size_bytes", a.sizeBytes)
+            put("data_base64", java.util.Base64.getEncoder().encodeToString(a.bytes))
+        }
+        put("images", JsonArray(attachments.filter { it.isImage }.map(::encode)))
+        put("files", JsonArray(attachments.filterNot { it.isImage }.map(::encode)))
         put("audio", JsonNull)
     }
 

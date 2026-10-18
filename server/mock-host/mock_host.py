@@ -917,19 +917,49 @@ def workspace_list(path: str = "") -> Dict[str, Any]:
     }
 
 
+MOCK_GIT_FILES = ["src/main.py", "docs/notes.md", "docs/protocol.md", "hermes/README.md", "hermes/AGENTS.md"]
+MOCK_GIT_STATUS = {"src/main.py": "M", "docs/notes.md": "?", "docs/protocol.md": "A", "hermes/README.md": "A", "hermes/AGENTS.md": "A"}
+MOCK_STAGED: set = set()
+MOCK_COMMITTED: set = set()
+MOCK_AHEAD = [0]
+
+
 def workspace_git_status() -> Dict[str, Any]:
+    files = [
+        {"path": p, "status": MOCK_GIT_STATUS[p], "staged": p in MOCK_STAGED}
+        for p in MOCK_GIT_FILES if p not in MOCK_COMMITTED
+    ]
     return {
         "branch": "main",
-        "clean": False,
-        "files": [
-            {"path": "src/main.py", "status": "M"},
-            {"path": "docs/notes.md", "status": "?"},
-            {"path": "docs/protocol.md", "status": "A"},
-            {"path": "hermes/README.md", "status": "A"},
-            {"path": "hermes/AGENTS.md", "status": "A"},
-        ],
-        "note": "Mock git status — readonly demo (includes hermes/ tree)",
+        "ahead": MOCK_AHEAD[0],
+        "clean": not files,
+        "files": files,
+        "note": "Mock git status (git_write demo: stage / commit / push are simulated)",
     }
+
+
+def mock_git_write(action: str, body: Dict[str, Any]) -> Tuple[int, Dict[str, Any]]:
+    paths = body.get("paths") if isinstance(body.get("paths"), list) else []
+    if action in ("stage", "unstage"):
+        if not paths or any(not isinstance(p, str) or p not in MOCK_GIT_FILES for p in paths):
+            return 400, {"ok": False, "error": "invalid paths"}
+        (MOCK_STAGED.update if action == "stage" else MOCK_STAGED.difference_update)(paths)
+        return 200, {"ok": True, "data": {"action": action}}
+    if action == "commit":
+        msg = body.get("message")
+        if not isinstance(msg, str) or not msg.strip():
+            return 400, {"ok": False, "error": "commit message is required"}
+        if not MOCK_STAGED:
+            return 409, {"ok": False, "error": "nothing to commit (stage files first)"}
+        MOCK_COMMITTED.update(MOCK_STAGED)
+        MOCK_STAGED.clear()
+        MOCK_AHEAD[0] += 1
+        return 200, {"ok": True, "data": {"action": "commit", "commit": uuid.uuid4().hex[:7], "output": msg.strip()[:200]}}
+    if action == "push":
+        pushed = MOCK_AHEAD[0]
+        MOCK_AHEAD[0] = 0
+        return 200, {"ok": True, "data": {"action": "push", "output": f"pushed {pushed} commit(s) to origin/main"}}
+    return 404, {"ok": False, "error": "unknown git action"}
 
 
 
@@ -5125,6 +5155,7 @@ class MgmtHandler(BaseHTTPRequestHandler):
                             "audit_readonly",
                             "push",
                             "external_sessions",
+                            "git_write",
                         ],
                         "hermes": {
                             "adapter": "mock",
@@ -5578,6 +5609,10 @@ class MgmtHandler(BaseHTTPRequestHandler):
             body = json.loads(raw.decode("utf-8") or "{}")
         except json.JSONDecodeError:
             self._send(400, {"ok": False, "error": "invalid json"})
+            return
+        if path.startswith("/api/v1/workspace/git/"):
+            status, payload = mock_git_write(path.rsplit("/", 1)[1], body)
+            self._send(status, payload)
             return
         if path == "/api/v1/push/register" and mock_push() is not None:
             if mock_push().register(body.get("device_id"), body.get("endpoint"), str(body.get("kind") or "unifiedpush")):

@@ -228,6 +228,9 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
                     },
                 )
             }
+            composable("automations") {
+                com.huanmeng.huanhermes.ui.screens.AutomationsScreen(graph, onBack = { nav.popBackStack() })
+            }
             composable("external") {
                 val vm: com.huanmeng.huanhermes.ui.vm.ExternalSessionsViewModel = viewModel { com.huanmeng.huanhermes.ui.vm.ExternalSessionsViewModel(graph) }
                 com.huanmeng.huanhermes.ui.screens.ExternalSessionsScreen(vm, onBack = { nav.popBackStack() })

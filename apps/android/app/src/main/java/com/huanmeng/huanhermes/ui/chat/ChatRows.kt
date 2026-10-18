@@ -21,6 +21,7 @@ import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.FormatQuote
+import androidx.compose.material.icons.outlined.RecordVoiceOver
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ErrorOutline
@@ -72,7 +73,7 @@ import kotlinx.coroutines.delay
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun MessageActions(text: String, onQuote: (() -> Unit)? = null, onEdit: (() -> Unit)? = null, content: @Composable () -> Unit) {
+fun MessageActions(text: String, onQuote: (() -> Unit)? = null, onEdit: (() -> Unit)? = null, onSpeak: (() -> Unit)? = null, content: @Composable () -> Unit) {
     val ctx = LocalContext.current
     var menu by remember { mutableStateOf(false) }
     var selecting by remember { mutableStateOf(false) }
@@ -86,6 +87,9 @@ fun MessageActions(text: String, onQuote: (() -> Unit)? = null, onEdit: (() -> U
             })
             if (onQuote != null) DropdownMenuItem(text = { Text("引用回复") }, leadingIcon = { Icon(Icons.Outlined.FormatQuote, null) }, onClick = {
                 menu = false; onQuote()
+            })
+            if (onSpeak != null) DropdownMenuItem(text = { Text("朗读") }, leadingIcon = { Icon(Icons.Outlined.RecordVoiceOver, null) }, onClick = {
+                menu = false; onSpeak()
             })
             if (onEdit != null) DropdownMenuItem(text = { Text("编辑后重发") }, leadingIcon = { Icon(Icons.Outlined.Edit, null) }, onClick = {
                 menu = false; onEdit()

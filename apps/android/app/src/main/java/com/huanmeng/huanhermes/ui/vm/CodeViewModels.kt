@@ -82,6 +82,10 @@ data class GitUi(
     val diffLoading: Boolean = false,
     /** Review comments on diff lines, sent back to a session as one message. */
     val comments: List<com.huanmeng.huanhermes.core.chat.ReviewComments.Comment> = emptyList(),
+    /** Host has `git_write` (opt-in in its config). */
+    val canWrite: Boolean = false,
+    val writing: Boolean = false,
+    val writeResult: String? = null,
 )
 
 class GitViewModel(graph: AppGraph, project: String? = null, openPath: String? = null) : ProjectScopedViewModel(graph) {
@@ -104,6 +108,10 @@ class GitViewModel(graph: AppGraph, project: String? = null, openPath: String? =
         val rt = runtime() ?: run { _ui.update { it.copy(loading = false, error = "还没有连接 Host") }; return@launch }
         _ui.update { it.copy(loading = true, error = null, hostName = hostName) }
         if (_ui.value.projects.isEmpty()) _ui.update { it.copy(projects = runCatching { rt.mgmt.projects() }.getOrDefault(emptyList())) }
+        if (!_ui.value.canWrite) {
+            val caps = runCatching { rt.mgmt.status()["capabilities"] }.getOrNull()
+            _ui.update { it.copy(canWrite = caps.toString().contains("\"git_write\"")) }
+        }
         try {
             val st = Workspace.parseGit(rt.mgmt.get(Workspace.url("/workspace/git", _ui.value.project)))
             _ui.update { it.copy(loading = false, status = st, unsupported = false) }
@@ -122,6 +130,26 @@ class GitViewModel(graph: AppGraph, project: String? = null, openPath: String? =
     }
 
     fun closeDiff() = _ui.update { it.copy(diff = null) }
+
+    /** stage / unstage / commit / push (Hosts with `git_write`). */
+    fun gitWrite(action: String, paths: List<String> = emptyList(), message: String? = null) = viewModelScope.launch {
+        val rt = runtime() ?: return@launch
+        _ui.update { it.copy(writing = true, writeResult = null) }
+        val body = kotlinx.serialization.json.buildJsonObject {
+            if (paths.isNotEmpty()) put("paths", kotlinx.serialization.json.JsonArray(paths.map { kotlinx.serialization.json.JsonPrimitive(it) }))
+            if (message != null) put("message", kotlinx.serialization.json.JsonPrimitive(message))
+        }
+        val result = runCatching { rt.mgmt.post(Workspace.url("/workspace/git/$action", _ui.value.project), body) }
+        val label = when (action) { "stage" -> "已暂存"; "unstage" -> "已取消暂存"; "commit" -> "已提交"; "push" -> "已推送"; else -> action }
+        _ui.update {
+            it.copy(writing = false, writeResult = result.fold(
+                onSuccess = { d -> label + ((d["commit"] as? kotlinx.serialization.json.JsonPrimitive)?.content?.let { c -> " $c" } ?: "") },
+                onFailure = { e -> "失败：" + (e.message ?: e.javaClass.simpleName) },
+            ))
+        }
+        refresh()
+    }
+    fun clearWriteResult() = _ui.update { it.copy(writeResult = null) }
 }
 
 class TerminalViewModel(graph: AppGraph) : ProjectScopedViewModel(graph) {

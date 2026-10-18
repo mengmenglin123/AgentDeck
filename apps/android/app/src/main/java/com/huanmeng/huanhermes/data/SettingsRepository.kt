@@ -13,6 +13,7 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
@@ -75,6 +76,45 @@ class SettingsRepository(context: Context) {
     val settings: Flow<AppSettings> = store.data
         .catch { emit(emptyPreferences()) }
         .map { it.toSettings() }
+
+    /** Settings as JSON for backup (F6); never tokens, push endpoints or one-time flags. */
+    suspend fun exportJson(): String {
+        val prefs = store.data.catch { emit(emptyPreferences()) }.first()
+        val obj = kotlinx.serialization.json.buildJsonObject {
+            put("format", kotlinx.serialization.json.JsonPrimitive("huanhermes-settings"))
+            put("version", kotlinx.serialization.json.JsonPrimitive(1))
+            put("values", kotlinx.serialization.json.buildJsonObject {
+                prefs.asMap().forEach { (k, v) ->
+                    if (k.name in EXPORT_SKIP) return@forEach
+                    when (v) {
+                        is Boolean -> put(k.name, kotlinx.serialization.json.JsonPrimitive(v))
+                        is Float -> put(k.name, kotlinx.serialization.json.JsonPrimitive(v))
+                        is String -> put(k.name, kotlinx.serialization.json.JsonPrimitive(v))
+                        else -> Unit
+                    }
+                }
+            })
+        }
+        return obj.toString()
+    }
+
+    /** Restores an [exportJson] backup; unknown keys are ignored. Returns how many values were applied. */
+    suspend fun importJson(raw: String): Int {
+        val root = kotlinx.serialization.json.Json.parseToJsonElement(raw) as? kotlinx.serialization.json.JsonObject ?: error("不是设置备份文件")
+        require((root["format"] as? kotlinx.serialization.json.JsonPrimitive)?.content == "huanhermes-settings") { "不是 HuanHermes 设置备份" }
+        val values = root["values"] as? kotlinx.serialization.json.JsonObject ?: return 0
+        var applied = 0
+        store.edit { prefs ->
+            values.forEach { (name, el) ->
+                if (name in EXPORT_SKIP) return@forEach
+                val p = el as? kotlinx.serialization.json.JsonPrimitive ?: return@forEach
+                STRING_KEYS[name]?.let { k -> if (p.isString) { prefs[k] = p.content; applied++ } }
+                BOOL_KEYS[name]?.let { k -> p.content.toBooleanStrictOrNull()?.let { prefs[k] = it; applied++ } }
+                FLOAT_KEYS[name]?.let { k -> p.content.toFloatOrNull()?.let { prefs[k] = it; applied++ } }
+            }
+        }
+        return applied
+    }
 
     suspend fun update(transform: (AppSettings) -> AppSettings) {
         store.edit { prefs ->
@@ -160,5 +200,12 @@ class SettingsRepository(context: Context) {
         private val CONFIRM_ALL = booleanPreferencesKey("confirm_allow_all")
         private val APPLOCK = booleanPreferencesKey("app_lock")
         private val PRESET = stringPreferencesKey("theme_preset")
+        private val EXPORT_SKIP = setOf("push_endpoint", "asked_notification_permission")
+        private val STRING_KEYS by lazy { listOf(THEME, SORT, QUICK, PRESET).associateBy { it.name } }
+        private val BOOL_KEYS by lazy {
+            listOf(DYNAMIC, CONTRAST, AMOLED, HAPTICS, FOLD, NOTIFY, KEEP, SCREEN, DASHAUTO, COMPACT, MONO, ENTER, LINENO, WRAP, CONFIRM_ALL, APPLOCK)
+                .associateBy { it.name }
+        }
+        private val FLOAT_KEYS by lazy { listOf(FONT, TERMFONT).associateBy { it.name } }
     }
 }

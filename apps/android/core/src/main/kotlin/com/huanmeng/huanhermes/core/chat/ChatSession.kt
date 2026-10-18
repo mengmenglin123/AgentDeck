@@ -231,6 +231,26 @@ class ChatSession(
         return queued
     }
 
+    /**
+     * Sends a message with attachments right away. Attachments never go to the offline
+     * queue (protocol rule), so this needs a live connection.
+     */
+    suspend fun sendWithAttachments(text: String, attachments: List<com.huanmeng.huanhermes.core.protocol.Attachment>): Boolean {
+        if (attachments.isEmpty()) return send(text)
+        if (closed) return false
+        com.huanmeng.huanhermes.core.protocol.Attachment.problem(attachments)?.let { p -> mutate { it.copy(error = p) }; return false }
+        if (!bridge.isConnected) { mutate { it.copy(error = "带附件的消息需要连上 Host 才能发送") }; return false }
+        val content = text.trim()
+        val msgId = Outbound.shortId("msg")
+        val replyCtx = Outbound.shortId("ctx")
+        val ok = bridge.send(Outbound.message(session.sessionKey, content, session.project, msgId, replyCtx, attachments = attachments))
+        if (!ok) { mutate { it.copy(error = "发送失败，附件未发出") }; return false }
+        lastReplyCtx = replyCtx
+        val label = content.ifEmpty { "（附件）" } + "\n📎 " + attachments.joinToString("、") { it.name }
+        mutate { it.copy(transcript = it.transcript.addUser(label, msgId, queued = false), runActive = true, error = null) }
+        return true
+    }
+
     /** Removes a run-queue entry and returns its text (to edit it in the composer). */
     fun takeQueued(id: String): String? {
         var taken: String? = null

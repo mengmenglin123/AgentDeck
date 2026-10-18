@@ -207,6 +207,22 @@ class EmulatorFlowTest {
         rule.waitUntilAtLeastOneExists(hasText("1/", substring = true), 10_000)
         shot("19-chat-search")
         rule.onNodeWithContentDescription("在会话中搜索").performClick()
+        // Goal bar (local) from the ⋮ menu.
+        rule.onNodeWithContentDescription("更多").performClick()
+        rule.onNodeWithText("设定会话目标").performClick()
+        rule.onNodeWithTag("goal-input").performTextInput("把登录模块重构完")
+        rule.onNodeWithText("保存").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("goal-strip"), 5_000)
+        // A big paste turns into a text attachment and goes out with the message.
+        rule.onNodeWithTag("chat-input").performTextInput("日志 ".repeat(1200))
+        rule.waitUntilAtLeastOneExists(hasText("转为附件"), 5_000)
+        rule.onNodeWithText("转为附件").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("attachment-strip"), 5_000)
+        shot("19b-goal-and-attachment")
+        rule.onNodeWithTag("chat-input").performTextInput("看看这段日志")
+        rule.onNodeWithContentDescription("发送").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+        waitText("📎 pasted-", substring = true)
+        rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("attachment-strip")).fetchSemanticsNodes().isEmpty() }
         // Plan approval card (plan_cards): keep planning with feedback.
         send("/plan")
         rule.waitUntilAtLeastOneExists(hasTestTag("plan-card"), 15_000)
@@ -285,6 +301,14 @@ class EmulatorFlowTest {
             shot("26b-review-bar")
         }
         rule.onNodeWithContentDescription("返回").performClick()
+        // Git write (mock Host has git_write): stage a file, commit it.
+        rule.waitUntilAtLeastOneExists(hasTestTag("stage-src/main.py"), 15_000)
+        rule.onNodeWithTag("stage-src/main.py").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("commit-bar"), 15_000)
+        rule.onNodeWithTag("commit-message").performTextInput("重构登录")
+        rule.onNodeWithText("提交").performClick()
+        rule.waitUntil(15_000) { rule.onAllNodes(hasTestTag("git-file-src/main.py")).fetchSemanticsNodes().isEmpty() }
+        shot("26c-git-committed")
         rule.onNodeWithContentDescription("返回").performClick()
         rule.onNodeWithTag("tools-list").performScrollToNode(hasTestTag("tool-终端")); rule.onNodeWithTag("tool-终端").performClick()
         rule.waitUntilAtLeastOneExists(hasTestTag("terminal-input"), 15_000)

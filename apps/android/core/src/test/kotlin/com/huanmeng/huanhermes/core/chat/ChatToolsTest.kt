@@ -40,3 +40,15 @@ class ChatToolsTest {
         assertTrue("改成常量" in msg)
     }
 }
+
+class AttachmentTest {
+    @Test fun limitsAndEncoding() {
+        val a = com.huanmeng.huanhermes.core.protocol.Attachment("a.png", "image/png", byteArrayOf(1, 2, 3))
+        val f = com.huanmeng.huanhermes.core.protocol.Attachment("log.txt", "text/plain", "hi".toByteArray())
+        assertEquals(null, com.huanmeng.huanhermes.core.protocol.Attachment.problem(listOf(a, f)))
+        assertEquals("最多 4 个附件", com.huanmeng.huanhermes.core.protocol.Attachment.problem(List(5) { a }))
+        val msg = com.huanmeng.huanhermes.core.protocol.Outbound.message("s", "看图", null, attachments = listOf(a, f))
+        assertTrue(msg["images"].toString().contains("AQID"))
+        assertTrue(msg["files"].toString().contains("log.txt"))
+    }
+}

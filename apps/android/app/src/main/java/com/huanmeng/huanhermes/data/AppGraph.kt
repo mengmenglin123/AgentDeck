@@ -92,6 +92,7 @@ class AppGraph(private val context: Context) {
 
     /** Sessions the list showed, so a chat route only needs the id. */
     val sessionRefs = ConcurrentHashMap<String, SessionRef>()
+    val extras: ExtrasStore by lazy { ExtrasStore(context) }
     /** Text handed to a chat before it opens (diff review, system share); consumed once by its composer. */
     val pendingDrafts = ConcurrentHashMap<String, String>()
 
@@ -188,6 +189,7 @@ class AppGraph(private val context: Context) {
     private fun reconcile(st: com.huanmeng.huanhermes.core.overview.InboxState) {
         if (st.loading) return
         com.huanmeng.huanhermes.notify.InboxTileService.refresh(context)
+        com.huanmeng.huanhermes.notify.InboxWidget.refresh(context, st.visible.size)
         val live = st.visible.associateBy { it.key }
         for (key in notified.toList()) if (key !in live) {
             notified.remove(key)
@@ -205,10 +207,16 @@ class AppGraph(private val context: Context) {
      * its live Bridge; any other Host gets a short-lived connection (its
      * detached session is claimable), so approving never switches Host.
      */
-    suspend fun sendDecision(hostId: String, sessionKey: String, project: String?, replyCtx: String?, action: String): Boolean {
+    suspend fun sendDecision(hostId: String, sessionKey: String, project: String?, replyCtx: String?, action: String): Boolean =
+        sendFrame(hostId, Outbound.cardAction(sessionKey, action, replyCtx, project))
+
+    /** A scheduled prompt (automation) into a session on any saved Host. */
+    suspend fun sendPrompt(hostId: String, sessionKey: String, project: String?, text: String): Boolean =
+        sendFrame(hostId, Outbound.message(sessionKey, text, project))
+
+    private suspend fun sendFrame(hostId: String, frame: kotlinx.serialization.json.JsonObject): Boolean {
         if (!profiles.state.value.loaded) profiles.load()
         val profile = profiles.state.value.profiles.firstOrNull { it.id == hostId } ?: return false
-        val frame = Outbound.cardAction(sessionKey, action, replyCtx, project)
         val rt = runtime
         if (rt != null && rt.profile.id == hostId) {
             rt.bridge.start()

@@ -71,6 +71,7 @@ class MainActivity : ComponentActivity() {
             app.graph.scope.launch {
                 val on = runCatching { repo.settings.first().approvalNotifications }.getOrDefault(true)
                 com.huanmeng.huanhermes.notify.InboxWorker.schedule(applicationContext, on)
+                com.huanmeng.huanhermes.notify.AutomationWorker.schedule(applicationContext)
                 val s = runCatching { repo.settings.first() }.getOrNull()
                 // Re-announce the push endpoint (new Hosts, Host restarts) and resume keep-alive.
                 s?.pushEndpoint?.let { app.graph.syncPush(it) }

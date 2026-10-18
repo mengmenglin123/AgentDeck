@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">HuanHermes</string>
+    <string name="widget_inbox_desc">需要你处理的审批数量</string>
 </resources>

@@ -61,7 +61,10 @@ class ProductionHostConfig:
     default_project: str
     backlog: int = 16
     poll_interval: float = 0.05
-    max_frame_bytes: int = 1024 * 1024
+    # Big enough for the App's small attachments (10 MB base64-encoded).
+    max_frame_bytes: int = 16 * 1024 * 1024
+    #: Opt-in: let the App stage / commit / push (``[workspace] git_write = true``).
+    git_write: bool = False
 
     def security_warnings(self) -> tuple[str, ...]:
         """Non-fatal deployment risks; never includes secret values."""
@@ -106,7 +109,7 @@ class ProductionHostConfig:
         backlog = cls._integer(server.get("backlog", 16), "server.backlog", minimum=1)
         poll_interval = cls._number(server.get("poll_interval", 0.05), "server.poll_interval")
         max_frame_bytes = cls._integer(
-            server.get("max_frame_bytes", 1024 * 1024),
+            server.get("max_frame_bytes", 16 * 1024 * 1024),
             "server.max_frame_bytes",
             minimum=1,
         )
@@ -150,7 +153,14 @@ class ProductionHostConfig:
             backlog=backlog,
             poll_interval=poll_interval,
             max_frame_bytes=max_frame_bytes,
+            git_write=cls._flag(workspace.get("git_write", False), "workspace.git_write"),
         )
+
+    @staticmethod
+    def _flag(value: Any, label: str) -> bool:
+        if not isinstance(value, bool):
+            raise ProductionHostConfigError(f"{label} must be true or false")
+        return value
 
     @classmethod
     def _project(cls, name: str, raw: Any) -> ProjectRuntimeConfig:

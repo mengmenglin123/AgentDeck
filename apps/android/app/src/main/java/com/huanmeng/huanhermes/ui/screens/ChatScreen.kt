@@ -63,6 +63,7 @@ import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material.icons.outlined.KeyboardDoubleArrowDown
 import androidx.compose.material.icons.outlined.KeyboardDoubleArrowUp
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.IosShare
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.SmallFloatingActionButton
@@ -111,6 +112,54 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit, foldTurns: Boolean = true,
     val haptic = rememberHaptic()
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val chatPrefs = com.huanmeng.huanhermes.ui.chat.LocalChatPrefs.current
+    val attachments by vm.attachments.collectAsStateWithLifecycle()
+    val notice by vm.notice.collectAsStateWithLifecycle()
+    val goal by vm.goal.collectAsStateWithLifecycle()
+    var attachSheet by remember { mutableStateOf(false) }
+    var goalDialog by remember { mutableStateOf(false) }
+    var scheduleDialog by remember { mutableStateOf(false) }
+    var moreMenu by remember { mutableStateOf(false) }
+    var pendingPaste by remember { mutableStateOf<String?>(null) }
+    // Attachments (F1): camera to a cache file, gallery, any file, clipboard image.
+    val cameraFile = remember { java.io.File(ctx.cacheDir, "camera").apply { mkdirs() }.let { java.io.File(it, "shot.jpg") } }
+    val cameraUri = remember { androidx.core.content.FileProvider.getUriForFile(ctx, ctx.packageName + ".files", cameraFile) }
+    val takePhoto = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.TakePicture()) { ok ->
+        if (ok) com.huanmeng.huanhermes.ui.chat.AttachmentReader.read(ctx, cameraUri)?.let { vm.addAttachment(it.copy(name = "photo-${System.currentTimeMillis() / 1000}.jpg")) }
+    }
+    val pickImage = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let { com.huanmeng.huanhermes.ui.chat.AttachmentReader.read(ctx, it)?.let(vm::addAttachment) }
+    }
+    val pickFile = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let { com.huanmeng.huanhermes.ui.chat.AttachmentReader.read(ctx, it)?.let(vm::addAttachment) }
+    }
+    val clipboardImage: android.net.Uri? = remember(attachSheet) {
+        runCatching {
+            val cm = ctx.getSystemService(android.content.ClipboardManager::class.java)
+            val clip = cm?.primaryClip
+            if (clip != null && clip.description.hasMimeType("image/*")) clip.getItemAt(0)?.uri else null
+        }.getOrNull()
+    }
+    // Read replies aloud (F3).
+    var tts by remember { mutableStateOf<android.speech.tts.TextToSpeech?>(null) }
+    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { tts?.shutdown() } }
+    val speak: (String) -> Unit = { text ->
+        val say = com.huanmeng.huanhermes.ui.chat.speakable(text)
+        val engine = tts
+        if (engine != null) engine.speak(say, android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "reply")
+        else {
+            var created: android.speech.tts.TextToSpeech? = null
+            created = android.speech.tts.TextToSpeech(ctx) { status ->
+                if (status == android.speech.tts.TextToSpeech.SUCCESS) {
+                    created?.language = java.util.Locale.getDefault()
+                    created?.speak(say, android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "reply")
+                }
+            }
+            tts = created
+        }
+    }
+    LaunchedEffect(notice) {
+        notice?.let { android.widget.Toast.makeText(ctx, it, android.widget.Toast.LENGTH_SHORT).show(); vm.clearNotice() }
+    }
     val deviceAuth = com.huanmeng.huanhermes.ui.rememberDeviceAuth()
     // Stall hint (D2): re-check every 30 s while a run is active.
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
@@ -198,8 +247,15 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit, foldTurns: Boolean = true,
                         .putExtra(android.content.Intent.EXTRA_TEXT, md)
                     runCatching { ctx.startActivity(android.content.Intent.createChooser(send, "导出会话为 Markdown")) }
                 }, enabled = items.isNotEmpty()) { Icon(Icons.Outlined.IosShare, "导出会话") }
-                IconButton(onClick = { vm.reload() }) { Icon(Icons.Outlined.Refresh, "重新加载记录") }
-                IconButton(onClick = { showDiagnostics = true }) { Icon(Icons.AutoMirrored.Outlined.HelpOutline, "连接诊断") }
+                Box {
+                    IconButton(onClick = { moreMenu = true }) { Icon(Icons.Outlined.MoreVert, "更多") }
+                    androidx.compose.material3.DropdownMenu(expanded = moreMenu, onDismissRequest = { moreMenu = false }) {
+                        androidx.compose.material3.DropdownMenuItem(text = { Text("设定会话目标") }, onClick = { moreMenu = false; goalDialog = true })
+                        androidx.compose.material3.DropdownMenuItem(text = { Text("定时发送…") }, onClick = { moreMenu = false; scheduleDialog = true })
+                        androidx.compose.material3.DropdownMenuItem(text = { Text("重新加载记录") }, onClick = { moreMenu = false; vm.reload() })
+                        androidx.compose.material3.DropdownMenuItem(text = { Text("连接诊断") }, onClick = { moreMenu = false; showDiagnostics = true })
+                    }
+                }
             },
         )
         if (searching) {
@@ -222,6 +278,13 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit, foldTurns: Boolean = true,
             LaunchedEffect(matches) {
                 if (matches.isNotEmpty()) { val idx = rowOf(matches[matchAt.coerceIn(0, matches.lastIndex)]); if (idx >= 0) { stick = false; list.animateScrollToItem(idx) } }
             }
+        }
+        goal?.let { g ->
+            com.huanmeng.huanhermes.ui.chat.GoalStrip(
+                g, onEdit = { goalDialog = true },
+                onSend = { haptic.tick(); vm.sendNow("当前目标：$g"); stick = true },
+                onClear = { vm.setGoal(null) },
+            )
         }
         HealthStrip(state.banner, onRetry = vm::reconnect, onDiagnose = { showDiagnostics = true })
         if (state.reloading) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -247,6 +310,7 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit, foldTurns: Boolean = true,
                                     else { haptic.confirm(); vm.respond(perm, d) }
                                 },
                                 onAnswer = { d, text, answers -> haptic.confirm(); vm.respond(row.item as ChatItem.Permission, d, text, answers) },
+                                onSpeak = speak,
                                 onQuote = { t -> input = com.huanmeng.huanhermes.core.chat.Quote.insert(input, t); vm.saveDraft(input) },
                                 onEdit = { t -> input = t; vm.saveDraft(input) },
                             )
@@ -311,9 +375,16 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit, foldTurns: Boolean = true,
             files = fileHits,
             onPick = { path -> input = com.huanmeng.huanhermes.core.chat.Mentions.insert(input, path); vm.onInputChanged(input); vm.saveDraft(input) },
         )
+        com.huanmeng.huanhermes.ui.chat.AttachmentStrip(attachments, onRemove = vm::removeAttachment)
         Composer(
             input = input,
-            onInput = { input = it; vm.saveDraft(it); vm.onInputChanged(it) },
+            onInput = { next ->
+                // A big paste becomes an attachment if the user wants (F2).
+                if (next.length - input.length > 3000 && next.startsWith(input.take(0))) pendingPaste = next
+                else { input = next; vm.saveDraft(next); vm.onInputChanged(next) }
+            },
+            onAttach = { attachSheet = true },
+            attachCount = attachments.size,
             connected = state.connected,
             runActive = state.runActive,
             queues = vm.queuesWhileRunning(),
@@ -321,7 +392,10 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit, foldTurns: Boolean = true,
             history = history,
             onSend = {
                 val text = input
-                if (text.isNotBlank()) { haptic.tick(); vm.send(text); input = ""; stick = true }
+                if (text.isNotBlank() || attachments.isNotEmpty()) {
+                    haptic.tick()
+                    vm.sendAll(text) { ok -> if (ok) { input = ""; stick = true } }
+                }
             },
             onCommand = { cmd -> haptic.tick(); vm.sendNow(cmd); stick = true },
             onCancel = vm::cancel,
@@ -335,6 +409,32 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit, foldTurns: Boolean = true,
         )
     }
 
+    if (attachSheet) com.huanmeng.huanhermes.ui.chat.AttachSheet(
+        onCamera = { runCatching { takePhoto.launch(cameraUri) } },
+        onGallery = { pickImage.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+        onFile = { pickFile.launch(arrayOf("*/*")) },
+        onClipboard = clipboardImage?.let { uri -> { com.huanmeng.huanhermes.ui.chat.AttachmentReader.read(ctx, uri)?.let(vm::addAttachment); Unit } },
+        onDismiss = { attachSheet = false },
+    )
+    pendingPaste?.let { pasted ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pendingPaste = null },
+            title = { Text("粘贴了 ${pasted.length - input.length} 个字") },
+            text = { Text("长文本作为附件发送，Agent 读起来更完整，输入框也更清爽。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    val added = pastedPart(input, pasted)
+                    vm.addAttachment(com.huanmeng.huanhermes.core.protocol.Attachment("pasted-${System.currentTimeMillis() / 1000}.txt", "text/plain", added.toByteArray()))
+                    pendingPaste = null
+                }) { Text("转为附件") }
+            },
+            dismissButton = { TextButton(onClick = { input = pasted; vm.saveDraft(pasted); vm.onInputChanged(pasted); pendingPaste = null }) { Text("直接粘贴") } },
+        )
+    }
+    if (goalDialog) com.huanmeng.huanhermes.ui.chat.GoalDialog(goal.orEmpty(), onSave = { vm.setGoal(it); goalDialog = false }, onDismiss = { goalDialog = false })
+    if (scheduleDialog) com.huanmeng.huanhermes.ui.chat.ScheduleDialog(
+        input, onSave = { p, h, m, every -> vm.schedulePrompt(p, h, m, every); scheduleDialog = false }, onDismiss = { scheduleDialog = false },
+    )
     if (showDiagnostics) DiagnosticsSheet(
         bridgeConnected = state.connected,
         capabilities = state.hostCapabilities,
@@ -353,6 +453,7 @@ private fun ChatRow(
     onQuote: (String) -> Unit = {},
     onEdit: (String) -> Unit = {},
     onAnswer: (String, String?, Map<String, List<String>>?) -> Unit = { d, _, _ -> onDecision(d) },
+    onSpeak: (String) -> Unit = {},
 ) {
     when (item) {
         is ChatItem.User -> MessageActions(item.text, onQuote = { onQuote(item.text) }, onEdit = { onEdit(item.text) }) {
@@ -367,7 +468,7 @@ private fun ChatRow(
             }
         }
         // Agent replies read like a document (full width, Markdown), not a chat bubble.
-        is ChatItem.Assistant -> MessageActions(item.text, onQuote = { onQuote(item.text) }) {
+        is ChatItem.Assistant -> MessageActions(item.text, onQuote = { onQuote(item.text) }, onSpeak = { onSpeak(item.text) }) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 2.dp)) {
                 MarkdownView(item.text)
                 if (item.streaming) Text("▍", color = MaterialTheme.colorScheme.primary)
@@ -473,4 +574,13 @@ private fun formatTokens(n: Long): String = when {
     n >= 1_000_000 -> String.format(java.util.Locale.US, "%.1fM", n / 1_000_000.0)
     n >= 1_000 -> String.format(java.util.Locale.US, "%.1fk", n / 1_000.0)
     else -> n.toString()
+}
+
+/** The text a paste inserted: [after] minus the common prefix and suffix with [before]. */
+private fun pastedPart(before: String, after: String): String {
+    var p = 0
+    while (p < before.length && p < after.length && before[p] == after[p]) p++
+    var s = 0
+    while (s < before.length - p && s < after.length - p && before[before.length - 1 - s] == after[after.length - 1 - s]) s++
+    return after.substring(p, after.length - s)
 }

@@ -22,7 +22,8 @@ data class GitFile(val path: String, val status: String, val staged: Boolean = f
     }
 }
 
-data class GitStatus(val branch: String?, val files: List<GitFile>, val note: String? = null) {
+data class GitStatus(val branch: String?, val files: List<GitFile>, val note: String? = null, val ahead: Int = 0) {
+    val staged get() = files.filter { it.staged }
     val clean get() = files.isEmpty()
 }
 
@@ -68,6 +69,7 @@ object Workspace {
             GitFile(o.s("path") ?: return@mapNotNull null, o.s("status") ?: "M", o.b("staged") == true)
         },
         note = data.s("note"),
+        ahead = data.l("ahead")?.toInt() ?: 0,
     )
 
     /** Unified diff -> numbered lines (old/new line numbers follow the hunk headers). */

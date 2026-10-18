@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import uploads
+
 import threading
 from collections.abc import Callable, Mapping
 from typing import Any
@@ -82,8 +84,14 @@ class AgentBridgeLoop:
 
     def _handle_message(self, message: Mapping[str, Any]) -> list[dict[str, Any]]:
         session_key = self._required_text(message, "session_key")
-        content = self._required_text(message, "content")
+        attached = uploads.has_attachments(message)
+        content = message.get("content") if attached and isinstance(message.get("content"), str) else self._required_text(message, "content")
         reply_ctx = self._optional_text(message, "reply_ctx")
+        if attached:
+            try:
+                content = uploads.annotate(content, uploads.save(self._workdir(message), message))
+            except (uploads.UploadError, OSError):
+                return [self._error("attachment_rejected", session_key=session_key)]
         try:
             if session_key not in self.runtime.active_sessions:
                 self.runtime.start(

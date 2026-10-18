@@ -53,3 +53,14 @@ AMOLED/动态色/高对比/字号、Flutter 数据迁移、保持亮屏、等宽
 - APK：apks/huanhermes-native-0.3.2-rc1.apk，sha256 15e6acbf…，证书 fb220e0970ca5764。
 - 新协议能力（v2 opt-in，Flutter 0.1.206 不受影响）：plan_cards、usage；Management：external_sessions（/external-sessions）。
 - 未在模拟器覆盖：Diff 长按批注（测试为条件分支）、语音（模拟器无识别服务）、设备验证/App 锁（模拟器无锁屏）、磁贴/快捷方式、系统分享。需真机验证。
+
+# 0.4.x 丰富功能批次（2026-10-19，用户：“都继续完成推进，丰富功能”）
+- [x] F1 附件：拍照 / 相册 / 文件 / 剪贴板图片（≤4 个、单个 5 MB、共 10 MB，大图自动压到 2048px JPEG）；production Host 保存到 `<workdir>/.huanhermes/uploads`（自带 .gitignore）并把路径附在消息后（server/uploads.py；Bridge 帧上限默认 16 MB）
+- [x] F2 粘贴超过 3000 字时询问“转为附件”
+- [x] F3 朗读回复（系统 TTS，长按消息 → 朗读）
+- [x] F4 Git 写操作：暂存 / 取消暂存 / 提交 / 推送；Host 端默认关闭，`[workspace] git_write = true` 才开启（capability git_write，server/workspace_git_write.py，固定参数无 shell、路径限制在工作区、push 不弹凭据、写入活动流）；推送前二次确认 + 设备验证
+- [x] F5 定时提示：会话 ⋮ →「定时发送…」，每天 HH:MM 或每 N 小时；手机 WorkManager 按时发送（任何 Host 都能用），工具页「定时提示」管理
+- [x] F6 设置导出 / 导入（JSON，不含令牌与推送地址）
+- [x] F7 桌面小部件「需要我」（待处理数，点按打开）
+- [x] F8 会话目标条（本机保存，可一键发给 Agent）
+- 延后：终端多标签、Mermaid/LaTeX、Fork/Undo（依赖 Agent）、多人同看、FCM（需 Firebase）

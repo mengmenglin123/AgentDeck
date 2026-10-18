@@ -17,12 +17,15 @@ import com.huanmeng.huanhermes.R
  */
 object RunNotifications {
     private const val RUNS = "runs"
+    const val RUNS_CHANNEL = RUNS
     private const val UNSENT = "unsent"
     const val UNSENT_ID = 42_001
     /** Android 16 `Notification.EXTRA_REQUEST_PROMOTED_ONGOING`. */
     private const val EXTRA_PROMOTED = "android.requestPromotedOngoing"
 
     fun runId(sessionId: String) = ("run:$sessionId").hashCode()
+
+    fun ensure(context: Context) = channels(context)
 
     private fun channels(context: Context) {
         if (Build.VERSION.SDK_INT < 26) return

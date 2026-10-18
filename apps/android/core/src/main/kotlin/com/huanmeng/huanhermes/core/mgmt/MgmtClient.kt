@@ -119,6 +119,8 @@ interface MgmtApi {
     suspend fun searchFiles(project: String?, query: String, limit: Int = 30): List<String> = emptyList()
     /** Raw GET of a read-only catalog (`/agents?project=x`); the `data` object. */
     suspend fun get(pathAndQuery: String): JsonObject = throw HostError.Protocol("unsupported")
+    /** Raw POST (Git write actions); the `data` object. */
+    suspend fun post(pathAndQuery: String, body: JsonObject): JsonObject = throw HostError.Protocol("unsupported")
     /** UnifiedPush endpoint for wake-ups (Hosts with `push`). */
     suspend fun registerPush(deviceId: String, endpoint: String) {}
     suspend fun unregisterPush(deviceId: String) {}
@@ -139,6 +141,7 @@ class MgmtClient(
     override suspend fun status(): JsonObject = request("GET", "/status")
 
     override suspend fun get(pathAndQuery: String): JsonObject = request("GET", pathAndQuery)
+    override suspend fun post(pathAndQuery: String, body: JsonObject): JsonObject = request("POST", pathAndQuery, body)
 
     override suspend fun registerPush(deviceId: String, endpoint: String) {
         request("POST", "/push/register", kotlinx.serialization.json.buildJsonObject {

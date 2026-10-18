@@ -97,6 +97,12 @@ class TestProductionManagementServer(unittest.TestCase):
         codex_mcp = self.request("/mcp?project=codex")["data"]["servers"]
         self.assertEqual([item["name"] for item in codex_mcp], ["openai-tools"])
 
+    def test_git_write_is_off_by_default(self) -> None:
+        self.assertNotIn("git_write", self.request("/status")["data"]["capabilities"])
+        with self.assertRaises(urllib.error.HTTPError) as ctx:
+            self.request("/workspace/git/commit?project=codex", method="POST", body={"message": "x"})
+        self.assertEqual(ctx.exception.code, 404)
+
     def test_session_crud_supports_project_and_flat_paths(self) -> None:
         created = self.request(
             "/projects/codex/sessions",
