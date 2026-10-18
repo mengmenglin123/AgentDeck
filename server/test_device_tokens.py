@@ -30,7 +30,8 @@ class TestDeviceTokens(unittest.TestCase):
         tokens = self.store.claim(code.lower()[:4] + "-" + code.lower()[4:], "dev1", "Pixel")
         self.assertIsNotNone(tokens)
         self.assertIsNone(self.store.claim(code, "dev2"))
-        raw = open(self.path).read()
+        with open(self.path, encoding="utf-8") as fh:
+            raw = fh.read()
         self.assertNotIn(tokens["bridge_token"], raw)
         self.assertNotIn(code, raw)
         self.assertEqual(os.stat(self.path).st_mode & 0o777, 0o600)
