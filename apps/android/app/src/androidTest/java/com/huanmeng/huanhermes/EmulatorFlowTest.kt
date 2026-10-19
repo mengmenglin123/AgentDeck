@@ -223,8 +223,9 @@ class EmulatorFlowTest {
         shot("19b-goal-and-attachment")
         rule.onNodeWithTag("chat-input").performTextInput("看看这段日志")
         rule.onNodeWithContentDescription("发送").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
-        waitText("📎 pasted-", substring = true)
         rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("attachment-strip")).fetchSemanticsNodes().isEmpty() }
+        // The mock may answer at once and push the sent bubble off screen (lazy list).
+        rule.waitUntil(20_000) { runCatching { rule.onNodeWithTag("chat-list").performScrollToNode(hasText("📎 pasted-", substring = true)); true }.getOrDefault(false) }
         // Plan approval card (plan_cards): keep planning with feedback.
         send("/plan")
         rule.waitUntilAtLeastOneExists(hasTestTag("plan-card"), 15_000)

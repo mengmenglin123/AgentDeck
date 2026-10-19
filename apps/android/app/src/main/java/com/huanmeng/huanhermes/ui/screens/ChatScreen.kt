@@ -299,7 +299,7 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit, foldTurns: Boolean = true,
             if (items.isEmpty() && !state.reloading) ChatEmpty(onPick = { input = it })
             LazyColumn(
                 state = list,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().testTag("chat-list"),
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
