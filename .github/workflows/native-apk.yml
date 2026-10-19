@@ -17,6 +17,9 @@ on:
 permissions:
   contents: write
 
+env:
+  HH_SIGNING_PASSWORD: ${{ secrets.HH_SIGNING_PASSWORD }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -51,6 +54,16 @@ jobs:
           pip install -q jsonschema
           cd server && python -m unittest discover -p 'test_*.py' 2>&1 | tee "$RUNNER_TEMP/gradle.log"
 
+      - name: Decode signing key
+        env:
+          HH_SIGNING_P12_B64: ${{ secrets.HH_SIGNING_P12_B64 }}
+        run: |
+          if [ -n "$HH_SIGNING_P12_B64" ]; then
+            mkdir -p apps/android/signing
+            echo "$HH_SIGNING_P12_B64" | base64 -d > apps/android/signing/huanhermes-prerelease.p12
+          else
+            echo "::warning::HH_SIGNING_P12_B64 not set, APK will be debug-signed"
+          fi
       - name: Unit tests and release APK
         working-directory: apps/android
         shell: bash

@@ -3,18 +3,17 @@ name: Native Android emulator UI test
 # Real emulator (KVM on the x86_64 runner) driving the app against mock-host.
 # Results (screenshots, junit, logcat) are force-pushed to branch native-ci-emulator-api<N>,
 # because the sandbox can't download Actions artifacts or logs.
+# Runs on release tags and manual dispatch only, to save Actions minutes.
 on:
   push:
-    branches: [native-android]
-    paths:
-      - 'apps/android/**'
-      - 'server/mock-host/**'
-      - '.github/workflows/native-emulator.yml'
-      - '.github/scripts/emulator-run.sh'
+    tags: ['native-v*']
   workflow_dispatch:
 
 permissions:
   contents: write
+
+env:
+  HH_SIGNING_PASSWORD: ${{ secrets.HH_SIGNING_PASSWORD }}
 
 jobs:
   emulator:
@@ -53,6 +52,16 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      - name: Decode signing key
+        env:
+          HH_SIGNING_P12_B64: ${{ secrets.HH_SIGNING_P12_B64 }}
+        run: |
+          if [ -n "$HH_SIGNING_P12_B64" ]; then
+            mkdir -p apps/android/signing
+            echo "$HH_SIGNING_P12_B64" | base64 -d > apps/android/signing/huanhermes-prerelease.p12
+          else
+            echo "::warning::HH_SIGNING_P12_B64 not set, APK will be debug-signed"
+          fi
       - name: Build APKs
         working-directory: apps/android
         run: gradle --no-daemon :app:assembleRelease :app:assembleDebug :app:assembleDebugAndroidTest

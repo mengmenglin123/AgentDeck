@@ -8,3 +8,4 @@ key.properties
 
 # repo root ignores data/ (Python host runtime); source packages named data are code
 !data/
+signing/*.p12

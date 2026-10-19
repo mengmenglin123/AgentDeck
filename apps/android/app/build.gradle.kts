@@ -30,8 +30,8 @@ android {
         testInstrumentationRunnerArguments["hostAddr"] = "10.0.2.2"
     }
 
-    // Same signing as the Flutter app: key.properties (private production key,
-    // git-ignored) wins, else the committed prerelease key.
+    // key.properties (private production key, git-ignored) wins, else the
+    // prerelease key CI decodes from secrets, else debug signing (forks).
     val keyProps = Properties().apply {
         val f = rootProject.file("key.properties")
         if (f.exists()) f.inputStream().use { load(it) }
@@ -44,12 +44,15 @@ android {
                 keyAlias = keyProps.getProperty("keyAlias")
                 keyPassword = keyProps.getProperty("keyPassword")
                 keyProps.getProperty("storeType")?.let { storeType = it }
-            } else {
+            } else if (rootProject.file("signing/huanhermes-prerelease.p12").exists()) {
+                // CI writes this file from the HH_SIGNING_P12_B64 secret; never committed.
                 storeFile = rootProject.file("signing/huanhermes-prerelease.p12")
                 storeType = "pkcs12"
-                storePassword = "huanhermes-prerelease"
+                storePassword = System.getenv("HH_SIGNING_PASSWORD") ?: ""
                 keyAlias = "huanhermes"
-                keyPassword = "huanhermes-prerelease"
+                keyPassword = System.getenv("HH_SIGNING_PASSWORD") ?: ""
+            } else {
+                initWith(getByName("debug"))
             }
         }
     }

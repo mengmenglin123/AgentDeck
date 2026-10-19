@@ -7,7 +7,7 @@
 - 推送到 `native-android`：构建 APK，产物为 workflow artifact `huanhermes-native-<版本>-apk`。
 - 推送 tag `native-v<版本>-rc<N>`：额外发布私有预发布。
 - 版本号：`apps/android/app/build.gradle.kts` 中的 `nativeVersionName` / `nativeVersionCode`（2000 起）。
-- 签名：`apps/android/signing/huanhermes-prerelease.p12`（与旧 Flutter 版同证书，SHA-256 前缀 `fb220e0970ca5764`），保证覆盖安装。
+- 签名：预发布密钥不再入库。CI 从 Actions Secrets `HH_SIGNING_P12_B64`（p12 的 base64）和 `HH_SIGNING_PASSWORD` 解码到 `apps/android/signing/huanhermes-prerelease.p12`（与旧 Flutter 版同证书，SHA-256 前缀 `fb220e0970ca5764`）；没有 Secrets 时用 debug 签名。
 - Host companion 由 `:app:bundleCompanion` 调用 `scripts/build_companion.sh` 从当前 `server/` 可复现打包进 APK。
 
 本地（无 Android SDK）可跑：
