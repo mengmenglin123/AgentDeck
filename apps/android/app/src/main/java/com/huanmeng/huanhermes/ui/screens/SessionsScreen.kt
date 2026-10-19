@@ -1,5 +1,6 @@
 package com.huanmeng.huanhermes.ui.screens
 
+import androidx.compose.ui.draw.clip
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -391,6 +392,8 @@ private fun SessionListRow(
         Box {
             ListItem(
                 modifier = Modifier
+                    .padding(horizontal = 12.dp, vertical = 3.dp)
+                    .clip(RoundedCornerShape(20.dp))
                     .combinedClickable(
                         onClick = onOpen,
                         onLongClick = { onLongPress(); menu = true },
@@ -400,7 +403,7 @@ private fun SessionListRow(
                         contentDescription = "${s.displayTitle}，${row.status.label}" + if (row.pinned) "，已置顶" else ""
                     },
                 colors = ListItemDefaults.colors(
-                    containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.background,
+                    containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
                 ),
                 leadingContent = {
                     Box(

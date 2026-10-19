@@ -1,5 +1,7 @@
 package com.huanmeng.huanhermes.ui.screens
 
+import com.huanmeng.huanhermes.ui.components.AppCard
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,7 +27,6 @@ import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -102,7 +103,7 @@ fun HostsScreen(vm: HostsViewModel, onBack: () -> Unit, onConnected: () -> Unit,
             }
             pairingStatus?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary) }
             if (nearby) {
-                ElevatedCard(Modifier.fillMaxWidth()) {
+                AppCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(if (searching) "正在局域网中搜索…" else "搜索已停止", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         if (found.isEmpty()) Text("还没发现 Host。确认手机和电脑在同一网络，且 Host 监听在局域网地址上。", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -140,7 +141,7 @@ fun HostsScreen(vm: HostsViewModel, onBack: () -> Unit, onConnected: () -> Unit,
                 )
             }
             state.profiles.forEach { p ->
-                ElevatedCard(Modifier.fillMaxWidth().clickable { vm.select(p.id) }) {
+                AppCard(Modifier.fillMaxWidth().clickable { vm.select(p.id) }) {
                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             if (p.id == state.activeId) Icons.Outlined.CheckCircle else Icons.Outlined.Dns, null,
@@ -242,7 +243,7 @@ private fun HostForm(
         certPin = com.huanmeng.huanhermes.core.net.Pinning.normalize(pin),
     )
 
-    ElevatedCard(Modifier.fillMaxWidth()) {
+    AppCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(if (initial == null) "新的 Host" else "编辑「${initial.name}」", style = MaterialTheme.typography.titleMedium)
             OutlinedTextField(

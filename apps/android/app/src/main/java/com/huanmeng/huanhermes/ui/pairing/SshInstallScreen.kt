@@ -1,5 +1,7 @@
 package com.huanmeng.huanhermes.ui.pairing
 
+import com.huanmeng.huanhermes.ui.components.AppCard
+
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,7 +21,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -198,7 +199,7 @@ fun SshInstallScreen(vm: SshInstallViewModel, onBack: () -> Unit, onConnected: (
                 }
             }
             progress?.let { p ->
-                ElevatedCard(Modifier.fillMaxWidth()) {
+                AppCard(Modifier.fillMaxWidth()) {
                     Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                         if (running) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                         Text(p, Modifier.padding(start = 12.dp))

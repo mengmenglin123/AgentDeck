@@ -1,5 +1,7 @@
 package com.huanmeng.huanhermes.ui.screens
 
+import com.huanmeng.huanhermes.ui.components.AppCard
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,7 +25,6 @@ import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -146,7 +147,7 @@ private fun HostNote(icon: androidx.compose.ui.graphics.vector.ImageVector, text
 
 @Composable
 private fun InboxCard(item: InboxItem, sending: Boolean, onDecision: (String) -> Unit, onOpen: () -> Unit, modifier: Modifier = Modifier) {
-    ElevatedCard(modifier.fillMaxWidth()) {
+    AppCard(modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.clickable(onClickLabel = "打开会话", onClick = onOpen), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.PanTool, null, Modifier.size(18.dp), tint = Brand.warning)

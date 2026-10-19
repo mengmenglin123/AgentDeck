@@ -52,7 +52,30 @@ internal class SecurePrefs(private val context: Context, private val file: Strin
 }
 
 @Serializable
-data class LocalAgentSettings(val llm: LlmSettings = LlmSettings(), val policy: ApprovalPolicy = ApprovalPolicy.SAFE_AUTO)
+data class LocalAgentSettings(
+    /** Active model, derived from [providers] + selection (kept for 0.6/0.7 data). */
+    val llm: LlmSettings = LlmSettings(),
+    val policy: ApprovalPolicy = ApprovalPolicy.SAFE_AUTO,
+    val providers: List<com.huanmeng.huanhermes.core.agent.ProviderConfig> = emptyList(),
+    val selectedProvider: String? = null,
+    val selectedModel: String? = null,
+) {
+    val choice get() = com.huanmeng.huanhermes.core.agent.resolveModel(providers, selectedProvider, selectedModel)
+
+    /** Recomputes [llm] from the provider list. */
+    fun normalized(): LocalAgentSettings {
+        val c = choice ?: return copy(llm = LlmSettings())
+        return copy(llm = c.provider.settings(c.model), selectedProvider = c.provider.id, selectedModel = c.model)
+    }
+
+    /** 0.6/0.7 stored a single model: turn it into the first provider. */
+    fun migrated(): LocalAgentSettings {
+        if (providers.isNotEmpty() || !llm.configured) return this
+        val name = runCatching { java.net.URI(llm.effectiveBaseUrl).host }.getOrNull()?.removePrefix("api.") ?: llm.provider.name
+        val p = com.huanmeng.huanhermes.core.agent.ProviderConfig(name = name, type = llm.provider, baseUrl = llm.baseUrl, apiKey = llm.apiKey, models = listOf(llm.effectiveModel))
+        return copy(providers = listOf(p), selectedProvider = p.id, selectedModel = llm.effectiveModel).normalized()
+    }
+}
 
 /**
  * Phone-side agent: saved SSH servers (passwords/keys encrypted), model
@@ -93,16 +116,29 @@ class LocalAgentController(context: Context, private val scope: CoroutineScope) 
         if (loaded != null) return
         loaded = scope.launch {
             servers.load()
-            secure.read("settings_v1")?.let { raw -> runCatching { ProtocolJson.decodeFromString(LocalAgentSettings.serializer(), raw) }.getOrNull() }?.let { _settings.value = it }
+            secure.read("settings_v1")?.let { raw -> runCatching { ProtocolJson.decodeFromString(LocalAgentSettings.serializer(), raw) }.getOrNull() }?.let { _settings.value = it.migrated() }
             migrateLegacy()
             agent.restore()
         }
     }
 
-    fun saveSettings(s: LocalAgentSettings) {
+    fun saveSettings(raw: LocalAgentSettings) {
+        val s = raw.normalized()
         _settings.value = s
         scope.launch { secure.write("settings_v1", ProtocolJson.encodeToString(LocalAgentSettings.serializer(), s)) }
     }
+
+    fun selectModel(providerId: String, model: String) = saveSettings(_settings.value.copy(selectedProvider = providerId, selectedModel = model))
+
+    fun upsertProvider(p: com.huanmeng.huanhermes.core.agent.ProviderConfig) {
+        val cur = _settings.value
+        val list = if (cur.providers.any { it.id == p.id }) cur.providers.map { if (it.id == p.id) p else it } else cur.providers + p
+        saveSettings(cur.copy(providers = list))
+    }
+
+    fun removeProvider(id: String) { val cur = _settings.value; saveSettings(cur.copy(providers = cur.providers.filterNot { it.id == id })) }
+
+    suspend fun fetchModels(p: com.huanmeng.huanhermes.core.agent.ProviderConfig): List<String> = com.huanmeng.huanhermes.core.agent.fetchModels(p, http)
 
     fun send(text: String) {
         if (job?.isActive == true) return

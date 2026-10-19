@@ -137,6 +137,12 @@ class LlmHandler(BaseHTTPRequestHandler):
     def log_message(self, *a) -> None:  # quiet
         pass
 
+    def do_GET(self) -> None:
+        if self.path.rstrip("/").endswith("/models"):
+            self._send(200, {"object": "list", "data": [{"id": "mock"}, {"id": "mock-large"}]})
+        else:
+            self._send(404, {"error": {"message": "not found"}})
+
     def do_POST(self) -> None:
         n = int(self.headers.get("Content-Length") or 0)
         body = json.loads(self.rfile.read(n) or b"{}")

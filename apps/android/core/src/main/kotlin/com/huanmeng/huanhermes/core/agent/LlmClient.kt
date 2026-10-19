@@ -97,6 +97,8 @@ private suspend fun open(http: OkHttpClient, req: Request): Pair<Call, Response>
     return call to resp
 }
 
+internal suspend fun getJson(http: OkHttpClient, req: Request): JsonObject = readJson(open(http, req).second)
+
 private suspend fun post(http: OkHttpClient, url: String, headers: Map<String, String>, body: JsonObject): JsonObject {
     val (_, resp) = open(http, request(url, headers, body))
     return readJson(resp)

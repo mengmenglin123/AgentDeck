@@ -139,3 +139,9 @@ fun SoftCard(modifier: Modifier = Modifier, shape: Shape = RoundedCornerShape(De
         shape = shape, color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) { Column(Modifier.padding(16.dp), content = content) }
 }
+
+/** Flat tonal card (replaces Elevated/Outlined cards app-wide). */
+@Composable
+fun AppCard(modifier: Modifier = Modifier, shape: Shape = RoundedCornerShape(Design.outer), content: @Composable ColumnScope.() -> Unit) {
+    Surface(Modifier.clip(shape).then(modifier), shape = shape, color = MaterialTheme.colorScheme.surfaceContainerLow) { Column(content = content) }
+}

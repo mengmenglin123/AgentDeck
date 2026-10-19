@@ -1,5 +1,7 @@
 package com.huanmeng.huanhermes.ui.screens
 
+import com.huanmeng.huanhermes.ui.components.AppCard
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -21,7 +23,6 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
@@ -180,7 +181,7 @@ private fun McpList(servers: List<McpServer>, canWrite: Boolean, onProbe: (Strin
     LazyColumn(Modifier.fillMaxSize().testTag("mcp-list"), contentPadding = PaddingValues(12.dp, 8.dp, 12.dp, 96.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (servers.isEmpty()) item { Text("这个项目还没有 MCP 服务。去「连接器」里一键接入常用服务，或点右下角手动添加。", Modifier.padding(12.dp), color = MaterialTheme.colorScheme.onSurfaceVariant) }
         items(servers, key = { it.name }) { s ->
-            ElevatedCard(Modifier.fillMaxWidth().testTag("mcp-${s.name}")) {
+            AppCard(Modifier.fillMaxWidth().testTag("mcp-${s.name}")) {
                 Column(Modifier.padding(14.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(s.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -211,7 +212,7 @@ private fun SkillList(skills: List<SkillInfo>, onOpen: (String) -> Unit, onDelet
     LazyColumn(Modifier.fillMaxSize().testTag("skill-list"), contentPadding = PaddingValues(12.dp, 8.dp, 12.dp, 96.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (skills.isEmpty()) item { Text("还没有技能。技能是一份 SKILL.md 说明书，Agent 遇到相关任务时会自动读它。", Modifier.padding(12.dp), color = MaterialTheme.colorScheme.onSurfaceVariant) }
         items(skills, key = { it.scope + it.id }) { s ->
-            ElevatedCard(Modifier.fillMaxWidth().clickable { onOpen(s.id) }.testTag("skill-${s.id}")) {
+            AppCard(Modifier.fillMaxWidth().clickable { onOpen(s.id) }.testTag("skill-${s.id}")) {
                 Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(s.name, style = MaterialTheme.typography.titleMedium)
@@ -231,7 +232,7 @@ private fun ConnectorList(installed: Set<String>, canWrite: Boolean, onConnect: 
     LazyColumn(Modifier.fillMaxSize().testTag("connector-list"), contentPadding = PaddingValues(12.dp, 8.dp, 12.dp, 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(Extensions.connectors, key = { it.id }) { c ->
             val done = c.id in installed
-            ElevatedCard(Modifier.fillMaxWidth().testTag("connector-${c.id}")) {
+            AppCard(Modifier.fillMaxWidth().testTag("connector-${c.id}")) {
                 Column(Modifier.padding(14.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {

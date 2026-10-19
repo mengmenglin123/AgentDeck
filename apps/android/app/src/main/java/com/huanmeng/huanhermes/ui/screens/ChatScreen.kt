@@ -1,5 +1,7 @@
 package com.huanmeng.huanhermes.ui.screens
 
+import com.huanmeng.huanhermes.ui.components.AppCard
+
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,7 +30,6 @@ import androidx.compose.material.icons.outlined.StopCircle
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -531,7 +532,7 @@ private fun Muted(text: String, maxLines: Int = Int.MAX_VALUE) {
 private fun PermissionCard(item: ChatItem.Permission, onDecision: (String) -> Unit) {
     val decided = item.decision
     val tint = when (decided) { null -> Brand.warning; "deny" -> MaterialTheme.colorScheme.error; else -> Brand.success }
-    ElevatedCard(Modifier.fillMaxWidth()) {
+    AppCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
@@ -558,7 +559,7 @@ private fun PermissionCard(item: ChatItem.Permission, onDecision: (String) -> Un
 /** "本轮改动" card under a finished turn: tap a file to open its diff. */
 @Composable
 private fun ChangedFilesCard(files: List<com.huanmeng.huanhermes.core.chat.ChangedFiles.File>, onOpen: (String?) -> Unit) {
-    androidx.compose.material3.OutlinedCard(Modifier.fillMaxWidth().testTag("changed-files")) {
+    AppCard(Modifier.fillMaxWidth().testTag("changed-files")) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("本轮改动 ${files.size} 个文件", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge)

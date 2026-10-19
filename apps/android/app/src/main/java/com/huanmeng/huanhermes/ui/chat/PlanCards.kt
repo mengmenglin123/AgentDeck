@@ -1,5 +1,7 @@
 package com.huanmeng.huanhermes.ui.chat
 
+import com.huanmeng.huanhermes.ui.components.AppCard
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,7 +17,6 @@ import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -51,7 +52,7 @@ fun PlanCard(item: ChatItem.Permission, onAnswer: (String, String?, Map<String, 
     var feedback by rememberSaveable(item.id) { mutableStateOf("") }
     var keeping by rememberSaveable(item.id) { mutableStateOf(false) }
     val has = { s: String -> item.buttons.any { it.data.endsWith(":$s") } }
-    ElevatedCard(Modifier.fillMaxWidth().testTag("plan-card")) {
+    AppCard(Modifier.fillMaxWidth().testTag("plan-card")) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(if (item.decision == null) Icons.Outlined.Map else Icons.Outlined.CheckCircle, null, Modifier.size(18.dp),
@@ -83,7 +84,7 @@ fun PlanCard(item: ChatItem.Permission, onAnswer: (String, String?, Map<String, 
 fun QuestionCard(item: ChatItem.Permission, onAnswer: (String, String?, Map<String, List<String>>?) -> Unit) {
     var picked by androidx.compose.runtime.remember(item.id) { mutableStateOf(mapOf<String, List<String>>()) }
     var other by rememberSaveable(item.id) { mutableStateOf("") }
-    ElevatedCard(Modifier.fillMaxWidth().testTag("question-card")) {
+    AppCard(Modifier.fillMaxWidth().testTag("question-card")) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(if (item.decision == null) Icons.AutoMirrored.Outlined.HelpOutline else Icons.Outlined.CheckCircle, null, Modifier.size(18.dp),

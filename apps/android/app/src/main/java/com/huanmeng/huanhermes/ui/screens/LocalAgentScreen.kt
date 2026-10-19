@@ -118,6 +118,17 @@ import com.huanmeng.huanhermes.ui.components.SoftCard
 import com.huanmeng.huanhermes.ui.components.Tag
 import com.huanmeng.huanhermes.ui.components.Tint
 import com.huanmeng.huanhermes.ui.components.groupShape
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.automirrored.outlined.ViewList
+import androidx.compose.material3.InputChip
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
+import androidx.compose.material3.rememberModalBottomSheetState
+import com.huanmeng.huanhermes.core.agent.ProviderConfig
+import com.huanmeng.huanhermes.core.agent.ProviderPresets
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -252,7 +263,7 @@ fun LocalAgentScreen(vm: LocalAgentViewModel, onBack: () -> Unit) {
                 when (page) {
                     AgentPage.Chat -> AgentChat(ctl, settings, servers.size, onServers = { page = AgentPage.Servers }, onModel = { page = AgentPage.Model })
                     AgentPage.Servers -> ServerList(servers, vm, onEdit = { editing = it }, onAdd = { editing = SshServer(name = "", host = "", username = "") })
-                    AgentPage.Model -> ModelSettings(settings, vm, onSave = { ctl.saveSettings(it); vm.toast.value = "已保存"; page = AgentPage.Chat })
+                    AgentPage.Model -> ModelSettings(settings, vm, ctl)
                 }
             }
         }
@@ -444,6 +455,7 @@ private fun AgentChat(ctl: LocalAgentController, settings: LocalAgentSettings, s
             input, { input = it }, settings, serverCount, running,
             onSend = { ctl.send(input); input = "" }, onStop = ctl::stop, onServers = onServers,
             onPolicy = { p -> ctl.saveSettings(settings.copy(policy = p)) },
+            onModel = ctl::selectModel, onModelPage = onModel,
         )
     }
 }
@@ -492,8 +504,11 @@ private fun AgentEmpty(configured: Boolean, serverCount: Int, onServers: () -> U
 private fun AgentComposer(
     input: String, onInput: (String) -> Unit, settings: LocalAgentSettings, serverCount: Int, running: Boolean,
     onSend: () -> Unit, onStop: () -> Unit, onServers: () -> Unit, onPolicy: (ApprovalPolicy) -> Unit,
+    onModel: (String, String) -> Unit = { _, _ -> }, onModelPage: () -> Unit = {},
 ) {
     var policyMenu by remember { mutableStateOf(false) }
+    var picker by remember { mutableStateOf(false) }
+    if (picker) ModelPickerSheet(settings, onPick = { pid, m -> onModel(pid, m); picker = false }, onDismiss = { picker = false })
     Surface(shape = RoundedCornerShape(26.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, bottom = 8.dp, top = 4.dp)) {
         Column(Modifier.padding(start = 6.dp, end = 6.dp, top = 2.dp, bottom = 6.dp)) {
@@ -507,6 +522,14 @@ private fun AgentComposer(
                 ),
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
+              Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
+                Surface(onClick = { if (settings.choice != null) picker = true else onModelPage() }, shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceContainerHighest, modifier = Modifier.testTag("agent-model-chip")) {
+                    Row(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.AutoAwesome, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(4.dp)); Text(settings.choice?.model ?: "选择模型", Modifier.widthIn(max = 110.dp), style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+                Spacer(Modifier.width(6.dp))
                 Surface(onClick = onServers, shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceContainerHighest) {
                     Row(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Outlined.Dns, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
@@ -532,7 +555,8 @@ private fun AgentComposer(
                         }
                     }
                 }
-                Spacer(Modifier.weight(1f))
+                Spacer(Modifier.width(8.dp))
+              }
                 if (running) FilledIconButton(onClick = onStop, Modifier.testTag("agent-stop"), colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer)) {
                     Icon(Icons.Outlined.Stop, "停止")
                 } else FilledIconButton(onClick = onSend, enabled = input.isNotBlank() && settings.llm.configured, modifier = Modifier.testTag("agent-send")) {
@@ -647,62 +671,183 @@ private fun ServerList(servers: List<SshServer>, vm: LocalAgentViewModel, onEdit
 }
 
 @Composable
-private fun ModelSettings(current: LocalAgentSettings, vm: LocalAgentViewModel, onSave: (LocalAgentSettings) -> Unit) {
+private fun ModelSettings(current: LocalAgentSettings, vm: LocalAgentViewModel, ctl: LocalAgentController) {
     val testing by vm.testing.collectAsStateWithLifecycle()
-    var provider by remember(current) { mutableStateOf(current.llm.provider) }
-    var baseUrl by remember(current) { mutableStateOf(current.llm.baseUrl) }
-    var model by remember(current) { mutableStateOf(current.llm.model) }
-    var apiKey by remember(current) { mutableStateOf(current.llm.apiKey) }
-    var policy by remember(current) { mutableStateOf(current.policy) }
-    val draft = LocalAgentSettings(LlmSettings(provider, baseUrl.trim(), model.trim(), apiKey.trim()), policy)
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(bottom = 24.dp)) {
-        SettingsGroup("模型服务", items = LlmProvider.entries.map<LlmProvider, @Composable (androidx.compose.ui.graphics.Shape) -> Unit> { p ->
-            { sh ->
-                PrefItem(if (p == LlmProvider.OPENAI) "OpenAI 兼容" else "Anthropic Claude", sh,
-                    subtitle = if (p == LlmProvider.OPENAI) "DeepSeek、通义、Kimi、智谱、OpenRouter…" else "Claude 官方或兼容中转",
-                    icon = if (p == LlmProvider.OPENAI) Icons.Outlined.Hub else Icons.Outlined.AutoAwesome,
-                    tint = if (provider == p) Tint.Primary else Tint.Neutral, onClick = { provider = p },
-                    modifier = Modifier.testTag("llm-${p.name.lowercase()}"),
-                ) { RadioButton(provider == p, { provider = p }) }
-            }
-        })
-        SettingsGroup("连接", items = listOf<@Composable (androidx.compose.ui.graphics.Shape) -> Unit>(
-            { sh ->
-                PrefItem("接口与密钥", sh, icon = Icons.Outlined.Key, below = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(baseUrl, { baseUrl = it }, label = { Text("接口地址") }, placeholder = { Text(provider.defaultBaseUrl) }, singleLine = true,
-                            modifier = Modifier.fillMaxWidth().testTag("llm-base"), shape = RoundedCornerShape(14.dp))
-                        if (provider == LlmProvider.OPENAI) Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            listOf("DeepSeek" to "https://api.deepseek.com/v1", "通义" to "https://dashscope.aliyuncs.com/compatible-mode/v1",
-                                "Kimi" to "https://api.moonshot.cn/v1", "智谱" to "https://open.bigmodel.cn/api/paas/v4", "OpenRouter" to "https://openrouter.ai/api/v1").forEach { (n, u) ->
-                                FilterChip(selected = baseUrl == u, onClick = { baseUrl = u }, label = { Text(n) })
-                            }
+    var editing by remember { mutableStateOf<ProviderConfig?>(null) }
+    var presetMenu by remember { mutableStateOf(false) }
+    var picker by remember { mutableStateOf(false) }
+    var confirm by remember { mutableStateOf<ProviderConfig?>(null) }
+    val choice = current.choice
+    LazyColumn(Modifier.fillMaxSize().testTag("agent-model-page"), contentPadding = PaddingValues(bottom = 24.dp)) {
+        item {
+            SettingsGroup("当前模型", items = listOf<@Composable (androidx.compose.ui.graphics.Shape) -> Unit>({ sh ->
+                PrefItem(choice?.model ?: "还没有可用的模型", sh, subtitle = choice?.provider?.name ?: "先添加一个供应商并填写 API Key",
+                    icon = Icons.Outlined.AutoAwesome, onClick = { if (choice != null) picker = true }, modifier = Modifier.testTag("agent-current-model"),
+                    trailing = {
+                        if (choice != null) TextButton(onClick = { vm.testModel(current.llm) }, enabled = testing == null) {
+                            if (testing == "llm") CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp) else Text("测试")
                         }
-                        OutlinedTextField(model, { model = it }, label = { Text("模型") }, placeholder = { Text(provider.defaultModel) }, singleLine = true,
-                            modifier = Modifier.fillMaxWidth().testTag("llm-model"), shape = RoundedCornerShape(14.dp))
-                        OutlinedTextField(apiKey, { apiKey = it }, label = { Text("API Key") }, singleLine = true, visualTransformation = PasswordVisualTransformation(),
-                            modifier = Modifier.fillMaxWidth().testTag("llm-key"), shape = RoundedCornerShape(14.dp))
-                        Text("模型需要支持工具调用（function calling）。Key 只加密保存在本机，直接发给你填的接口地址。",
-                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                })
-            },
-        ))
-        SettingsGroup("执行审批", items = ApprovalPolicy.entries.map<ApprovalPolicy, @Composable (androidx.compose.ui.graphics.Shape) -> Unit> { p ->
-            { sh ->
-                PrefItem(p.label, sh, subtitle = p.desc,
-                    icon = when (p) { ApprovalPolicy.ALWAYS -> Icons.Outlined.PanTool; ApprovalPolicy.SAFE_AUTO -> Icons.Outlined.VerifiedUser; ApprovalPolicy.NEVER -> Icons.Outlined.GppMaybe },
-                    tint = when { policy != p -> Tint.Neutral; p == ApprovalPolicy.NEVER -> Tint.Error; else -> Tint.Primary },
-                    onClick = { policy = p }, modifier = Modifier.testTag("policy-${p.name.lowercase()}"),
-                ) { RadioButton(policy == p, { policy = p }) }
-            }
-        })
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedButton(onClick = { vm.testModel(draft.llm) }, enabled = draft.llm.configured && testing == null, modifier = Modifier.weight(1f).height(48.dp)) {
-                if (testing == "llm") CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp) else Text("测试模型")
-            }
-            Button(onClick = { onSave(draft) }, Modifier.weight(1f).height(48.dp).testTag("llm-save")) { Text("保存") }
+                    })
+            }))
         }
+        item {
+            Row(Modifier.fillMaxWidth().padding(start = 28.dp, end = 12.dp, top = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("供应商", Modifier.weight(1f), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Box {
+                    TextButton(onClick = { presetMenu = true }, Modifier.testTag("agent-add-provider")) { Icon(Icons.Outlined.Add, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("添加") }
+                    DropdownMenu(expanded = presetMenu, onDismissRequest = { presetMenu = false }) {
+                        ProviderPresets.all.forEach { pr ->
+                            DropdownMenuItem(text = { Text(pr.name) }, modifier = Modifier.testTag("preset-${pr.name}"), onClick = {
+                                presetMenu = false
+                                editing = ProviderConfig(name = if (pr.name == "自定义") "" else pr.name, type = pr.type, baseUrl = pr.baseUrl, models = pr.models)
+                            })
+                        }
+                    }
+                }
+            }
+        }
+        if (current.providers.isEmpty()) item {
+            Text("像 RikkaHub 一样：每个供应商有自己的地址、Key 和模型列表，聊天时从中挑选。", Modifier.padding(horizontal = 28.dp, vertical = 8.dp),
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        items(current.providers, key = { it.id }) { p ->
+            SoftCard(Modifier.padding(horizontal = 16.dp, vertical = 4.dp).testTag("provider-${p.name}")) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconBadge(if (p.type == LlmProvider.ANTHROPIC) Icons.Outlined.AutoAwesome else Icons.Outlined.Hub, if (p.enabled) Tint.Primary else Tint.Neutral, 44.dp)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(p.name, style = MaterialTheme.typography.titleMedium)
+                        Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Tag(if (p.enabled) "启用" else "停用", if (p.enabled) Tint.Secondary else Tint.Neutral)
+                            Tag("${p.models.size} 个模型", Tint.Primary)
+                            if (p.apiKey.isBlank()) Tag("缺 Key", Tint.Error)
+                        }
+                    }
+                    Switch(p.enabled, { ctl.upsertProvider(p.copy(enabled = it)) })
+                }
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    TextButton(onClick = { editing = p }, Modifier.testTag("provider-edit-${p.name}")) { Icon(Icons.Outlined.Settings, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("配置") }
+                    TextButton(onClick = { picker = true }, enabled = p.enabled && p.models.isNotEmpty()) { Icon(Icons.AutoMirrored.Outlined.ViewList, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("模型") }
+                    TextButton(onClick = { confirm = p }) { Icon(Icons.Outlined.Delete, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("删除") }
+                }
+            }
+        }
+        item {
+            SettingsGroup("执行审批", items = ApprovalPolicy.entries.map<ApprovalPolicy, @Composable (androidx.compose.ui.graphics.Shape) -> Unit> { p ->
+                { sh ->
+                    PrefItem(p.label, sh, subtitle = p.desc,
+                        icon = when (p) { ApprovalPolicy.ALWAYS -> Icons.Outlined.PanTool; ApprovalPolicy.SAFE_AUTO -> Icons.Outlined.VerifiedUser; ApprovalPolicy.NEVER -> Icons.Outlined.GppMaybe },
+                        tint = when { current.policy != p -> Tint.Neutral; p == ApprovalPolicy.NEVER -> Tint.Error; else -> Tint.Primary },
+                        onClick = { ctl.saveSettings(current.copy(policy = p)) }, modifier = Modifier.testTag("policy-${p.name.lowercase()}"),
+                    ) { RadioButton(current.policy == p, { ctl.saveSettings(current.copy(policy = p)) }) }
+                }
+            })
+        }
+    }
+    editing?.let { p -> ProviderDialog(p, ctl, onDismiss = { editing = null }) }
+    if (picker) ModelPickerSheet(current, onPick = { pid, m -> ctl.selectModel(pid, m); picker = false }, onDismiss = { picker = false })
+    confirm?.let { p ->
+        AlertDialog(onDismissRequest = { confirm = null }, title = { Text("删除 ${p.name}？") }, text = { Text("会删除它的地址、Key 和模型列表。") },
+            confirmButton = { TextButton(onClick = { confirm = null; ctl.removeProvider(p.id) }) { Text("删除") } },
+            dismissButton = { TextButton(onClick = { confirm = null }) { Text("取消") } })
+    }
+}
+
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun ProviderDialog(initial: ProviderConfig, ctl: LocalAgentController, onDismiss: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    var name by remember { mutableStateOf(initial.name) }
+    var type by remember { mutableStateOf(initial.type) }
+    var baseUrl by remember { mutableStateOf(initial.baseUrl) }
+    var apiKey by remember { mutableStateOf(initial.apiKey) }
+    var models by remember { mutableStateOf(initial.models) }
+    var newModel by remember { mutableStateOf("") }
+    var fetching by remember { mutableStateOf(false) }
+    val draft = initial.copy(name = name.trim().ifEmpty { "未命名" }, type = type, baseUrl = baseUrl.trim(), apiKey = apiKey.trim(), models = models)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (initial.name.isEmpty()) "添加供应商" else initial.name) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(name, { name = it }, label = { Text("名称") }, singleLine = true, modifier = Modifier.fillMaxWidth().testTag("prov-name"))
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    LlmProvider.entries.forEachIndexed { i, t ->
+                        SegmentedButton(selected = type == t, onClick = { type = t }, shape = SegmentedButtonDefaults.itemShape(i, 2)) { Text(if (t == LlmProvider.OPENAI) "OpenAI 兼容" else "Anthropic") }
+                    }
+                }
+                OutlinedTextField(baseUrl, { baseUrl = it }, label = { Text("接口地址") }, placeholder = { Text(type.defaultBaseUrl) }, singleLine = true, modifier = Modifier.fillMaxWidth().testTag("llm-base"))
+                OutlinedTextField(apiKey, { apiKey = it }, label = { Text("API Key") }, singleLine = true, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth().testTag("llm-key"))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("模型（${models.size}）", Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                    TextButton(onClick = {
+                        fetching = true
+                        scope.launch {
+                            val msg = runCatching { ctl.fetchModels(draft) }.fold({ got -> models = (models + got).distinct(); "拉取到 ${got.size} 个模型" }, { it.message ?: "拉取失败" })
+                            fetching = false
+                            android.widget.Toast.makeText(ctx, msg, android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }, enabled = !fetching && apiKey.isNotBlank(), modifier = Modifier.testTag("prov-fetch")) {
+                        if (fetching) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp) else { Icon(Icons.Outlined.CloudDownload, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("拉取") }
+                    }
+                }
+                androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    models.forEach { m ->
+                        InputChip(selected = false, onClick = { models = models - m }, label = { Text(m, maxLines = 1) }, trailingIcon = { Icon(Icons.Outlined.Close, "移除 $m", Modifier.size(16.dp)) },
+                            modifier = Modifier.testTag("prov-model-$m"))
+                    }
+                }
+                OutlinedTextField(newModel, { newModel = it }, label = { Text("手动添加模型") }, singleLine = true, modifier = Modifier.fillMaxWidth().testTag("llm-model"),
+                    trailingIcon = { IconButton(onClick = { newModel.trim().takeIf { it.isNotEmpty() }?.let { models = (models + it).distinct() }; newModel = "" }) { Icon(Icons.Outlined.Add, "添加模型") } })
+                Text("模型需要支持工具调用。Key 只加密保存在本机，直接发给你填的接口。", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val extra = newModel.trim().takeIf { it.isNotEmpty() }
+                ctl.upsertProvider(if (extra != null) draft.copy(models = (models + extra).distinct()) else draft); onDismiss()
+            }, modifier = Modifier.testTag("prov-save")) { Text("保存") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("取消") } },
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ModelPickerSheet(current: LocalAgentSettings, onPick: (String, String) -> Unit, onDismiss: () -> Unit) {
+    var query by remember { mutableStateOf("") }
+    val choice = current.choice
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        OutlinedTextField(query, { query = it }, placeholder = { Text("搜索模型") }, singleLine = true, leadingIcon = { Icon(Icons.Outlined.Search, null) },
+            shape = RoundedCornerShape(50), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).testTag("model-search"))
+        LazyColumn(Modifier.fillMaxWidth().heightIn(max = 520.dp).testTag("model-picker"), contentPadding = PaddingValues(16.dp)) {
+            current.providers.filter { it.enabled && it.apiKey.isNotBlank() }.forEach { p ->
+                val ms = p.models.filter { query.isBlank() || it.contains(query.trim(), ignoreCase = true) }
+                if (ms.isEmpty()) return@forEach
+                item(key = "h-${p.id}") {
+                    Text(p.name, Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp), style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                }
+                itemsIndexed(ms, key = { _, m -> "${p.id}/$m" }) { i, m ->
+                    val sel = choice?.provider?.id == p.id && choice.model == m
+                    Surface(onClick = { onPick(p.id, m) }, shape = groupShape(i, ms.size, 18.dp, 6.dp),
+                        color = if (sel) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp).testTag("pick-$m")) {
+                        Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            IconBadge(if (p.type == LlmProvider.ANTHROPIC) Icons.Outlined.AutoAwesome else Icons.Outlined.Hub, if (sel) Tint.Primary else Tint.Neutral, 34.dp)
+                            Spacer(Modifier.width(12.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(m.uppercase(), style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Row(Modifier.padding(top = 3.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) { Tag("聊天", Tint.Secondary); Tag("工具", Tint.Tertiary) }
+                            }
+                            if (sel) Icon(Icons.Outlined.CheckCircle, "当前", tint = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(16.dp))
     }
 }
 

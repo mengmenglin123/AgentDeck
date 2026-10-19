@@ -204,6 +204,21 @@ class LocalAgentTest {
         }
     }
 
+    @Test fun providersFetchAndResolve() = runBlocking {
+        MockWebServer().use { server ->
+            server.enqueue(MockResponse().setBody("""{"data":[{"id":"b"},{"id":"a"},{"id":"a"}]}"""))
+            val p = ProviderConfig(name = "x", baseUrl = server.url("/v1").toString(), apiKey = "k")
+            assertEquals(listOf("a", "b"), fetchModels(p, OkHttpClient()))
+            assertEquals("Bearer k", server.takeRequest().getHeader("Authorization"))
+            val q = ProviderConfig(name = "y", apiKey = "", models = listOf("z"))
+            val withModels = p.copy(models = listOf("a", "b"))
+            assertEquals("b", resolveModel(listOf(q, withModels), withModels.id, "b")!!.model)
+            // Unknown/keyless selection falls back to the first usable provider.
+            assertEquals(ModelChoice(withModels, "a"), resolveModel(listOf(q, withModels), q.id, "z"))
+            assertEquals(null, resolveModel(listOf(q), null, null))
+        }
+    }
+
     @Test fun anthropicStreaming() = runBlocking {
         MockWebServer().use { server ->
             val sse = listOf(
