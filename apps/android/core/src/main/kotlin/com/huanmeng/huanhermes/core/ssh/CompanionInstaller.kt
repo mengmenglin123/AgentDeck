@@ -85,7 +85,7 @@ class TrileadSshRunner(target: SshTarget, verifyHostKey: (String, String) -> Boo
                 if (System.currentTimeMillis() > deadline) throw SshException("远端命令超时")
             }
             s.waitForCondition(com.trilead.ssh2.ChannelCondition.EXIT_STATUS, 5_000)
-            return ExecResult(s.exitStatus, out.toString(Charsets.UTF_8), err.toString(Charsets.UTF_8))
+            return ExecResult(s.exitStatus, String(out.toByteArray(), Charsets.UTF_8), String(err.toByteArray(), Charsets.UTF_8))
         } finally {
             s.close()
         }
