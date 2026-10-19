@@ -48,6 +48,7 @@ private val sections = listOf(
     Section("常用", listOf(
         Tool("需要我", "所有 Host 上等待你批准的操作", Icons.Outlined.PanTool, action = "inbox"),
         Tool("Host 连接", "添加、切换 Host 与令牌", Icons.Outlined.Dns, action = "hosts"),
+        Tool("本地 Agent", "用自己的模型 Key，通过 SSH 操作服务器", Icons.Outlined.SmartToy, action = "agent"),
     )),
     Section("Host 状态", listOf(
         Tool("Status", "版本、运行时间、能力", Icons.Outlined.MonitorHeart, action = "status"),

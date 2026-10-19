@@ -86,7 +86,7 @@ class SshInstallViewModel(private val graph: AppGraph, private val context: Cont
         return ok
     }
 
-    fun install(target: SshTarget, name: String, lan: Boolean, onDone: () -> Unit) = viewModelScope.launch {
+    fun install(target: SshTarget, name: String, lan: Boolean, saveForAgent: Boolean = false, onDone: () -> Unit) = viewModelScope.launch {
         running.value = true; error.value = null
         try {
             val result = CompanionInstaller.install(
@@ -95,6 +95,7 @@ class SshInstallViewModel(private val graph: AppGraph, private val context: Cont
                 progress = { progress.value = it },
                 lan = lan,
             )
+            if (saveForAgent) runCatching { saveServer(target, name) }
             progress.value = if (result.serviceStarted) "已安装 ${result.version} 并启动，正在连接…" else "已安装 ${result.version}，正在连接…"
             // The service needs a moment to bind its ports.
             var ok = false
@@ -115,6 +116,18 @@ class SshInstallViewModel(private val graph: AppGraph, private val context: Cont
     }
 
     fun answer(ok: Boolean) { prompt.value?.answer?.complete(ok) }
+
+    /** Called after the TOFU prompt was answered, so the confirmed fingerprint is known. */
+    private suspend fun saveServer(t: SshTarget, name: String) {
+        val repo = graph.localAgent.servers
+        repo.load()
+        val fp = known.getString("${t.host.trim()}:${t.port}", null).orEmpty()
+        val existing = repo.servers.value.firstOrNull { it.host == t.host.trim() && it.port == t.port && it.username == t.username.trim() }
+        val base = existing ?: com.huanmeng.huanhermes.core.agent.SshServer(
+            name = name.trim().ifBlank { t.host.trim() }.replace(Regex("[^\\p{L}\\p{N}_.\\- ]"), "-").take(40),
+            host = t.host.trim(), port = t.port, username = t.username.trim())
+        repo.upsert(base.copy(password = t.password.orEmpty(), privateKey = t.privateKeyPem.orEmpty(), passphrase = t.passphrase.orEmpty(), hostKey = fp.ifEmpty { base.hostKey }))
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -133,6 +146,7 @@ fun SshInstallScreen(vm: SshInstallViewModel, onBack: () -> Unit, onConnected: (
     var passphrase by rememberSaveable { mutableStateOf("") }
     var name by rememberSaveable { mutableStateOf("") }
     var lan by rememberSaveable { mutableStateOf(true) }
+    var saveForAgent by rememberSaveable { mutableStateOf(false) }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -146,7 +160,7 @@ fun SshInstallScreen(vm: SshInstallViewModel, onBack: () -> Unit, onConnected: (
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                "通过 SSH 把内置的 Host companion 上传到你的电脑或服务器，校验 SHA-256 后安装、生成令牌并启动服务。密码和私钥只用于这次连接，不会保存。",
+                "通过 SSH 把内置的 Host companion 上传到你的电脑或服务器，校验 SHA-256 后安装、生成令牌并启动服务。密码和私钥默认只用于这次连接，不会保存。",
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             OutlinedTextField(host, { host = it.trim() }, Modifier.fillMaxWidth(), label = { Text("服务器地址") }, singleLine = true)
@@ -176,6 +190,13 @@ fun SshInstallScreen(vm: SshInstallViewModel, onBack: () -> Unit, onConnected: (
                     Text("关闭后 Host 只监听 127.0.0.1，需要 Tailscale / 反向代理等方式访问", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(saveForAgent, { saveForAgent = it })
+                Column {
+                    Text("同时保存到本地 Agent 的服务器列表")
+                    Text("会把地址和凭据加密保存在本机，之后可以让本地 Agent 通过 SSH 管理这台机器", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
             progress?.let { p ->
                 ElevatedCard(Modifier.fillMaxWidth()) {
                     Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -191,7 +212,7 @@ fun SshInstallScreen(vm: SshInstallViewModel, onBack: () -> Unit, onConnected: (
                 onClick = {
                     vm.install(
                         SshTarget(host, port.toInt(), user, password.takeIf { !useKey }, key.takeIf { useKey }, passphrase.takeIf { useKey && it.isNotEmpty() }),
-                        name, lan, onConnected,
+                        name, lan, saveForAgent, onConnected,
                     )
                 },
                 enabled = ready && !running, modifier = Modifier.fillMaxWidth(),

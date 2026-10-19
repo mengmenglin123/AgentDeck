@@ -415,4 +415,53 @@ class EmulatorFlowTest {
         org.junit.Assert.assertEquals(meta.getString("sha256"), sha)
         org.junit.Assert.assertTrue("not gzip", bytes.size > 2 && bytes[0] == 0x1f.toByte() && bytes[1] == 0x8b.toByte())
     }
+
+    /** 0.6.0 local agent: model on mock_agent_env (OpenAI format), SSH to its paramiko server, approve a command. */
+    @Test fun f_localAgentDrivesSshServer() {
+        rule.waitForIdle()
+        rule.onAllNodesWithText("工具").onFirst().performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("tools-list"), 15_000)
+        rule.onNodeWithTag("tools-list").performScrollToNode(hasTestTag("tool-本地 agent")); rule.onNodeWithTag("tool-本地 agent").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("agent-tab-2"), 10_000)
+        rule.onNodeWithTag("agent-tab-2").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("llm-base"), 10_000)
+        rule.onNodeWithTag("llm-base").performTextClearance()
+        rule.onNodeWithTag("llm-base").performTextInput("http://$host:8799/v1")
+        rule.onNodeWithTag("llm-model").performTextClearance()
+        rule.onNodeWithTag("llm-model").performTextInput("mock")
+        rule.onNodeWithTag("llm-key").performTextClearance()
+        rule.onNodeWithTag("llm-key").performTextInput("mock-key")
+        shot("30-agent-model")
+        rule.onNodeWithTag("llm-save").performScrollTo().performClick()
+        rule.onNodeWithTag("agent-tab-1").performClick()
+        if (rule.onAllNodes(hasTestTag("agent-server-ci-ssh")).count() == 0) {
+            rule.onNodeWithTag("agent-add-server").performClick()
+            rule.onNodeWithTag("srv-name").performTextInput("ci-ssh")
+            rule.onNodeWithTag("srv-host").performTextInput(host)
+            rule.onNodeWithTag("srv-port").performTextClearance()
+            rule.onNodeWithTag("srv-port").performTextInput("2222")
+            rule.onNodeWithTag("srv-user").performTextInput("hh")
+            rule.onNodeWithTag("srv-password").performTextInput("hh-test")
+            shot("31-agent-server-form")
+            rule.onNodeWithTag("srv-save").performClick()
+        }
+        rule.waitUntilAtLeastOneExists(hasTestTag("agent-test-ci-ssh"), 10_000)
+        rule.onNodeWithTag("agent-test-ci-ssh").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("agent-trust"), 20_000)
+        shot("32-agent-hostkey")
+        rule.onNodeWithTag("agent-trust").performClick()
+        waitText("指纹 SHA256:", substring = true, ms = 20_000)
+        shot("33-agent-servers")
+        rule.onNodeWithTag("agent-tab-0").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("agent-input"), 10_000)
+        rule.onNodeWithTag("agent-input").performTextInput("看看服务器")
+        rule.onNodeWithTag("agent-send").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+        // `echo … && uname` is not read-only, so the default policy asks first.
+        rule.waitUntilAtLeastOneExists(hasTestTag("agent-approve"), 30_000)
+        shot("34-agent-approval")
+        rule.onNodeWithTag("agent-approve").performClick()
+        rule.waitUntil(30_000) { runCatching { rule.onNodeWithTag("agent-list").performScrollToNode(hasText("agent-ok", substring = true) and hasTestTag("agent-reply")); true }.getOrDefault(false) }
+        rule.waitForIdle(); shot("35-agent-done")
+        rule.onNodeWithContentDescription("返回").performClick()
+    }
 }

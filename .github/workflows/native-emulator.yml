@@ -61,6 +61,9 @@ jobs:
         run: |
           HUAN_MOCK_GIT_WRITE=1 nohup python3 server/mock-host/mock_host.py > "$RUNNER_TEMP/mock-host.log" 2>&1 &
           for i in $(seq 1 30); do (echo > /dev/tcp/127.0.0.1/9820) 2>/dev/null && break; sleep 1; done
+          pip install --quiet paramiko
+          nohup python3 server/mock-host/mock_agent_env.py --ssh-port 2222 --llm-port 8799 > "$RUNNER_TEMP/mock-agent.log" 2>&1 &
+          for i in $(seq 1 30); do (echo > /dev/tcp/127.0.0.1/8799) 2>/dev/null && break; sleep 1; done
 
       - name: Emulator run
         uses: reactivecircus/android-emulator-runner@v2
@@ -86,7 +89,7 @@ jobs:
           find "$D/shots-device" -name '*.png' -exec cp {} "$D/shots/" \; 2>/dev/null || true
           rm -rf "$D/shots-device"
           find apps/android/app/build/outputs/androidTest-results -name '*.xml' -exec cp {} "$D/" \; 2>/dev/null || true
-          cp "$RUNNER_TEMP/mock-host.log" "$D/" 2>/dev/null || true
+          cp "$RUNNER_TEMP/mock-host.log" "$RUNNER_TEMP/mock-agent.log" "$D/" 2>/dev/null || true
           echo "sha=${GITHUB_SHA}" >> "$D/summary.txt"
           cd /tmp/pub
           git init -q && git checkout -q -b b

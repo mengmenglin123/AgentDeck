@@ -93,6 +93,9 @@ class AppGraph(private val context: Context) {
     /** Sessions the list showed, so a chat route only needs the id. */
     val sessionRefs = ConcurrentHashMap<String, SessionRef>()
     val extras: ExtrasStore by lazy { ExtrasStore(context) }
+
+    /** Phone-side agent that drives saved SSH servers with the user's own model key. */
+    val localAgent: LocalAgentController by lazy { LocalAgentController(context, scope) }
     /** Text handed to a chat before it opens (diff review, system share); consumed once by its composer. */
     val pendingDrafts = ConcurrentHashMap<String, String>()
 

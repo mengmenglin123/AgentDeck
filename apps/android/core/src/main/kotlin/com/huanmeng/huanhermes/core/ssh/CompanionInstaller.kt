@@ -71,7 +71,7 @@ class TrileadSshRunner(target: SshTarget, verifyHostKey: (String, String) -> Boo
     override fun run(command: String, timeoutMs: Long): ExecResult {
         val s = conn.openSession()
         try {
-            s.execCommand("sh -c " + shellQuote(command))
+            s.execCommand(asciiCommand(command))
             val out = ByteArrayOutputStream(); val err = ByteArrayOutputStream()
             val deadline = System.currentTimeMillis() + timeoutMs
             val so = s.stdout; val se = s.stderr
@@ -99,6 +99,23 @@ class TrileadSshRunner(target: SshTarget, verifyHostKey: (String, String) -> Boo
 
     companion object {
         fun shellQuote(s: String) = "'" + s.replace("'", "'\\''") + "'"
+
+        /**
+         * sshlib sends the exec string in a single-byte charset, which mangles
+         * non-ASCII text (Chinese paths, messages). Non-ASCII commands travel as
+         * POSIX printf octal escapes and are rebuilt as UTF-8 bytes on the server.
+         */
+        fun asciiCommand(command: String): String {
+            if (command.all { it.code in 1..126 }) return "sh -c " + shellQuote(command)
+            val esc = StringBuilder()
+            for (b in command.toByteArray(Charsets.UTF_8)) {
+                val c = b.toInt() and 0xff
+                if (c in 0x20..0x7e && c.toChar() !in "'\"\\$`%") esc.append(c.toChar())
+                else esc.append('\\').append(Integer.toOctalString(c).padStart(3, '0'))
+            }
+            // Trailing x keeps $(...) from eating final newlines; ${c%x} strips it again.
+            return "sh -c 'c=$(printf \"" + esc + "x\"); eval \"$" + "{c%x}\"'"
+        }
     }
 }
 

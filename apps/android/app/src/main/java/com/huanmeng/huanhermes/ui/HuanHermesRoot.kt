@@ -232,6 +232,10 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
                 val vm: com.huanmeng.huanhermes.ui.vm.ExtensionsViewModel = viewModel { com.huanmeng.huanhermes.ui.vm.ExtensionsViewModel(graph) }
                 com.huanmeng.huanhermes.ui.screens.ExtensionsScreen(vm, onBack = { nav.popBackStack() })
             }
+            composable("agent") {
+                val vm: com.huanmeng.huanhermes.ui.screens.LocalAgentViewModel = viewModel { com.huanmeng.huanhermes.ui.screens.LocalAgentViewModel(graph.localAgent) }
+                com.huanmeng.huanhermes.ui.screens.LocalAgentScreen(vm, onBack = { nav.popBackStack() })
+            }
             composable("automations") {
                 com.huanmeng.huanhermes.ui.screens.AutomationsScreen(graph, onBack = { nav.popBackStack() })
             }
