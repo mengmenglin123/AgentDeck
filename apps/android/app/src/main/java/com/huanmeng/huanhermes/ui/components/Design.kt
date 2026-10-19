@@ -98,8 +98,8 @@ fun PrefItem(
     tint: Tint = Tint.Primary,
     enabled: Boolean = true,
     onClick: (() -> Unit)? = null,
-    trailing: (@Composable RowScope.() -> Unit)? = null,
     below: (@Composable ColumnScope.() -> Unit)? = null,
+    trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
     Surface(
         modifier.fillMaxWidth().clip(shape).then(if (onClick != null) Modifier.clickable(enabled = enabled, onClick = onClick) else Modifier),
