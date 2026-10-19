@@ -783,10 +783,10 @@ private fun ProviderDialog(initial: ProviderConfig, ctl: LocalAgentController, o
                     Text("模型（${models.size}）", Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
                     TextButton(onClick = {
                         fetching = true
-                        scope.launch {
+                        scope.launch(kotlinx.coroutines.Dispatchers.Main) {
                             val msg = runCatching { ctl.fetchModels(draft) }.fold({ got -> models = (models + got).distinct(); "拉取到 ${got.size} 个模型" }, { it.message ?: "拉取失败" })
-                            fetching = false
-                            android.widget.Toast.makeText(ctx, msg, android.widget.Toast.LENGTH_SHORT).show()
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) { fetching = false
+                            android.widget.Toast.makeText(ctx, msg, android.widget.Toast.LENGTH_SHORT).show() }
                         }
                     }, enabled = !fetching && apiKey.isNotBlank(), modifier = Modifier.testTag("prov-fetch")) {
                         if (fetching) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp) else { Icon(Icons.Outlined.CloudDownload, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("拉取") }
