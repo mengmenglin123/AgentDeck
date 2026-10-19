@@ -317,6 +317,7 @@ class EmulatorFlowTest {
         rule.waitUntilAtLeastOneExists(hasTestTag("mcp-list"), 15_000)
         rule.onNodeWithTag("ext-tab-2").performClick()
         rule.waitUntilAtLeastOneExists(hasTestTag("connector-github"), 10_000)
+        rule.waitUntilAtLeastOneExists(hasText("接入") and hasAnyAncestor(hasTestTag("connector-github")), 20_000)
         rule.onNode(hasText("接入") and hasAnyAncestor(hasTestTag("connector-github"))).performClick()
         rule.onNodeWithTag("connector-field-token").performTextInput("github_pat_test")
         rule.onNode(hasText("接入") and hasAnyAncestor(isDialog())).performClick()
