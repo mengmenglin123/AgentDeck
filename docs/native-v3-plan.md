@@ -70,3 +70,13 @@ AMOLED/动态色/高对比/字号、Flutter 数据迁移、保持亮屏、等宽
 - [x] Host 读取 Agent 真实配置：Claude Code（.mcp.json、~/.claude.json、.claude/skills、~/.claude/skills）、Codex（~/.codex/config.toml、.agents/skills、~/.codex/skills）、Hermes（~/.hermes/skills）；密钥只显示键名（server/agent_extensions.py）
 - [x] 写操作 opt-in `[workspace] extensions_write = true`：添加/移除 MCP、探测 MCP 工具（stdio + HTTP）、新建/删除项目技能，全部记活动流
 - [x] App「扩展」页：MCP 服务 / 技能 / 连接器三栏；连接器预设 GitHub、Playwright、Context7、文件系统、网页抓取、记忆、分步思考、Notion、Linear、Sentry
+
+## 0.6.0 本地 Agent（2026-10-19）
+
+- 手机端 Agent：用户自带模型 Key（OpenAI 兼容 / Anthropic），工具 list_servers / run_command / read_file / write_file，经 SSH 操作「服务器」页保存的机器。
+- 凭据与 API Key 存 EncryptedSharedPreferences（huanhermes_local_agent），对话存 filesDir/local_agent_chat_v1.json；运行挂在 App scope，离开页面不中断。
+- 主机指纹 TOFU：服务器必须先「测试连接」确认指纹，Agent 连接时严格比对。
+- 审批：每次都问 / 只读自动（保守白名单，无管道重定向）/ 全部自动；默认只读自动。
+- SSH 安装页可选「同时保存到本地 Agent」。
+- 修复：sshlib exec 非 ASCII 命令乱码（printf 八进制转义重建 UTF-8）；SSH 输出解码在 Android < 13 崩溃（ByteArrayOutputStream.toString(Charset)），SSH 一键安装在这些系统上同样受影响。
+- 测试：core agent/LocalAgentTest（假模型、两种协议线格式）、LocalAgentLiveTest（server/mock-host/mock_agent_env.py：paramiko sshd + 脚本化 OpenAI 端点）；模拟器 f_localAgentDrivesSshServer。
