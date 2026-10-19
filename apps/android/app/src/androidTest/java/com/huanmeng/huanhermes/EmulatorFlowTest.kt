@@ -460,7 +460,7 @@ class EmulatorFlowTest {
         rule.waitUntilAtLeastOneExists(hasTestTag("agent-approve"), 30_000)
         shot("34-agent-approval")
         rule.onNodeWithTag("agent-approve").performClick()
-        rule.waitUntil(30_000) { runCatching { rule.onNodeWithTag("agent-list").performScrollToNode(hasText("agent-ok", substring = true) and hasTestTag("agent-reply")); true }.getOrDefault(false) }
+        rule.waitUntil(30_000) { runCatching { rule.onNodeWithTag("agent-list").performScrollToNode(hasText("agent-ok", substring = true) and hasAnyAncestor(hasTestTag("agent-reply"))); true }.getOrDefault(false) }
         rule.waitForIdle(); shot("35-agent-done")
         rule.onNodeWithContentDescription("返回").performClick()
     }
