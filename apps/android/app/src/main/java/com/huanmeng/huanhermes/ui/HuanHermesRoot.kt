@@ -161,7 +161,13 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
                 settings.enterToSend, settings.quickMessages, settings.codeLineNumbers, settings.codeWrap, settings.confirmAllowAll,
             ),
         ) {
-        NavHost(nav, startDestination = Tab.Sessions.route, modifier = Modifier.padding(padding)) {
+        NavHost(
+            nav, startDestination = Tab.Sessions.route, modifier = Modifier.padding(padding),
+            enterTransition = { androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220)) + androidx.compose.animation.slideInHorizontally(androidx.compose.animation.core.tween(260)) { it / 10 } },
+            exitTransition = { androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(160)) },
+            popEnterTransition = { androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220)) + androidx.compose.animation.slideInHorizontally(androidx.compose.animation.core.tween(260)) { -it / 10 } },
+            popExitTransition = { androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(160)) + androidx.compose.animation.slideOutHorizontally(androidx.compose.animation.core.tween(260)) { it / 10 } },
+        ) {
             composable(Tab.Sessions.route) {
                 if (!wide) SessionsScreen(
                     sessionsVm,

@@ -137,10 +137,14 @@ fun ChatScreen(vm: ChatViewModel, onBack: () -> Unit, foldTurns: Boolean = true,
     val pickFile = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let { vm.addAttachmentFrom(it) }
     }
+    // Only touch the clipboard while the attach sheet is open, and check the
+    // description first so Android 12+ doesn't show a "pasted" toast on every chat.
     val clipboardImage: android.net.Uri? = remember(attachSheet) {
+        if (!attachSheet) return@remember null
         runCatching {
             val cm = ctx.getSystemService(android.content.ClipboardManager::class.java)
-            val clip = cm?.primaryClip
+            if (cm?.primaryClipDescription?.hasMimeType("image/*") != true) return@runCatching null
+            val clip = cm.primaryClip
             if (clip != null && clip.description.hasMimeType("image/*")) clip.getItemAt(0)?.uri else null
         }.getOrNull()
     }

@@ -129,6 +129,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.rememberModalBottomSheetState
 import com.huanmeng.huanhermes.core.agent.ProviderConfig
 import com.huanmeng.huanhermes.core.agent.ProviderPresets
+import androidx.compose.animation.togetherWith
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -235,7 +236,7 @@ fun LocalAgentScreen(vm: LocalAgentViewModel, onBack: () -> Unit) {
                         when (page) {
                             AgentPage.Chat -> Column {
                                 Text(convs.firstOrNull { it.id == currentId }?.title ?: "本地 Agent", maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium)
-                                Text(if (settings.llm.configured) settings.llm.effectiveModel.uppercase() else "未配置模型", style = MaterialTheme.typography.labelSmall,
+                                Text(if (settings.llm.configured) settings.llm.effectiveModel else "未配置模型", style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                             AgentPage.Servers -> Text("SSH 服务器")
@@ -260,10 +261,16 @@ fun LocalAgentScreen(vm: LocalAgentViewModel, onBack: () -> Unit) {
             },
         ) { pad ->
             Box(Modifier.padding(pad).fillMaxSize()) {
-                when (page) {
+                androidx.compose.animation.AnimatedContent(page, label = "agent-page", transitionSpec = {
+                    val fwd = targetState.ordinal > initialState.ordinal
+                    (androidx.compose.animation.slideInHorizontally { w -> if (fwd) w / 6 else -w / 6 } + androidx.compose.animation.fadeIn()) togetherWith
+                        (androidx.compose.animation.slideOutHorizontally { w -> if (fwd) -w / 6 else w / 6 } + androidx.compose.animation.fadeOut())
+                }) { pg ->
+                when (pg) {
                     AgentPage.Chat -> AgentChat(ctl, settings, servers.size, onServers = { page = AgentPage.Servers }, onModel = { page = AgentPage.Model })
                     AgentPage.Servers -> ServerList(servers, vm, onEdit = { editing = it }, onAdd = { editing = SshServer(name = "", host = "", username = "") })
                     AgentPage.Model -> ModelSettings(settings, vm, ctl)
+                }
                 }
             }
         }
@@ -838,7 +845,7 @@ private fun ModelPickerSheet(current: LocalAgentSettings, onPick: (String, Strin
                             IconBadge(if (p.type == LlmProvider.ANTHROPIC) Icons.Outlined.AutoAwesome else Icons.Outlined.Hub, if (sel) Tint.Primary else Tint.Neutral, 34.dp)
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
-                                Text(m.uppercase(), style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(m, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 Row(Modifier.padding(top = 3.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) { Tag("聊天", Tint.Secondary); Tag("工具", Tint.Tertiary) }
                             }
                             if (sel) Icon(Icons.Outlined.CheckCircle, "当前", tint = MaterialTheme.colorScheme.primary)
