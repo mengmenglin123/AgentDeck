@@ -21,6 +21,7 @@ import socket
 import subprocess
 import tempfile
 import threading
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import paramiko
@@ -145,7 +146,34 @@ class LlmHandler(BaseHTTPRequestHandler):
         if not self.path.rstrip("/").endswith("/chat/completions"):
             self._send(404, {"error": {"message": "not found"}})
             return
-        self._send(200, script(body.get("messages") or []))
+        reply = script(body.get("messages") or [])
+        if body.get("stream"):
+            self._stream(reply)
+        else:
+            self._send(200, reply)
+
+    def _stream(self, reply: dict) -> None:
+        """OpenAI-style SSE: text in small pieces, tool call arguments split in two."""
+        msg = reply["choices"][0]["message"]
+        chunks = []
+        text = msg.get("content") or ""
+        for i in range(0, len(text), 3):
+            chunks.append({"choices": [{"index": 0, "delta": {"content": text[i:i + 3]}}]})
+        for n, c in enumerate(msg.get("tool_calls") or []):
+            args = c["function"]["arguments"]
+            half = len(args) // 2
+            chunks.append({"choices": [{"index": 0, "delta": {"tool_calls": [{"index": n, "id": c["id"], "type": "function", "function": {"name": c["function"]["name"], "arguments": args[:half]}}]}}]})
+            chunks.append({"choices": [{"index": 0, "delta": {"tool_calls": [{"index": n, "function": {"arguments": args[half:]}}]}}]})
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        for ch in chunks:
+            self.wfile.write(b"data: " + json.dumps(ch).encode() + b"\n\n")
+            self.wfile.flush()
+            time.sleep(0.05)
+        self.wfile.write(b"data: [DONE]\n\n")
+        self.wfile.flush()
 
     def _send(self, code: int, obj: dict) -> None:
         data = json.dumps(obj).encode()

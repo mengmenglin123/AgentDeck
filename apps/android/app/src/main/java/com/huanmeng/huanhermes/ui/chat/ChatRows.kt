@@ -119,6 +119,24 @@ fun MessageActions(text: String, onQuote: (() -> Unit)? = null, onEdit: (() -> U
     }
 }
 
+/** RikkaHub-style row of small actions under a finished reply. */
+@Composable
+fun MessageActionBar(text: String, onQuote: (() -> Unit)? = null, onSpeak: (() -> Unit)? = null) {
+    val ctx = LocalContext.current
+    val tint = MaterialTheme.colorScheme.onSurfaceVariant
+    Row(Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+        @Composable fun act(icon: ImageVector, label: String, onClick: () -> Unit) =
+            androidx.compose.material3.IconButton(onClick = onClick, modifier = Modifier.size(36.dp)) { Icon(icon, label, Modifier.size(18.dp), tint = tint) }
+        act(Icons.Outlined.ContentCopy, "复制回复") { copyToClipboard(ctx, text) }
+        if (onQuote != null) act(Icons.Outlined.FormatQuote, "引用回复", onQuote)
+        if (onSpeak != null) act(Icons.Outlined.RecordVoiceOver, "朗读", onSpeak)
+        act(Icons.Outlined.Share, "分享回复") {
+            val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
+            runCatching { ctx.startActivity(Intent.createChooser(send, "分享消息")) }
+        }
+    }
+}
+
 /**
  * Reasoning folds away like in RikkaHub / ChatGPT: while the agent is still
  * thinking it shows a live timer and the latest lines; afterwards a one-line
@@ -189,7 +207,7 @@ fun ToolRow(item: ChatItem.Tool) {
         item.isError -> "失败"
         else -> "完成"
     }
-    OutlinedCard(Modifier.fillMaxWidth().animateContentSize()) {
+    androidx.compose.material3.Surface(Modifier.fillMaxWidth().animateContentSize(), shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
         Column {
             Row(
                 Modifier.fillMaxWidth().clickable { open = !open }.padding(horizontal = 12.dp, vertical = 10.dp)

@@ -4,7 +4,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import com.huanmeng.huanhermes.core.agent.AgentHistoryStorage
+import com.huanmeng.huanhermes.core.agent.ConversationRepository
+import com.huanmeng.huanhermes.core.agent.ConversationStorage
 import com.huanmeng.huanhermes.core.agent.ApprovalPolicy
 import com.huanmeng.huanhermes.core.agent.LlmSettings
 import com.huanmeng.huanhermes.core.agent.LocalAgent
@@ -60,19 +61,26 @@ data class LocalAgentSettings(val llm: LlmSettings = LlmSettings(), val policy: 
  */
 class LocalAgentController(context: Context, private val scope: CoroutineScope) {
     private val secure = SecurePrefs(context, "huanhermes_local_agent")
-    private val historyFile = File(context.filesDir, "local_agent_chat_v1.json")
+    private val legacyHistory = File(context.filesDir, "local_agent_chat_v1.json")
+    private val dir = File(context.filesDir, "local_agent").apply { mkdirs() }
+
+    private fun atomicWrite(f: File, raw: String) { val tmp = File(f.path + ".tmp"); tmp.writeText(raw); tmp.renameTo(f) }
+    private fun safe(id: String) = id.filter { it.isLetterOrDigit() || it == '-' }.take(64)
+
+    val conversations = ConversationRepository(object : ConversationStorage {
+        override suspend fun readIndex(): String? = withContext(Dispatchers.IO) { runCatching { File(dir, "index.json").readText() }.getOrNull() }
+        override suspend fun writeIndex(raw: String) = withContext(Dispatchers.IO) { runCatching { atomicWrite(File(dir, "index.json"), raw) }; Unit }
+        override suspend fun read(id: String): String? = withContext(Dispatchers.IO) { runCatching { File(dir, safe(id) + ".json").readText() }.getOrNull() }
+        override suspend fun write(id: String, raw: String) = withContext(Dispatchers.IO) { runCatching { atomicWrite(File(dir, safe(id) + ".json"), raw) }; Unit }
+        override suspend fun delete(id: String) = withContext(Dispatchers.IO) { File(dir, safe(id) + ".json").delete(); Unit }
+    })
 
     val servers = SshServerRepository(object : SshServerStorage {
         override suspend fun load() = secure.read("servers_v1")
         override suspend fun save(raw: String) = secure.write("servers_v1", raw)
     })
 
-    val agent = LocalAgent(servers, history = object : AgentHistoryStorage {
-        override suspend fun load(): String? = withContext(Dispatchers.IO) { runCatching { historyFile.readText() }.getOrNull() }
-        override suspend fun save(raw: String) = withContext(Dispatchers.IO) {
-            runCatching { val tmp = File(historyFile.path + ".tmp"); tmp.writeText(raw); tmp.renameTo(historyFile) }; Unit
-        }
-    })
+    val agent = LocalAgent(servers, conversations = conversations)
 
     private val _settings = MutableStateFlow(LocalAgentSettings())
     val settings: StateFlow<LocalAgentSettings> = _settings
@@ -86,6 +94,7 @@ class LocalAgentController(context: Context, private val scope: CoroutineScope) 
         loaded = scope.launch {
             servers.load()
             secure.read("settings_v1")?.let { raw -> runCatching { ProtocolJson.decodeFromString(LocalAgentSettings.serializer(), raw) }.getOrNull() }?.let { _settings.value = it }
+            migrateLegacy()
             agent.restore()
         }
     }
@@ -103,5 +112,21 @@ class LocalAgentController(context: Context, private val scope: CoroutineScope) 
 
     fun stop() { job?.cancel() }
 
-    fun clear() { stop(); scope.launch { agent.clear() } }
+    fun newConversation() { if (job?.isActive != true) agent.newConversation() }
+
+    fun open(id: String) { if (job?.isActive != true) scope.launch { agent.open(id) } }
+
+    fun delete(id: String) { scope.launch { agent.deleteConversation(id) } }
+
+    fun rename(id: String, title: String) { scope.launch { conversations.rename(id, title) } }
+
+    /** 0.6.0 kept one chat in a single file: import it as the first conversation. */
+    private suspend fun migrateLegacy() {
+        val raw = withContext(Dispatchers.IO) { runCatching { legacyHistory.readText() }.getOrNull() } ?: return
+        runCatching {
+            val msgs = ProtocolJson.decodeFromString(kotlinx.serialization.builtins.ListSerializer(com.huanmeng.huanhermes.core.agent.AgentMessage.serializer()), raw)
+            if (msgs.isNotEmpty()) conversations.save(conversations.newId(), msgs)
+        }
+        withContext(Dispatchers.IO) { legacyHistory.delete() }
+    }
 }

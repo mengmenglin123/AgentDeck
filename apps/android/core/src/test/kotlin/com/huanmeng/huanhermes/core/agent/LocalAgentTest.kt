@@ -24,10 +24,20 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class MemStore : SshServerStorage, AgentHistoryStorage {
+class MemStore : SshServerStorage {
     var raw: String? = null
     override suspend fun load() = raw
     override suspend fun save(raw: String) { this.raw = raw }
+}
+
+class MemConversations : ConversationStorage {
+    var index: String? = null
+    val blobs = mutableMapOf<String, String>()
+    override suspend fun readIndex() = index
+    override suspend fun writeIndex(raw: String) { index = raw }
+    override suspend fun read(id: String) = blobs[id]
+    override suspend fun write(id: String, raw: String) { blobs[id] = raw }
+    override suspend fun delete(id: String) { blobs.remove(id) }
 }
 
 class FakeSsh(val log: MutableList<String>) : SshRunner {
@@ -116,14 +126,25 @@ class LocalAgentTest {
 
     @Test fun connectorFailureIsReportedAndHistoryRestores() = runBlocking {
         val r = repo(); r.upsert(web)
-        val hist = MemStore()
-        val agent = LocalAgent(r, { throw SshException("SSH 连接失败：refused") }, hist)
-        agent.send("x", ScriptLlm(LlmTurn("", listOf(call("1", AgentTools.READ, "server" to "web", "path" to "/etc/hosts")))), ApprovalPolicy.NEVER)
+        val store = MemConversations()
+        val agent = LocalAgent(r, { throw SshException("SSH 连接失败：refused") }, ConversationRepository(store))
+        agent.send("看看 hosts 文件", ScriptLlm(LlmTurn("", listOf(call("1", AgentTools.READ, "server" to "web", "path" to "/etc/hosts")))), ApprovalPolicy.NEVER)
         assertTrue(agent.activities.value["1"]!!.output.contains("refused"))
-        val again = LocalAgent(r, { error("unused") }, hist)
+        val first = agent.conversationId.value!!
+        // A second conversation, then reopen the first from a fresh agent.
+        assertTrue(agent.newConversation())
+        agent.send("第二个", ScriptLlm(LlmTurn("ok", emptyList())), ApprovalPolicy.NEVER)
+        val again = LocalAgent(r, { error("unused") }, ConversationRepository(store))
         again.restore()
-        assertEquals(agent.messages.value, again.messages.value)
+        assertEquals("第二个", again.conversations!!.list.value.first().title)
+        assertEquals(2, again.conversations!!.list.value.size)
+        again.open(first)
+        assertEquals(agent.conversations!!.messages(first), again.messages.value)
+        assertEquals("看看 hosts 文件", again.conversations!!.list.value.first { it.id == first }.title)
         assertEquals(ToolActivity.State.FAILED, again.activities.value["1"]!!.state)
+        again.deleteConversation(first)
+        assertEquals(1, again.conversations!!.list.value.size)
+        assertTrue(again.messages.value.isEmpty())
     }
 
     @Test fun modelErrorClosesDanglingCallsAndStepLimitStops() = runBlocking {
@@ -158,6 +179,47 @@ class LocalAgentTest {
             assertEquals(4, body["tools"]!!.jsonArray.size)
             val e = runCatching { c.complete("s", history, emptyList()) }.exceptionOrNull()
             assertTrue(e!!.message!!.contains("API Key 无效") && e.message!!.contains("Incorrect API key"))
+        }
+    }
+
+    @Test fun openAiStreamingAssemblesTextAndToolCalls() = runBlocking {
+        MockWebServer().use { server ->
+            val sse = listOf(
+                """{"choices":[{"delta":{"role":"assistant","content":"先"}}]}""",
+                """{"choices":[{"delta":{"content":"看看"}}]}""",
+                """{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c1","type":"function","function":{"name":"run_command","arguments":"{\"server\":"}}]}}]}""",
+                """{"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\"web\",\"command\":\"df\"}"}}]}}]}""",
+            ).joinToString("") { "data: $it\n\n" } + "data: [DONE]\n\n"
+            server.enqueue(MockResponse().setHeader("Content-Type", "text/event-stream").setBody(sse))
+            server.enqueue(MockResponse().setBody("""{"choices":[{"message":{"content":"非流式"}}]}"""))
+            val c = OpenAiCompatClient(LlmSettings(LlmProvider.OPENAI, server.url("/v1").toString(), "m", "k"), OkHttpClient())
+            val deltas = mutableListOf<String>()
+            val t = c.stream("s", listOf(AgentMessage.User("hi")), AgentTools.specs) { deltas += it }
+            assertEquals(listOf("先", "看看"), deltas)
+            assertEquals("先看看", t.text)
+            assertEquals("df", t.toolCalls.single().arguments["command"]!!.jsonPrimitive.content)
+            assertEquals("true", kotlinx.serialization.json.Json.parseToJsonElement(server.takeRequest().body.readUtf8()).jsonObject["stream"].toString())
+            // A proxy that ignores stream=true still works.
+            assertEquals("非流式", c.stream("s", listOf(AgentMessage.User("hi")), emptyList()) {}.text)
+        }
+    }
+
+    @Test fun anthropicStreaming() = runBlocking {
+        MockWebServer().use { server ->
+            val sse = listOf(
+                """{"type":"message_start","message":{}}""",
+                """{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}""",
+                """{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"好"}}""",
+                """{"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"tu","name":"list_servers","input":{}}}""",
+                """{"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":""}}""",
+                """{"type":"message_stop"}""",
+            ).joinToString("") { "event: x\ndata: $it\n\n" }
+            server.enqueue(MockResponse().setHeader("Content-Type", "text/event-stream; charset=utf-8").setBody(sse))
+            val c = AnthropicClient(LlmSettings(LlmProvider.ANTHROPIC, server.url("/").toString(), "m", "k"), OkHttpClient())
+            val t = c.stream("s", listOf(AgentMessage.User("hi")), AgentTools.specs) {}
+            assertEquals("好", t.text)
+            assertEquals("list_servers", t.toolCalls.single().name)
+            assertTrue(t.toolCalls.single().arguments.isEmpty())
         }
     }
 

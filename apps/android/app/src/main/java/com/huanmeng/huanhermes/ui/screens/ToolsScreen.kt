@@ -7,7 +7,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import com.huanmeng.huanhermes.ui.components.PrefItem
+import com.huanmeng.huanhermes.ui.components.Tint
+import com.huanmeng.huanhermes.ui.components.groupShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
@@ -81,29 +85,25 @@ private val sections = listOf(
 
 @Composable
 fun ToolsScreen(onOpenHosts: () -> Unit = {}, onOpenInbox: () -> Unit = {}, onOpen: (String) -> Unit = {}) {
-    LazyColumn(Modifier.fillMaxSize().statusBarsPadding().testTag("tools-list"), contentPadding = PaddingValues(vertical = 8.dp)) {
-        sections.forEach { section ->
+    val tints = listOf(Tint.Primary, Tint.Secondary, Tint.Tertiary, Tint.Primary, Tint.Secondary)
+    LazyColumn(Modifier.fillMaxSize().statusBarsPadding().testTag("tools-list"), contentPadding = PaddingValues(bottom = 24.dp)) {
+        item(key = "title") { Text("工具箱", Modifier.padding(start = 28.dp, top = 20.dp, bottom = 4.dp), style = MaterialTheme.typography.headlineMedium) }
+        sections.forEachIndexed { si, section ->
             item(key = "h-${section.title}") {
                 Text(
                     section.title,
-                    Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
+                    Modifier.padding(start = 28.dp, end = 16.dp, top = 18.dp, bottom = 8.dp),
                     style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
                 )
             }
-            items(section.tools, key = { it.name }) { tool ->
+            itemsIndexed(section.tools, key = { _, t -> t.name }) { i, tool ->
                 val tag = "tool-" + tool.name.lowercase()
-                val enabled = tool.action != null
-                ListItem(
-                    modifier = Modifier.fillMaxWidth().testTag(tag).clickable(enabled = enabled) {
-                        when (tool.action) { "hosts" -> onOpenHosts(); "inbox" -> onOpenInbox(); null -> {}; else -> onOpen(tool.action) }
-                    },
-                    colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background),
-                    leadingContent = { Icon(tool.icon, null, tint = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant) },
-                    headlineContent = { Text(tool.name) },
-                    supportingContent = { Text(tool.desc, style = MaterialTheme.typography.bodySmall) },
-                    trailingContent = {
-                        tool.milestone?.let { Text("${it} 上线", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                    },
+                PrefItem(
+                    tool.name, groupShape(i, section.tools.size),
+                    Modifier.padding(horizontal = 16.dp, vertical = 1.dp).testTag(tag),
+                    subtitle = tool.desc, icon = tool.icon, tint = tints[si % tints.size], enabled = tool.action != null,
+                    onClick = { when (tool.action) { "hosts" -> onOpenHosts(); "inbox" -> onOpenInbox(); null -> {}; else -> onOpen(tool.action) } },
+                    trailing = { Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                 )
             }
         }

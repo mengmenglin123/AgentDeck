@@ -465,9 +465,9 @@ private fun ChatRow(
 ) {
     when (item) {
         is ChatItem.User -> MessageActions(item.text, onQuote = { onQuote(item.text) }, onEdit = { onEdit(item.text) }) {
-            Bubble(alignEnd = true, color = MaterialTheme.colorScheme.primaryContainer) {
+            Bubble(alignEnd = true, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
                 Column {
-                    Text(item.text, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    Text(item.text, color = MaterialTheme.colorScheme.onSurface)
                     if (item.queued) Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Outlined.Schedule, null, Modifier.padding(end = 4.dp))
                         Text("等待发送（离线队列）", style = MaterialTheme.typography.labelSmall)
@@ -480,6 +480,7 @@ private fun ChatRow(
             Column(Modifier.fillMaxWidth().padding(horizontal = 2.dp)) {
                 MarkdownView(item.text)
                 if (item.streaming) Text("▍", color = MaterialTheme.colorScheme.primary)
+                else com.huanmeng.huanhermes.ui.chat.MessageActionBar(item.text, onQuote = { onQuote(item.text) }, onSpeak = { onSpeak(item.text) })
             }
         }
         is ChatItem.Thinking -> ThinkingRow(item, live)
@@ -512,7 +513,7 @@ private fun Bubble(alignEnd: Boolean, color: androidx.compose.ui.graphics.Color,
     Box(Modifier.fillMaxWidth(), contentAlignment = if (alignEnd) Alignment.CenterEnd else Alignment.CenterStart) {
         Box(
             Modifier.widthIn(max = 560.dp)
-                .background(color, if (alignEnd) RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp) else RoundedCornerShape(18.dp, 18.dp, 18.dp, 4.dp))
+                .background(color, if (alignEnd) RoundedCornerShape(20.dp, 6.dp, 20.dp, 20.dp) else RoundedCornerShape(6.dp, 20.dp, 20.dp, 20.dp))
                 .padding(horizontal = 14.dp, vertical = 10.dp),
         ) { content() }
     }

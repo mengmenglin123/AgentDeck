@@ -262,12 +262,12 @@ class EmulatorFlowTest {
         rule.onAllNodesWithText("工具").onFirst().performClick()
         rule.waitForIdle(); shot("12-tools")
         // Read-only catalogs (M3): Dashboard, Agents, Logs, Audit (has the deny from test b).
-        rule.onNodeWithTag("tool-dashboard").performClick()
+        rule.onNodeWithTag("tools-list").performScrollToNode(hasTestTag("tool-dashboard")); rule.onNodeWithTag("tool-dashboard").performClick()
         rule.waitUntilAtLeastOneExists(hasText("运行中"), 15_000)
         rule.waitUntilAtLeastOneExists(hasText("能力", substring = true), 15_000)
         shot("19-dashboard")
         rule.onNodeWithContentDescription("返回").performClick()
-        rule.onNodeWithTag("tool-agents").performClick()
+        rule.onNodeWithTag("tools-list").performScrollToNode(hasTestTag("tool-agents")); rule.onNodeWithTag("tool-agents").performClick()
         waitText("Claude Code")
         shot("20-agents")
         rule.onNodeWithContentDescription("返回").performClick()
@@ -416,24 +416,31 @@ class EmulatorFlowTest {
         org.junit.Assert.assertTrue("not gzip", bytes.size > 2 && bytes[0] == 0x1f.toByte() && bytes[1] == 0x8b.toByte())
     }
 
-    /** 0.6.0 local agent: model on mock_agent_env (OpenAI format), SSH to its paramiko server, approve a command. */
+    /** Local agent (0.6/0.7): model on mock_agent_env (OpenAI SSE), SSH to its paramiko server, approve, conversations drawer. */
     @Test fun f_localAgentDrivesSshServer() {
         rule.waitForIdle()
         rule.onAllNodesWithText("工具").onFirst().performClick()
         rule.waitUntilAtLeastOneExists(hasTestTag("tools-list"), 15_000)
         rule.onNodeWithTag("tools-list").performScrollToNode(hasTestTag("tool-本地 agent")); rule.onNodeWithTag("tool-本地 agent").performClick()
-        rule.waitUntilAtLeastOneExists(hasTestTag("agent-tab-2"), 10_000)
-        rule.onNodeWithTag("agent-tab-2").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("agent-drawer"), 10_000)
+        shot("30a-agent-empty")
+        rule.onNodeWithTag("agent-drawer").performClick()
+        waitText("模型与审批")
+        rule.onNodeWithText("模型与审批").performClick()
         rule.waitUntilAtLeastOneExists(hasTestTag("llm-base"), 10_000)
-        rule.onNodeWithTag("llm-base").performTextClearance()
+        rule.onNodeWithTag("llm-base").performScrollTo().performTextClearance()
         rule.onNodeWithTag("llm-base").performTextInput("http://$host:8799/v1")
-        rule.onNodeWithTag("llm-model").performTextClearance()
+        rule.onNodeWithTag("llm-model").performScrollTo().performTextClearance()
         rule.onNodeWithTag("llm-model").performTextInput("mock")
-        rule.onNodeWithTag("llm-key").performTextClearance()
+        rule.onNodeWithTag("llm-key").performScrollTo().performTextClearance()
         rule.onNodeWithTag("llm-key").performTextInput("mock-key")
         shot("30-agent-model")
         rule.onNodeWithTag("llm-save").performScrollTo().performClick()
-        rule.onNodeWithTag("agent-tab-1").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("agent-drawer"), 10_000)
+        rule.onNodeWithTag("agent-drawer").performClick()
+        waitText("SSH 服务器")
+        rule.onNodeWithText("SSH 服务器").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("agent-servers"), 10_000)
         if (rule.onAllNodes(hasTestTag("agent-server-ci-ssh")).count() == 0) {
             rule.onNodeWithTag("agent-add-server").performClick()
             rule.onNodeWithTag("srv-name").performTextInput("ci-ssh")
@@ -450,10 +457,11 @@ class EmulatorFlowTest {
         rule.waitUntilAtLeastOneExists(hasTestTag("agent-trust"), 20_000)
         shot("32-agent-hostkey")
         rule.onNodeWithTag("agent-trust").performClick()
-        waitText("指纹 SHA256:", substring = true, ms = 20_000)
-        shot("33-agent-servers")
-        rule.onNodeWithTag("agent-tab-0").performClick()
+        waitText("指纹 ", substring = true, ms = 20_000)
+        rule.waitForIdle(); shot("33-agent-servers")
+        rule.onNodeWithContentDescription("返回对话").performClick()
         rule.waitUntilAtLeastOneExists(hasTestTag("agent-input"), 10_000)
+        shot("33b-agent-ready")
         rule.onNodeWithTag("agent-input").performTextInput("看看服务器")
         rule.onNodeWithTag("agent-send").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
         // `echo … && uname` is not read-only, so the default policy asks first.
@@ -462,6 +470,14 @@ class EmulatorFlowTest {
         rule.onNodeWithTag("agent-approve").performClick()
         rule.waitUntil(30_000) { runCatching { rule.onNodeWithTag("agent-list").performScrollToNode(hasText("agent-ok", substring = true) and hasAnyAncestor(hasTestTag("agent-reply"))); true }.getOrDefault(false) }
         rule.waitForIdle(); shot("35-agent-done")
+        // Second conversation, then switch back from the drawer.
+        rule.onNodeWithTag("agent-new").performClick()
+        rule.waitUntilAtLeastOneExists(hasText("看看所有服务器的磁盘和内存"), 10_000)
+        rule.onNodeWithTag("agent-drawer").performClick()
+        rule.waitUntilAtLeastOneExists(hasText("看看服务器") and hasAnyAncestor(hasTestTag("agent-conversations")), 10_000)
+        shot("36-agent-drawer")
+        rule.onNode(hasText("看看服务器") and hasAnyAncestor(hasTestTag("agent-conversations"))).performClick()
+        rule.waitUntil(15_000) { runCatching { rule.onNodeWithTag("agent-list").performScrollToNode(hasText("agent-ok", substring = true) and hasAnyAncestor(hasTestTag("agent-reply"))); true }.getOrDefault(false) }
         rule.onNodeWithContentDescription("返回").performClick()
     }
 }

@@ -71,6 +71,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -104,9 +106,10 @@ fun ChatEmpty(onPick: (String) -> Unit) {
         Spacer(Modifier.size(12.dp))
         Text("从一句话开始", style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.size(12.dp))
-        prompts.forEach { p ->
-            OutlinedCard(onClick = { onPick(p) }, modifier = Modifier.widthIn(max = 420.dp).fillMaxWidth().padding(vertical = 4.dp)) {
-                Text(p, Modifier.padding(horizontal = 14.dp, vertical = 10.dp), style = MaterialTheme.typography.bodyMedium)
+        prompts.forEachIndexed { i, p ->
+            Surface(onClick = { onPick(p) }, shape = com.huanmeng.huanhermes.ui.components.groupShape(i, prompts.size, 18.dp, 6.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.widthIn(max = 420.dp).fillMaxWidth().padding(vertical = 1.dp)) {
+                Text(p, Modifier.padding(horizontal = 16.dp, vertical = 13.dp), style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
@@ -236,82 +239,28 @@ fun Composer(
     var modelMenu by remember { mutableStateOf(false) }
     var modeMenu by remember { mutableStateOf(false) }
     var historyMenu by remember { mutableStateOf(false) }
-    Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box {
-                    FilterChip(
-                        selected = false, onClick = { modelMenu = true },
-                        label = { Text(model ?: "模型", maxLines = 1) },
-                        leadingIcon = { Icon(Icons.Outlined.AutoAwesome, null, Modifier.size(16.dp)) },
-                        modifier = Modifier.semantics { contentDescription = "切换模型，当前 ${model ?: "默认"}" },
-                    )
-                    DropdownMenu(expanded = modelMenu, onDismissRequest = { modelMenu = false }) {
-                        if (models.isEmpty()) DropdownMenuItem(text = { Text("Host 未提供模型列表，输入 /model 名称") }, onClick = { modelMenu = false; onInput("/model ") })
-                        models.forEach { m ->
-                            DropdownMenuItem(
-                                text = { Text(m) },
-                                leadingIcon = { if (m == model) Icon(Icons.Outlined.Check, "当前") },
-                                onClick = { modelMenu = false; if (m != model) onCommand(SlashCommands.modelCommand(m)) },
-                            )
-                        }
-                    }
-                }
-                Box {
-                    FilterChip(
-                        selected = mode == "plan", onClick = { modeMenu = true },
-                        label = { Text(modeLabel(mode), maxLines = 1) },
-                        leadingIcon = { Icon(Icons.Outlined.Tune, null, Modifier.size(16.dp)) },
-                        modifier = Modifier.semantics { contentDescription = "切换模式，当前 ${modeLabel(mode)}" },
-                    )
-                    DropdownMenu(expanded = modeMenu, onDismissRequest = { modeMenu = false }) {
-                        SlashCommands.MODES.forEach { m ->
-                            DropdownMenuItem(
-                                text = { Text(modeLabel(m)) },
-                                leadingIcon = { if (m == (mode ?: "default")) Icon(Icons.Outlined.Check, "当前") },
-                                onClick = { modeMenu = false; if (m != mode) onCommand(SlashCommands.modeCommand(m)) },
-                            )
-                        }
-                    }
-                }
-                if (onAttach != null) FilterChip(
-                    selected = attachCount > 0, onClick = onAttach,
-                    label = { Text(if (attachCount > 0) "附件 $attachCount" else "附件") },
-                    leadingIcon = { Icon(Icons.Outlined.AttachFile, null, Modifier.size(16.dp)) },
-                    modifier = Modifier.testTag("attach-chip"),
-                )
-                FilterChip(selected = false, onClick = { onInput("/") }, label = { Text("/ 命令") })
-                FilterChip(selected = false, onClick = { onInput(if (input.isEmpty() || input.endsWith(" ")) input + "@" else "$input @") }, label = { Text("@ 文件") })
-                if (history.isNotEmpty()) Box {
-                    FilterChip(
-                        selected = false, onClick = { historyMenu = true },
-                        label = { Text("历史") },
-                        leadingIcon = { Icon(Icons.Outlined.History, null, Modifier.size(16.dp)) },
-                    )
-                    DropdownMenu(expanded = historyMenu, onDismissRequest = { historyMenu = false }) {
-                        history.take(15).forEach { h ->
-                            DropdownMenuItem(text = { Text(h, maxLines = 2, overflow = TextOverflow.Ellipsis) }, onClick = { historyMenu = false; onInput(h) })
-                        }
+    val trySend = { if (input.isNotBlank()) onSend() }
+    Column(Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 4.dp, bottom = 8.dp)) {
+        if (input.isEmpty() && prefs.quickMessages.isNotEmpty()) {
+            Row(
+                Modifier.horizontalScroll(rememberScrollState()).padding(bottom = 6.dp).testTag("quick-messages"),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                prefs.quickMessages.forEach { q ->
+                    Surface(onClick = { onInput(q) }, shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+                        Text(q, Modifier.padding(horizontal = 10.dp, vertical = 6.dp), style = MaterialTheme.typography.labelMedium, maxLines = 1)
                     }
                 }
             }
-            if (input.isEmpty() && prefs.quickMessages.isNotEmpty()) {
-                Row(
-                    Modifier.horizontalScroll(rememberScrollState()).padding(top = 2.dp).testTag("quick-messages"),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    prefs.quickMessages.forEach { q ->
-                        androidx.compose.material3.SuggestionChip(onClick = { onInput(q) }, label = { Text(q, maxLines = 1) })
-                    }
-                }
-            }
-            val trySend = { if (input.isNotBlank()) onSend() }
-            Row(verticalAlignment = Alignment.Bottom) {
+        }
+        // One rounded container: the text on top, tools and send in a row underneath.
+        Surface(shape = RoundedCornerShape(26.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(start = 6.dp, end = 6.dp, top = 2.dp, bottom = 6.dp)) {
                 TextField(
                     value = input, onValueChange = onInput,
                     keyboardOptions = if (prefs.enterToSend) androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Send) else androidx.compose.foundation.text.KeyboardOptions.Default,
                     keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSend = { trySend() }),
-                    modifier = Modifier.weight(1f).testTag("chat-input").onPreviewKeyEvent { e ->
+                    modifier = Modifier.fillMaxWidth().testTag("chat-input").onPreviewKeyEvent { e ->
                         // Hardware keyboards: Enter sends, Shift+Enter is a new line.
                         if (prefs.enterToSend && e.key == Key.Enter && !e.isShiftPressed) {
                             if (e.type == KeyEventType.KeyDown) trySend()
@@ -328,22 +277,81 @@ fun Composer(
                             maxLines = 1, overflow = TextOverflow.Ellipsis,
                         )
                     },
-                    maxLines = 6,
-                    shape = RoundedCornerShape(22.dp),
-                    colors = TextFieldDefaults.colors(focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent, disabledIndicatorColor = Color.Transparent),
+                    maxLines = 8,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent, disabledContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent, disabledIndicatorColor = Color.Transparent,
+                    ),
                 )
-                if (input.lines().size > 3 || input.length > 160) {
-                    IconButton(onClick = { fullEditor = true }) { Icon(Icons.Outlined.OpenInFull, "全屏编辑") }
-                }
-                if (runActive) {
-                    IconButton(onClick = onCancel) { Icon(Icons.Outlined.StopCircle, "停止运行", tint = MaterialTheme.colorScheme.error) }
-                }
-                if (input.isEmpty() && onVoice != null) {
-                    IconButton(onClick = onVoice, modifier = Modifier.testTag("voice-input")) { Icon(Icons.Outlined.Mic, "语音输入") }
-                }
-                Spacer(Modifier.width(4.dp))
-                FilledIconButton(onClick = onSend, enabled = input.isNotBlank() || attachCount > 0) {
-                    Icon(Icons.AutoMirrored.Filled.Send, "发送")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box {
+                        Surface(
+                            onClick = { modelMenu = true }, shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            modifier = Modifier.semantics { contentDescription = "切换模型，当前 ${model ?: "默认"}" },
+                        ) {
+                            Row(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.AutoAwesome, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                Spacer(Modifier.width(4.dp))
+                                Text(model ?: "模型", Modifier.widthIn(max = 120.dp), style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                        DropdownMenu(expanded = modelMenu, onDismissRequest = { modelMenu = false }) {
+                            if (models.isEmpty()) DropdownMenuItem(text = { Text("Host 未提供模型列表，输入 /model 名称") }, onClick = { modelMenu = false; onInput("/model ") })
+                            models.forEach { m ->
+                                DropdownMenuItem(
+                                    text = { Text(m) },
+                                    leadingIcon = { if (m == model) Icon(Icons.Outlined.Check, "当前") },
+                                    onClick = { modelMenu = false; if (m != model) onCommand(SlashCommands.modelCommand(m)) },
+                                )
+                            }
+                        }
+                    }
+                    Box {
+                        IconButton(onClick = { modeMenu = true }, modifier = Modifier.semantics { contentDescription = "切换模式，当前 ${modeLabel(mode)}" }) {
+                            Icon(Icons.Outlined.Tune, null, tint = if (mode == "plan") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        DropdownMenu(expanded = modeMenu, onDismissRequest = { modeMenu = false }) {
+                            SlashCommands.MODES.forEach { m ->
+                                DropdownMenuItem(
+                                    text = { Text(modeLabel(m)) },
+                                    leadingIcon = { if (m == (mode ?: "default")) Icon(Icons.Outlined.Check, "当前") },
+                                    onClick = { modeMenu = false; if (m != mode) onCommand(SlashCommands.modeCommand(m)) },
+                                )
+                            }
+                        }
+                    }
+                    if (onAttach != null) IconButton(onClick = onAttach, modifier = Modifier.testTag("attach-chip")) {
+                        androidx.compose.material3.BadgedBox(badge = { if (attachCount > 0) androidx.compose.material3.Badge { Text("$attachCount") } }) {
+                            Icon(Icons.Outlined.AttachFile, if (attachCount > 0) "附件 $attachCount" else "附件", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    var more by remember { mutableStateOf(false) }
+                    Box {
+                        IconButton(onClick = { more = true }) { Icon(Icons.Outlined.AddCircleOutline, "插入", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        DropdownMenu(expanded = more, onDismissRequest = { more = false }) {
+                            DropdownMenuItem(text = { Text("/ 命令") }, onClick = { more = false; onInput("/") })
+                            DropdownMenuItem(text = { Text("@ 文件") }, onClick = { more = false; onInput(if (input.isEmpty() || input.endsWith(" ")) input + "@" else "$input @") })
+                            if (history.isNotEmpty()) DropdownMenuItem(text = { Text("历史输入") }, leadingIcon = { Icon(Icons.Outlined.History, null) }, onClick = { more = false; historyMenu = true })
+                        }
+                        DropdownMenu(expanded = historyMenu, onDismissRequest = { historyMenu = false }) {
+                            history.take(15).forEach { h ->
+                                DropdownMenuItem(text = { Text(h, maxLines = 2, overflow = TextOverflow.Ellipsis) }, onClick = { historyMenu = false; onInput(h) })
+                            }
+                        }
+                    }
+                    Spacer(Modifier.weight(1f))
+                    if (input.lines().size > 3 || input.length > 160) {
+                        IconButton(onClick = { fullEditor = true }) { Icon(Icons.Outlined.OpenInFull, "全屏编辑") }
+                    }
+                    if (runActive) {
+                        IconButton(onClick = onCancel) { Icon(Icons.Outlined.StopCircle, "停止运行", tint = MaterialTheme.colorScheme.error) }
+                    }
+                    if (input.isEmpty() && onVoice != null) {
+                        IconButton(onClick = onVoice, modifier = Modifier.testTag("voice-input")) { Icon(Icons.Outlined.Mic, "语音输入", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    }
+                    FilledIconButton(onClick = onSend, enabled = input.isNotBlank() || attachCount > 0) {
+                        Icon(Icons.Outlined.ArrowUpward, "发送")
+                    }
                 }
             }
         }

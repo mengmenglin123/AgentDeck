@@ -253,7 +253,7 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
                 val vm: com.huanmeng.huanhermes.ui.vm.CatalogViewModel = viewModel(key = "catalog-$kind") { com.huanmeng.huanhermes.ui.vm.CatalogViewModel(graph, kind) }
                 com.huanmeng.huanhermes.ui.screens.CatalogScreen(vm, onBack = { nav.popBackStack() })
             }
-            composable(Tab.Settings.route) { SettingsScreen(settings, repo, onOpenHosts = { nav.navigate("hosts") }) }
+            composable(Tab.Settings.route) { SettingsScreen(settings, repo, onOpenHosts = { nav.navigate("hosts") }, onOpenAgent = { nav.navigate("agent") }) }
             composable("hosts") {
                 val vm: HostsViewModel = viewModel { HostsViewModel(graph) }
                 HostsScreen(vm, onBack = { nav.popBackStack() }, onConnected = { nav.popBackStack() }, onScan = { nav.navigate("scan") }, onSsh = { nav.navigate("ssh") })

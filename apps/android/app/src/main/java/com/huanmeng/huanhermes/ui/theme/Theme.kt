@@ -3,16 +3,15 @@ package com.huanmeng.huanhermes.ui.theme
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import com.huanmeng.huanhermes.data.AppSettings
 import com.huanmeng.huanhermes.data.ThemeMode
 
@@ -33,40 +32,6 @@ object Brand {
     val danger = Color(0xFFEF4444)
 }
 
-private fun light(highContrast: Boolean) = lightColorScheme(
-    primary = if (highContrast) Color(0xFF2F3AA8) else Brand.accent,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFE8EAFF),
-    onPrimaryContainer = Color(0xFF1A1F5C),
-    secondary = Color(0xFF5B6170),
-    secondaryContainer = Color(0xFFE8EAEE),
-    onSecondaryContainer = Color(0xFF2A2E38),
-    tertiaryContainer = Color(0xFFECEBFF),
-    background = Brand.lightCanvas,
-    surface = Brand.lightSurface,
-    surfaceVariant = Brand.lightMuted,
-    onSurface = if (highContrast) Color.Black else Color(0xFF1B1C1F),
-    onSurfaceVariant = if (highContrast) Color(0xFF202124) else Color(0xFF5B6170),
-    error = Brand.danger,
-)
-
-private fun dark(highContrast: Boolean) = darkColorScheme(
-    primary = if (highContrast) Brand.accentSoft else Brand.accentBright,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFF2A2F6B),
-    onPrimaryContainer = Color(0xFFE0E3FF),
-    secondary = Color(0xFFA9AEBB),
-    secondaryContainer = Brand.darkElevated,
-    background = Brand.darkCanvas,
-    surface = Brand.darkPanel,
-    surfaceVariant = Brand.darkSurface,
-    surfaceContainer = Brand.darkSurface,
-    surfaceContainerHigh = Brand.darkElevated,
-    onSurface = if (highContrast) Color.White else Color(0xFFE6E7EA),
-    onSurfaceVariant = if (highContrast) Color(0xFFE0E0E0) else Color(0xFF9EA3AE),
-    error = Brand.danger,
-)
-
 @Composable
 fun HuanHermesTheme(settings: AppSettings, content: @Composable () -> Unit) {
     val dark = when (settings.themeMode) {
@@ -75,13 +40,12 @@ fun HuanHermesTheme(settings: AppSettings, content: @Composable () -> Unit) {
         ThemeMode.DARK -> true
     }
     val context = LocalContext.current
-    val scheme = when {
+    // Full tonal schemes (every surfaceContainer role) generated from each preset's seed.
+    val accented = when {
         settings.dynamicColor && !settings.highContrast && Build.VERSION.SDK_INT >= 31 ->
             if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        dark -> dark(settings.highContrast)
-        else -> light(settings.highContrast)
+        else -> Palettes.scheme(settings.themePreset, dark, settings.highContrast)
     }
-    val accented = ThemePresets.apply(scheme, settings.themePreset, dark, settings.dynamicColor && Build.VERSION.SDK_INT >= 31)
     val finalScheme = if (dark && settings.amoledBlack) accented.copy(
         background = Color.Black,
         surface = Color.Black,
@@ -96,9 +60,18 @@ fun HuanHermesTheme(settings: AppSettings, content: @Composable () -> Unit) {
         LocalDensity provides Density(base.density, base.fontScale * settings.fontScale),
         LocalHaptics provides settings.haptics,
     ) {
-        MaterialTheme(colorScheme = finalScheme, typography = AppTypography, content = content)
+        MaterialTheme(colorScheme = finalScheme, typography = AppTypography, shapes = AppShapes, content = content)
     }
 }
+
+/** Rounder, softer containers. */
+private val AppShapes = androidx.compose.material3.Shapes(
+    extraSmall = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+    small = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+    medium = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+    large = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
+    extraLarge = androidx.compose.foundation.shape.RoundedCornerShape(32.dp),
+)
 
 /** Slightly tighter titles and roomier body text for long agent output. */
 private val AppTypography = androidx.compose.material3.Typography().let { t ->

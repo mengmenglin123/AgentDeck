@@ -1,6 +1,5 @@
 package com.huanmeng.huanhermes.core.agent
 
-import com.huanmeng.huanhermes.core.protocol.ProtocolJson
 import com.huanmeng.huanhermes.core.ssh.SshRunner
 import com.huanmeng.huanhermes.core.ssh.TrileadSshRunner
 import kotlinx.coroutines.CancellationException
@@ -10,7 +9,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.runInterruptible
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
@@ -129,7 +127,7 @@ private fun clip(s: String, max: Int) = if (s.length <= max) s else s.take(max) 
 class LocalAgent(
     private val servers: SshServerRepository,
     private val connector: SshConnector = SshConnector.Trilead,
-    private val history: AgentHistoryStorage? = null,
+    val conversations: ConversationRepository? = null,
     private val maxSteps: Int = 16,
 ) {
     private val _messages = MutableStateFlow<List<AgentMessage>>(emptyList())
@@ -143,26 +141,55 @@ class LocalAgent(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
-    private val ser = ListSerializer(AgentMessage.serializer())
+    private val _conversationId = MutableStateFlow<String?>(null)
+    /** Null until the first message of a new conversation is sent. */
+    val conversationId: StateFlow<String?> = _conversationId
+    private val _streaming = MutableStateFlow<String?>(null)
+    /** Assistant text arriving for the model call in flight, or null. */
+    val streaming: StateFlow<String?> = _streaming
 
+    /** Opens the newest conversation (app start). */
     suspend fun restore() {
-        val raw = history?.load() ?: return
-        runCatching { ProtocolJson.decodeFromString(ser, raw) }.getOrNull()?.let { list ->
-            _messages.value = list
-            // Rebuild finished tool cards from the transcript.
-            val calls = list.filterIsInstance<AgentMessage.Assistant>().flatMap { it.toolCalls }.associateBy { it.id }
-            _activities.value = list.filterIsInstance<AgentMessage.ToolResult>().associate { r ->
-                val c = calls[r.callId]
-                r.callId to ToolActivity(r.callId, r.name, c?.arguments?.let { a -> with(AgentTools) { a.s("server") } }?.ifEmpty { null },
-                    c?.let { summarize(it) } ?: r.name, if (r.isError) ToolActivity.State.FAILED else ToolActivity.State.DONE, r.content)
-            }
+        val repo = conversations ?: return
+        repo.load().firstOrNull()?.let { open(it.id) }
+    }
+
+    /** Switches to a saved conversation; ignored while a run is going. */
+    suspend fun open(id: String): Boolean {
+        if (_running.value) return false
+        val repo = conversations ?: return false
+        val list = repo.messages(id)
+        _conversationId.value = id
+        _messages.value = list; _error.value = null
+        rebuildActivities(list)
+        return true
+    }
+
+    /** Starts an empty conversation (saved once it has a message). */
+    fun newConversation(): Boolean {
+        if (_running.value) return false
+        _conversationId.value = null
+        _messages.value = emptyList(); _activities.value = emptyMap(); _error.value = null
+        return true
+    }
+
+    suspend fun deleteConversation(id: String) {
+        if (_running.value && id == _conversationId.value) return
+        conversations?.delete(id)
+        if (id == _conversationId.value) newConversation()
+    }
+
+    private fun rebuildActivities(list: List<AgentMessage>) {
+        val calls = list.filterIsInstance<AgentMessage.Assistant>().flatMap { it.toolCalls }.associateBy { it.id }
+        _activities.value = list.filterIsInstance<AgentMessage.ToolResult>().associate { r ->
+            val c = calls[r.callId]
+            r.callId to ToolActivity(r.callId, r.name, c?.arguments?.let { a -> with(AgentTools) { a.s("server") } }?.ifEmpty { null },
+                c?.let { summarize(it) } ?: r.name, if (r.isError) ToolActivity.State.FAILED else ToolActivity.State.DONE, r.content)
         }
     }
 
-    suspend fun clear() {
-        _messages.value = emptyList(); _activities.value = emptyMap(); _error.value = null
-        history?.save("[]")
-    }
+    /** Same as [newConversation]; kept for callers that "clear" the screen. */
+    suspend fun clear() { newConversation() }
 
     fun answerApproval(ok: Boolean) { _approval.value?.answer?.complete(ok) }
 
@@ -189,7 +216,10 @@ class LocalAgent(
             var steps = 0
             while (true) {
                 if (steps++ >= maxSteps) { _error.value = "已达到单次最多 $maxSteps 轮，先停下了。可以回复「继续」。"; break }
-                val turn = client.complete(systemPrompt(list), contextWindow(), AgentTools.specs)
+                _streaming.value = ""
+                val turn = try {
+                    client.stream(systemPrompt(list), contextWindow(), AgentTools.specs) { delta -> _streaming.value = (_streaming.value ?: "") + delta }
+                } finally { _streaming.value = null }
                 append(AgentMessage.Assistant(turn.text, turn.toolCalls))
                 if (turn.toolCalls.isEmpty()) break
                 for (call in turn.toolCalls) append(execute(call, policy, sessions))
@@ -232,7 +262,12 @@ class LocalAgent(
 
     private suspend fun append(m: AgentMessage) { _messages.value = _messages.value + m; persist() }
 
-    private suspend fun persist() { history?.save(ProtocolJson.encodeToString(ser, _messages.value)) }
+    private suspend fun persist() {
+        val repo = conversations ?: return
+        if (_messages.value.isEmpty()) return
+        val id = _conversationId.value ?: repo.newId().also { _conversationId.value = it }
+        repo.save(id, _messages.value)
+    }
 
     private fun setActivity(a: ToolActivity) { _activities.value = _activities.value + (a.callId to a) }
 
@@ -316,9 +351,4 @@ class LocalAgent(
             fail(e.message ?: e.javaClass.simpleName)
         }
     }
-}
-
-interface AgentHistoryStorage {
-    suspend fun load(): String?
-    suspend fun save(raw: String)
 }
