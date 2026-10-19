@@ -102,7 +102,7 @@ fun InboxScreen(vm: InboxViewModel, onOpenChat: (SessionRef) -> Unit, onOpenHost
                     }
                 } else if (state.visible.isEmpty() && !state.loading) item(key = "empty") {
                     Column(Modifier.fillMaxWidth().padding(vertical = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Outlined.TaskAlt, null, Modifier.size(48.dp), tint = Brand.success)
+                        com.huanmeng.huanhermes.ui.components.IconBadge(Icons.Outlined.TaskAlt, com.huanmeng.huanhermes.ui.components.Tint.Secondary, 72.dp)
                         Spacer(Modifier.size(12.dp))
                         Text("都处理完了", style = MaterialTheme.typography.titleMedium)
                         Text("Agent 需要你批准时会出现在这里，下拉可刷新。", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -150,18 +150,19 @@ private fun InboxCard(item: InboxItem, sending: Boolean, onDecision: (String) ->
     AppCard(modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.clickable(onClickLabel = "打开会话", onClick = onOpen), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.PanTool, null, Modifier.size(18.dp), tint = Brand.warning)
-                Spacer(Modifier.width(8.dp))
+                com.huanmeng.huanhermes.ui.components.IconBadge(Icons.Outlined.PanTool, com.huanmeng.huanhermes.ui.components.Tint.Tertiary, 40.dp)
+                Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(item.session.displayTitle, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(
-                        listOf(item.hostName, item.session.project).filter { it.isNotBlank() }.joinToString(" · "),
-                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Text(item.session.displayTitle, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(item.hostName, item.session.project).filter { it.isNotBlank() }.forEachIndexed { i, t ->
+                            com.huanmeng.huanhermes.ui.components.Tag(t.takeLast(24), if (i == 0) com.huanmeng.huanhermes.ui.components.Tint.Primary else com.huanmeng.huanhermes.ui.components.Tint.Secondary)
+                        }
+                    }
                 }
                 TextButton(onClick = onOpen) { Text("打开") }
             }
-            Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.small) {
+            Surface(color = MaterialTheme.colorScheme.surfaceContainerHighest, shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)) {
                 Text(
                     item.permission.prompt.ifBlank { "Agent 请求权限" },
                     Modifier.fillMaxWidth().padding(10.dp),

@@ -1,6 +1,14 @@
 package com.huanmeng.huanhermes.ui.screens
 
 import com.huanmeng.huanhermes.ui.components.AppCard
+import com.huanmeng.huanhermes.ui.components.PrefItem
+import com.huanmeng.huanhermes.ui.components.SettingsGroup
+import com.huanmeng.huanhermes.ui.components.Tint
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.QrCodeScanner
+import androidx.compose.material.icons.outlined.Wifi
+import androidx.compose.material.icons.outlined.Terminal
+import androidx.compose.material.icons.outlined.Add
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -94,13 +102,32 @@ fun HostsScreen(vm: HostsViewModel, onBack: () -> Unit, onConnected: () -> Unit,
             navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回") } },
         )
         Column(
-            Modifier.fillMaxSize().navigationBarsPadding().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
+            Modifier.fillMaxSize().navigationBarsPadding().imePadding().verticalScroll(rememberScrollState()).padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                androidx.compose.material3.FilledTonalButton(onClick = onScan, modifier = Modifier.weight(1f).testTag("scan-pair")) { Text("扫码配对") }
-                OutlinedButton(onClick = { nearby = !nearby }, modifier = Modifier.weight(1f)) { Text(if (nearby) "停止搜索" else "附近的 Host") }
-            }
+            if (state.profiles.isNotEmpty()) SettingsGroup("已保存的 Host", items = state.profiles.map<HostProfile, @Composable (androidx.compose.ui.graphics.Shape) -> Unit> { p ->
+                { sh ->
+                    val active = p.id == state.activeId
+                    PrefItem(p.name, sh,
+                        subtitle = "${HostConfig.formatHost(p.config.host)} · ${p.config.bridgePort}/${p.config.mgmtPort}${if (p.config.useTls) " · TLS" else ""}" + if (active) " · 当前" else "",
+                        icon = if (active) Icons.Outlined.CheckCircle else Icons.Outlined.Dns, tint = if (active) Tint.Primary else Tint.Neutral,
+                        onClick = { vm.select(p.id) }, modifier = Modifier.testTag("host-${p.name}"),
+                        trailing = {
+                            Row {
+                                IconButton(onClick = { sharing = p }) { Icon(Icons.Outlined.QrCode2, "分享连接二维码") }
+                                IconButton(onClick = { creating = false; vm.select(p.id); editing = p }) { Icon(Icons.Outlined.Edit, "编辑") }
+                                IconButton(onClick = { confirmDelete = p }) { Icon(Icons.Outlined.Delete, "删除") }
+                            }
+                        })
+                }
+            })
+            if (!creating && editing == null) SettingsGroup("添加 Host", items = listOf<@Composable (androidx.compose.ui.graphics.Shape) -> Unit>(
+                { sh -> PrefItem("扫码配对", sh, subtitle = "扫描电脑上 Host 显示的二维码", icon = Icons.Outlined.QrCodeScanner, onClick = onScan, modifier = Modifier.testTag("scan-pair")) },
+                { sh -> PrefItem(if (nearby) "停止搜索" else "附近的 Host", sh, subtitle = "在同一局域网里自动发现", icon = Icons.Outlined.Wifi, tint = Tint.Secondary, onClick = { nearby = !nearby }) },
+                { sh -> PrefItem("手动添加 Host", sh, subtitle = "填写地址、端口和令牌", icon = Icons.Outlined.Add, tint = Tint.Tertiary, onClick = { creating = true }) },
+                { sh -> PrefItem("通过 SSH 一键安装", sh, subtitle = "还没装 Host？在服务器上自动安装 companion", icon = Icons.Outlined.Terminal, tint = Tint.Neutral, onClick = onSsh) },
+            ))
+            Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             pairingStatus?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary) }
             if (nearby) {
                 AppCard(Modifier.fillMaxWidth()) {
@@ -140,33 +167,6 @@ fun HostsScreen(vm: HostsViewModel, onBack: () -> Unit, onConnected: () -> Unit,
                     },
                 )
             }
-            state.profiles.forEach { p ->
-                AppCard(Modifier.fillMaxWidth().clickable { vm.select(p.id) }) {
-                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            if (p.id == state.activeId) Icons.Outlined.CheckCircle else Icons.Outlined.Dns, null,
-                            tint = if (p.id == state.activeId) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
-                            Text(p.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text(
-                                "${HostConfig.formatHost(p.config.host)} · bridge ${p.config.bridgePort} · mgmt ${p.config.mgmtPort}${if (p.config.useTls) " · TLS" else ""}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1, overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        IconButton(onClick = { sharing = p }) { Icon(Icons.Outlined.QrCode2, "分享连接二维码") }
-                        TextButton(onClick = { creating = false; vm.select(p.id); editing = p }) { Text("编辑") }
-                        IconButton(onClick = { confirmDelete = p }) { Icon(Icons.Outlined.Delete, "删除") }
-                    }
-                }
-            }
-            if (!creating && editing == null) {
-                OutlinedButton(onClick = { creating = true }, modifier = Modifier.fillMaxWidth()) { Text("手动添加 Host") }
-                TextButton(onClick = onSsh, modifier = Modifier.fillMaxWidth()) { Text("还没装 Host？通过 SSH 一键安装") }
-            }
             state.active?.let { active ->
                 if (!state.ready && !creating && editing == null) {
                     Button(
@@ -175,6 +175,7 @@ fun HostsScreen(vm: HostsViewModel, onBack: () -> Unit, onConnected: () -> Unit,
                     ) { Text(if (state.testing) "测试中…" else "测试并连接「${active.name}」") }
                     state.lastError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 }
+            }
             }
         }
     }

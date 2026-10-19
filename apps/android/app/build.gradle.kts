@@ -10,8 +10,8 @@ plugins {
 
 // Native versions start at 0.2.0 / versionCode 2000 so they install over the
 // Flutter app (0.1.2xx, versionCode 2xx), which uses the same applicationId and key.
-val nativeVersionName = "0.7.1"
-val nativeVersionCode = 2019
+val nativeVersionName = "0.7.2"
+val nativeVersionCode = 2020
 
 android {
     namespace = "com.huanmeng.huanhermes"
