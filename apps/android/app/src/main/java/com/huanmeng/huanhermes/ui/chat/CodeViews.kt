@@ -107,7 +107,7 @@ private fun rememberHighlighted(code: String, language: String?, p: CodePalette)
     return if (value.text == code) value else AnnotatedString(code)
 }
 
-fun copyToClipboard(context: Context, text: String, label: String = "HuanHermes") {
+fun copyToClipboard(context: Context, text: String, label: String = "AgentDeck") {
     val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     cm.setPrimaryClip(ClipData.newPlainText(label, text))
     // Android 13+ shows its own confirmation.

@@ -1,10 +1,10 @@
-# HuanHermes
+# AgentDeck
 
 **在手机上指挥你服务器上的 AI 编程 Agent。**
 
-HuanHermes 是一个原生 Android 应用（Kotlin + Jetpack Compose），配一个装在服务器上的轻量 Host。手机负责看、批、聊；真正干活的 Claude Code / Codex / Hermes 留在你自己的服务器上，代码和密钥都不离开你的机器。
+AgentDeck（原名 HuanHermes）是一个原生 Android 应用（Kotlin + Jetpack Compose），配一个装在服务器上的轻量 Host。手机负责看、批、聊；真正干活的 Claude Code / Codex / Hermes 留在你自己的服务器上，代码和密钥都不离开你的机器。
 
-[⬇️ 下载最新 APK](https://github.com/mengmenglin123/huanhermes-app/releases/latest) · [协议文档](docs/protocol/) · [发布记录](CHANGELOG.md)
+[⬇️ 下载最新 APK](https://github.com/mengmenglin123/AgentDeck/releases/latest) · [协议文档](docs/protocol/) · [发布记录](CHANGELOG.md)
 
 ---
 
@@ -66,7 +66,7 @@ docs/guides/         连接、发布、自研 Host 指南
 
 ## 快速开始
 
-**1. 安装 App**：从 [Releases](https://github.com/mengmenglin123/huanhermes-app/releases/latest) 下载 APK（Android 8.0+）。
+**1. 安装 App**：从 [Releases](https://github.com/mengmenglin123/AgentDeck/releases/latest) 下载 APK（Android 8.0+）。
 
 **2. 先用 Mock Host 体验**
 

@@ -308,7 +308,7 @@ fun HuanHermesRoot(settings: AppSettings, repo: SettingsRepository) {
 private fun AppLockScreen(onUnlocked: () -> Unit) {
     val auth = rememberDeviceAuth()
     androidx.activity.compose.BackHandler(enabled = true) { }
-    androidx.compose.runtime.LaunchedEffect(Unit) { auth("解锁 HuanHermes", onUnlocked) }
+    androidx.compose.runtime.LaunchedEffect(Unit) { auth("解锁 AgentDeck", onUnlocked) }
     androidx.compose.material3.Surface(Modifier.fillMaxSize()) {
         androidx.compose.foundation.layout.Column(
             Modifier.fillMaxSize(),
@@ -316,8 +316,8 @@ private fun AppLockScreen(onUnlocked: () -> Unit) {
             horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
         ) {
             androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Outlined.Lock, null, Modifier.padding(16.dp))
-            Text("HuanHermes 已锁定", style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
-            androidx.compose.material3.Button(onClick = { auth("解锁 HuanHermes", onUnlocked) }, modifier = Modifier.padding(top = 16.dp)) { Text("解锁") }
+            Text("AgentDeck 已锁定", style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
+            androidx.compose.material3.Button(onClick = { auth("解锁 AgentDeck", onUnlocked) }, modifier = Modifier.padding(top = 16.dp)) { Text("解锁") }
         }
     }
 }

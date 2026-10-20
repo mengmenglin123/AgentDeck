@@ -182,7 +182,7 @@ fun SettingsScreen(settings: AppSettings, repo: SettingsRepository, onOpenHosts:
             { sh -> PrefItem("导入设置", sh, icon = Icons.Outlined.Download, tint = Tint.Secondary, onClick = { importDoc.launch(arrayOf("application/json", "text/*")) }) },
             { sh ->
                 PrefItem("复制本机偏好", sh, subtitle = "排查问题时发给开发者", icon = Icons.Outlined.ContentCopy, tint = Tint.Secondary, onClick = {
-                    val summary = "HuanHermes ${BuildConfig.VERSION_NAME} 本机偏好（不含令牌）\n" + listOf(
+                    val summary = "AgentDeck ${BuildConfig.VERSION_NAME} 本机偏好（不含令牌）\n" + listOf(
                         "主题" to settings.themeMode.name, "字号" to "${(settings.fontScale * 100).toInt()}%", "高对比" to settings.highContrast,
                         "纯黑" to settings.amoledBlack, "动态取色" to settings.dynamicColor, "折叠工具调用" to settings.foldTurns,
                         "触感" to settings.haptics, "审批通知" to settings.approvalNotifications, "UnifiedPush" to (settings.pushEndpoint != null),
@@ -190,7 +190,7 @@ fun SettingsScreen(settings: AppSettings, repo: SettingsRepository, onOpenHosts:
                         "仪表盘自动刷新" to settings.dashboardAutoRefresh, "紧凑列表" to settings.compactList, "排序" to settings.sessionSort.label,
                         "等宽聊天" to settings.monoChat,
                     ).joinToString("\n") { (k, v) -> "$k：$v" }
-                    com.huanmeng.huanhermes.ui.chat.copyToClipboard(context, summary, "HuanHermes 偏好")
+                    com.huanmeng.huanhermes.ui.chat.copyToClipboard(context, summary, "AgentDeck 偏好")
                 })
             },
             { sh -> PrefItem("恢复默认偏好", sh, subtitle = "Host、令牌和推送保持不变", icon = Icons.Outlined.RestartAlt, tint = Tint.Error, onClick = { confirmReset = true }) },
@@ -198,7 +198,7 @@ fun SettingsScreen(settings: AppSettings, repo: SettingsRepository, onOpenHosts:
 
         SettingsGroup("关于", items = listOf<@Composable (Shape) -> Unit>(
             { sh ->
-                PrefItem("HuanHermes 原生版", sh, subtitle = "版本 ${BuildConfig.VERSION_NAME}（${BuildConfig.VERSION_CODE}）· Kotlin + Jetpack Compose", icon = Icons.Outlined.Info, tint = Tint.Neutral, below = {
+                PrefItem("AgentDeck", sh, subtitle = "版本 ${BuildConfig.VERSION_NAME}（${BuildConfig.VERSION_CODE}）· Kotlin + Jetpack Compose", icon = Icons.Outlined.Info, tint = Tint.Neutral, below = {
                     Text("令牌只保存在本机加密存储（Android Keystore），不备份、不上传。推送只带会话引用，内容由 App 通过你自己的 Host 读取。不含统计或广告 SDK。",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 })
@@ -260,7 +260,7 @@ private fun PushRow(endpoint: String?, onDisable: () -> Unit) {
                 runCatching {
                     org.unifiedpush.android.connector.UnifiedPush.tryUseCurrentOrDefaultDistributor(a) { ok ->
                         if (ok) {
-                            org.unifiedpush.android.connector.UnifiedPush.register(a, messageForDistributor = "HuanHermes 审批通知")
+                            org.unifiedpush.android.connector.UnifiedPush.register(a, messageForDistributor = "AgentDeck 审批通知")
                             message = "正在向分发器注册…"
                         } else {
                             message = "没有找到分发器：先安装 ntfy（F-Droid / Play）再试"

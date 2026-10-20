@@ -25,7 +25,7 @@ fun rememberDeviceAuth(): (reason: String, onOk: () -> Unit) -> Unit {
         { reason, onOk ->
             val km = ctx.getSystemService(KeyguardManager::class.java)
             @Suppress("DEPRECATION")
-            val intent = if (km != null && km.isDeviceSecure) km.createConfirmDeviceCredentialIntent("HuanHermes", reason) else null
+            val intent = if (km != null && km.isDeviceSecure) km.createConfirmDeviceCredentialIntent("AgentDeck", reason) else null
             if (intent == null) onOk() else {
                 pending[0] = onOk
                 runCatching { launcher.launch(intent) }.onFailure { pending[0] = null; onOk() }

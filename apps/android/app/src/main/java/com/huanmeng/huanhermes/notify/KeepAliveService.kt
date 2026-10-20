@@ -78,7 +78,7 @@ class KeepAliveService : Service() {
         val stop = PendingIntent.getService(this, 3, Intent(this, KeepAliveService::class.java).setAction(ACTION_STOP), PendingIntent.FLAG_IMMUTABLE)
         return NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_notify)
-            .setContentTitle("HuanHermes 保持连接中")
+            .setContentTitle("AgentDeck 保持连接中")
             .setContentText("有需要你批准的操作会立即通知")
             .setOngoing(true)
             .setSilent(true)
