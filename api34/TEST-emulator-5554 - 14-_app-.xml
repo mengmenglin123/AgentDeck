@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuite name="com.huanmeng.huanhermes.EmulatorFlowTest" tests="8" failures="0" errors="0" skipped="0" time="106.954" timestamp="2026-10-20T03:46:58" hostname="localhost">
+  <properties>
+    <property name="device" value="emulator-5554 - 14" />
+    <property name="flavor" value="" />
+    <property name="project" value=":app" />
+  </properties>
+  <testcase name="a_firstLaunchAddHostAndSessions" classname="com.huanmeng.huanhermes.EmulatorFlowTest" time="10.7" />
+  <testcase name="b2_inboxComposerAndSessionRows" classname="com.huanmeng.huanhermes.EmulatorFlowTest" time="12.314" />
+  <testcase name="b3_quickMessagesSearchExport" classname="com.huanmeng.huanhermes.EmulatorFlowTest" time="17.508" />
+  <testcase name="b_chatStreamingPermissionAndRotation" classname="com.huanmeng.huanhermes.EmulatorFlowTest" time="6.587" />
+  <testcase name="c_otherTabsAndDarkTheme" classname="com.huanmeng.huanhermes.EmulatorFlowTest" time="30.14" />
+  <testcase name="d_offlineQueueAndReconnect" classname="com.huanmeng.huanhermes.EmulatorFlowTest" time="8.875" />
+  <testcase name="e_companionAssetIntact" classname="com.huanmeng.huanhermes.EmulatorFlowTest" time="1.605" />
+  <testcase name="f_localAgentDrivesSshServer" classname="com.huanmeng.huanhermes.EmulatorFlowTest" time="15.47" />
+</testsuite>

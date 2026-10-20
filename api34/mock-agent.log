@@ -1,0 +1,1 @@
+{"ssh_port": 2222, "llm_port": 8799, "host_key": "SHA256:qtEQC3QxJo4xOsYXJ3MpA6BfUz6oTlSyAJQkyu4SbQo", "user": "hh", "password": "hh-test", "workdir": "/tmp/hh-mock-ssh-otviogbd"}
