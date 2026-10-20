@@ -24,6 +24,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.ui.graphics.Shape
+import com.huanmeng.huanhermes.ui.components.Design
+import com.huanmeng.huanhermes.ui.components.Tag
+import com.huanmeng.huanhermes.ui.components.Tint
+import com.huanmeng.huanhermes.ui.components.groupShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -215,9 +221,10 @@ fun SessionsScreen(vm: SessionsViewModel, onOpenHosts: () -> Unit, onOpenChat: (
                         }
                         groups.forEach { group ->
                             stickyHeader(key = "h-${group.key}") { GroupHeader(group.title, group.rows.size) }
-                            items(group.rows, key = { "${group.key}|${it.session.id}" }) { row ->
+                            itemsIndexed(group.rows, key = { _, it -> "${group.key}|${it.session.id}" }) { i, row ->
                                 SessionListRow(
                                     row = row,
+                                    shape = groupShape(i, group.rows.size),
                                     selected = row.session.id == selectedId,
                                     preview = SessionOverview.previewOf(row.session, prefs.drafts[row.session.id]),
                                     time = SessionOverview.relativeTime(row.session.updatedAt, now / 1000.0),
@@ -312,7 +319,7 @@ fun SessionsScreen(vm: SessionsViewModel, onOpenHosts: () -> Unit, onOpenChat: (
 @Composable
 private fun GroupHeader(title: String, count: Int) {
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(start = 28.dp, end = 16.dp, top = 16.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             if (title == "置顶") Icon(Icons.Outlined.PushPin, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
             if (title == "置顶") Spacer(Modifier.width(4.dp))
             Text(title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
@@ -337,6 +344,7 @@ private fun statusLook(s: SessionStatus): StatusLook = when (s) {
 @Composable
 private fun SessionListRow(
     row: SessionRow,
+    shape: Shape,
     selected: Boolean,
     preview: String,
     time: String,
@@ -367,7 +375,7 @@ private fun SessionListRow(
                 label = "swipe-bg",
             )
             Row(
-                Modifier.fillMaxSize().background(bg).padding(horizontal = 24.dp),
+                Modifier.fillMaxSize().padding(horizontal = Design.screenPadding, vertical = Design.gap / 2).clip(shape).background(bg).padding(horizontal = 24.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = if (toEnd) Arrangement.Start else Arrangement.End,
             ) {
@@ -392,8 +400,8 @@ private fun SessionListRow(
         Box {
             ListItem(
                 modifier = Modifier
-                    .padding(horizontal = 12.dp, vertical = 3.dp)
-                    .clip(RoundedCornerShape(20.dp))
+                    .padding(horizontal = Design.screenPadding, vertical = Design.gap / 2)
+                    .clip(shape)
                     .combinedClickable(
                         onClick = onOpen,
                         onLongClick = { onLongPress(); menu = true },
@@ -433,12 +441,17 @@ private fun SessionListRow(
                             style = MaterialTheme.typography.bodySmall,
                             color = if (row.status == SessionStatus.NeedsYou) Brand.warning else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        Text(
-                            listOfNotNull(row.status.label, s.model).joinToString(" · "),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = look.tint,
-                            maxLines = 1,
-                        )
+                        Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Tag(row.status.label, when (row.status) {
+                                SessionStatus.NeedsYou -> Tint.Error
+                                SessionStatus.Running -> Tint.Tertiary
+                                SessionStatus.Unread -> Tint.Primary
+                                else -> Tint.Neutral
+                            })
+                            s.model?.takeIf { it.isNotBlank() }?.let {
+                                Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
                     }
                 },
                 trailingContent = {
@@ -467,7 +480,7 @@ val LocalCompactList = androidx.compose.runtime.staticCompositionLocalOf { false
 private fun QuickStartBar(projects: List<String>, onStart: (project: String, text: String) -> Unit) {
     var text by rememberSaveable { mutableStateOf("") }
     var project by rememberSaveable(projects) { mutableStateOf(projects.firstOrNull().orEmpty()) }
-    Surface(tonalElevation = 3.dp, modifier = Modifier.fillMaxWidth()) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(topStart = Design.outer, topEnd = Design.outer), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
             if (projects.size > 1) LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(bottom = 6.dp)) {
                 items(projects, key = { it }) { p ->

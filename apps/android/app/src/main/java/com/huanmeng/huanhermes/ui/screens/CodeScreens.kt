@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -148,13 +149,20 @@ fun WorkspaceScreen(vm: WorkspaceViewModel, onBack: () -> Unit) {
                 ui.unsupported -> Unsupported("浏览工作区")
                 node is WsNode.Dir -> {
                     Breadcrumb(node.path) { vm.open(it) }
-                    LazyColumn(Modifier.fillMaxSize()) {
+                    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(com.huanmeng.huanhermes.ui.components.Design.gap)) {
                         if (node.entries.isEmpty()) item { Text("空目录", Modifier.padding(24.dp), color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                        items(node.entries, key = { it.name }) { e ->
+                        itemsIndexed(node.entries, key = { _, it -> it.name }) { i, e ->
+                            val shape = com.huanmeng.huanhermes.ui.components.groupShape(i, node.entries.size)
                             ListItem(
-                                modifier = Modifier.clickable { vm.open(Workspace.child(node.path, e.name)) }.testTag("ws-entry-${e.name}"),
-                                colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background),
-                                leadingContent = { Icon(if (e.isDir) Icons.Outlined.Folder else Icons.Outlined.Description, null, tint = if (e.isDir) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant) },
+                                modifier = Modifier.clip(shape).clickable { vm.open(Workspace.child(node.path, e.name)) }.testTag("ws-entry-${e.name}"),
+                                colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+                                leadingContent = {
+                                    com.huanmeng.huanhermes.ui.components.IconBadge(
+                                        if (e.isDir) Icons.Outlined.Folder else Icons.Outlined.Description,
+                                        if (e.isDir) com.huanmeng.huanhermes.ui.components.Tint.Primary else com.huanmeng.huanhermes.ui.components.Tint.Neutral,
+                                        size = 36.dp,
+                                    )
+                                },
                                 headlineContent = { Text(e.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                                 trailingContent = { if (!e.isDir) Text(Workspace.humanSize(e.size), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                             )
@@ -277,11 +285,13 @@ fun GitScreen(
                             ) { Text("提交") }
                         }
                     }
-                    LazyColumn(Modifier.fillMaxWidth().weight(1f), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(st?.files.orEmpty(), key = { it.path }) { f ->
+                    val files = st?.files.orEmpty()
+                    LazyColumn(Modifier.fillMaxWidth().weight(1f), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(com.huanmeng.huanhermes.ui.components.Design.gap)) {
+                        itemsIndexed(files, key = { _, it -> it.path }) { i, f ->
+                            val shape = com.huanmeng.huanhermes.ui.components.groupShape(i, files.size)
                             Card(
-                                Modifier.fillMaxWidth().clickable { vm.openDiff(f.path) }.testTag("git-file-${f.path}"),
-                                shape = RoundedCornerShape(14.dp),
+                                Modifier.fillMaxWidth().clip(shape).clickable { vm.openDiff(f.path) }.testTag("git-file-${f.path}"),
+                                shape = shape,
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
                             ) {
                                 Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {

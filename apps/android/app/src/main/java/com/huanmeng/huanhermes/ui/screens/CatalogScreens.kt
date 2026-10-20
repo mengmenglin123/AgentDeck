@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -137,12 +139,12 @@ fun CatalogScreen(vm: CatalogViewModel, onBack: () -> Unit) {
                 else -> LazyColumn(
                     Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(com.huanmeng.huanhermes.ui.components.Design.gap),
                 ) {
                     item(key = "hint") {
                         Text("${rows.size} 项 · ${kindHint[kind].orEmpty()}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(4.dp))
                     }
-                    items(rows, key = { it.id }) { CatalogRow(it, mono = kind == CatalogKind.LOGS) }
+                    itemsIndexed(rows, key = { _, it -> it.id }) { i, e -> CatalogRow(e, mono = kind == CatalogKind.LOGS, shape = com.huanmeng.huanhermes.ui.components.groupShape(i, rows.size)) }
                     item { Spacer(Modifier.navigationBarsPadding()) }
                 }
             }
@@ -152,14 +154,14 @@ fun CatalogScreen(vm: CatalogViewModel, onBack: () -> Unit) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CatalogRow(e: CatalogEntry, mono: Boolean) {
+private fun CatalogRow(e: CatalogEntry, mono: Boolean, shape: androidx.compose.ui.graphics.Shape) {
     var open by rememberSaveable(e.id) { mutableStateOf(false) }
     val expandable = e.body.isNotBlank() && e.body != e.subtitle || e.details.isNotEmpty() || e.subtitle.length > 80 || e.title.length > 80
     val now = System.currentTimeMillis() / 1000.0
     Card(
-        Modifier.fillMaxWidth().animateContentSize().clickable(enabled = expandable) { open = !open },
+        Modifier.fillMaxWidth().animateContentSize().clip(shape).clickable(enabled = expandable) { open = !open },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
-        shape = RoundedCornerShape(16.dp),
+        shape = shape,
     ) {
         Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -255,7 +257,7 @@ fun DashboardScreen(vm: DashboardViewModel, statusOnly: Boolean, onBack: () -> U
                 }
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        StatTile("需要我", st.pendingAllHosts.toString(), Modifier.weight(1f).clickable(onClick = onOpenInbox), accent = if (st.pendingAllHosts > 0) levelColor("warn") else null)
+                        StatTile("需要我", st.pendingAllHosts.toString(), Modifier.weight(1f).clip(RoundedCornerShape(20.dp)).clickable(onClick = onOpenInbox), accent = if (st.pendingAllHosts > 0) levelColor("warn") else null)
                         StatTile("项目", st.projects.size.toString(), Modifier.weight(1f))
                     }
                 }
