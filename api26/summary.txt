@@ -1,0 +1,3 @@
+release_alive=yes
+connected_rc=0
+sha=66803d52d4ecbf5c20d51baa4cee70e75ff3e956

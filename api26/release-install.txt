@@ -1,0 +1,9 @@
+Performing Streamed Install
+Success
+Starting: Intent { cmp=com.huanmeng.huanhermes/.MainActivity }
+Status: ok
+Activity: com.huanmeng.huanhermes/.MainActivity
+ThisTime: 998
+TotalTime: 998
+WaitTime: 1006
+Complete
