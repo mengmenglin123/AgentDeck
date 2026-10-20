@@ -471,6 +471,11 @@ class EmulatorFlowTest {
         rule.onNodeWithContentDescription("返回对话").performClick()
         rule.waitUntilAtLeastOneExists(hasTestTag("agent-input"), 10_000)
         shot("33b-agent-ready")
+        rule.onNodeWithTag("agent-skill-chip").performClick()
+        rule.waitUntilAtLeastOneExists(hasTestTag("skill-picker"), 10_000)
+        shot("33c-agent-skills")
+        rule.onNodeWithTag("skill-ops").performClick()
+        rule.waitForIdle()
         rule.onNodeWithTag("agent-input").performTextInput("看看服务器")
         rule.onNodeWithTag("agent-send").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
         // `echo … && uname` is not read-only, so the default policy asks first.

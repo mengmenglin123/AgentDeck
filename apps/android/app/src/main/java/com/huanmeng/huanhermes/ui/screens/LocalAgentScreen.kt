@@ -381,7 +381,7 @@ private fun relativeTime(t: Long): String {
 }
 
 private sealed class AgentRow(val key: String) {
-    class User(key: String, val text: String) : AgentRow(key)
+    class User(key: String, val text: String, val files: List<com.huanmeng.huanhermes.core.agent.AgentAttachment> = emptyList()) : AgentRow(key)
     class Reply(key: String, val text: String, val showHeader: Boolean) : AgentRow(key)
     class Tool(key: String, val callId: String) : AgentRow(key)
 }
@@ -395,12 +395,30 @@ private fun AgentChat(ctl: LocalAgentController, settings: LocalAgentSettings, s
     val error by ctl.agent.error.collectAsStateWithLifecycle()
     val approval by ctl.agent.approval.collectAsStateWithLifecycle()
     var input by rememberSaveable { mutableStateOf("") }
+    val pending = remember { androidx.compose.runtime.mutableStateListOf<com.huanmeng.huanhermes.core.agent.AgentAttachment>() }
+    var reading by remember { mutableStateOf(0) }
+    var skillSheet by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val picker = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        uris.take(10).forEach { uri ->
+            reading++
+            scope.launch {
+                val res = ctl.attachments.read(uri)
+                reading--
+                res.attachment?.let { pending.add(it) }
+                res.error?.let { android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_SHORT).show() }
+            }
+        }
+    }
+    val skill = com.huanmeng.huanhermes.core.agent.SkillPacks.find(settings.skillId)
+    if (skillSheet) SkillPickerSheet(settings.skillId, onPick = { ctl.selectSkill(it); skillSheet = false }, onDismiss = { skillSheet = false })
     val list = rememberLazyListState()
     val rows = remember(messages) {
         var lastWasUser = true
         messages.flatMapIndexed { i, m ->
             when (m) {
-                is AgentMessage.User -> { lastWasUser = true; listOf<AgentRow>(AgentRow.User("u$i", m.text)) }
+                is AgentMessage.User -> { lastWasUser = true; listOf<AgentRow>(AgentRow.User("u$i", m.text, m.attachments)) }
                 is AgentMessage.Assistant -> buildList<AgentRow> {
                     if (m.text.isNotBlank()) { add(AgentRow.Reply("a$i", m.text, lastWasUser)); lastWasUser = false }
                     m.toolCalls.forEach { add(AgentRow.Tool("t$i-${it.id}", it.id)); lastWasUser = false }
@@ -413,13 +431,16 @@ private fun AgentChat(ctl: LocalAgentController, settings: LocalAgentSettings, s
     Column(Modifier.fillMaxSize().imePadding()) {
         LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("agent-list"), state = list,
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            if (rows.isEmpty() && streaming == null) item { AgentEmpty(settings.llm.configured, serverCount, onServers, onModel) { input = it } }
+            if (rows.isEmpty() && streaming == null) item { AgentEmpty(settings.llm.configured, serverCount, onServers, onModel, skill, onSkill = { skillSheet = true }) { input = it } }
             items(rows, key = { it.key }) { r ->
                 when (r) {
-                    is AgentRow.User -> Row(Modifier.fillMaxWidth()) {
-                        Spacer(Modifier.weight(1f).widthIn(min = 48.dp))
-                        Surface(shape = RoundedCornerShape(20.dp, 6.dp, 20.dp, 20.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
-                            SelectionContainer { Text(r.text, Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) }
+                    is AgentRow.User -> Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
+                        if (r.files.isNotEmpty()) AttachmentRow(r.files, modifier = Modifier.padding(start = 48.dp, bottom = 4.dp))
+                        if (r.text.isNotBlank()) Row(Modifier.fillMaxWidth()) {
+                            Spacer(Modifier.weight(1f).widthIn(min = 48.dp))
+                            Surface(shape = RoundedCornerShape(20.dp, 6.dp, 20.dp, 20.dp), color = MaterialTheme.colorScheme.primaryContainer) {
+                                SelectionContainer { Text(r.text, Modifier.padding(horizontal = 14.dp, vertical = 10.dp), color = MaterialTheme.colorScheme.onPrimaryContainer) }
+                            }
                         }
                     }
                     is AgentRow.Tool -> activities[r.callId]?.let { a ->
@@ -460,7 +481,9 @@ private fun AgentChat(ctl: LocalAgentController, settings: LocalAgentSettings, s
         }
         AgentComposer(
             input, { input = it }, settings, serverCount, running,
-            onSend = { ctl.send(input); input = "" }, onStop = ctl::stop, onServers = onServers,
+            onSend = { ctl.send(input, pending.toList()); input = ""; pending.clear() }, onStop = ctl::stop, onServers = onServers,
+            pending = pending, reading = reading, onAttach = { picker.launch(arrayOf("*/*")) }, onRemove = { pending.removeAt(it) },
+            skill = skill, onSkill = { skillSheet = true },
             onPolicy = { p -> ctl.saveSettings(settings.copy(policy = p)) },
             onModel = ctl::selectModel, onModelPage = onModel,
         )
@@ -477,22 +500,27 @@ private fun AgentHeader(model: String) {
 }
 
 @Composable
-private fun AgentEmpty(configured: Boolean, serverCount: Int, onServers: () -> Unit, onModel: () -> Unit, onPick: (String) -> Unit) {
+private fun AgentEmpty(configured: Boolean, serverCount: Int, onServers: () -> Unit, onModel: () -> Unit,
+    skill: com.huanmeng.huanhermes.core.agent.SkillPack? = null, onSkill: () -> Unit = {}, onPick: (String) -> Unit) {
     Column(Modifier.fillMaxWidth().padding(top = 28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        IconBadge(Icons.Outlined.SmartToy, Tint.Tertiary, 64.dp)
+        IconBadge(skill?.let { skillIcon(it.icon) } ?: Icons.Outlined.SmartToy, skill?.let { skillTint(it) } ?: Tint.Tertiary, 64.dp)
         Spacer(Modifier.height(14.dp))
-        Text("用一句话管理你的服务器", style = MaterialTheme.typography.titleLarge)
+        Text(skill?.name ?: "你的随身 Agent", style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(6.dp))
-        Text("Agent 在手机上运行，用你自己的模型 Key，通过 SSH 执行命令、读写文件。", style = MaterialTheme.typography.bodyMedium,
+        Text(skill?.description ?: "在手机上运行，用你自己的模型 Key：联网搜索、读文档、算数据，也能通过 SSH 管理服务器。", style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(horizontal = 12.dp))
         Spacer(Modifier.height(20.dp))
         val setup = buildList<@Composable (androidx.compose.ui.graphics.Shape) -> Unit> {
             if (!configured) add { sh -> PrefItem("配置模型", sh, subtitle = "OpenAI 兼容或 Claude 的 API Key", icon = Icons.Outlined.Key, tint = Tint.Primary, onClick = onModel) }
             if (serverCount == 0) add { sh -> PrefItem("添加 SSH 服务器", sh, subtitle = "密码或私钥，只加密保存在本机", icon = Icons.Outlined.Dns, tint = Tint.Secondary, onClick = onServers) }
         }
-        if (setup.isNotEmpty()) Column(verticalArrangement = Arrangement.spacedBy(2.dp)) { setup.forEachIndexed { i, f -> f(groupShape(i, setup.size)) } }
+        if (!configured) Column(verticalArrangement = Arrangement.spacedBy(2.dp)) { setup.forEachIndexed { i, f -> f(groupShape(i, setup.size)) } }
         else {
-            val prompts = listOf("看看所有服务器的磁盘和内存", "nginx 为什么起不来？", "最近 1 小时的错误日志", "把系统更新一下")
+            TextButton(onClick = onSkill, Modifier.testTag("agent-empty-skill")) {
+                Icon(Icons.Outlined.Extension, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(if (skill == null) "选择技能" else "换个技能")
+            }
+            Spacer(Modifier.height(4.dp))
+            val prompts = skill?.starters ?: listOf("今天有什么值得关注的科技新闻？", "帮我算一下 1999 年到现在过了多少天", "总结一下我附上的文档", if (serverCount > 0) "看看所有服务器的磁盘和内存" else "解释一下什么是 MCP")
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 prompts.forEachIndexed { i, p ->
                     Surface(onClick = { onPick(p) }, shape = groupShape(i, prompts.size, 18.dp, 6.dp), color = MaterialTheme.colorScheme.surfaceContainerLow, modifier = Modifier.fillMaxWidth()) {
@@ -512,6 +540,9 @@ private fun AgentComposer(
     input: String, onInput: (String) -> Unit, settings: LocalAgentSettings, serverCount: Int, running: Boolean,
     onSend: () -> Unit, onStop: () -> Unit, onServers: () -> Unit, onPolicy: (ApprovalPolicy) -> Unit,
     onModel: (String, String) -> Unit = { _, _ -> }, onModelPage: () -> Unit = {},
+    pending: List<com.huanmeng.huanhermes.core.agent.AgentAttachment> = emptyList(), reading: Int = 0,
+    onAttach: () -> Unit = {}, onRemove: (Int) -> Unit = {},
+    skill: com.huanmeng.huanhermes.core.agent.SkillPack? = null, onSkill: () -> Unit = {},
 ) {
     var policyMenu by remember { mutableStateOf(false) }
     var picker by remember { mutableStateOf(false) }
@@ -519,6 +550,10 @@ private fun AgentComposer(
     Surface(shape = RoundedCornerShape(26.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, bottom = 8.dp, top = 4.dp)) {
         Column(Modifier.padding(start = 6.dp, end = 6.dp, top = 2.dp, bottom = 6.dp)) {
+            if (pending.isNotEmpty() || reading > 0) Row(Modifier.padding(start = 6.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (reading > 0) { CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp); Spacer(Modifier.width(8.dp)) }
+                AttachmentRow(pending, onRemove)
+            }
             TextField(
                 input, onInput, Modifier.fillMaxWidth().heightIn(max = 200.dp).testTag("agent-input"),
                 placeholder = { Text(if (settings.llm.configured) "让 Agent 帮你做点什么…" else "请先配置模型") },
@@ -529,7 +564,17 @@ private fun AgentComposer(
                 ),
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
+              IconButton(onClick = onAttach, enabled = settings.llm.configured && !running, modifier = Modifier.size(36.dp).testTag("agent-attach")) {
+                  Icon(Icons.Outlined.AttachFile, "添加附件", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+              }
               Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
+                Surface(onClick = onSkill, shape = RoundedCornerShape(50), color = if (skill != null) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest, modifier = Modifier.testTag("agent-skill-chip")) {
+                    Row(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(skillIcon(skill?.icon), null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(4.dp)); Text(skill?.name ?: "技能", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+                Spacer(Modifier.width(6.dp))
                 Surface(onClick = { if (settings.choice != null) picker = true else onModelPage() }, shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.surfaceContainerHighest, modifier = Modifier.testTag("agent-model-chip")) {
                     Row(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Outlined.AutoAwesome, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
@@ -566,7 +611,7 @@ private fun AgentComposer(
               }
                 if (running) FilledIconButton(onClick = onStop, Modifier.testTag("agent-stop"), colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer)) {
                     Icon(Icons.Outlined.Stop, "停止")
-                } else FilledIconButton(onClick = onSend, enabled = input.isNotBlank() && settings.llm.configured, modifier = Modifier.testTag("agent-send")) {
+                } else FilledIconButton(onClick = onSend, enabled = (input.isNotBlank() || pending.isNotEmpty()) && reading == 0 && settings.llm.configured, modifier = Modifier.testTag("agent-send")) {
                     Icon(Icons.Outlined.ArrowUpward, "发送")
                 }
             }
@@ -585,7 +630,7 @@ private fun ToolCard(a: ToolActivity, waiting: Boolean, onAnswer: (Boolean) -> U
         ToolActivity.State.FAILED -> "失败" to Tint.Error
         ToolActivity.State.DENIED -> "已拒绝" to Tint.Neutral
     }
-    val icon = when (a.tool) {
+    val icon = phoneToolIcon(a.tool) ?: when (a.tool) {
         AgentTools.LIST -> Icons.Outlined.Dns
         AgentTools.READ -> Icons.Outlined.Description
         AgentTools.WRITE -> Icons.Outlined.EditNote
@@ -603,7 +648,7 @@ private fun ToolCard(a: ToolActivity, waiting: Boolean, onAnswer: (Boolean) -> U
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(a.server ?: "本机", style = MaterialTheme.typography.labelLarge, color = c.primary)
+                        Text(a.server ?: if (phoneToolIcon(a.tool) != null) "手机" else "本机", style = MaterialTheme.typography.labelLarge, color = c.primary)
                         Spacer(Modifier.width(6.dp)); Tag(label, tint)
                     }
                     Text(a.summary, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall,
@@ -738,6 +783,14 @@ private fun ModelSettings(current: LocalAgentSettings, vm: LocalAgentViewModel, 
                     TextButton(onClick = { confirm = p }) { Icon(Icons.Outlined.Delete, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("删除") }
                 }
             }
+        }
+        item {
+            SettingsGroup("手机工具", items = listOf<@Composable (androidx.compose.ui.graphics.Shape) -> Unit>(
+                { sh -> PrefItem("联网搜索与网页读取", sh, subtitle = "web_search、web_fetch：查资料、读网页", icon = Icons.Outlined.TravelExplore, tint = Tint.Secondary,
+                    onClick = { ctl.saveSettings(current.copy(webTools = !current.webTools)) }, modifier = Modifier.testTag("tool-web")) { Switch(current.webTools, { ctl.saveSettings(current.copy(webTools = it)) }) } },
+                { sh -> PrefItem("JavaScript 沙箱", sh, subtitle = "run_javascript：精确计算、数据处理，无网络无文件", icon = Icons.Outlined.Code, tint = Tint.Tertiary,
+                    onClick = { ctl.saveSettings(current.copy(jsTool = !current.jsTool)) }, modifier = Modifier.testTag("tool-js")) { Switch(current.jsTool, { ctl.saveSettings(current.copy(jsTool = it)) }) } },
+            ))
         }
         item {
             SettingsGroup("执行审批", items = ApprovalPolicy.entries.map<ApprovalPolicy, @Composable (androidx.compose.ui.graphics.Shape) -> Unit> { p ->

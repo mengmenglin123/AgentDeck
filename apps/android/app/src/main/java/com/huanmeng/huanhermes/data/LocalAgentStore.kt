@@ -59,6 +59,11 @@ data class LocalAgentSettings(
     val providers: List<com.huanmeng.huanhermes.core.agent.ProviderConfig> = emptyList(),
     val selectedProvider: String? = null,
     val selectedModel: String? = null,
+    /** Phone-side tools offered to the model. */
+    val webTools: Boolean = true,
+    val jsTool: Boolean = true,
+    /** Built-in skill pack id (SkillPacks), or null for the plain agent. */
+    val skillId: String? = null,
 ) {
     val choice get() = com.huanmeng.huanhermes.core.agent.resolveModel(providers, selectedProvider, selectedModel)
 
@@ -103,12 +108,19 @@ class LocalAgentController(context: Context, private val scope: CoroutineScope) 
         override suspend fun save(raw: String) = secure.write("servers_v1", raw)
     })
 
-    val agent = LocalAgent(servers, conversations = conversations)
-
     private val _settings = MutableStateFlow(LocalAgentSettings())
     val settings: StateFlow<LocalAgentSettings> = _settings
 
     private val http = OkHttpClient.Builder().connectTimeout(20, TimeUnit.SECONDS).readTimeout(180, TimeUnit.SECONDS).build()
+    private val webHttp = http.newBuilder().readTimeout(30, TimeUnit.SECONDS).followRedirects(true).build()
+
+    val agent = LocalAgent(servers, conversations = conversations, phoneTools = {
+        val s = _settings.value
+        com.huanmeng.huanhermes.core.agent.PhoneTools.defaults(webHttp, web = s.webTools, js = s.jsTool)
+    })
+
+    /** Reads picked files into attachments (documents → text, pictures → downscaled JPEG). */
+    val attachments = AttachmentReader(context.applicationContext)
     private var job: Job? = null
     private var loaded: Job? = null
 
@@ -140,11 +152,14 @@ class LocalAgentController(context: Context, private val scope: CoroutineScope) 
 
     suspend fun fetchModels(p: com.huanmeng.huanhermes.core.agent.ProviderConfig): List<String> = com.huanmeng.huanhermes.core.agent.fetchModels(p, http)
 
-    fun send(text: String) {
+    fun send(text: String, files: List<com.huanmeng.huanhermes.core.agent.AgentAttachment> = emptyList()) {
         if (job?.isActive == true) return
         val s = _settings.value
-        job = scope.launch { loaded?.join(); agent.send(text, llmClientFor(s.llm, http), s.policy) }
+        agent.skill = com.huanmeng.huanhermes.core.agent.SkillPacks.find(s.skillId)
+        job = scope.launch { loaded?.join(); agent.send(text, llmClientFor(s.llm, http), s.policy, files) }
     }
+
+    fun selectSkill(id: String?) = saveSettings(_settings.value.copy(skillId = id))
 
     fun stop() { job?.cancel() }
 

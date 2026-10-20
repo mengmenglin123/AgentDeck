@@ -32,6 +32,16 @@ enum class LlmProvider(val label: String, val defaultBaseUrl: String, val defaul
     ANTHROPIC("Anthropic Claude", "https://api.anthropic.com", "claude-sonnet-4-5"),
 }
 
+/** A file the user attached: documents carry extracted [text], pictures a downscaled JPEG/PNG in [imageBase64]. */
+@Serializable
+data class AgentAttachment(
+    val name: String,
+    val mime: String = "application/octet-stream",
+    val text: String? = null,
+    val imageBase64: String? = null,
+    val size: Long = 0,
+)
+
 @Serializable
 data class ToolCall(val id: String, val name: String, val arguments: JsonObject)
 
@@ -39,7 +49,16 @@ data class ToolCall(val id: String, val name: String, val arguments: JsonObject)
 @Serializable
 sealed class AgentMessage {
     @Serializable @kotlinx.serialization.SerialName("user")
-    data class User(val text: String) : AgentMessage()
+    data class User(val text: String, val attachments: List<AgentAttachment> = emptyList()) : AgentMessage() {
+        /** What the model reads: typed text plus every document's extracted text. */
+        fun modelText(): String = buildString {
+            append(text)
+            attachments.filter { it.text != null }.forEach { a ->
+                append("\n\n[附件：").append(a.name).append("]\n").append(a.text)
+            }
+        }.trim()
+        val images get() = attachments.mapNotNull { a -> a.imageBase64?.let { a.mime to it } }
+    }
     @Serializable @kotlinx.serialization.SerialName("assistant")
     data class Assistant(val text: String, val toolCalls: List<ToolCall> = emptyList()) : AgentMessage()
     @Serializable @kotlinx.serialization.SerialName("tool")
@@ -199,7 +218,14 @@ class OpenAiCompatClient(private val settings: LlmSettings, private val http: Ok
                 add(buildJsonObject { put("role", "system"); put("content", system) })
                 messages.forEach { m ->
                     add(when (m) {
-                        is AgentMessage.User -> buildJsonObject { put("role", "user"); put("content", m.text) }
+                        is AgentMessage.User -> buildJsonObject {
+                            put("role", "user")
+                            val imgs = m.images
+                            if (imgs.isEmpty()) put("content", m.modelText()) else put("content", buildJsonArray {
+                                add(buildJsonObject { put("type", "text"); put("text", m.modelText().ifEmpty { "（见图片）" }) })
+                                imgs.forEach { (mime, b64) -> add(buildJsonObject { put("type", "image_url"); put("image_url", buildJsonObject { put("url", "data:$mime;base64,$b64") }) }) }
+                            })
+                        }
                         is AgentMessage.Assistant -> buildJsonObject {
                             put("role", "assistant"); put("content", m.text)
                             if (m.toolCalls.isNotEmpty()) put("tool_calls", buildJsonArray {
@@ -281,7 +307,17 @@ class AnthropicClient(private val settings: LlmSettings, private val http: OkHtt
                 is AgentMessage.ToolResult -> pendingResults += buildJsonObject {
                     put("type", "tool_result"); put("tool_use_id", m.callId); put("content", m.content); if (m.isError) put("is_error", true)
                 }
-                is AgentMessage.User -> { flush(); wire += buildJsonObject { put("role", "user"); put("content", m.text) } }
+                is AgentMessage.User -> {
+                    flush()
+                    wire += buildJsonObject {
+                        put("role", "user")
+                        val imgs = m.images
+                        if (imgs.isEmpty()) put("content", m.modelText()) else put("content", buildJsonArray {
+                            imgs.forEach { (mime, b64) -> add(buildJsonObject { put("type", "image"); put("source", buildJsonObject { put("type", "base64"); put("media_type", mime); put("data", b64) }) }) }
+                            add(buildJsonObject { put("type", "text"); put("text", m.modelText().ifEmpty { "（见图片）" }) })
+                        })
+                    }
+                }
                 is AgentMessage.Assistant -> {
                     flush()
                     wire += buildJsonObject {

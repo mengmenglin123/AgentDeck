@@ -10,8 +10,8 @@ plugins {
 
 // Native versions start at 0.2.0 / versionCode 2000 so they install over the
 // Flutter app (0.1.2xx, versionCode 2xx), which uses the same applicationId and key.
-val nativeVersionName = "0.7.4"
-val nativeVersionCode = 2022
+val nativeVersionName = "0.8.0"
+val nativeVersionCode = 2023
 
 android {
     namespace = "com.huanmeng.huanhermes"
@@ -115,6 +115,8 @@ dependencies {
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
     implementation(libs.zxing.core)
+    // PDF text extraction for agent attachments (Apache-2.0).
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
     // UnifiedPush and sshlib ship JVM tink; security-crypto ships tink-android. Keep one (Android) copy.
     implementation(libs.unifiedpush.connector)
     implementation("com.google.crypto.tink:tink-android:1.23.0")

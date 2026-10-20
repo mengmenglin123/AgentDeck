@@ -12,3 +12,16 @@
 -dontwarn com.google.errorprone.annotations.**
 -dontwarn javax.annotation.**
 -keep class com.huanmeng.huanhermes.core.**.*$$serializer { *; }
+
+# Rhino (local agent JS sandbox) loads parts of its runtime reflectively.
+-keep class org.mozilla.javascript.** { *; }
+-dontwarn org.mozilla.javascript.**
+-dontwarn javax.lang.model.**
+-dontwarn java.beans.**
+-dontwarn jdk.dynalink.**
+# pdfbox-android optional JPEG2000 decoder.
+-dontwarn com.gemalto.jp2.**
+-keep class com.tom_roush.pdfbox.** { *; }
+-keep class com.tom_roush.fontbox.** { *; }
+# jsoup optional re2j.
+-dontwarn com.google.re2j.**

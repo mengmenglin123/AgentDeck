@@ -17,6 +17,9 @@ dependencies {
     implementation(libs.commonmark.gfm.strikethrough)
     implementation(libs.commonmark.task.list)
     implementation(libs.commonmark.autolink)
+    // Phone-side agent tools: HTML/XML to text (MIT) and a sandboxed JS interpreter (MPL-2.0).
+    api("org.jsoup:jsoup:1.18.1")
+    api("org.mozilla:rhino:1.7.15")
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)

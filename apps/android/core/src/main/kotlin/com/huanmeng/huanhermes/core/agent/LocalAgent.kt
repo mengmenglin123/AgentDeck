@@ -129,7 +129,13 @@ class LocalAgent(
     private val connector: SshConnector = SshConnector.Trilead,
     val conversations: ConversationRepository? = null,
     private val maxSteps: Int = 16,
+    /** Phone-side tools (web, JS, clock); read each run so settings toggles apply. */
+    private val phoneTools: () -> List<PhoneTool> = { emptyList() },
 ) {
+    /** Built-in skill pack added to the system prompt, or null. */
+    @Volatile var skill: SkillPack? = null
+    private var activeTools: List<PhoneTool> = emptyList()
+
     private val _messages = MutableStateFlow<List<AgentMessage>>(emptyList())
     val messages: StateFlow<List<AgentMessage>> = _messages
     private val _activities = MutableStateFlow<Map<String, ToolActivity>>(emptyMap())
@@ -193,12 +199,15 @@ class LocalAgent(
 
     fun answerApproval(ok: Boolean) { _approval.value?.answer?.complete(ok) }
 
-    fun systemPrompt(list: List<SshServer>): String = buildString {
-        appendLine("你是 HuanHermes 手机里的本地运维 Agent，通过 SSH 帮用户管理他们保存的服务器。")
-        appendLine("用中文回答，简洁直接。先用只读命令了解情况再动手；修改配置前先备份；危险或不可逆的操作（删除数据、重启、停服务、改防火墙）先说明影响。")
+    fun systemPrompt(list: List<SshServer>, tools: List<PhoneTool> = activeTools): String = buildString {
+        appendLine("你是 AgentDeck 手机里的本地 Agent：可以通过 SSH 管理用户保存的服务器，也可以用手机上的工具完成通用任务。")
+        appendLine("用中文回答，简洁直接，善用 Markdown。需要事实、最新信息或精确计算时调用工具，不要凭空编造。")
+        if (tools.isNotEmpty()) appendLine("手机工具：" + tools.joinToString("、") { it.spec.name } + "。")
+        appendLine("SSH：先用只读命令了解情况再动手；修改配置前先备份；危险或不可逆的操作（删除数据、重启、停服务、改防火墙）先说明影响。")
         appendLine("命令必须是非交互式的（不要 vim、less、top 不带 -b、tail -f）；长输出用 head/tail 截取；需要 root 用 sudo -n。")
         appendLine("用户可能拒绝某次工具调用，这时换个办法或询问用户。完成后用几句话总结做了什么和结果。")
-        if (list.isEmpty()) appendLine("用户还没有保存任何服务器，请提示他先在「服务器」页添加。")
+        skill?.let { appendLine(it.prompt) }
+        if (list.isEmpty()) appendLine("用户还没有保存 SSH 服务器；需要操作服务器时提示他先在「服务器」页添加，其它任务照常完成。")
         else {
             appendLine("可用服务器：")
             list.forEach { appendLine("- ${it.name}（${it.label()}）" + it.note.takeIf { n -> n.isNotBlank() }?.let { n -> "：$n" }.orEmpty()) }
@@ -206,19 +215,20 @@ class LocalAgent(
     }
 
     /** Sends [text] and runs the loop to completion. Cancel the calling coroutine to stop. */
-    suspend fun send(text: String, client: LlmClient, policy: ApprovalPolicy) {
-        if (_running.value || text.isBlank()) return
+    suspend fun send(text: String, client: LlmClient, policy: ApprovalPolicy, attachments: List<AgentAttachment> = emptyList()) {
+        if (_running.value || (text.isBlank() && attachments.isEmpty())) return
         _running.value = true; _error.value = null
         val sessions = mutableMapOf<String, SshRunner>()
+        activeTools = phoneTools()
         try {
-            append(AgentMessage.User(text.trim()))
+            append(AgentMessage.User(text.trim(), attachments))
             val list = servers.load()
             var steps = 0
             while (true) {
                 if (steps++ >= maxSteps) { _error.value = "已达到单次最多 $maxSteps 轮，先停下了。可以回复「继续」。"; break }
                 _streaming.value = ""
                 val turn = try {
-                    client.stream(systemPrompt(list), contextWindow(), AgentTools.specs) { delta -> _streaming.value = (_streaming.value ?: "") + delta }
+                    client.stream(systemPrompt(list), contextWindow(), AgentTools.specs + activeTools.map { it.spec }) { delta -> _streaming.value = (_streaming.value ?: "") + delta }
                 } finally { _streaming.value = null }
                 append(AgentMessage.Assistant(turn.text, turn.toolCalls))
                 if (turn.toolCalls.isEmpty()) break
@@ -278,8 +288,28 @@ class LocalAgent(
             RUN -> a.s("command")
             READ -> "读取 " + a.s("path")
             WRITE -> "写入 " + a.s("path") + "（${a.s("content").length} 字符）"
-            else -> call.name
+            else -> (activeTools + phoneTools()).firstOrNull { it.spec.name == call.name }?.summarize(a) ?: call.name
         }
+    }
+
+    private suspend fun runPhoneTool(call: ToolCall, tool: PhoneTool, policy: ApprovalPolicy): AgentMessage.ToolResult {
+        val act = ToolActivity(call.id, call.name, null, tool.summarize(call.arguments), ToolActivity.State.RUNNING)
+        val ask = when (policy) { ApprovalPolicy.NEVER -> false; ApprovalPolicy.ALWAYS -> true; ApprovalPolicy.SAFE_AUTO -> !tool.readOnly }
+        if (ask) {
+            val waiting = act.copy(state = ToolActivity.State.WAITING_APPROVAL)
+            setActivity(waiting)
+            val answer = CompletableDeferred<Boolean>()
+            _approval.value = ApprovalRequest(waiting, answer)
+            val ok = try { answer.await() } finally { _approval.value = null }
+            if (!ok) {
+                setActivity(act.copy(state = ToolActivity.State.DENIED, output = "用户拒绝"))
+                return AgentMessage.ToolResult(call.id, call.name, "用户拒绝执行这次操作。", true)
+            }
+        }
+        setActivity(act)
+        val (text, err) = try { tool.run(call.arguments) } catch (e: CancellationException) { throw e } catch (e: Exception) { (e.message ?: e.javaClass.simpleName) to true }
+        setActivity(act.copy(state = if (err) ToolActivity.State.FAILED else ToolActivity.State.DONE, output = text))
+        return AgentMessage.ToolResult(call.id, call.name, text, err)
     }
 
     private suspend fun execute(call: ToolCall, policy: ApprovalPolicy, sessions: MutableMap<String, SshRunner>): AgentMessage.ToolResult = with(AgentTools) {
@@ -288,6 +318,7 @@ class LocalAgent(
         val base = ToolActivity(call.id, call.name, serverName, summarize(call), ToolActivity.State.RUNNING)
         fun fail(msg: String): AgentMessage.ToolResult { setActivity(base.copy(state = ToolActivity.State.FAILED, output = msg)); return AgentMessage.ToolResult(call.id, call.name, msg, true) }
 
+        activeTools.firstOrNull { it.spec.name == call.name }?.let { tool -> return runPhoneTool(call, tool, policy) }
         if (call.name !in setOf(LIST, RUN, READ, WRITE)) return fail("未知工具：${call.name}")
         if (call.name == LIST) {
             val out = buildJsonArray {
