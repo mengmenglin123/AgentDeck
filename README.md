@@ -2,7 +2,7 @@
 
 **在手机上指挥你服务器上的 AI 编程 Agent。**
 
-AgentDeck（原名 HuanHermes）是一个原生 Android 应用（Kotlin + Jetpack Compose），配一个装在服务器上的轻量 Host。手机负责看、批、聊；真正干活的 Claude Code / Codex / Hermes 留在你自己的服务器上，代码和密钥都不离开你的机器。
+AgentDeck是一个原生 Android 应用（Kotlin + Jetpack Compose），配一个装在服务器上的轻量 Host。手机负责看、批、聊；真正干活的 Claude Code / Codex / Hermes 留在你自己的服务器上，代码和密钥都不离开你的机器。
 
 [⬇️ 下载最新 APK](https://github.com/mengmenglin123/AgentDeck/releases/latest) · [协议文档](docs/protocol/) · [发布记录](CHANGELOG.md)
 
